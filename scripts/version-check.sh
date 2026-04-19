@@ -43,13 +43,20 @@ fi
 if [[ "$local_version" == "$latest_tag" ]]; then
   echo "Template up to date: $local_version."
 else
+  release_url="$upstream/releases/tag/$latest_tag"
+  changelog_url="$upstream/blob/main/CHANGELOG.md"
   cat <<EOF
 ====================================================================
 Template upgrade available: $local_version → $latest_tag
-To apply: scripts/upgrade.sh
-Read upstream CHANGELOG.md for migration notes before upgrading.
-User-added agents (e.g. sme-<domain>.md) are preserved.
-Customized standard agents are flagged — you decide per-file.
+
+  Release notes:  $release_url
+  Full changelog: $changelog_url
+
+To apply:   scripts/upgrade.sh           (add --dry-run to preview)
+
+User-added agents (sme-<domain>.md), filled PM artifacts (docs/pm/*),
+and anything listed in .template-customizations are preserved.
+Customized standard files are flagged — you decide per-file.
 ====================================================================
 EOF
 fi

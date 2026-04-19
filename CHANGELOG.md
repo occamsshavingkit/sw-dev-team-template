@@ -16,6 +16,22 @@ filed upstream include that version.
 
 ---
 
+## v0.5.2 — 2026-04-19
+
+### Changed
+- `scripts/version-check.sh` — the upgrade-available banner now
+  includes direct links to the GitHub release page for the new
+  version and to `CHANGELOG.md` on `main`, so the customer can read
+  what changed before deciding to run `upgrade.sh`.
+- Banner copy mentions `.template-customizations` as a preserve
+  mechanism alongside user-added agents and PMBOK artifacts.
+- `VERSION`: `v0.5.1` → `v0.5.2`.
+
+### Notes
+- Pure message-copy change. No behaviour or file change.
+
+---
+
 ## v0.5.1 — 2026-04-19
 
 ### Added
