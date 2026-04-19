@@ -8,6 +8,13 @@ ask them **one per turn** with all agents idle (see
 
 ## Minimum queue
 
+0. **(Step-1 follow-up) Specialized skills / watch-items.** Beyond
+   the Step-1 skill-pack catalog, are there any specialized skills,
+   plugins, MCP servers, agent packs, or tools you want installed
+   for this project, or anything specific the team should watch for
+   (a known risk in your domain, a style convention, a safety-
+   critical behaviour)? Names get verified by `researcher` and
+   installed / tracked.
 1. **Project summary.** What are we building, for whom, on what stack,
    and what counts as "done" for the first milestone?
 2. **Domain SMEs.** Does this project need domain SMEs? Candidate

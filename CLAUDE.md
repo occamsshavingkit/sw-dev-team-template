@@ -162,6 +162,23 @@ Rules:
   do not silently pick one.
 - Sources verified 2026-04-18; repos move.
 
+After the user picks from the catalog, ask **one atomic follow-up
+question, agents idle**:
+
+> Beyond the catalog above, are there any specialized skills,
+> plugins, MCP servers, agent packs, or tools you already know you
+> want installed for this project? Or anything specific you want the
+> team to watch for / file an issue about (e.g., a known risk in your
+> domain, a style convention, a safety-critical behaviour)? Name
+> them — I'll look them up and either install, or open a tracking
+> item in `docs/OPEN_QUESTIONS.md` for something to watch.
+
+Record the answer in `CUSTOMER_NOTES.md` (specialized skills or
+watch-items are customer-domain facts). For each named skill:
+verify the current install command via `researcher` before running;
+for each watch-item, open an `OPEN_QUESTIONS.md` row with answerer
+set to the right specialist agent.
+
 ### Step 2 — Project scoping + SME discovery
 
 Once skills are settled, `tech-lead` runs the scoping conversation with the

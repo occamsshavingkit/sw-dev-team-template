@@ -34,16 +34,34 @@ if [[ ! -f "$new_project" && -d "$PROJECT_ROOT/docs/glossary" ]]; then
   fi
 fi
 
-# References to the old single-file path should be rewritten in any
-# project-root markdown (CLAUDE.md, README.md, docs/templates/*). This
-# is a best-effort rewrite — it won't touch hand-written customizations
-# that mean to refer to something else.
-if grep -rl 'docs/GLOSSARY\.md' "$PROJECT_ROOT" --include='*.md' 2>/dev/null \
-   | grep -v '/docs/glossary/' >/dev/null; then
-  rewrote=0
-  while IFS= read -r f; do
-    sed -i.bak 's|docs/GLOSSARY\.md|docs/glossary/ENGINEERING.md|g' "$f" && rm -f "$f.bak"
+# References to the old single-file path are rewritten in the project's
+# own markdown tree only. Nested git repos (e.g., a `sw-dev-team-template`
+# working copy living inside the project dir) are skipped so we do not
+# mutate a sibling project's files.
+md_files=$(find "$PROJECT_ROOT" -mindepth 1 \
+  \( -name '.git' -type d -prune \) -o \
+  \( -type d -exec test -d '{}/.git' ';' -prune \) -o \
+  \( -type f -name '*.md' -print \) 2>/dev/null)
+
+# Further filter: skip files inside docs/glossary/ (the new location —
+# those files legitimately contain the new path and must not be touched).
+rewrote=0
+while IFS= read -r f; do
+  [[ -z "$f" ]] && continue
+  case "$f" in
+    */docs/glossary/*) continue ;;
+  esac
+  # Only touch files that actually reference the old path.
+  grep -q 'docs/GLOSSARY\.md' "$f" 2>/dev/null || continue
+  # And only if what they reference looks like a bare path reference, not a
+  # quoted string inside a human-readable log entry. Heuristic: rewrite
+  # only lines where the path appears outside a backquoted-string context
+  # that also contains `docs/glossary/`. (Cheap: skip lines where both
+  # paths appear.)
+  if grep -E 'docs/GLOSSARY\.md' "$f" | grep -v 'docs/glossary/' > /dev/null; then
+    sed -i.bak -e '/docs\/glossary\//!s|docs/GLOSSARY\.md|docs/glossary/ENGINEERING.md|g' "$f" \
+      && rm -f "$f.bak"
     rewrote=1
-  done < <(grep -rl 'docs/GLOSSARY\.md' "$PROJECT_ROOT" --include='*.md' 2>/dev/null | grep -v '/docs/glossary/' || true)
-  [[ $rewrote -eq 1 ]] && echo "  rewrote references: docs/GLOSSARY.md → docs/glossary/ENGINEERING.md"
-fi
+  fi
+done <<< "$md_files"
+[[ $rewrote -eq 1 ]] && echo "  rewrote references: docs/GLOSSARY.md → docs/glossary/ENGINEERING.md"
