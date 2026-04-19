@@ -64,6 +64,7 @@ tar --exclude='./.git' \
     --exclude='./CONTRIBUTING.md' \
     --exclude='./LICENSE' \
     --exclude='./dryrun-project' \
+    --exclude='./examples' \
     --exclude='./.github' \
     --exclude='./migrations' \
     --exclude='./scripts/smoke-test.sh' \

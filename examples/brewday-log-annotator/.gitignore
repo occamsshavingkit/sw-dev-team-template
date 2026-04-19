@@ -1,0 +1,30 @@
+# Claude Code session/cache ephemera (tool-created, not user-edited)
+.claude/cache/
+.claude/history/
+.claude/sessions/
+.claude/tmp/
+
+# SME local-only material — per IP policy, external/copyrighted material
+# stays out of the repo. Cited in docs/sme/<domain>/INVENTORY.md.
+docs/sme/*/local/
+docs/sme/local/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.swp
+
+# Common build/env artifacts (adjust to your stack)
+node_modules/
+__pycache__/
+*.pyc
+*.log
+.env
+.env.local
+dist/
+build/
+target/

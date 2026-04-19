@@ -137,7 +137,7 @@ fi
 # files that downstream projects should never receive).
 ship_files=$(cd "$workdir/new" && git ls-files \
   | grep -vE '^(VERSION|CHANGELOG\.md|CONTRIBUTING\.md|LICENSE)$' \
-  | grep -vE '^(\.github/|dryrun-project/|migrations/)' \
+  | grep -vE '^(\.github/|dryrun-project/|examples/|migrations/)' \
   | grep -vE '^scripts/smoke-test\.sh$')
 
 # --- Load customization preserve-list ----------------------------------------

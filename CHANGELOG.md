@@ -16,6 +16,30 @@ filed upstream include that version.
 
 ---
 
+## v0.7.0 — 2026-04-19
+
+### Added
+- `examples/` directory: fully-filled-in reference projects that
+  illustrate how the registers and PM artifacts look when actually
+  populated. `examples/README.md` catalogs them.
+- `examples/brewday-log-annotator/`: promoted from the v0.1.0
+  dry-run (`dryrun-project/` in the template-dev workspace). Shows
+  scoping flow end-to-end, classical-composers naming, and a filled
+  project charter.
+
+### Changed
+- `scripts/scaffold.sh`, `scripts/upgrade.sh`, `scripts/smoke-test.sh`
+  all exclude `examples/` from downstream scaffolding / upgrading
+  (it is reference material for the template repo, not content
+  shipped to new projects). Smoke-test grew two new exclusion
+  checks (scaffold and upgrade); 41 checks total.
+- `VERSION`: `v0.6.2` → `v0.7.0`.
+
+### Notes
+- Additive. No migration needed.
+
+---
+
 ## v0.6.2 — 2026-04-19
 
 ### Added

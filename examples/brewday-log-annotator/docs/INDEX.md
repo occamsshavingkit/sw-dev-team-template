@@ -8,19 +8,7 @@ Keep alphabetized within each section.
 
 | File | Purpose |
 |---|---|
-| `CLAUDE.md` | Project guide; Claude reads this every session. FIRST ACTIONS (skill packs → scoping → naming → issue-feedback opt-in), agent roster, hard rules. |
-| `VERSION` | Current template version (SemVer). Downstream projects stamp `TEMPLATE_VERSION` from this. |
-| `CHANGELOG.md` | Release history. MAJOR / MINOR / PATCH semantics. |
-| `scripts/scaffold.sh` | Scaffolds a new downstream project from this template. |
-| `scripts/version-check.sh` | Session-start hook; compares `TEMPLATE_VERSION` against upstream and prints a banner if an upgrade is available. |
-| `scripts/upgrade.sh` | Upgrades a scaffolded project to the latest template version. Respects user-added agents / SMEs; flags customized standard files for review. |
-| `scripts/smoke-test.sh` | End-to-end sanity check on scaffold + version-check. Template-maintenance tool; not shipped to downstream projects. |
-| `examples/README.md` | Catalog of filled-in reference projects (not shipped to downstream). |
-| `migrations/README.md` | Per-version migration-script contract. |
-| `migrations/TEMPLATE.sh` | Scaffold for writing a new migration. |
-| `migrations/vX.Y.Z.sh` | Per-release migration (file moves / renames / shape changes); most releases do not ship one. |
-| `CONTRIBUTING.md` | How to propose changes to the template (template-repo-local; not carried to downstream projects). |
-| `.github/ISSUE_TEMPLATE/framework-gap.yml` | GitHub issue form for framework-gap reports. |
+| `CLAUDE.md` | Project guide; Claude reads this every session. FIRST ACTIONS (skill packs → scoping → naming), agent roster, hard rules. |
 | `CUSTOMER_NOTES.md` | Append-only log of customer answers, verbatim, stewarded by `researcher`. |
 | `README.md` | Human-facing overview of the template. |
 | `SW_DEV_ROLE_TAXONOMY.md` | Binding role vocabulary (SWEBOK / ISO 12207 / IEEE 1028 / ISTQB / SFIA v9 / Google SRE / PMBOK). |
@@ -32,7 +20,6 @@ Keep alphabetized within each section.
 | `docs/INDEX.md` | This file. |
 | `docs/AGENT_NAMES.md` | Canonical role → teammate name → pronouns mapping; rules for picking names and respecting pronouns. |
 | `docs/OPEN_QUESTIONS.md` | Register of open questions with ID / answerer / status / resolution. Stewarded by `researcher`. |
-| `docs/ISSUE_FILING.md` | Convention for filing framework gaps against the upstream template repo (includes template-version citation). |
 
 ## `docs/glossary/`
 

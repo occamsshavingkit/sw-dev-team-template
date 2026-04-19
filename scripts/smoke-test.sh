@@ -78,6 +78,7 @@ check "LICENSE not carried"           test ! -f "$target/LICENSE"
 check "CONTRIBUTING.md not carried"   test ! -f "$target/CONTRIBUTING.md"
 check ".github not carried"           test ! -d "$target/.github"
 check "dryrun-project not carried"    test ! -d "$target/dryrun-project"
+check "examples/ not carried"         test ! -d "$target/examples"
 check "migrations not carried"        test ! -d "$target/migrations"
 check "scripts/smoke-test.sh not carried (template tool)"  test ! -f "$target/scripts/smoke-test.sh"
 
@@ -141,6 +142,7 @@ if timeout 5 git ls-remote --tags --refs "$probe_url" >/dev/null 2>&1; then
   check "no VERSION after upgrade"                test ! -f "$target/VERSION"
   check "no CONTRIBUTING.md after upgrade"        test ! -f "$target/CONTRIBUTING.md"
   check "no migrations/ after upgrade"            test ! -d "$target/migrations"
+  check "no examples/ after upgrade"              test ! -d "$target/examples"
   check "no .github/ after upgrade"               test ! -d "$target/.github"
 
   # TEMPLATE_VERSION stamped to current
