@@ -53,3 +53,11 @@ issues)
   in progress at release.
 - Upstream GitHub repo URL: `https://github.com/occamsshavingkit/sw-dev-team-template`
   (private; created 2026-04-19).
+
+### Known gaps (filed as issues)
+
+- [#1](https://github.com/occamsshavingkit/sw-dev-team-template/issues/1)
+  No scaffold script; template-repo state leaks into new projects
+  that copy the template manually.
+- [#2](https://github.com/occamsshavingkit/sw-dev-team-template/issues/2)
+  Pronoun-verification procedure for `researcher` is undefined.
