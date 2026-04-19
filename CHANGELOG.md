@@ -16,6 +16,28 @@ filed upstream include that version.
 
 ---
 
+## v0.7.1 — 2026-04-19
+
+### Added
+- `CLAUDE.md` § "SME scope: what is and is not an SME (binding)" —
+  draws the boundary between SME agents (customer-specific or
+  externally-held knowledge) and `researcher` (standards-based +
+  public Tier-1 retrieval). Stops the template from spawning
+  redundant "sme-swe-standards" or "sme-pmbok" agents that would
+  duplicate and drift from their upstream sources.
+- `sme-template.md` front-matter gained a pointer to the scope
+  boundary so every new SME agent makes the check before creation.
+
+### Notes
+- Gate 2 on the path to v1.0.0-rc1 now closed. Agent-file audit
+  (gate 1) was reviewed and the existing agent files already meet
+  the bar; no rewrites needed.
+
+### Changed
+- `VERSION`: `v0.7.0` → `v0.7.1`.
+
+---
+
 ## v0.7.0 — 2026-04-19
 
 ### Added

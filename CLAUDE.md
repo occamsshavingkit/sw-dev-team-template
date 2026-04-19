@@ -342,6 +342,44 @@ entries across the roster must all match. Once created, `researcher`
 seeds `docs/sme/<domain>/INVENTORY.md` from `docs/sme/INVENTORY-template.md`
 so external-material tracking is in place from day one.
 
+### SME scope: what is and is not an SME (binding)
+
+SME agents exist to cache **customer-specific** or
+**externally-held** domain knowledge — facts that are not
+independently discoverable from standards or public Tier-1 sources
+and must instead be extracted from the customer or a named external
+expert:
+
+- Process knowledge unique to the customer's site or operation.
+- Vendor- or platform-specific conventions the customer runs
+  internally.
+- Regulatory / compliance interpretation the customer has adopted
+  (the standard itself lives in `researcher` territory; how *this*
+  customer applies it is SME territory).
+- Legacy-system archaeology specific to the customer's install.
+- Codenames, internal terminology, and business rules that are not
+  written down outside the customer's own notes.
+
+SME agents are **not** the right home for knowledge that is already
+authoritatively public:
+
+- SWEBOK, IEEE 1028, ISTQB, PMBOK, SFIA, ISO/IEC/IEEE — these are
+  `researcher`'s domain; do not stand up an "sme-swe-standards" or
+  "sme-pmbok" agent.
+- Official vendor documentation (framework docs, CLI references,
+  API specs) — `researcher` retrieves and cites.
+- Public academic consensus or textbook patterns — `researcher`.
+
+If the only content an SME agent would hold is "what SWEBOK § X says
+about Y," the agent should not exist; route the question to
+`researcher` instead. Creating standards-based SMEs produces
+duplicate-and-drift risk against public sources.
+
+**Rule of thumb.** If a Tier-1 public source can answer the question
+correctly out of the box, `researcher` owns it. If the answer depends
+on the customer telling us, it is SME territory — or escalates to
+the customer via `tech-lead`.
+
 ## Agent-teams panel
 
 This project assumes the Claude Code experimental **agent-teams** feature

@@ -16,6 +16,13 @@ conventions, ledger mapping rules, and month-end close procedures at the
 Acme Finance team. NOT expert in general accounting principles beyond
 what Acme has documented, tax law, or other customers' conventions.">
 
+**SME-vs-researcher boundary** (see `CLAUDE.md` § "SME scope"). If the
+body of knowledge this agent would hold is already covered
+authoritatively by SWEBOK / ISO / IEEE / ISTQB / SFIA / PMBOK or by
+official vendor docs, STOP — route to `researcher` instead. SME
+agents exist for customer-specific or externally-held knowledge that
+is not independently discoverable from public Tier-1 sources.
+
 ## Knowledge sources (cite every fact to one of these)
 
 - `CUSTOMER_NOTES.md` — entries tagged `<domain-tag>`.
