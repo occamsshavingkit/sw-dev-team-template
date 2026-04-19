@@ -137,11 +137,34 @@ ship_files=$(cd "$workdir/new" && git ls-files \
   | grep -vE '^(VERSION|CHANGELOG\.md|CONTRIBUTING\.md)$' \
   | grep -vE '^(\.github/|dryrun-project/|migrations/)')
 
-added=(); upgraded=(); kept=(); conflicts=()
+# --- Load customization preserve-list ----------------------------------------
+# Projects can declare files they have permanently customized by listing them
+# (one path per line, project-root-relative) in .template-customizations.
+# Those paths are skipped entirely by upgrade: never overwritten, never
+# flagged as conflicts.
+declare -A preserve_list=()
+customizations_file="$project_root/.template-customizations"
+if [[ -f "$customizations_file" ]]; then
+  while IFS= read -r line; do
+    # Strip comments and blanks.
+    line="${line%%#*}"
+    line="$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+    [[ -z "$line" ]] && continue
+    preserve_list["$line"]=1
+  done < "$customizations_file"
+fi
+
+added=(); upgraded=(); kept=(); conflicts=(); preserved=()
 
 for f in $ship_files; do
   new_path="$workdir/new/$f"
   proj_path="$project_root/$f"
+
+  # Honor .template-customizations: skip preserved paths entirely.
+  if [[ -n "${preserve_list[$f]:-}" ]]; then
+    preserved+=("$f")
+    continue
+  fi
 
   if [[ ! -f "$proj_path" ]]; then
     added+=("$f")
@@ -227,6 +250,12 @@ user_added_agents=$(find "$project_root/.claude/agents" -maxdepth 1 -name 'sme-*
 if [[ -n "$user_added_agents" ]]; then
   echo "${prefix}User-added SME agents preserved:"
   echo "$user_added_agents" | sed 's/^/  · /'
+  echo
+fi
+
+if [[ ${#preserved[@]} -gt 0 ]]; then
+  echo "${prefix}Preserved per .template-customizations (${#preserved[@]}):"
+  for f in "${preserved[@]}"; do echo "  = $f"; done
   echo
 fi
 

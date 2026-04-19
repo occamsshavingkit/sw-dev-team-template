@@ -171,6 +171,28 @@ $template_sha
 $today
 EOF
 
+# --- Seed empty .template-customizations -------------------------------------
+cat > "$target/.template-customizations" <<'EOF'
+# .template-customizations — one path per line (project-root-relative).
+#
+# Paths listed here are PERMANENTLY customized by this project. During
+# scripts/upgrade.sh, they are:
+#   - never overwritten with upstream content
+#   - never flagged as conflicts
+#   - reported as "preserved" in the upgrade summary
+#
+# Common candidates: .gitignore (if you added project-specific ignores),
+# README.md (if you rewrote the project stub), docs/templates/<name>.md
+# (if you adapted a template to your project's shape).
+#
+# SME agents (.claude/agents/sme-<domain>.md), all of docs/pm/*.md, and
+# any other file the template does not ship are ALREADY preserved by
+# default — they don't need to be listed here.
+#
+# Blank lines and lines starting with # are ignored.
+
+EOF
+
 # --- Replace template README with project stub -------------------------------
 cat > "$target/README.md" <<EOF
 # $project_name

@@ -95,6 +95,15 @@ per-project) are never touched. Project-filled PMBOK artifacts under
 `docs/pm/` are never touched. Any other file the project added that
 the template does not ship is left alone.
 
+**Permanent customizations.** Files the project has **permanently**
+customized (e.g., a `.gitignore` with project-specific entries, a
+rewritten `README.md`, or adapted templates) can be listed one-per-
+line in `.template-customizations` at the project root. Listed paths
+are never overwritten and never flagged as conflicts; they appear as
+`preserved` in the upgrade summary. The scaffold seeds this file
+empty; populate it the first time an upgrade flags a legitimate
+customization you want to keep.
+
 `--dry-run` prints the plan without writing. Use it before the real
 upgrade on any project where the conflict set is non-trivial.
 

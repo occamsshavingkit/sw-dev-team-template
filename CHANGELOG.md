@@ -16,6 +16,32 @@ filed upstream include that version.
 
 ---
 
+## v0.5.0 — 2026-04-19
+
+### Added
+- `.template-customizations` mechanism: downstream projects can list
+  paths (one per line, project-root-relative) that are permanently
+  customized. `scripts/upgrade.sh` skips listed paths entirely —
+  never overwrites, never flags as a conflict — and reports them as
+  `preserved` in the upgrade summary. `scripts/scaffold.sh` seeds
+  the file empty with a header documenting the convention.
+- `CLAUDE.md` § "Permanent customizations" documents the mechanism.
+
+### Changed
+- `scripts/upgrade.sh` reads `.template-customizations` before the
+  file-sync loop and routes listed paths into a new `preserved`
+  category. No behaviour change for projects without the file.
+- `VERSION`: `v0.4.1` → `v0.5.0`.
+
+### Notes
+- Additive. Existing projects continue to work; they opt in to the
+  preserve-list by creating the file. Legitimate repeated conflicts
+  like a project-specific `.gitignore`, `README.md`, or a rewritten
+  standard template can go in the list and stop nagging on every
+  upgrade.
+
+---
+
 ## v0.4.1 — 2026-04-19
 
 ### Fixed
