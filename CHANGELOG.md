@@ -16,6 +16,52 @@ filed upstream include that version.
 
 ---
 
+## v1.0.0-rc2 — 2026-04-19
+
+Second release candidate. Adds the agent-health and respawn
+protocol that the rc cycle surfaced as a gap once named
+teammates became a first-class concept.
+
+### Added
+- `docs/agent-health-contract.md` — binding. Failure modes,
+  ten-signal detection taxonomy (passive + mechanical),
+  ground-truth health-check protocol with fixed prompt and
+  grading rubric, respawn protocol, and a three-layer
+  self-diagnosis for `tech-lead` (scheduled by `project-manager`
+  at milestone close; peer-triggered by `architect` /
+  `researcher` / `project-manager`; customer as ultimate
+  backstop at milestone close).
+- `docs/templates/handover-template.md` — shape of a respawn
+  handover brief. Every claim cites file + line; a brief with
+  unresolved citations is not respawnable.
+- `scripts/agent-health.sh` — assembles a health-check packet
+  (fixed prompt + filesystem ground-truth snapshot). Delegates
+  grading to the auditor per § 3.2.
+- `scripts/respawn.sh` — stubs a handover-brief file pre-filled
+  with filesystem context, prints the respawn checklist.
+- `.claude/agents/tech-lead.md` § "Agent health + respawn" —
+  tech-lead orchestrates health checks on other agents; its own
+  health is audited by project-manager (chain of custody
+  enforced).
+- `.claude/agents/project-manager.md` § "Tech-lead health
+  audits + respawn" — project-manager is the designated auditor
+  and respawn orchestrator for tech-lead.
+- `docs/INDEX.md` lists the new contract, scripts, and handover
+  template.
+
+### Changed
+- `VERSION`: `v1.0.0-rc1` → `v1.0.0-rc2`.
+
+### Notes
+- Still pre-release. Gate 3 (one real-project engagement end to
+  end) remains open; this rc2 tightens the template before that
+  gate closes.
+- Additive change set — no migration required. Existing projects
+  receive the new files on next upgrade; no existing file is
+  moved or reshaped.
+
+---
+
 ## v1.0.0-rc1 — 2026-04-19
 
 First release candidate for v1.0.0. **Stability candidate pending

@@ -101,4 +101,25 @@ standards / methodology lookups, route to `researcher` first.
 - Change requests that cross the agreed threshold require explicit
   customer approval recorded in `CUSTOMER_NOTES.md` via `researcher`.
 
+## Tech-lead health audits + respawn (binding)
+
+Per `docs/agent-health-contract.md` § 5, you are the designated
+auditor for `tech-lead` because you have the least routing overlap
+with it. Specifically:
+
+- **Scheduled.** At every milestone close, run
+  `scripts/agent-health.sh tech-lead` and grade the response per
+  § 3.2 of the contract. Record the result in
+  `docs/pm/LESSONS.md` under "Agent-health check".
+- **Triggered.** If `architect`, `researcher`, or you yourself
+  observe the § 5.2 signals (tech-lead routing contradictions,
+  citations that don't resolve, status contradicting peer view),
+  run an ad-hoc health check immediately.
+- **Respawn.** If tech-lead's health is red, you write the
+  handover brief (use `scripts/respawn.sh tech-lead "<reason>"`
+  to stub it; fill every section with file + line citations).
+  You orchestrate the spawn. You inform the customer of the
+  respawn at the next interaction; the customer is never silently
+  handed to a replacement instance.
+
 Be brief.

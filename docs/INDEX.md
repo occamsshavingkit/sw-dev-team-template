@@ -15,6 +15,9 @@ Keep alphabetized within each section.
 | `scripts/version-check.sh` | Session-start hook; compares `TEMPLATE_VERSION` against upstream and prints a banner if an upgrade is available. |
 | `scripts/upgrade.sh` | Upgrades a scaffolded project to the latest template version. Respects user-added agents / SMEs; flags customized standard files for review. |
 | `scripts/smoke-test.sh` | End-to-end sanity check on scaffold + version-check. Template-maintenance tool; not shipped to downstream projects. |
+| `scripts/agent-health.sh` | Assembles a health-check packet for a named teammate (ground-truth snapshot + fixed prompt). Per `docs/agent-health-contract.md` § 3. |
+| `scripts/respawn.sh` | Stubs a handover-brief file and prints the respawn checklist. Per `docs/agent-health-contract.md` § 4. |
+| `docs/templates/handover-template.md` | Shape of a respawn handover brief. |
 | `examples/README.md` | Catalog of filled-in reference projects (not shipped to downstream). |
 | `migrations/README.md` | Per-version migration-script contract. |
 | `migrations/TEMPLATE.sh` | Scaffold for writing a new migration. |
@@ -33,6 +36,8 @@ Keep alphabetized within each section.
 | `docs/AGENT_NAMES.md` | Canonical role → teammate name → pronouns mapping; rules for picking names and respecting pronouns. |
 | `docs/OPEN_QUESTIONS.md` | Register of open questions with ID / answerer / status / resolution. Stewarded by `researcher`. |
 | `docs/ISSUE_FILING.md` | Convention for filing framework gaps against the upstream template repo (includes template-version citation). |
+| `docs/agent-health-contract.md` | **Binding.** Failure modes, detection signals, health-check protocol, and respawn procedure for long-lived named teammates — including the triadic tech-lead self-diagnosis (project-manager / peer / customer backstop). |
+| `docs/handovers/` | Respawn handover briefs (one per respawn, dated). Gitignored after 30 days by convention. |
 
 ## `docs/glossary/`
 

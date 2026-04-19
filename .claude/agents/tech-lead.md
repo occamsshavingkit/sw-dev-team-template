@@ -83,4 +83,28 @@ trust it and ask directly.
   to the human. Do not pick a winner silently.
 - A one-line fix does not need five agents.
 
+## Agent health + respawn
+
+Long-lived named teammates can accumulate bad context. See
+`docs/agent-health-contract.md` for the full protocol. In short:
+
+- You orchestrate health checks on other agents when the detection
+  signals in § 2 of the contract trigger. Use `scripts/agent-health.sh
+  <name>` to assemble the packet; grade per § 3.2; red → respawn per
+  § 4.
+- Your own health is **not** self-assessed. You do not grade yourself.
+  Project-manager runs health checks on you at every milestone close
+  (§ 5.1). Architect, project-manager, or researcher may also trigger
+  an ad-hoc check on you if they observe the signals in § 5.2.
+- At every milestone close, surface a "what I believe is true"
+  summary to the customer (§ 5.3). The customer is the ultimate
+  backstop for your state. Corrections get recorded in
+  `CUSTOMER_NOTES.md` as new entries, not edits.
+- If your respawn is triggered, **project-manager** writes the
+  handover brief and orchestrates the new spawn (§ 5.4). You do not
+  respawn yourself — chain of custody broken. Project-manager informs
+  the customer.
+- `scripts/respawn.sh <name> "<reason>"` stubs the handover-brief file
+  for any respawn; fill it out (cite every claim) before the spawn.
+
 Be brief.
