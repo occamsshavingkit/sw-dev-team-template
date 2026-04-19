@@ -1,0 +1,74 @@
+name: Feature request
+description: Propose a new feature, agent, script, or convention for the template.
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, skim `docs/ISSUE_FILING.md`. If you're reporting that an *existing* rule / template / agent failed you on a real project, file a **Framework gap** instead — those carry a template-version citation.
+
+        Use this form for *new* capability the template currently doesn't have.
+
+  - type: input
+    id: summary
+    attributes:
+      label: One-line summary
+      placeholder: "Project triage + repair agent for retrofit adoption"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / use case
+      description: What's the user or team trying to do that today doesn't work cleanly? Keep it concrete — cite the flow / file / moment where the gap bites.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Sketch of the feature. Script? Agent? New template file? Convention? Include enough detail that someone could write a design doc from this.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds that sort of work today, other designs you rejected and why. If there are none, say so.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: target-version
+    attributes:
+      label: Target version
+      description: Which release line should this land in? Be realistic — v1.x is stability-focused.
+      options:
+        - v1.x patch (small, low-risk)
+        - v1.x minor (additive, backward-compatible)
+        - v2.0 (can include breaking changes)
+        - Not version-critical / maintainer's call
+    validations:
+      required: true
+
+  - type: textarea
+    id: related
+    attributes:
+      label: Related issues, links, prior art
+      description: PRs, other issues, reference material, published patterns this draws from.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: This is a *new capability* proposal, not a bug report on existing behaviour.
+          required: true
+        - label: I've read `docs/ISSUE_FILING.md` and confirmed this is not a framework gap on an existing feature.
+          required: true
