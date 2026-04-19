@@ -16,6 +16,29 @@ filed upstream include that version.
 
 ---
 
+## v0.6.2 — 2026-04-19
+
+### Added
+- `migrations/v0.6.2.sh` — cleans up `LICENSE` and
+  `scripts/smoke-test.sh` from downstream trees that leaked during
+  pre-v0.6.1 upgrades. Honors `.template-customizations` (if a
+  project has explicitly pinned `LICENSE` as a customization, it is
+  left alone).
+- `scripts/smoke-test.sh` now covers the **upgrade** flow in
+  addition to scaffold: stamps `TEMPLATE_VERSION` back to v0.1.0,
+  runs `upgrade.sh`, asserts no template-only files leaked and that
+  the stamp matches current VERSION. 39 checks total (up from 31).
+
+### Changed
+- `VERSION`: `v0.6.1` → `v0.6.2`.
+
+### Notes
+- Downstream projects with leaked `LICENSE` / `smoke-test.sh` will
+  see them auto-removed on next `scripts/upgrade.sh` run (unless
+  explicitly preserved).
+
+---
+
 ## v0.6.1 — 2026-04-19
 
 ### Fixed

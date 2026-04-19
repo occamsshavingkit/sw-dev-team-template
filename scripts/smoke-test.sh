@@ -114,6 +114,43 @@ else
   echo "  SKIP: version-check (upstream unreachable)"
 fi
 
+echo "-- upgrade (simulate older stamp, run upgrade to HEAD) --"
+# Simulate an older project by stamping TEMPLATE_VERSION back to v0.1.0, then
+# run upgrade.sh. Verifies:
+#   - upgrade completes cleanly
+#   - template-only files (LICENSE, smoke-test.sh, CHANGELOG.md, VERSION,
+#     CONTRIBUTING.md, migrations/, .github/) are NOT present after upgrade
+#   - TEMPLATE_VERSION is stamped to current VERSION
+#   - migrations ran (we can detect the v0.1.0 glossary migration fired by
+#     presence of docs/glossary/ENGINEERING.md — already there from scaffold
+#     so we don't add an extra check)
+if timeout 5 git ls-remote --tags --refs "$probe_url" >/dev/null 2>&1; then
+  printf 'v0.1.0\nunknown\n2026-01-01\n' > "$target/TEMPLATE_VERSION"
+  (
+    cd "$target"
+    GH_TOKEN="${GH_TOKEN:-}" ./scripts/upgrade.sh
+  ) > "$tmp/upgrade.log" 2>&1 || {
+    echo "  FAIL: upgrade.sh exited non-zero (see $tmp/upgrade.log)"
+    fail=$((fail + 1))
+  }
+
+  # Assert template-only files absent after upgrade
+  check "no LICENSE after upgrade"                test ! -f "$target/LICENSE"
+  check "no smoke-test.sh after upgrade"          test ! -f "$target/scripts/smoke-test.sh"
+  check "no CHANGELOG.md after upgrade"           test ! -f "$target/CHANGELOG.md"
+  check "no VERSION after upgrade"                test ! -f "$target/VERSION"
+  check "no CONTRIBUTING.md after upgrade"        test ! -f "$target/CONTRIBUTING.md"
+  check "no migrations/ after upgrade"            test ! -d "$target/migrations"
+  check "no .github/ after upgrade"               test ! -d "$target/.github"
+
+  # TEMPLATE_VERSION stamped to current
+  post_version="$(head -1 "$target/TEMPLATE_VERSION" | tr -d '[:space:]')"
+  check "TEMPLATE_VERSION matches current VERSION after upgrade ($expected_version)" \
+    bash -c "[ '$post_version' = '$expected_version' ]"
+else
+  echo "  SKIP: upgrade (upstream unreachable)"
+fi
+
 echo
 echo "------------------------------------------------------------"
 echo "smoke-test: $pass passed, $fail failed"
