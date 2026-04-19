@@ -14,6 +14,7 @@ Keep alphabetized within each section.
 | `scripts/scaffold.sh` | Scaffolds a new downstream project from this template. |
 | `scripts/version-check.sh` | Session-start hook; compares `TEMPLATE_VERSION` against upstream and prints a banner if an upgrade is available. |
 | `scripts/upgrade.sh` | Upgrades a scaffolded project to the latest template version. Respects user-added agents / SMEs; flags customized standard files for review. |
+| `scripts/smoke-test.sh` | End-to-end sanity check on scaffold + version-check. Template-maintenance tool; not shipped to downstream projects. |
 | `migrations/README.md` | Per-version migration-script contract. |
 | `migrations/TEMPLATE.sh` | Scaffold for writing a new migration. |
 | `migrations/vX.Y.Z.sh` | Per-release migration (file moves / renames / shape changes); most releases do not ship one. |

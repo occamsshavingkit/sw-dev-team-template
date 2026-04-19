@@ -66,6 +66,7 @@ tar --exclude='./.git' \
     --exclude='./dryrun-project' \
     --exclude='./.github' \
     --exclude='./migrations' \
+    --exclude='./scripts/smoke-test.sh' \
     -cf - . | (cd "$target" && tar -xf -)
 
 # --- Reset project-specific registers ----------------------------------------

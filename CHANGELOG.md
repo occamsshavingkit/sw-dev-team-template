@@ -16,6 +16,34 @@ filed upstream include that version.
 
 ---
 
+## v0.6.0 — 2026-04-19
+
+### Added
+- `scripts/smoke-test.sh` — end-to-end sanity test for the
+  scaffold + version-check flow. Scaffolds a throwaway project,
+  asserts 30+ layout/content properties (expected-present,
+  expected-absent, version-stamp match, empty-register shape), and
+  runs `version-check.sh` in the scaffolded project to confirm it
+  reports "up to date". `--keep` preserves the temp dir for
+  inspection. Template-maintenance only; not shipped downstream.
+
+### Fixed
+- `scripts/scaffold.sh` now excludes `scripts/smoke-test.sh` — it
+  was being carried into downstream scaffolds. Caught by the new
+  smoke test. (Downstream projects are maintenance-free; they do
+  not need to run smoke-test on themselves.)
+
+### Changed
+- `VERSION`: `v0.5.2` → `v0.6.0`.
+- `docs/INDEX.md` lists `scripts/smoke-test.sh`.
+
+### Notes
+- The fix and the test land together, which is the reason this is
+  MINOR: a new downstream-visible exclusion plus a new template-
+  maintenance tool. No migration needed.
+
+---
+
 ## v0.5.2 — 2026-04-19
 
 ### Changed
