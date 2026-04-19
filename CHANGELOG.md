@@ -16,6 +16,42 @@ filed upstream include that version.
 
 ---
 
+## v1.0.0-rc1 — 2026-04-19
+
+First release candidate for v1.0.0. **Stability candidate pending
+field validation.** Field validation on an actual customer
+engagement promotes this to `v1.0.0`; issues surfaced during that
+engagement may produce additional `rcN` cuts or a later `v1.0.0`
+directly.
+
+### Gate status at rc1
+
+- **Agent-file audit** — green. All ten role agents plus
+  `sme-template` review as sufficient; no rewrites needed.
+- **SME scope boundary** — green (v0.7.1).
+- **Zero open framework-gap issues** — green.
+- **Smoke-test across the version span** — green; 41 checks across
+  scaffold + version-check + upgrade.
+- **One real project end-to-end** — pending. This rc is explicitly
+  the artifact that meets reality; the rc designation honors the
+  open gate.
+
+### Changed
+- `scripts/version-check.sh` and `scripts/upgrade.sh` now accept
+  pre-release tags (`vX.Y.Z-suffix`) in their tag-recognition
+  regex, so projects stamped at an rc version can be upgraded
+  across rc boundaries without falling through the pattern.
+- `VERSION`: `v0.7.1` → `v1.0.0-rc1`.
+
+### Notes
+- No new migration required — the rc is a relabel of v0.7.1
+  behaviour plus the regex widening.
+- Downstream projects currently stamped at `v0.7.1` may upgrade to
+  `v1.0.0-rc1` if they want the pre-release cut; most should stay
+  on `v0.7.1` until `v1.0.0` final.
+
+---
+
 ## v0.7.1 — 2026-04-19
 
 ### Added

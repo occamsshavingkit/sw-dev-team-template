@@ -32,7 +32,7 @@ local_version="$(head -1 "$tv" 2>/dev/null | tr -d '[:space:]')"
 # Short timeout — don't stall the session on flaky network.
 latest_tag="$(timeout 5 git ls-remote --tags --refs "$upstream_auth" 2>/dev/null \
                | awk '{print $2}' | sed 's|refs/tags/||' \
-               | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+               | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$' \
                | sort -V | tail -1)"
 
 if [[ -z "$latest_tag" ]]; then

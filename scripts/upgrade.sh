@@ -82,7 +82,7 @@ fi
 # project's current TEMPLATE_VERSION and less-than-or-equal-to the new one,
 # in ascending order. Migrations handle file moves / renames / reshapes that
 # the plain file-sync cannot. Most are no-ops.
-all_tags=$(git -C "$workdir/new" tag -l 'v*' 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V || true)
+all_tags=$(git -C "$workdir/new" tag -l 'v*' 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$' | sort -V || true)
 migrations_to_run=()
 past_local=0
 for tag in $all_tags; do
