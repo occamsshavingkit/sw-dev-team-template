@@ -56,13 +56,21 @@ scaffold script from the template repo root:
 The script copies the template into `<target-dir>`, resets project-
 specific registers (`docs/OPEN_QUESTIONS.md`, `CUSTOMER_NOTES.md`,
 `docs/AGENT_NAMES.md`) to empty-but-shaped stubs, strips template-only
-files (`VERSION`, `CHANGELOG.md`, `CONTRIBUTING.md`,
-`dryrun-project/`, `.github/`), stamps `TEMPLATE_VERSION` at the
-project root (SemVer + git SHA + date), replaces `README.md` with a
-project stub, and runs `git init -b main` in the target (no initial
-commit — the project owner makes that). Issues filed against the
-upstream cite the `TEMPLATE_VERSION` so the maintainer can tell
-whether a reported gap is still current.
+files (`VERSION`, `CHANGELOG.md`, `CONTRIBUTING.md`, `LICENSE`,
+`dryrun-project/`, `.github/`, `migrations/`), stamps
+`TEMPLATE_VERSION` at the project root (SemVer + git SHA + date),
+replaces `README.md` with a project stub, seeds an empty
+`.template-customizations`, and runs `git init -b main` in the
+target (no initial commit — the project owner makes that). Issues
+filed against the upstream cite the `TEMPLATE_VERSION` so the
+maintainer can tell whether a reported gap is still current.
+
+**License of the template and of downstream projects.** The template
+itself is **MIT** (see `LICENSE`). That license is intentionally not
+copied into scaffolded projects — each downstream project picks its
+own license. Downstream projects are free to be closed-source,
+proprietary, or licensed under any terms the project owner chooses;
+the MIT grant on the template does not infect them.
 
 ## Template version check + upgrade
 

@@ -16,6 +16,29 @@ filed upstream include that version.
 
 ---
 
+## v0.5.1 — 2026-04-19
+
+### Added
+- `LICENSE` — MIT, applied to the template artifact itself.
+  Permissive; explicitly allows closed-source, proprietary, and
+  commercially-licensed downstream projects built from this template.
+- `CLAUDE.md` § "License of the template and of downstream projects"
+  and `README.md` note the MIT license, the closed-source
+  allowability, and the scaffold's decision to not carry the
+  template's LICENSE into downstream projects (each project picks
+  its own license).
+
+### Changed
+- `scripts/scaffold.sh` excludes `LICENSE` so downstream projects
+  are not defaulted to MIT. Each project owner picks.
+- `VERSION`: `v0.5.0` → `v0.5.1`.
+
+### Notes
+- Pure license / documentation addition; no behaviour change. No
+  migration needed.
+
+---
+
 ## v0.5.0 — 2026-04-19
 
 ### Added

@@ -36,6 +36,7 @@ real work subagent.
 | `docs/ISSUE_FILING.md` | How to file framework-gap issues upstream; cites the template version. |
 | `VERSION` | Current template version (SemVer). |
 | `CHANGELOG.md` | Release history. |
+| `LICENSE` | MIT — permissive; downstream projects may be closed-source. Not shipped in scaffolded projects; each project picks its own license. |
 | `scripts/scaffold.sh` | Scaffolds a new downstream project from this template. |
 | `docs/templates/` | Document templates shaped after the relevant standards (ISO/IEC/IEEE 29148 / 42010 / 12207, arc42, C4, INVEST). |
 | `.claude/agents/*.md` | 9 specialist subagents + 1 SME template. |

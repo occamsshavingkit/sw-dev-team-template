@@ -62,6 +62,7 @@ tar --exclude='./.git' \
     --exclude='./VERSION' \
     --exclude='./CHANGELOG.md' \
     --exclude='./CONTRIBUTING.md' \
+    --exclude='./LICENSE' \
     --exclude='./dryrun-project' \
     --exclude='./.github' \
     --exclude='./migrations' \
