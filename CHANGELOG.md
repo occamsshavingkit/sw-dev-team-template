@@ -16,6 +16,34 @@ filed upstream include that version.
 
 ---
 
+## v0.4.1 — 2026-04-19
+
+### Fixed
+- `migrations/v0.1.0.sh` no longer recurses into nested git repos
+  (e.g., a `sw-dev-team-template` working copy that lives inside the
+  downstream project directory). Rewrites of `docs/GLOSSARY.md` →
+  `docs/glossary/ENGINEERING.md` were over-reaching into sibling
+  projects and touching log-entry strings where both the old and new
+  path legitimately appear. The reference-rewrite now skips files
+  inside any subtree that contains its own `.git/`, skips files
+  inside `docs/glossary/`, and only rewrites lines that reference
+  **only** the old path (not lines that document the transition).
+
+### Added
+- `CLAUDE.md` Step 1 follow-up: after the skill-pack catalog, ask an
+  atomic question for specialized skills / plugins / MCP servers /
+  tools the user already knows they need, or watch-items for the
+  team to flag (domain risks, style conventions, safety-critical
+  behaviours). Scoping-questions template carries the seed row.
+
+### Changed
+- `VERSION`: `v0.4.0` → `v0.4.1`.
+
+### Notes
+- No downstream shape change; no migration needed for this release.
+
+---
+
 ## v0.4.0 — 2026-04-19
 
 ### Added
