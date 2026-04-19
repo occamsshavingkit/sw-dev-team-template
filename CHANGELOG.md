@@ -51,5 +51,5 @@ Initial cut.
 issues)
 - Dry-run on a throwaway new project (scope (c) of v0.1 milestone);
   in progress at release.
-- Upstream GitHub repo URL (to be filled in `docs/ISSUE_FILING.md`
-  once created).
+- Upstream GitHub repo URL: `https://github.com/occamsshavingkit/sw-dev-team-template`
+  (private; created 2026-04-19).

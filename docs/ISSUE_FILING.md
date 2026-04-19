@@ -75,10 +75,12 @@ rationale.
 
 ## Upstream URL
 
-*(fill in once the upstream repo is created — also update
-`CHANGELOG.md`)*
+    https://github.com/occamsshavingkit/sw-dev-team-template
 
-    <upstream repo URL>
+Issues: `https://github.com/occamsshavingkit/sw-dev-team-template/issues`.
+The repository is private; filing requires collaborator access — coordinate
+with the customer before filing from a project owned by a different
+GitHub identity.
 
 ---
 
