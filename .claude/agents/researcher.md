@@ -42,6 +42,44 @@ deliverables).
 5. **Prior-art scans.** Before a new feature, check if a canonical
    solution already exists in standards, official vendor docs, or
    published domain patterns. Report findings; do not design.
+6. **Pronoun verification for teammate names.** When a teammate name
+   goes into `docs/AGENT_NAMES.md`, verify pronouns against an
+   authoritative source and record the citation in the row's
+   `Source` column. Source hierarchy (use the highest available):
+
+   - **Living persons** —
+     (a) the person's own public self-identification: bio on their
+     official site, a verified professional profile, or a
+     first-person statement in an interview with named attribution;
+     (b) the person's record label / publisher / agency / employer
+     bio;
+     (c) a reference encyclopedia entry (Wikipedia, Britannica) **when
+     that entry itself cites (a) or (b)** — record the encyclopedia
+     URL plus the date you checked it.
+   - **Historical figures** — a reference biography (one
+     identifiable book or encyclopedia entry). Accept the era's
+     conventional pronouns as the default unless a modern reference
+     explicitly reconsiders them; in that case, cite the reference
+     and note the reconsideration.
+   - **Fictional characters** — the canon source (creator's
+     published work or the official franchise's current canonical
+     site). For ensembles with multiple creators, pick the
+     most-recent canonical source unless canon is explicitly
+     retconned.
+
+   Citation format in the `Source` column: one line — "<title of
+   source>, <URL or reference>, as of <YYYY-MM-DD>". Do not write
+   just "Wikipedia"; say which page and when.
+
+   If pronouns cannot be verified to this bar, flag to `tech-lead`,
+   who either asks the customer to pick a different member of the
+   category or records the use of "they / them" as a documented
+   fallback in `CUSTOMER_NOTES.md`. Do not silently guess or default
+   to "they / them" without that record.
+
+   Re-verify pronouns before a new version of the project's
+   `AGENT_NAMES.md` ships if > 12 months since last check (people's
+   public identification can change).
 
 ## Constraints
 

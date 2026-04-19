@@ -16,6 +16,33 @@ filed upstream include that version.
 
 ---
 
+## v0.2.0 — 2026-04-19
+
+### Added
+- `scripts/scaffold.sh` — creates a new project from the template,
+  resets project-specific registers to empty stubs, stamps
+  `TEMPLATE_VERSION`, initializes git. Smoke-tested. Closes upstream
+  issue #1.
+- `researcher.md` § Job #6 — pronoun-verification procedure with
+  source hierarchy (living persons → agency bios → encyclopedias
+  that cite primaries; historical figures → reference biographies;
+  fictional characters → canon), explicit citation format, and
+  re-verification cadence. Closes upstream issue #2.
+- `CLAUDE.md` § "Scaffolding a new project" — documents the
+  `scripts/scaffold.sh` entry point.
+- `docs/AGENT_NAMES.md` § "Pronoun verification procedure" —
+  cross-references `researcher.md`.
+
+### Changed
+- `VERSION`: `v0.1.0` → `v0.2.0`.
+
+### Notes
+- The change is additive (new file + new job bullet + new section).
+  Existing projects continue to work without migration; they may
+  adopt the scaffold script on their next new-project scaffold.
+
+---
+
 ## v0.1.0 — 2026-04-19
 
 Initial cut.

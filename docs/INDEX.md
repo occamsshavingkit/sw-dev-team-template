@@ -11,6 +11,7 @@ Keep alphabetized within each section.
 | `CLAUDE.md` | Project guide; Claude reads this every session. FIRST ACTIONS (skill packs → scoping → naming → issue-feedback opt-in), agent roster, hard rules. |
 | `VERSION` | Current template version (SemVer). Downstream projects stamp `TEMPLATE_VERSION` from this. |
 | `CHANGELOG.md` | Release history. MAJOR / MINOR / PATCH semantics. |
+| `scripts/scaffold.sh` | Scaffolds a new downstream project from this template. |
 | `CUSTOMER_NOTES.md` | Append-only log of customer answers, verbatim, stewarded by `researcher`. |
 | `README.md` | Human-facing overview of the template. |
 | `SW_DEV_ROLE_TAXONOMY.md` | Binding role vocabulary (SWEBOK / ISO 12207 / IEEE 1028 / ISTQB / SFIA v9 / Google SRE / PMBOK). |

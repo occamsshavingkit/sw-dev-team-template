@@ -54,6 +54,17 @@ to pick exactly one of:
 
 The customer may also skip naming for now and revisit later.
 
+## Pronoun verification procedure
+
+`researcher` owns pronoun verification. See
+`.claude/agents/researcher.md` § Job #6 for the authoritative
+hierarchy (living persons → record-label / agency bios → reference
+encyclopedias that cite primary sources; historical figures →
+reference biographies; fictional characters → canon). The `Source`
+column in the mapping tables below must cite the specific source and
+the date it was checked — not just "Wikipedia". Re-verify if > 12
+months old.
+
 ## Pronoun rule
 
 When a category's members have mixed pronouns, record each teammate's

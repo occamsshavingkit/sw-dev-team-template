@@ -46,6 +46,23 @@ When any agent has a question it cannot answer from its own context:
 The customer's inbox is scarce. Do not flood it. A well-framed question
 batched with others is better than three drip-feed interruptions.
 
+## Scaffolding a new project
+
+A new downstream project is created by running the template's
+scaffold script from the template repo root:
+
+    scripts/scaffold.sh <target-dir> [<project-display-name>]
+
+The script copies the template into `<target-dir>`, resets project-
+specific registers (`docs/OPEN_QUESTIONS.md`, `CUSTOMER_NOTES.md`,
+`docs/AGENT_NAMES.md`) to empty-but-shaped stubs, strips template-only
+files (`VERSION`, `CHANGELOG.md`, `dryrun-project/`, `.github/`),
+stamps `TEMPLATE_VERSION` at the project root (SemVer + git SHA +
+date), replaces `README.md` with a project stub, and runs `git init -b
+main` in the target (no initial commit — the project owner makes
+that). Issues filed against the upstream cite the `TEMPLATE_VERSION`
+so the maintainer can tell whether a reported gap is still current.
+
 ## FIRST ACTIONS — EVERY NEW SESSION
 
 Do these two things in order before starting the user's task.
