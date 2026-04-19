@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Issue-filing convention
+    url: https://github.com/occamsshavingkit/sw-dev-team-template/blob/main/docs/ISSUE_FILING.md
+    about: Read this before filing — describes when to file, what to include, and the template-version citation rule.

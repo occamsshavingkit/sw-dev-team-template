@@ -61,6 +61,7 @@ today="$(date -u +%Y-%m-%d)"
 tar --exclude='./.git' \
     --exclude='./VERSION' \
     --exclude='./CHANGELOG.md' \
+    --exclude='./CONTRIBUTING.md' \
     --exclude='./dryrun-project' \
     --exclude='./.github' \
     -cf - . | (cd "$target" && tar -xf -)

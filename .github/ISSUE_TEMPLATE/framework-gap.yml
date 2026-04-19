@@ -1,0 +1,76 @@
+name: Framework gap
+description: Report a gap in this template (missing agent, wrong default, rule that produced a worse outcome, template that did not fit, broken skill / plugin assumption, etc.)
+title: "[gap] "
+labels: ["framework-gap"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Reporting a framework gap you hit on a downstream project. See `docs/ISSUE_FILING.md` for the convention.
+
+  - type: input
+    id: template-version
+    attributes:
+      label: Template version where the gap was found
+      description: From your project's `TEMPLATE_VERSION` file — the SemVer plus commit SHA.
+      placeholder: "v0.2.0 (5b0af06)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: gap-category
+    attributes:
+      label: Gap category
+      options:
+        - Missing agent / missing route
+        - Rule produced a worse outcome
+        - Template did not fit a PMBOK / ISO / IEEE / ISTQB / SFIA / SWEBOK requirement
+        - Question path was unclear (who should have answered)
+        - Register / notes / inventory shape was wrong
+        - Assumed skill / plugin / env var missing or deprecated
+        - Other (describe below)
+    validations:
+      required: true
+
+  - type: input
+    id: where
+    attributes:
+      label: Where in the template
+      description: Specific file + section (e.g., `CLAUDE.md` § Step 2, or `.claude/agents/tech-lead.md` § Routing table).
+      placeholder: "CLAUDE.md § Step 2"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened on the downstream project
+      description: One paragraph. Redact customer-sensitive content if necessary, keeping the pattern intact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why-gap
+    attributes:
+      label: Why it is a gap
+      description: Which rule / standard / PMBOK clause / ISO section was not served.
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggested-fix
+    attributes:
+      label: Suggested fix (optional)
+      description: If `tech-lead` and the relevant specialist have a concrete proposal, include it.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I've included the template version (SemVer + SHA) so the maintainer can judge whether the gap is still current.
+          required: true
+        - label: I've redacted customer-sensitive content.
+          required: true
