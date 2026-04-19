@@ -132,10 +132,13 @@ if [[ ${#migrations_to_run[@]} -gt 0 ]]; then
   echo >&2
 fi
 
-# Files the template ships (exclude template-only paths; keep in sync with scaffold.sh).
+# Files the template ships to downstream projects.
+# This exclusion list MUST match scaffold.sh's --exclude list (template-only
+# files that downstream projects should never receive).
 ship_files=$(cd "$workdir/new" && git ls-files \
-  | grep -vE '^(VERSION|CHANGELOG\.md|CONTRIBUTING\.md)$' \
-  | grep -vE '^(\.github/|dryrun-project/|migrations/)')
+  | grep -vE '^(VERSION|CHANGELOG\.md|CONTRIBUTING\.md|LICENSE)$' \
+  | grep -vE '^(\.github/|dryrun-project/|migrations/)' \
+  | grep -vE '^scripts/smoke-test\.sh$')
 
 # --- Load customization preserve-list ----------------------------------------
 # Projects can declare files they have permanently customized by listing them

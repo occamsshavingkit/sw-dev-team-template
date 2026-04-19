@@ -16,6 +16,31 @@ filed upstream include that version.
 
 ---
 
+## v0.6.1 — 2026-04-19
+
+### Fixed
+- `scripts/upgrade.sh`'s ship-file exclusion list now matches
+  `scripts/scaffold.sh`'s. Previous releases drifted: v0.5.1 added
+  `LICENSE` with a scaffold exclusion but not an upgrade exclusion;
+  v0.6.0 did the same for `scripts/smoke-test.sh`. Result: running
+  `upgrade.sh` on a pre-v0.6.1 project added both template-only
+  files to the downstream tree. This release stops new upgrades
+  from doing so.
+
+### Known residue
+- Projects that already ran `upgrade.sh` before v0.6.1 may have a
+  stray `LICENSE` and/or `scripts/smoke-test.sh` in their tree.
+  Safe to delete manually; neither file is load-bearing for the
+  template flow. A future migration may clean these up.
+
+### Changed
+- `VERSION`: `v0.6.0` → `v0.6.1`.
+
+### Notes
+- Patch. No downstream shape change; no migration added.
+
+---
+
 ## v0.6.0 — 2026-04-19
 
 ### Added
