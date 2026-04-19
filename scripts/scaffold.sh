@@ -64,6 +64,7 @@ tar --exclude='./.git' \
     --exclude='./CONTRIBUTING.md' \
     --exclude='./dryrun-project' \
     --exclude='./.github' \
+    --exclude='./migrations' \
     -cf - . | (cd "$target" && tar -xf -)
 
 # --- Reset project-specific registers ----------------------------------------

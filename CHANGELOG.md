@@ -16,6 +16,42 @@ filed upstream include that version.
 
 ---
 
+## v0.4.0 — 2026-04-19
+
+### Added
+- `migrations/` directory: per-version migration scripts that run
+  during `scripts/upgrade.sh` when a release changes downstream
+  content shape (moves, renames, splits, reformats). Most releases
+  ship no migration; when they do, `upgrade.sh` runs every
+  applicable migration in ascending SemVer order **before** the
+  file-sync.
+- `migrations/README.md`: contract, naming, idempotency rule, env-var
+  interface.
+- `migrations/TEMPLATE.sh`: starter scaffold for new migrations.
+- `migrations/v0.1.0.sh`: retroactive glossary-split migration for
+  pre-v0.1.0 projects that still have `docs/GLOSSARY.md` at the
+  single-file path. Also rewrites references in markdown files.
+- `migrations/v0.2.0.sh`, `v0.3.0.sh`: explicit no-op migrations
+  documenting that those releases required no shape changes.
+- `CLAUDE.md` § "Per-version migrations" — documents the contract.
+
+### Changed
+- `scripts/upgrade.sh` runs migrations before file-sync. Edge case
+  handled: if the project's `TEMPLATE_VERSION` does not match any
+  upstream tag, the script falls back to running every migration
+  ≤ target, relying on idempotency guards.
+- `scripts/scaffold.sh` excludes `migrations/` — downstream projects
+  do not carry migration scripts locally; `upgrade.sh` sources them
+  from the upstream clone at upgrade time.
+- `VERSION`: `v0.3.0` → `v0.4.0`.
+
+### Notes
+- Adding `migrations/` is additive — existing projects continue to
+  work. On their next upgrade, applicable migrations run
+  automatically.
+
+---
+
 ## v0.3.0 — 2026-04-19
 
 ### Added

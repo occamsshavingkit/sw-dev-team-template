@@ -77,10 +77,65 @@ if [[ -n "$local_sha" && "$local_sha" != "unknown" ]]; then
   fi
 fi
 
+# --- Per-version migrations (pre-sync) --------------------------------------
+# Run migrations/<version>.sh for every upstream tag strictly greater than the
+# project's current TEMPLATE_VERSION and less-than-or-equal-to the new one,
+# in ascending order. Migrations handle file moves / renames / reshapes that
+# the plain file-sync cannot. Most are no-ops.
+all_tags=$(git -C "$workdir/new" tag -l 'v*' 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V || true)
+migrations_to_run=()
+past_local=0
+for tag in $all_tags; do
+  if [[ $past_local -eq 0 ]]; then
+    [[ "$tag" == "$local_version" ]] && past_local=1
+    continue
+  fi
+  migrations_to_run+=("$tag")
+  [[ "$tag" == "$new_version" ]] && break
+done
+
+# Edge case: local_version doesn't appear in the tag list (e.g., pre-release
+# or hand-stamped). In that case, past_local stays 0 and migrations_to_run is
+# empty. Fall back: run every migration ≤ new_version, letting idempotency
+# guards handle re-runs.
+if [[ $past_local -eq 0 && ${#migrations_to_run[@]} -eq 0 ]]; then
+  echo "NOTE: local_version $local_version does not match any upstream tag — running all migrations ≤ $new_version with idempotency guards." >&2
+  for tag in $all_tags; do
+    migrations_to_run+=("$tag")
+    [[ "$tag" == "$new_version" ]] && break
+  done
+fi
+
+if [[ ${#migrations_to_run[@]} -gt 0 ]]; then
+  echo >&2
+  echo "Running migrations between $local_version and $new_version:" >&2
+  for v in "${migrations_to_run[@]}"; do
+    mig="$workdir/new/migrations/$v.sh"
+    if [[ -f "$mig" ]]; then
+      echo "  [$v]" >&2
+      if [[ $dry_run -eq 1 ]]; then
+        echo "    (dry-run: would run $mig)" >&2
+      else
+        (
+          cd "$project_root"
+          export PROJECT_ROOT="$project_root"
+          export OLD_VERSION="$local_version"
+          export NEW_VERSION="$new_version"
+          export TARGET_VERSION="$v"
+          export WORKDIR_NEW="$workdir/new"
+          [[ $baseline_available -eq 1 ]] && export WORKDIR_OLD="$workdir/old"
+          bash "$mig"
+        ) 2>&1 | sed 's/^/    /' >&2
+      fi
+    fi
+  done
+  echo >&2
+fi
+
 # Files the template ships (exclude template-only paths; keep in sync with scaffold.sh).
 ship_files=$(cd "$workdir/new" && git ls-files \
   | grep -vE '^(VERSION|CHANGELOG\.md|CONTRIBUTING\.md)$' \
-  | grep -vE '^(\.github/|dryrun-project/)')
+  | grep -vE '^(\.github/|dryrun-project/|migrations/)')
 
 added=(); upgraded=(); kept=(); conflicts=()
 

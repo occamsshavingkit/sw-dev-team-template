@@ -98,6 +98,24 @@ the template does not ship is left alone.
 `--dry-run` prints the plan without writing. Use it before the real
 upgrade on any project where the conflict set is non-trivial.
 
+### Per-version migrations
+
+Some releases change the **shape** of downstream content (moves,
+renames, splits, reformats). Those releases ship a migration script
+at `migrations/<target-version>.sh` in the template repo. `upgrade.sh`
+runs every migration whose target version is strictly greater than
+the project's current `TEMPLATE_VERSION` and less-than-or-equal-to
+the new target, in ascending order, **before** the file-sync step.
+
+Most releases have no migration (purely additive changes). Each
+migration is idempotent — re-running it is safe. If a project's
+`TEMPLATE_VERSION` does not match any upstream tag (hand-stamped or
+pre-release), `upgrade.sh` runs every migration up to the target
+with idempotency guards handling the rest.
+
+See `migrations/README.md` for the contract and `migrations/TEMPLATE.sh`
+for the scaffold a new migration starts from.
+
 ## FIRST ACTIONS — EVERY NEW SESSION
 
 Do these two things in order before starting the user's task.
