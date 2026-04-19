@@ -56,12 +56,47 @@ scaffold script from the template repo root:
 The script copies the template into `<target-dir>`, resets project-
 specific registers (`docs/OPEN_QUESTIONS.md`, `CUSTOMER_NOTES.md`,
 `docs/AGENT_NAMES.md`) to empty-but-shaped stubs, strips template-only
-files (`VERSION`, `CHANGELOG.md`, `dryrun-project/`, `.github/`),
-stamps `TEMPLATE_VERSION` at the project root (SemVer + git SHA +
-date), replaces `README.md` with a project stub, and runs `git init -b
-main` in the target (no initial commit — the project owner makes
-that). Issues filed against the upstream cite the `TEMPLATE_VERSION`
-so the maintainer can tell whether a reported gap is still current.
+files (`VERSION`, `CHANGELOG.md`, `CONTRIBUTING.md`,
+`dryrun-project/`, `.github/`), stamps `TEMPLATE_VERSION` at the
+project root (SemVer + git SHA + date), replaces `README.md` with a
+project stub, and runs `git init -b main` in the target (no initial
+commit — the project owner makes that). Issues filed against the
+upstream cite the `TEMPLATE_VERSION` so the maintainer can tell
+whether a reported gap is still current.
+
+## Template version check + upgrade
+
+At every session start, `scripts/version-check.sh` runs (via the
+`SessionStart` hook in `.claude/settings.json`) and compares the
+project's `TEMPLATE_VERSION` against the upstream repo's latest
+tag. If an upgrade is available, it prints a banner to the session
+transcript; otherwise it says "up to date" and stays out of the way.
+If the network is unreachable or the upstream returns nothing, the
+script is silent — it never stalls a session.
+
+To actually upgrade:
+
+    scripts/upgrade.sh [--dry-run]
+
+Upgrade strategy, per template-shipped file:
+
+1. **Not present in the project** → added from upstream.
+2. **Unchanged since scaffold** → overwritten with the new upstream
+   version.
+3. **Customized since scaffold, upstream unchanged** → left alone
+   (your customization wins).
+4. **Customized since scaffold AND upstream also changed** → flagged
+   as a conflict; the file is **not** overwritten. You diff manually
+   and decide per-file: keep local, take upstream, or merge.
+
+User-added agents (any `.md` in `.claude/agents/` that is not in the
+template's standard roster, i.e. `sme-<domain>.md` agents created
+per-project) are never touched. Project-filled PMBOK artifacts under
+`docs/pm/` are never touched. Any other file the project added that
+the template does not ship is left alone.
+
+`--dry-run` prints the plan without writing. Use it before the real
+upgrade on any project where the conflict set is non-trivial.
 
 ## FIRST ACTIONS — EVERY NEW SESSION
 

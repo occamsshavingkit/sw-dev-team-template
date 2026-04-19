@@ -16,6 +16,37 @@ filed upstream include that version.
 
 ---
 
+## v0.3.0 — 2026-04-19
+
+### Added
+- `scripts/version-check.sh` — compares the project's
+  `TEMPLATE_VERSION` against the upstream's latest tag and prints a
+  banner if an upgrade is available. Wired as a `SessionStart` hook
+  in `.claude/settings.json`; silent on network failure.
+- `scripts/upgrade.sh` (with `--dry-run`) — upgrades a scaffolded
+  project to the latest template version. Per-file strategy: add
+  missing, overwrite unchanged-since-scaffold, **never overwrite
+  customized standard files** (flagged as conflicts for human
+  review), never touch user-added files (SME agents, PMBOK artifacts,
+  anything else the project created). Supports `GH_TOKEN` env var
+  for private-upstream clones.
+- `.claude/settings.json`: new `SessionStart` hook entry.
+- `CLAUDE.md` § "Template version check + upgrade" — documents the
+  flow and the customized-file conflict rule.
+
+### Changed
+- `VERSION`: `v0.2.0` → `v0.3.0`.
+
+### Notes
+- Running `scripts/upgrade.sh` requires access to the upstream repo.
+  Private-upstream clones work via the `GH_TOKEN` env var (scope:
+  `repo`).
+- Conflicts (customized standard files that the upstream also
+  changed) are surfaced but not resolved automatically. The project
+  owner decides per-file.
+
+---
+
 ## v0.2.0 — 2026-04-19
 
 ### Added

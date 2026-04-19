@@ -12,6 +12,8 @@ Keep alphabetized within each section.
 | `VERSION` | Current template version (SemVer). Downstream projects stamp `TEMPLATE_VERSION` from this. |
 | `CHANGELOG.md` | Release history. MAJOR / MINOR / PATCH semantics. |
 | `scripts/scaffold.sh` | Scaffolds a new downstream project from this template. |
+| `scripts/version-check.sh` | Session-start hook; compares `TEMPLATE_VERSION` against upstream and prints a banner if an upgrade is available. |
+| `scripts/upgrade.sh` | Upgrades a scaffolded project to the latest template version. Respects user-added agents / SMEs; flags customized standard files for review. |
 | `CONTRIBUTING.md` | How to propose changes to the template (template-repo-local; not carried to downstream projects). |
 | `.github/ISSUE_TEMPLATE/framework-gap.yml` | GitHub issue form for framework-gap reports. |
 | `CUSTOMER_NOTES.md` | Append-only log of customer answers, verbatim, stewarded by `researcher`. |
