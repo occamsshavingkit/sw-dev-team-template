@@ -72,6 +72,31 @@ where they asked (chat log turn if findable, or the
 One sentence. What the respawned teammate should do first. Not
 a strategy — an action.
 
+## 9. First-turn customer message (tech-lead respawn only)
+
+*Required when the respawned agent is `tech-lead`; omit for any
+other agent.* Per `docs/agent-health-contract.md` § 5.4, the
+newly-spawned tech-lead's first customer-facing output announces
+the respawn. Draft that message here so the replacement tech-lead
+can speak it verbatim or lightly adapt.
+
+Shape:
+
+> *"I am `tech-lead`, respawned on YYYY-MM-DD at HH:MM because
+> <reason, citing § 2 signal numbers>. The prior instance's state
+> has been handed over via `docs/handovers/<this-file>.md`. What
+> I believe is true right now, with citations:*
+> *- <bullet 1, cite file + line>*
+> *- <bullet 2, cite file + line>*
+> *- <bullet 3, cite file + line>*
+> *Please correct anything that looks wrong — customer corrections
+> land in `CUSTOMER_NOTES.md` as new entries, not edits."*
+
+`project-manager` fills this section. The customer hears about
+the respawn only from the new `tech-lead`, never from
+`project-manager` — the "sole human interface" invariant holds
+without carve-outs.
+
 ---
 
 **Respawn note.** When the new instance starts, it reads this

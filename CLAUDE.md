@@ -135,7 +135,15 @@ for the scaffold a new migration starts from.
 
 ## FIRST ACTIONS — EVERY NEW SESSION
 
-Do these two things in order before starting the user's task.
+Run these four steps in order before starting the user's task.
+
+**Atomic gate.** Steps 3 and 4 each expect a single atomic
+customer answer — **one question, asked when all agents are idle,
+as the last thing on screen.** These must not be deferred or
+resolved implicitly. Write them into `docs/OPEN_QUESTIONS.md` at
+session start (before even Step 2's scoping batch) and ask them
+at the first moment of idleness, so they are not lost under the
+cognitive load of Step 2. Step 2's DoD (below) gates on both.
 
 ### Step 1 — Skill packs
 
@@ -163,11 +171,16 @@ Skill packs to consider installing. Which should I help install?
                                           optional supplement to this project's roster
         # See https://github.com/wshobson/agents
 
-  [6] Trail of Bits skills             — security/audit bundle (semgrep, codeql,
-                                          trailmark, constant-time-analysis,
-                                          zeroize-audit, entry-point-analyzer, …)
+  [6] Trail of Bits skills marketplace — security/audit bundle. This is a
+                                          MARKETPLACE of ~30 plugins, not a
+                                          single bundle. Install the ones you
+                                          want individually.
         /plugin marketplace add trailofbits/skills
-        /plugin install trailofbits-skills@trailofbits-skills
+        # then pick plugins — common picks:
+        /plugin install semgrep@trailofbits
+        /plugin install codeql@trailofbits
+        /plugin install constant-time-analysis@trailofbits
+        /plugin install trailmark@trailofbits
 
   [7] Skip — I have what I need.
 ```
@@ -175,6 +188,11 @@ Skill packs to consider installing. Which should I help install?
 Rules:
 - Accept multiple numbers.
 - Echo install commands; do not run them unless the user says run.
+- **Detect already-installed skill packs before asking.** Before
+  showing the menu, check `/plugin list` (or the equivalent
+  settings surface) and annotate lines that are already installed
+  with `[already installed]`. Do not re-propose those lines as
+  install candidates — offer them only as "already present, skip."
 - If a repo URL 404s, `web_search` the name, confirm substitute with user,
   do not silently pick one.
 - Sources verified 2026-04-18; repos move.
@@ -233,8 +251,12 @@ before `tech-lead` dispatches the first work subagent):
 - [ ] First milestone and its "done" criteria are defined.
 - [ ] Escalation paths are named — who routes to whom, what escalates
   to the customer, and what does not.
-- [ ] Step 3 (agent naming) is complete (category chosen, mapping in
-  `docs/AGENT_NAMES.md`, or explicit decision to keep canonical names).
+- [ ] Step 3 (agent naming) is complete (category chosen, scope
+  pinned per Step 3a below, mapping in `docs/AGENT_NAMES.md`, or
+  explicit decision to keep canonical names).
+- [ ] **Step 4 (issue-feedback opt-in) has been asked and answered**
+  — yes or no recorded in `CUSTOMER_NOTES.md`. Scoping cannot close
+  with Step 4 still open.
 - [ ] Project charter is captured in `docs/pm/CHARTER.md` (or the
   template's interim equivalent) by `project-manager` via
   `researcher`.
@@ -274,6 +296,26 @@ Ask as **one question, when all agents are idle**:
 > pronouns verified by `researcher` against an authoritative source.
 > You can also give a custom name list, or stick with canonical role
 > names.
+
+#### Step 3a — Category scope pin (before dispatching researcher)
+
+Before `tech-lead` dispatches `researcher` to assemble a candidate
+name roster from the chosen category, `tech-lead` echoes back the
+scope in a single atomic message for customer confirmation. The
+scope pin covers:
+
+- One-sentence category boundary ("famous composers of the
+  common-practice period, roughly 1600–1900").
+- Actor-vs-character convention where ambiguous (e.g., "fictional
+  detectives — character names, not the actors who played them").
+- Obvious edge cases to rule in or out (e.g., "include lesser-known
+  peers, but exclude anyone convicted of violent crime").
+- Living + deceased both allowed? Tone-sensitive exclusions?
+
+The customer confirms or edits in one reply. Only then does
+`tech-lead` dispatch `researcher`. This prevents the common failure
+where `researcher` guesses the scope, the guess errs toward
+inclusion, and the customer rejects names post-hoc.
 
 Record the chosen mapping in `docs/AGENT_NAMES.md`. From then on,
 `tech-lead` spawns specialists using the teammate name in the Agent

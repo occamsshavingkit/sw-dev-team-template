@@ -80,6 +80,12 @@ Team-wide. Applies to every completed task, regardless of type.
 - [ ] Unit tests written alongside code (not after).
 - [ ] Integration or acceptance tests updated by `qa-engineer` where
       scope warrants.
+- [ ] **Relevant test suite is green, with raw runner output** (exit
+      code, pass/fail counts, timestamp) attached to this task
+      before closure. `qa-engineer` verifies by re-running the
+      suite, not by accepting a summary. A failing suite reverts
+      the task to `software-engineer`; closure is blocked until
+      re-verified.
 - [ ] `code-reviewer` has approved.
 - [ ] Documentation updated by `tech-writer` where user-visible.
 - [ ] No new open defects of severity ≥ <threshold>.

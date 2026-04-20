@@ -1,7 +1,7 @@
 ---
 name: software-engineer
 description: Software Engineer / implementer. Use for writing production code, unit tests, bug fixes, small refactors, and integration work. Executes on a specification provided by tech-lead or architect; does not decide what to build.
-tools: Read, Write, Edit, Grep, Glob, Bash
+tools: Read, Write, Edit, Grep, Glob, Bash, SendMessage
 model: inherit
 ---
 

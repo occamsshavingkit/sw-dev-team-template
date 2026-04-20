@@ -4,22 +4,116 @@ A ready-to-use Claude Code project scaffold that turns a single Claude
 session into a 9-role software-development team with a strict escalation
 protocol and a per-project SME pattern.
 
+**Status.** Pre-1.0 (currently `v0.10.0`). The public contract is not
+yet stable; breaking changes are permitted in minor bumps per SemVer
+0.y rules. See `docs/versioning.md` for the criteria that will return
+the template to a `v1.0.0-rc` track.
+
+---
+
 ## Quickstart
 
-1. Unzip this folder into an empty directory.
-2. `cd` into that directory.
-3. Run `claude`.
-4. Claude reads `CLAUDE.md` on session start and runs the two-step first-
-   action flow:
-   - **Step 1 — Skill packs.** Claude shows five curated skill-pack options
-     and waits for you to pick.
-   - **Step 2 — Project scoping + SME discovery.** `tech-lead` asks about
-     the project, which SME domains it needs, which you're expert in,
-     and which need external recruiting. Then `tech-lead` proposes
-     additional SMEs you might not have thought of.
+> **Read this before anything else.** This repository is the
+> **template source**, not a scaffolded project. If you unzip (or
+> clone) this and run `claude` directly inside the unzipped directory,
+> the session will *appear* to start, but the project will be missing
+> every invariant the template relies on (no `TEMPLATE_VERSION`, no
+> `git init`, no reset registers, no `.template-customizations`).
+> Always scaffold a new directory — see step 2 below.
 
-Only after both steps are complete does `tech-lead` dispatch the first
-real work subagent.
+### 1. Get the template
+
+Either clone the git repo (preferred — lets you `upgrade.sh` later)
+
+```
+git clone https://github.com/occamsshavingkit/sw-dev-team-template.git
+```
+
+or download the release zip and unzip it. Either way, this lands the
+template source on your machine. Do **not** work inside this directory.
+
+### 2. Scaffold your project
+
+From the template source directory, run the scaffold script with a
+path to your new project's directory and a display name:
+
+```
+scripts/scaffold.sh ~/code/my-new-project "My New Project"
+```
+
+This creates `~/code/my-new-project/` as a fresh, template-shaped
+directory with `TEMPLATE_VERSION` stamped, registers reset to empty
+stubs, template-only files (VERSION, CHANGELOG, LICENSE, migrations)
+stripped, and a `git init`'d history. The scaffold script does not
+make any commits — the first commit is yours to make so your repo's
+git conventions apply.
+
+### 3. Enable the agent-teams panel
+
+The template assumes the Claude Code experimental agent-teams feature
+is on. Set the environment variable before running `claude`:
+
+```
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+```
+
+Or pin it in `~/.claude/settings.json`. Without it, named teammates
+won't appear in the TUI's bottom panel and `SendMessage` routing
+between agents will not work.
+
+### 4. Start the session
+
+```
+cd ~/code/my-new-project
+claude
+```
+
+Claude reads `CLAUDE.md` on session start and runs the **FIRST ACTIONS
+flow** (four steps, documented in `CLAUDE.md`):
+
+- **Step 1 — Skill packs.** Claude shows a catalog of skill packs and
+  waits for you to pick any you want installed.
+- **Step 2 — Project scoping + SME discovery.** `tech-lead` asks one
+  question per turn (never a multi-question bundle) about the project,
+  which SME domains it needs, which you hold, and which need external
+  recruiting. Only when Step 2's Definition-of-Done checklist is
+  complete does `tech-lead` dispatch the first work subagent.
+- **Step 3 — Agent naming (optional).** `tech-lead` offers a naming
+  category (Muppets, composers, etc.) and maps teammate names onto
+  the canonical roles.
+- **Step 4 — Issue-feedback opt-in.** `tech-lead` asks atomically
+  whether you want framework gaps filed upstream as issues.
+
+## I already unzipped into my working directory — now what?
+
+Two options:
+
+1. **Preferred.** Move your work aside, delete the unzipped directory,
+   run `scripts/scaffold.sh` into a fresh target, then move your work
+   back in.
+2. **Repair in place** *(feature planned for v0.11.0 as
+   `scripts/repair-in-place.sh`; not yet shipped)*. Until it ships,
+   option 1 is the only clean path.
+
+Do not proceed with the unzipped-as-project state — the session will
+compound the drift.
+
+## Upgrading an existing scaffolded project
+
+From inside your scaffolded project, on a later session:
+
+```
+scripts/upgrade.sh --dry-run   # preview the plan
+scripts/upgrade.sh             # apply it
+```
+
+Upgrade rules: unchanged template files are overwritten with the new
+version; project-customized files are left alone when upstream hasn't
+changed, or flagged as conflicts when both have changed. Files listed
+in `.template-customizations` are always preserved.
+
+See `CLAUDE.md` § "Template version check + upgrade" for the full
+contract, including per-version migration scripts under `migrations/`.
 
 ## What's in here
 
@@ -34,10 +128,16 @@ real work subagent.
 | `docs/OPEN_QUESTIONS.md` | Register of open questions, with answerer and status. |
 | `docs/INDEX.md` | Table of contents for everything under `docs/` plus repo-root bindings. |
 | `docs/ISSUE_FILING.md` | How to file framework-gap issues upstream; cites the template version. |
+| `docs/agent-health-contract.md` | Agent liveness, health-check, and respawn contract. |
+| `docs/versioning.md` | Versioning policy; criteria for returning to `v1.0.0-rc`. |
 | `VERSION` | Current template version (SemVer). |
 | `CHANGELOG.md` | Release history. |
 | `LICENSE` | MIT — permissive; downstream projects may be closed-source. Not shipped in scaffolded projects; each project picks its own license. |
 | `scripts/scaffold.sh` | Scaffolds a new downstream project from this template. |
+| `scripts/upgrade.sh` | Upgrades a scaffolded project to a newer template version. |
+| `scripts/version-check.sh` | Runs at session start; compares `TEMPLATE_VERSION` against upstream. |
+| `scripts/agent-health.sh` | Assembles a ground-truth health-check packet for an agent. |
+| `scripts/respawn.sh` | Stubs a handover brief for respawning a long-running teammate. |
 | `docs/templates/` | Document templates shaped after the relevant standards (ISO/IEC/IEEE 29148 / 42010 / 12207, arc42, C4, INVEST). |
 | `.claude/agents/*.md` | 9 specialist subagents + 1 SME template. |
 | `docs/sme/` | SME reference material, per-domain. `INVENTORY.md` per domain; copyrighted items in `local/` (gitignored). |
@@ -54,6 +154,7 @@ stay in `docs/sme/<domain>/local/` and are cited in the domain's
 | Agent | Canonical role |
 |---|---|
 | `tech-lead` | Tech Lead + orchestrator + **sole human interface** |
+| `project-manager` | PMBOK-aligned; owns charter, schedule, risk, stakeholders, change log, lessons |
 | `architect` | Software Architect |
 | `software-engineer` | Implementation / construction |
 | `researcher` | Standards librarian + `CUSTOMER_NOTES.md` steward |
@@ -67,25 +168,44 @@ stay in `docs/sme/<domain>/local/` and are cited in the domain's
 ## The escalation model in one line
 
 **`tech-lead` is the only agent that talks to the human.** Every other
-agent, when stuck, first looks for another agent who can answer, and only
-escalates to `tech-lead` as a last resort. Customer answers land in
-`CUSTOMER_NOTES.md` verbatim so the team doesn't re-ask.
+agent, when stuck, first checks `CUSTOMER_NOTES.md`, then routes to
+another specialist agent, and only escalates to `tech-lead` as a last
+resort. Customer answers land in `CUSTOMER_NOTES.md` verbatim so the
+team doesn't re-ask.
 
 ## Customizing
 
 - **Per-project SMEs:** `tech-lead` proposes these in Step 2. Each SME
   becomes `.claude/agents/sme-<domain>.md` based on `sme-template.md`.
 - **Additional specialists:** add a new `.claude/agents/<role>.md` and
-  wire it into `tech-lead.md`'s routing table so `tech-lead` knows when
-  to delegate to it.
-- **Skills:** the first-action flow proposes five skill packs; install
-  whatever fits the project's stack.
+  wire it into `tech-lead.md`'s routing table so `tech-lead` knows
+  when to delegate to it.
+- **Skills:** the Step 1 menu proposes curated skill packs; install
+  whatever fits the project's stack. You can add items inline.
+
+## Filing upstream issues
+
+When the team hits a gap in this framework (missing agent, weak
+routing, unclear rule, missing or wrong template) while working on
+your project, `tech-lead` can file an issue against this upstream
+repo — citing the `TEMPLATE_VERSION` your project was scaffolded
+from — so a future version can fix it.
+
+See `docs/ISSUE_FILING.md` for the filing protocol. Opt-in is asked
+as Step 4 of the FIRST ACTIONS flow; project-identifying information
+is **not** included in upstream issue bodies.
 
 ## Philosophy
 
-- Claude already knows how to write code. The scaffold's job is to give
-  it explicit role boundaries, prevent context drift, and protect the
-  customer's attention.
+- Claude already knows how to write code. The scaffold's job is to
+  give it explicit role boundaries, prevent context drift, and
+  protect the customer's attention.
 - One role = one agent. Small overlap acknowledged (see
-  `SW_DEV_ROLE_TAXONOMY.md` §3 heatmap); silent overlap is a bug.
+  `SW_DEV_ROLE_TAXONOMY.md` § 3 heatmap); silent overlap is a bug.
 - Customer rulings are binding; agent opinions are advisory.
+
+## License
+
+MIT. See `LICENSE`. Downstream projects scaffolded from this template
+pick their own license; the MIT grant on the template does not infect
+scaffolded projects.

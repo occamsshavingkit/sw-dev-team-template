@@ -185,19 +185,74 @@ response. Distinct from a *defect*, which is the underlying cause.
 
 ## Roles and parties
 
-**Customer** — the party defining requirements and accepting delivery.
-The human user of this team template. Outside the agent team.
+This template uses **customer** as the umbrella term for the human
+running the session, but PMBOK and the Scrum Guide draw finer
+distinctions that matter as soon as the human wears more than one
+hat. The four definitions below are explicit so a reader of the
+template never has to guess which hat "customer" refers to in a
+given passage. Binding across all template content.
 
-**User** — a person who uses the delivered system. May or may not be
-the customer.
+**Customer** — in this template, the human running the session.
+Defines requirements, prioritises scope, and provides acceptance.
+Ruling authority on anything the agent team is building. Outside
+the agent team. The label is retained for continuity even though
+the human may, in PMBOK / Scrum terms, be one or more of the
+narrower roles below simultaneously.
+
+**Product owner** — the role, in Scrum and PMBOK terms, that
+defines *what* to build and in what order: owns the product
+backlog, prioritises scope, accepts done-ness. When this template
+says "the customer made a ruling on scope", PMBOK/Scrum would
+describe the acting role as *product owner*. In most downstream
+projects the customer **is** the product owner; the terms coincide
+for practical purposes and the template stays on "customer" to
+avoid churn.
+
+**End customer / end user** — the party who ultimately *receives*
+or *uses* the delivered system. In PMBOK this is a stakeholder
+distinct from the product owner; the product owner typically
+speaks *for* the end customer to the team. In a B2B engagement
+the end customer is the client buying the product; in an internal-
+tools project the end customer is the team that will use the
+tool. For the avoidance of doubt, when the template writes
+"customer" it almost never means this narrower sense — it means
+the session human (product owner). Use "end customer" or "end
+user" explicitly when this narrower sense is intended.
+
+**Sponsor** — in PMBOK, the party providing funding and executive
+authority for the project. Distinct from product owner and end
+customer. In solo / greenfield / internal-tool projects, the
+customer often wears the sponsor hat as well, but the template
+makes no assumption either way.
+
+**SME (Subject-Matter Expert)** — a person with accumulated
+expertise in a particular field or topic, reflected by degree,
+licensure, or years of experience. `SW_DEV_ROLE_TAXONOMY.md`
+§2.6a. The customer may *also* be an SME in one or more domains
+(see `CLAUDE.md` § "The human is the customer (and may also be an
+SME)"); in that case their answers in those domains are ground
+truth and get recorded verbatim in `CUSTOMER_NOTES.md`. External
+SMEs are brought onto the project through the customer and their
+knowledge is cached via per-project `sme-<domain>.md` agents.
+
+**Role-stacking in this template.** The session human can be any
+combination of: product owner (almost always), end customer
+(often), sponsor (often), and SME (sometimes, per domain). The
+template does not require you to separate the hats. It does
+require that when a ruling is being made, it is clear *which hat*
+is speaking — product-owner rulings are binding on scope /
+requirements / acceptance; SME rulings are binding on the
+relevant domain; end-customer or sponsor input is stakeholder
+context that informs product-owner rulings.
+
+**User** — a person who uses the delivered system. Synonymous
+with "end user" above; prefer "end customer" when contrasting
+against the product-owner sense of "customer", and "user" when
+talking about the system's human interface generically.
 
 **Stakeholder** — anyone affected by the system or its delivery.
-Superset of customer and user.
-
-**SME (Subject-Matter Expert)** — a person with accumulated expertise
-in a particular field or topic, reflected by degree, licensure, or
-years of experience. `SW_DEV_ROLE_TAXONOMY.md` §2.6a. May be the
-customer or external.
+PMBOK superset. Includes product owner, end customers, sponsor,
+SMEs, regulators, operations staff, etc.
 
 **End-of-life terms from the role taxonomy** — see `SW_DEV_ROLE_TAXONOMY.md`
 for canonical definitions of *Software Engineer, QA Engineer, SRE,

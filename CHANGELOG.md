@@ -16,6 +16,38 @@ filed upstream include that version.
 
 ---
 
+## v0.10.0 — 2026-04-20
+
+**Release-track reset.** The template is withdrawing from the
+`v1.0.0-rc` track and returning to `0.y.z` minor iteration.
+Rationale: the Gate-3 engagement continues to surface rc-class
+issues (#4–#29), including at least two breaking themes
+(terminology rename in #15, memory architecture in #27) that
+cannot honestly ship under a MINOR or PATCH bump once 1.0 is
+claimed. Under SemVer, `0.y` permits breaking changes in minor
+bumps, which matches where the template actually is. The criteria
+for returning to `v1.0.0-rc` are recorded in `docs/versioning.md`.
+
+### Changed
+- `VERSION`: `v1.0.0-rc2` → `v0.10.0`. This is a renumbering, not
+  a downgrade of content; everything shipped under `v1.0.0-rc1`
+  and `v1.0.0-rc2` remains in place.
+- The two `v1.0.0-rc*` tags stay in git history; they are not
+  deleted. They mark the point at which the rc track was paused.
+
+### Added
+- `docs/versioning.md` — stating the 0.y iteration policy and the
+  explicit criteria for returning to a `v1.0.0-rc` track.
+
+### Notes
+- No migration required for downstream projects. `upgrade.sh`
+  handles the version stamp change. No file shapes changed.
+- The `V1_RELEASE_PLAN.md` in the private workspace is renamed
+  to `V0_10_RELEASE_PLAN.md`; rc-cycle issue triage continues
+  under the new minor series.
+
+---
+
 ## v1.0.0-rc2 — 2026-04-19
 
 Second release candidate. Adds the agent-health and respawn

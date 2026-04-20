@@ -215,9 +215,30 @@ respawn — writing the handover brief and orchestrating the
 spawn. `tech-lead` does not respawn itself; that would be
 chain-of-custody broken.
 
-`project-manager` informs the customer of the respawn at the
-next interaction. The customer is never silently handed to a
-replacement instance.
+**Announcement discipline (Fix B, customer ruling 2026-04-20).**
+`project-manager` **does not** contact the customer directly.
+The "sole human interface" invariant stands without carve-outs.
+Instead, the newly-spawned `tech-lead` announces the respawn to
+the customer on its **own first turn**, as its first
+customer-facing message, using the handover-brief summary that
+`project-manager` prepared. The customer therefore hears about
+the respawn from the (new) tech-lead — the only agent allowed
+to speak to them — rather than from `project-manager`.
+
+The handover brief (see `docs/templates/handover-template.md`)
+must include a "First-turn customer message" section that the
+replacement tech-lead speaks verbatim (or adapts) as its first
+output. Shape:
+
+> *"I am `tech-lead`, respawned on YYYY-MM-DD at HH:MM because
+> <reason, citing signal numbers from §2>. The prior instance's
+> state has been handed over via `docs/handovers/<file>.md`.
+> What I believe is true right now, with citations: <three-bullet
+> what-I-believe summary>. Please correct anything that looks
+> wrong — customer corrections land in `CUSTOMER_NOTES.md` as
+> new entries."*
+
+The customer is never silently handed to a replacement instance.
 
 ## 6. Limits
 
