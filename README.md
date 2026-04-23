@@ -81,19 +81,32 @@ flow** (four steps, documented in `CLAUDE.md`):
 - **Step 3 — Agent naming (optional).** `tech-lead` offers a naming
   category (Muppets, composers, etc.) and maps teammate names onto
   the canonical roles.
-- **Step 4 — Issue-feedback opt-in.** `tech-lead` asks atomically
+- **Step 0 — Issue-feedback opt-in.** `tech-lead` asks atomically
   whether you want framework gaps filed upstream as issues.
 
 ## I already unzipped into my working directory — now what?
 
 Two options:
 
-1. **Preferred.** Move your work aside, delete the unzipped directory,
-   run `scripts/scaffold.sh` into a fresh target, then move your work
-   back in.
-2. **Repair in place** *(feature planned for v0.11.0 as
-   `scripts/repair-in-place.sh`; not yet shipped)*. Until it ships,
-   option 1 is the only clean path.
+1. **Repair in place** (new in v0.11.0). Run:
+
+   ```
+   scripts/repair-in-place.sh --dry-run   # preview first
+   scripts/repair-in-place.sh             # apply
+   ```
+
+   The script strips template-only files (VERSION, CHANGELOG.md,
+   CONTRIBUTING.md, LICENSE, migrations/, examples/, .github/),
+   resets the project registers (`docs/OPEN_QUESTIONS.md`,
+   `CUSTOMER_NOTES.md`, `docs/AGENT_NAMES.md`) to empty stubs,
+   stamps `TEMPLATE_VERSION`, seeds `.template-customizations`,
+   and initialises git. Asks for confirmation before acting; won't
+   run on a directory that is already scaffolded (has
+   `TEMPLATE_VERSION` present).
+2. **Scaffold a fresh directory.** Move your work aside, delete the
+   unzipped directory, run `scripts/scaffold.sh` into a fresh target,
+   then move your work back in. Use this if you want the project in
+   a different path than where you unzipped.
 
 Do not proceed with the unzipped-as-project state — the session will
 compound the drift.
@@ -192,7 +205,7 @@ repo — citing the `TEMPLATE_VERSION` your project was scaffolded
 from — so a future version can fix it.
 
 See `docs/ISSUE_FILING.md` for the filing protocol. Opt-in is asked
-as Step 4 of the FIRST ACTIONS flow; project-identifying information
+as Step 0 of the FIRST ACTIONS flow; project-identifying information
 is **not** included in upstream issue bodies.
 
 ## Philosophy

@@ -51,6 +51,65 @@ health check.** Red result = respawn.
    session without a useful answer.
 10. Agent asks for an SME answer that is already recorded in
     `CUSTOMER_NOTES.md` within its own memory window.
+11. **Silent hang / lost heartbeat.** A backgrounded subagent has
+    produced no tool output (status message, file write, or
+    `SendMessage`) for longer than the liveness window. Default
+    windows by task class: quick lookup / verification — 3 min;
+    single-file edit — 10 min; research survey or audit — 20 min;
+    multi-file refactor — 30 min. `tech-lead` sets the window at
+    dispatch time (in the brief) for tasks that don't fit these
+    defaults.
+
+### Liveness protocol (binding)
+
+When signal 11 fires, `tech-lead` runs this procedure:
+
+1. `SendMessage({to: <name>, …"are you alive? respond with one
+   line within 60 seconds."})` — a cheap ping, not a fresh ask.
+2. If the agent responds within 60 s → record the ping outcome,
+   extend the window once, continue.
+3. If no response → grade the agent Red immediately and proceed
+   to § 4 respawn. Do not re-ping; a non-responsive backgrounded
+   agent is indistinguishable from a crashed one.
+4. If the agent has a partial artifact on disk (file writes
+   partway through), preserve it under `docs/handovers/
+   <name>-<YYYY-MM-DD-HHMM>-partial.md` so the respawned
+   instance can resume from whatever state survived.
+
+Liveness windows are **floors on patience**, not ceilings on
+runtime — a genuinely long-running subagent that still emits
+intermediate tool output (file writes, status messages) resets
+the window on every emission.
+
+### Heartbeat convention (binding for long-running agents)
+
+Named teammates whose tasks routinely exceed 10 minutes —
+`researcher` (surveys, audits), `architect` (decomposition and
+ADR drafting), `project-manager` (artifact production),
+`qa-engineer` (test-plan drafting), `software-engineer`
+(multi-file refactors), `sre` (capacity / DR plan drafting),
+`security-engineer` (threat-model / assurance-case drafting) —
+SHOULD emit a one-line progress heartbeat at least every 10
+minutes of wall-clock work.
+
+Accepted heartbeat forms (any one resets the liveness window):
+
+- A file write to a durable artifact (e.g., appending a section
+  to the audit / report / template the agent is producing).
+- A `TaskUpdate` status message naming the current step.
+- A `SendMessage` to `tech-lead` with a one-line progress note
+  ("still working on §3; ETA another 10 min").
+
+The dispatching `tech-lead` should include an explicit heartbeat
+expectation in the brief for background dispatches when the task
+is expected to exceed 10 minutes. Example brief phrasing:
+
+> "Budget ~45 minutes. Emit a one-line heartbeat (file write or
+> `SendMessage`) at least every 10 minutes so the liveness
+> window resets."
+
+The heartbeat is a floor, not a ceiling — a genuinely fast agent
+can finish before the first heartbeat is due, and that is fine.
 
 ## 3. Health-check protocol (per agent)
 

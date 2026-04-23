@@ -5,10 +5,15 @@ PMBOK Initiating artifact. One document per project. Owned by
 `CUSTOMER_NOTES.md`). Amend via a change log row in
 `docs/pm/CHANGES.md`.
 
-## 1. Purpose and justification
+## 1. Purpose, justification, and value proposition
 
 Why this project exists, the business or technical need it serves, and
-what happens if it is not done.
+what happens if it is not done. State the **value proposition**
+explicitly: what tangible and intangible benefits accrue, to whom, on
+what horizon, and how they will be measured at project close
+(PMBOK 8 Principle #3 "Focus on Value" and Performance Domain §2.4
+Finance — ROI / benefits realization). Detailed benefits tracking
+lives in `docs/pm/COST.md` if the project has a formal cost baseline.
 
 ## 2. Measurable objectives and success criteria
 
@@ -59,3 +64,22 @@ that authorizes this charter.
 
 Explicitly list — unstated assumptions are a risk category by
 themselves.
+
+## 11. Sustainability considerations
+
+PMBOK 8 Principle #5 "Integrate Sustainability Within All Project
+Areas" (§3.7). Capture the environmental / social / economic
+dimensions relevant to this project and how they will be tracked.
+Sustainability risks flow into `docs/pm/RISKS.md` under the
+`sustainability` category; sustainability lessons flow into
+`docs/pm/LESSONS.md`.
+
+| Dimension | Considerations | KPI / indicator | Owner |
+|---|---|---|---|
+| Environmental | e.g., compute / hosting carbon cost; hardware lifecycle; travel | | |
+| Social | e.g., accessibility; stakeholder-community effects; labor practices on subcontracted work | | |
+| Economic | e.g., total cost of ownership vs initial cost; supplier sustainability credentials (ref PMBOK 8 §X4.7) | | |
+
+If any dimension is explicitly out of scope for this project, say so
+and record the reasoning. "Not applicable" without reasoning is a
+red flag — PMBOK 8 treats sustainability as cross-cutting.

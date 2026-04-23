@@ -31,4 +31,11 @@ specific asks or commitments in play.
 
 | ID | Cadence | Channel | Owner | Next ask / commitment |
 |---|---|---|---|---|
-| S-1 | weekly / on-demand / milestone | email / chat / call | | |
+| S-1 | first-session-of-week / on-demand / milestone | email / chat / call | | |
+
+Cadences are **session-anchored, run-once** — see `CLAUDE.md`
+§ "Time-based cadences." "first-session-of-week" = the first
+session opened on or after the project's calendar-week boundary
+(the project picks which day starts the week — ISO 8601 Monday,
+US Sunday, or whatever matches the customer's locale; record the
+choice in `CUSTOMER_NOTES.md`). Missed weeks do not accumulate.

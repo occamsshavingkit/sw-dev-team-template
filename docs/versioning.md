@@ -1,9 +1,15 @@
 # Versioning policy
 
-The template is versioned under **SemVer** on the template
+The template is versioned under **SemVer 2.0.0**
+([https://semver.org/](https://semver.org/)) on the template
 artifact — `MAJOR.MINOR.PATCH`. This file states what the version
 number is claiming and when the template returns to a `v1.0.0-rc`
 track.
+
+**Normative reference.** Semantic Versioning 2.0.0,
+<https://semver.org/spec/v2.0.0.html>. All version-number semantics
+in this document (MAJOR / MINOR / PATCH, pre-release tags, `0.y.z`
+initial-development rules) are as defined there.
 
 ## Current track: 0.y.z
 

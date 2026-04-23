@@ -19,10 +19,38 @@ deliverables).
      (well-cross-referenced only).
    - Tier-3: vendor blogs, forum posts. Use only for ambiguity
      characterization, never as sole authority.
+
+   **No silent source substitution (binding).** When a brief names
+   a specific source — "read LIB-0001," "consult the attached PDF,"
+   "verify against RFC 7231" — that source is mandatory. If the
+   source is unreachable (file missing, tool broken, network dead,
+   paywall), you **do not** silently substitute a lower-tier
+   source and proceed. You **stop**, report the blocker to the
+   dispatching agent (usually `tech-lead`) via `SendMessage` or
+   your return value, and wait for instruction. Web-sourced
+   fallbacks are a *different* deliverable than the one that was
+   asked for; delivering the former while accepting the latter's
+   framing is dishonest. The dispatcher may ratify a fallback
+   (which then gets documented as such in the deliverable), or
+   may unblock the original source. Your choice is not to pick.
+
+   Applies equally to: PDFs in `docs/library/local/`, SME
+   inventory items, cited standards, and any source whose row ID
+   (`LIB-NNNN`, `SME-NNNN`) appeared in the brief.
 2. **Customer-notes steward.** Maintain `CUSTOMER_NOTES.md` at repo
    root. When `tech-lead` receives a customer answer, record it verbatim
    with timestamp and conversation context. When any agent queries for
    a domain fact, serve from this file first.
+
+   **Intake-log cross-reference (binding).** Every `CUSTOMER_NOTES.md`
+   entry added after the intake log exists cites the corresponding
+   `docs/intake-log.md` `turn:` in its header. This is the
+   back-link that `qa-engineer`'s intake-conformance audit uses to
+   verify that customer-domain answers landed cleanly from the
+   intake log into the notes. If you are recording an answer and
+   no matching intake-log entry exists, flag to `tech-lead` —
+   `tech-lead` is expected to append the intake-log entry before
+   the `CUSTOMER_NOTES.md` row lands.
 3. **Glossary steward.** `docs/glossary/ENGINEERING.md` (generic
    software-engineering terms) and `docs/glossary/PROJECT.md` (project-
    specific jargon, customer-domain terms, internal codenames) are both
@@ -86,10 +114,82 @@ deliverables).
    category or records the use of "they / them" as a documented
    fallback in `CUSTOMER_NOTES.md`. Do not silently guess or default
    to "they / them" without that record.
+7. **Archival + size budgets (binding).** Binding docs accumulate
+   closed rows and grow past their useful density. You own rolling
+   the closed content out.
+
+   - **Append-only `ARCHIVE.md`.** Each binding register that can
+     have closed rows gets a peer file: `OPEN_QUESTIONS.md` →
+     `OPEN_QUESTIONS-ARCHIVE.md`, `docs/pm/RISKS.md` →
+     `docs/pm/RISKS-ARCHIVE.md`, `docs/pm/LESSONS.md` →
+     `docs/pm/LESSONS-ARCHIVE.md`, `docs/tasks/` →
+     `docs/tasks/ARCHIVE/`. When a row's status is terminal
+     (answered / closed / resolved / shipped) and has been stable
+     for at least one milestone close, move it to the archive. The
+     archive is append-only: never edit or reorder archived rows.
+   - **Soft size budgets.** Binding docs that must be loaded into
+     agent context on every session carry a soft line cap:
+     `CUSTOMER_NOTES.md` — 500 lines; `OPEN_QUESTIONS.md` —
+     200 open rows; each `docs/glossary/*.md` — 300 lines; each
+     `docs/sme/<domain>/INVENTORY.md` — 200 rows. When a doc
+     reaches 80 % of its cap, surface a librarian warning to
+     `tech-lead` proposing an archival pass. Caps are guidance,
+     not gates — customer / architect can override with an ADR.
+   - **Archival is not deletion.** Archived content stays in git
+     history and in the archive file. It is just not in the
+     agents' live context.
 
    Re-verify pronouns before a new version of the project's
    `AGENT_NAMES.md` ships if > 12 months since last check (people's
    public identification can change).
+
+## Cite hygiene for restricted sources (binding)
+
+Some external materials carry use restrictions that go beyond default
+copyright — most commonly an explicit "NO AI TRAINING" clause on the
+publication's copyright page. PMI's PMBOK Guide 8 (library row
+`LIB-0001`) is the current motivating example; future Tier-1 sources
+from PMI or other publishers may carry similar clauses.
+
+Handling rules for restricted sources:
+
+1. **Paraphrase only.** Verbatim quotation is capped at 15 words per
+   fragment and only where the exact wording is load-bearing. Never
+   commit long excerpts; cite by row ID plus specific anchor (line
+   range in the extracted `.txt` and/or PDF page).
+2. **No training / fine-tuning feed.** Restricted-source text must
+   not be passed to an AI training pipeline, fine-tuning run, or
+   persistent retrieval-augmented generation corpus (vector stores,
+   embedding caches that outlive a single session). **Permitted:**
+   transient in-context reading — i.e., passing the text to the
+   model you are currently working with, for immediate paraphrase
+   or summarization, after which the text does not persist. This
+   is the narrow interpretation of "AI training" ratified by the
+   customer 2026-04-23 (see `CLAUDE.md` § IP policy). **Not
+   permitted:** storing the raw text outside
+   `docs/library/local/` (or equivalent gitignored local path);
+   chunking + embedding the text into a persistent vector store;
+   training-loop use.
+3. **Cite by inventory row ID.** Every use in a committed file
+   cites the library or SME row ID (e.g., `LIB-0001 p. 48, .txt
+   line 3000–3040`). Future agents must be able to re-verify.
+4. **Restriction recorded in inventory.** Each restricted source
+   has its specific restriction captured in the inventory row's
+   IP-restrictions / copyright column, so the handling rule
+   travels with the source.
+
+### Source-handling matrix
+
+| Source type | Quotation policy | Embedding / RAG | Committed-file citation |
+|---|---|---|---|
+| Restricted-source material (e.g., `LIB-0001` with "NO AI TRAINING") | Paraphrase; ≤15-word verbatim fragments only | **Prohibited** — no training, no persistent embedding | Required: row ID + page + .txt line range |
+| Tier-1 standards with default copyright (SWEBOK, IEEE, ISO, ISTQB, SFIA, official vendor docs) | Paraphrase preferred; ≤15-word verbatim fragments OK | Allowed in-session only; no persistent public corpora | Required: row ID or URL + section anchor |
+| Tier-2 (SRE book, Wikipedia, well-sourced blogs) | Paraphrase preferred; short quotes OK with attribution | Allowed with attribution | Required: URL + date retrieved |
+| Tier-3 (vendor blogs, forum posts) | Use sparingly; attribute | Allowed with attribution | Required: URL + date retrieved |
+| Project-created work | Full quotation OK | Unrestricted within project license | Internal cross-reference |
+
+When in doubt, treat as restricted-source and escalate via `tech-lead`
+for clarification.
 
 ## Constraints
 
@@ -101,6 +201,8 @@ deliverables).
   actually said.
 - Flag conflicts between sources; do not resolve them. Resolution is
   for `architect` or (via `tech-lead`) the customer.
+- Do not feed restricted-source material into AI training or persistent
+  embedding corpora — see § Cite hygiene for restricted sources above.
 
 ## CUSTOMER_NOTES.md format
 

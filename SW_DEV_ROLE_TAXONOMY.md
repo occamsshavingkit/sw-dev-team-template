@@ -177,6 +177,14 @@ applies software-engineering practices to operational work.
 management" + "Release and deployment" — SRE spans multiple SFIA skills rather
 than having a single dedicated entry.
 
+**SWEBOK V4 mapping.** V4 introduces KA "Software Engineering
+Operations" (ch. 6), split into three process groups: Operations
+Planning (§2), Operations Delivery (§3), Operations Control (§4).
+This template assigns **Planning + Control** to `sre` and
+**Delivery** to `release-engineer`; DevSecOps is a three-way
+handshake with `security-engineer`. V3 did not have this KA;
+operations were implicit in KA "Software Maintenance."
+
 #### 2.3b Performance engineer
 
 **Canonical definition.** From Wikipedia "Performance engineering" (well
@@ -237,7 +245,9 @@ organization-dependent:
 - **Staff engineer** — senior IC *level* (not a single role), with multiple
   archetypes per staffeng.com.
 
-**Canonical sub-responsibilities — Architect** (SWEBOK KA "Software Design" +
+#### 2.4a Software architect
+
+Canonical sub-responsibilities (SWEBOK KA "Software Design" +
 industry consensus):
 - Define and communicate software architecture
 - System-decomposition and component-interface design
@@ -246,8 +256,12 @@ industry consensus):
 - Long-term technical strategy
 - Architecture review gatekeeping
 
-**Canonical sub-responsibilities — Tech Lead** (industry consensus; Vendavo,
-Full Scale):
+#### 2.4b Tech lead (technical lead within a delivery team)
+
+Canonical sub-responsibilities (industry consensus; Vendavo, Full
+Scale). In this framework, `tech-lead.md` also carries orchestration
++ sole-human-interface duties not generic to the industry role —
+see `CLAUDE.md` § "Escalation protocol" for that layer.
 - Day-to-day team technical guidance
 - Sprint-level design and code-review leadership
 - Team mentoring and onboarding
@@ -289,6 +303,60 @@ archetypes above.
 - SFIA v9 skills "Systems design" / "Solution architecture" — https://sfia-online.org/en (retrieved 2026-04-18).
 
 ---
+
+### 2.4c Security engineer (software security ownership)
+
+**Canonical definition.** Per SWEBOK V4 ch. 13 "Software Security" —
+a Knowledge Area newly introduced in V4 (absent from SWEBOK v3, which
+treated security as a cross-cutting concern with no named owner). The
+security engineer owns the security engineering discipline as a
+standalone role: threat modelling, security requirements,
+SDL / DevSecOps coordination, vulnerability management, SBOM
+stewardship, and security assurance.
+
+SFIA v9 recognises adjacent skills (SCTY — Information Security,
+VUAS — Vulnerability Assessment, SFEN — Security Engineering) but
+does not package them under a single named role; SWEBOK V4 does.
+Industry-common role names: *Application Security Engineer*
+("AppSec Engineer"), *Product Security Engineer*, *DevSecOps
+Engineer*, *Security Architect*. This taxonomy picks
+`security-engineer` for naming consistency with `software-engineer`,
+`release-engineer`, `qa-engineer`.
+
+**Canonical sub-responsibilities** (SWEBOK V4 ch. 13 §§1–6):
+
+- Security fundamentals and taxonomy stewardship.
+- Security-requirements engineering (§4.1).
+- Secure design (§4.2) and security patterns (§4.3), joint with the
+  software architect.
+- Construction controls and secure coding practices (§4.4),
+  advisory to the software engineer and the code reviewer.
+- Security testing plan (§4.5), joint with the QA engineer.
+- Vulnerability management policy (§4.6) and SBOM stewardship.
+- Security assurance case before release (shape per
+  `docs/templates/security-template.md`, grounded in ISO/IEC
+  15026-2:2022 — not a named SWEBOK sub-section); customer
+  sign-off recorded by `tech-lead`.
+- ML-security touchpoints (§6.3) and ML-testing coordination with
+  QA (SWEBOK V4 ch. 5 §7).
+
+**Scope boundary: standards discipline vs customer-domain
+compliance.** The security engineer owns the standards-grounded
+discipline (SWEBOK V4 ch. 13, ISO/IEC 27001:2022, NIST SSDF, OWASP
+ASVS). Customer-domain regulatory interpretation (HIPAA / GDPR /
+PCI-DSS / HITRUST / site-specific compliance) is `sme-<domain>`
+territory or escalates to the customer via `tech-lead`. The
+distinction mirrors the `researcher` vs `sme-<domain>` split from
+the template glossary.
+
+**Sources.**
+
+- SWEBOK V4 ch. 13 "Software Security" — library row LIB-0002.
+- ISO/IEC 27001:2022 — Information Security Management Systems.
+- NIST SP 800-218 Secure Software Development Framework (SSDF).
+- OWASP ASVS; CWE / CAPEC taxonomies.
+- IEEE CS / ACM Software Engineering Code of Ethics (SWEBOK V4
+  ch. 14 §1.7.6 Professional Liability).
 
 ### 2.5 Technical writer / documentation engineer (prose artifacts)
 
@@ -485,6 +553,13 @@ two roles, commonly labeled "DevOps engineer" or "platform engineer."
 **SFIA mapping.** SFIA v9 skills "Systems integration" (SINT), "Release and
 deployment" (RELM), "Configuration management" (CFMG), "Build management"
 (BUMG) — release engineering spans multiple SFIA skills.
+
+**SWEBOK V4 mapping.** V4 anchors release-engineer work in two KAs:
+**Software Configuration Management** (ch. 8) — primary canonical
+anchor — and **Software Engineering Operations** (ch. 6 §3
+Operations Delivery) — the IaC / PaC, deployment pipeline, release
+gating, and rollback automation responsibilities. Planning and
+Control of operations (§§2, 4) live with `sre`.
 
 **Canonical sub-responsibilities — Release engineer** (Wikipedia; industry
 consensus):

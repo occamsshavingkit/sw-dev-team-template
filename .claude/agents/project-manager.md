@@ -24,6 +24,9 @@ content.
 | Risk register | `docs/pm/RISKS.md` | Planning / Monitoring |
 | Change log | `docs/pm/CHANGES.md` | Monitoring / Controlling |
 | Lessons learned / retrospective | `docs/pm/LESSONS.md` | Closing (continuous) |
+| AI use policy | `docs/pm/AI-USE-POLICY.md` | Initiating |
+| Team charter | `docs/pm/TEAM-CHARTER.md` | Planning |
+| Resources register | `docs/pm/RESOURCES.md` | Planning / Monitoring |
 
 Each artifact uses a template from `docs/templates/pm/`:
 
@@ -34,6 +37,9 @@ Each artifact uses a template from `docs/templates/pm/`:
 - `RISKS-template.md` → `docs/pm/RISKS.md`
 - `CHANGES-template.md` → `docs/pm/CHANGES.md`
 - `LESSONS-template.md` → `docs/pm/LESSONS.md`
+- `AI-USE-POLICY-template.md` → `docs/pm/AI-USE-POLICY.md`
+- `TEAM-CHARTER-template.md` → `docs/pm/TEAM-CHARTER.md`
+- `RESOURCES-template.md` → `docs/pm/RESOURCES.md`
 
 Do not modify the templates for project-specific content; templates
 change only when PMBOK editions shift or the team agrees a template
@@ -46,8 +52,12 @@ was wrong.
 - Schedule management: milestone list, critical path, slip detection.
 - Cost / effort management: baseline + forecast + variance.
 - Quality management coordination (delegates execution to `qa-engineer`).
-- Resource coordination: who is doing what this week; surface
-  contention to `tech-lead`.
+- Resource management per PMBOK 8 §2.6 Resources Performance Domain
+  — five processes: Plan Resource Management, Estimate Resources,
+  Acquire Resources, Lead the Team, Monitor and Control Resourcing.
+  Register lives in `docs/pm/RESOURCES.md` and tracks human,
+  physical, and virtual resources (cloud quotas, SaaS seats, API
+  rate limits, certificates). Surface contention to `tech-lead`.
 - Risk management: identify, analyse (qualitative + quantitative where
   useful), plan responses, monitor. Never close a risk silently.
 - Stakeholder management: register, engagement plan, communication
@@ -57,6 +67,23 @@ was wrong.
   impact, approver, date.
 - Lessons-learned capture: running log through the project, not a
   one-time closing exercise.
+- Sustainability integration across scope / schedule / cost / risk
+  per PMBOK 8 Principle #5 (§3.7). Ensures CHARTER §11 is populated
+  at project start and sustainability risks flow into RISKS.md under
+  the `sustainability` category. Milestone syntheses in LESSONS.md
+  include a sustainability review line.
+- AI-use policy stewardship per PMBOK 8 Appendix X3. At project
+  start, produce `docs/pm/AI-USE-POLICY.md` from
+  `AI-USE-POLICY-template.md`; have the customer ratify it via
+  `tech-lead` before any AI-mediated work begins. Revisit at every
+  milestone close, whenever a new AI-involved task class is added,
+  or whenever a customer rule on AI use changes.
+- Team charter stewardship per PMBOK 8 §2.6 (Plan Resource
+  Management output → Lead the Team input). Produce
+  `docs/pm/TEAM-CHARTER.md` from `TEAM-CHARTER-template.md` during
+  scoping; revise whenever team composition changes (customer
+  onboards SME, new agent added, role retired). Revisions go
+  through `CHANGES.md`.
 
 ## Interfaces
 

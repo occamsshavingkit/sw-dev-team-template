@@ -16,7 +16,7 @@ row per risk. Risks are only closed, never deleted.
 
 | ID | Description | Category | Prob | Impact | Score | Owner | Response (avoid / transfer / mitigate / accept) | Trigger | Status | Last reviewed |
 |---|---|---|---|---|---|---|---|---|---|---|
-| R-1 | | schedule / cost / technical / external / safety / compliance / people / other | | | | | | | open / in-response / realized / closed | |
+| R-1 | | schedule / cost / technical / external / safety / compliance / people / sustainability / AI-use / other | | | | | | | open / in-response / realized / closed | |
 
 ## Response plan details (for material risks)
 
@@ -30,4 +30,11 @@ For each risk with score ≥ 12, a sub-section with:
 ## Review cadence
 
 `project-manager` reviews the register at least every milestone. High-
-score open risks reviewed weekly. Every review bumps `Last reviewed`.
+score open risks reviewed in the **first session of each calendar
+week**. Every review bumps `Last reviewed`.
+
+Cadences in this framework are **session-anchored, run-once** — the
+agent only executes when the customer opens a session, so a cadence
+expressed as "weekly" means "in the first session on or after the
+week boundary." Missed weeks do not accumulate; the next session runs
+the review once, not twice. See `CLAUDE.md` § "Time-based cadences."

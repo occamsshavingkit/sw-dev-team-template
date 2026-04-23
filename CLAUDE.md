@@ -135,15 +135,42 @@ for the scaffold a new migration starts from.
 
 ## FIRST ACTIONS — EVERY NEW SESSION
 
-Run these four steps in order before starting the user's task.
+Run these steps in order before starting the user's task.
 
-**Atomic gate.** Steps 3 and 4 each expect a single atomic
+**Atomic gate.** Step 0 and Step 3 each expect a single atomic
 customer answer — **one question, asked when all agents are idle,
 as the last thing on screen.** These must not be deferred or
 resolved implicitly. Write them into `docs/OPEN_QUESTIONS.md` at
-session start (before even Step 2's scoping batch) and ask them
-at the first moment of idleness, so they are not lost under the
-cognitive load of Step 2. Step 2's DoD (below) gates on both.
+session start and ask them at the first moment of idleness.
+Step 2's DoD (below) gates on both.
+
+### Step 0 — Issue-feedback opt-in (atomic, asked FIRST)
+
+Before the skill-pack menu, before scoping, before anything else,
+ask **one atomic yes/no question**:
+
+> Do you want this project to participate in upstream issue feedback?
+> When the team hits a gap in this framework (missing agent, weak
+> routing, unclear rule, missing or wrong template, etc.) while
+> working on your project, `tech-lead` will file an issue against
+> the upstream template repo — citing the template version this
+> project was scaffolded from — so a future version can fix it.
+> Issues include the template version, a short description, and
+> (if the project is sensitive) a redacted excerpt. Yes / No.
+
+This is Step 0 specifically because the **earliest** steps
+(Step 1 skills menu, Step 2 scoping) are themselves prime
+sources of feedback. Asking opt-in at the end would miss any
+gap the team hits while running the first steps.
+
+If **yes**: record in `CUSTOMER_NOTES.md` under an "Issue
+feedback opt-in" heading with the date. `tech-lead` follows
+`docs/ISSUE_FILING.md` for every gap it encounters thereafter,
+including gaps in Steps 1–3.
+
+If **no**: record that too. `tech-lead` still logs gaps locally
+in `docs/pm/LESSONS.md` so the project itself benefits, but does
+not push upstream.
 
 ### Step 1 — Skill packs
 
@@ -182,7 +209,14 @@ Skill packs to consider installing. Which should I help install?
         /plugin install constant-time-analysis@trailofbits
         /plugin install trailmark@trailofbits
 
-  [7] Skip — I have what I need.
+  [7] context-optimization            — keep context necessary and sufficient
+        npx skillfish add jbdamask/john-claude-skills context-optimization
+
+  [8] token-usage                      — report per-turn token usage so PM can
+                                          budget and estimate
+        npx skillfish add kmylpenter/kfg-ccv2-installer-stable token-usage
+
+  [9] Skip — I have what I need.
 ```
 
 Rules:
@@ -195,7 +229,7 @@ Rules:
   install candidates — offer them only as "already present, skip."
 - If a repo URL 404s, `web_search` the name, confirm substitute with user,
   do not silently pick one.
-- Sources verified 2026-04-18; repos move.
+- Sources verified 2026-04-21; repos move.
 
 After the user picks from the catalog, ask **one atomic follow-up
 question, agents idle**:
@@ -254,12 +288,22 @@ before `tech-lead` dispatches the first work subagent):
 - [ ] Step 3 (agent naming) is complete (category chosen, scope
   pinned per Step 3a below, mapping in `docs/AGENT_NAMES.md`, or
   explicit decision to keep canonical names).
-- [ ] **Step 4 (issue-feedback opt-in) has been asked and answered**
+- [ ] **Step 0 (issue-feedback opt-in) has been asked and answered**
   — yes or no recorded in `CUSTOMER_NOTES.md`. Scoping cannot close
-  with Step 4 still open.
+  with Step 0 still open. (Step 0 runs at session start, before
+  the Step 1 skill menu, so this row is normally already satisfied
+  by the time Step 2 reaches DoD; it remains in the DoD as a
+  backstop against accidentally skipping it.)
 - [ ] Project charter is captured in `docs/pm/CHARTER.md` (or the
   template's interim equivalent) by `project-manager` via
   `researcher`.
+- [ ] Team charter is captured in `docs/pm/TEAM-CHARTER.md` (PMBOK 8
+  §2.6 Plan Resource Management output). Captures team values,
+  decision-making, conflict resolution, communication cadence.
+- [ ] AI use policy is captured in `docs/pm/AI-USE-POLICY.md` (PMBOK
+  8 Appendix X3). Customer has ratified the strategy (Automation /
+  Assistance / Augmentation) for each AI-involved task class before
+  any AI-mediated work begins.
 - [ ] Open questions from the scoping batch are all in
   `docs/OPEN_QUESTIONS.md`, each with an answerer and status.
 
@@ -322,27 +366,6 @@ Record the chosen mapping in `docs/AGENT_NAMES.md`. From then on,
 tool's `name` parameter. See `docs/AGENT_NAMES.md` for the pronoun
 rule, the gender-balance rule, and examples.
 
-### Step 4 — Issue-feedback opt-in (atomic)
-
-Ask **one atomic yes/no question, when all agents are idle**:
-
-> Do you want this project to participate in upstream issue feedback?
-> When the team hits a gap in this framework (missing agent, weak
-> routing, unclear rule, missing or wrong template, etc.) while
-> working on your project, `tech-lead` will file an issue against the
-> upstream template repo — citing the template version this project
-> was scaffolded from — so a future version can fix it. Issues
-> include the template version, a short description, and (if the
-> project is sensitive) a redacted excerpt. Yes / No.
-
-If **yes**: record it in `CUSTOMER_NOTES.md` under an "Issue feedback
-opt-in" heading with the date. `tech-lead` follows
-`docs/ISSUE_FILING.md` for every gap it encounters thereafter.
-
-If **no**: record that too. `tech-lead` still logs gaps locally in
-`docs/pm/LESSONS.md` so the project itself benefits, but does not
-push upstream.
-
 ## Template version stamp
 
 Every downstream project records which version of this template it
@@ -370,6 +393,8 @@ Upstream issues filed from the project cite this stamp (see
 | `tech-writer.md`      | Technical Writer                                        | §2.5a |
 | `code-reviewer.md`    | Code Reviewer + Auditor (IEEE 1028)                     | §2.7 |
 | `release-engineer.md` | Build + Release Engineer                                | §2.8 |
+| `security-engineer.md`| Security Engineer — SWEBOK V4 ch. 13 "Software Security" owner | §2.4c |
+| `onboarding-auditor.md`| Zero-context documentation auditor (one-shot, milestone-close) | custom, upstream issue #25 |
 | `sme-<domain>.md` ×N  | Domain SME — created per-project in Step 2 above, from `sme-template.md` | §2.6a |
 | `sme-template.md`     | Scaffold for new SME agents; copy and fill in           | §2.6a |
 
@@ -386,11 +411,20 @@ so external-material tracking is in place from day one.
 
 ### SME scope: what is and is not an SME (binding)
 
-SME agents exist to cache **customer-specific** or
-**externally-held** domain knowledge — facts that are not
-independently discoverable from standards or public Tier-1 sources
-and must instead be extracted from the customer or a named external
-expert:
+SME agents come in **two modes**, decided at creation time (recorded
+in the agent's frontmatter as `mode: primary-source` or
+`mode: derivative`). Per customer ruling 2026-04-19 (issue #6,
+Fix-C hybrid):
+
+#### Primary-source SME
+
+Has a **non-public knowledge source** — a human expert (the
+customer, or a named external SME), proprietary documentation, or
+site / install archaeology not written down elsewhere. Cites that
+source first; may consult public web research on top. Acts as the
+**authoritative voice** for the domain.
+
+Typical content:
 
 - Process knowledge unique to the customer's site or operation.
 - Vendor- or platform-specific conventions the customer runs
@@ -402,25 +436,43 @@ expert:
 - Codenames, internal terminology, and business rules that are not
   written down outside the customer's own notes.
 
-SME agents are **not** the right home for knowledge that is already
-authoritatively public:
+#### Derivative SME
 
-- SWEBOK, IEEE 1028, ISTQB, PMBOK, SFIA, ISO/IEC/IEEE — these are
-  `researcher`'s domain; do not stand up an "sme-swe-standards" or
-  "sme-pmbok" agent.
-- Official vendor documentation (framework docs, CLI references,
-  API specs) — `researcher` retrieves and cites.
-- Public academic consensus or textbook patterns — `researcher`.
+Has **no primary source**. Consumes `researcher`'s paraphrases and
+public citations, applies domain-specialist framing and opinions on
+top. Exists primarily for **context segmentation** — so `researcher`
+does not hold every vendor ecosystem in one context window when a
+project juggles N domains.
 
-If the only content an SME agent would hold is "what SWEBOK § X says
-about Y," the agent should not exist; route the question to
+Citations in a derivative SME's output point at the same Tier-1
+sources `researcher` used. The SME's added value is judgment /
+framing / trade-off narration, explicitly flagged as opinion — not
+as new fact. A derivative SME that asserts a fact without a
+`researcher`-sourced citation is mis-using the mode; route the
+underlying question back through `researcher`.
+
+#### What is still NOT an SME (either mode)
+
+- Pure standards lookups with no project-specific framing — SWEBOK,
+  IEEE 1028, ISTQB, PMBOK, SFIA, ISO/IEC/IEEE. `researcher`'s
+  domain; do not stand up an "sme-swe-standards" or "sme-pmbok"
+  agent. A *derivative* SME in a domain that happens to cite a
+  standard is fine; an SME whose only job is to regurgitate the
+  standard is not.
+- Official vendor documentation look-ups with no customer framing —
+  `researcher` retrieves and cites.
+
+If the only content an SME agent would hold is "what SWEBOK § X
+says about Y," the agent should not exist; route the question to
 `researcher` instead. Creating standards-based SMEs produces
 duplicate-and-drift risk against public sources.
 
-**Rule of thumb.** If a Tier-1 public source can answer the question
-correctly out of the box, `researcher` owns it. If the answer depends
-on the customer telling us, it is SME territory — or escalates to
-the customer via `tech-lead`.
+**Rule of thumb.** If a Tier-1 public source answers a question
+straight out of the box with no project-specific framing needed,
+`researcher` owns it. If the question wants domain-specialist
+judgment (primary-source or derivative), SME territory. If the
+judgment depends on a customer fact nobody has captured yet, it
+escalates to the customer via `tech-lead`.
 
 ## Agent-teams panel
 
@@ -447,6 +499,26 @@ user. When a specialist agent hits a knowledge gap it:
 
 One role = one agent. If work spans roles, `tech-lead` chains them
 explicitly. See `tech-lead.md` for the routing table and escalation rules.
+
+### Operations KA ownership (SWEBOK V4 ch. 6)
+
+V4's "Software Engineering Operations" KA splits three ways across
+this roster:
+
+- **Operations Planning + Control** (ch. 6 §§2, 4) — `sre`. Owns
+  CONOPS, Operations Plan, capacity plan, DR / failover plan,
+  supplier management for IaaS/PaaS/SaaS, monitoring, alerting,
+  incident posture, post-incident review.
+- **Operations Delivery** (ch. 6 §3) — `release-engineer`. Owns
+  IaC / PaC, deployment pipeline, rollback automation, release
+  gating, canary / blue-green / staged-rollout mechanics.
+- **DevSecOps** — three-way handshake: `sre` + `release-engineer` +
+  `security-engineer`. Security controls in the pipeline, runtime
+  security observability, incident-response security touchpoints.
+
+Operations trade-offs that cross cost / schedule / risk thresholds
+(DR tier selection, capacity commits, vendor lock-in) are arbitrated
+by `architect` with `project-manager` on the cost / schedule side.
 
 ## Binding references
 
@@ -502,6 +574,30 @@ it for a specific item in `CUSTOMER_NOTES.md`.
   transformation is substantive and the source is cited by row ID in
   the domain's inventory.
 - When in doubt, assume copyrighted.
+- **Restricted-source clauses beyond default copyright.** Some external
+  materials carry explicit prohibitions on top of ordinary copyright —
+  most notably prohibitions on use of the material to train, fine-tune,
+  or embed into retrieval-augmented generation corpora for generative
+  AI. Example: PMI's PMBOK Guide 8th Edition (library row `LIB-0001`)
+  copyright page contains an explicit "NO AI TRAINING" clause.
+  `researcher` MUST NOT feed such materials into AI training,
+  fine-tuning, or persistent embedding / vector stores for retrieval.
+  Paraphrase-and-cite handling only; source text stays under the local
+  gitignored path (e.g., `docs/library/local/`, `docs/sme/<domain>/local/`).
+  Per-item restrictions are recorded in the relevant inventory row.
+
+  **Scope of "AI training" (customer ruling, 2026-04-23, narrow
+  interpretation):** the clause covers (a) updates to model weights
+  via training / fine-tuning / RLHF on the material, and (b)
+  persistent embedding / vector-store ingestion that retains the
+  source text across sessions for retrieval. It does **not** cover
+  transient in-context reading / inference — passing the text to a
+  model for immediate paraphrase or summarization within a single
+  session, after which the text does not persist in the model. This
+  is the reading under which `researcher` may read the `.txt`
+  extraction of a restricted source to produce a paraphrased audit.
+  Revisit this interpretation if PMI or another publisher issues
+  guidance narrowing or broadening the clause.
 
 Every `docs/sme/<domain>/` directory MUST have an `INVENTORY.md` based
 on `docs/sme/INVENTORY-template.md`. `researcher` maintains it.
@@ -509,6 +605,28 @@ on `docs/sme/INVENTORY-template.md`. `researcher` maintains it.
 See `docs/glossary/ENGINEERING.md` § "Intellectual property" for the
 binding definitions of *project-created work*, *external material*,
 *derivative work*, and *citation*.
+
+## Time-based cadences
+
+This framework has no background scheduler. Agents only run when the
+customer opens a Claude session. Any cadence expressed in wall-clock
+time ("weekly", "every Monday", "monthly", "first of the month") is
+interpreted as **session-anchored, run-once**:
+
+- The cadence is a **floor** on review frequency, not a backlog of
+  missed ticks.
+- "Weekly" means *"in the first session opened on or after the
+  calendar-week boundary"*; if no session opens for two weeks, the
+  next session runs the review **once**, not twice.
+- Missed cycles do not accumulate.
+- `Last reviewed` is bumped when the review actually runs; staleness
+  is detectable by comparing `Last reviewed` to the current week /
+  month boundary.
+
+This rule governs every PM artifact under `docs/pm/` and every
+cadence reference in `.claude/agents/*.md`. Templates use phrasing
+like "first session of the calendar week" in preference to
+"every Monday" to make the semantics explicit.
 
 ## Hard rules
 
@@ -526,6 +644,12 @@ binding definitions of *project-created work*, *external material*,
    `CUSTOMER_NOTES.md` and consider whether another agent is the right
    addressee. Do not guess customer-domain facts, but also do not flood
    the escalation channel with questions another agent can answer.
+7. No release touching authentication, authorization, secrets, PII, or
+   network-exposed endpoints ships without `security-engineer` sign-off
+   recorded in `CUSTOMER_NOTES.md` alongside the customer approval
+   required by Hard Rule #4. The sign-off references the relevant
+   security assurance artefact (shape per `docs/templates/security-template.md`,
+   grounded in SWEBOK V4 ch. 13 §§4.1–4.6 and ISO/IEC 15026-2:2022).
 
 ## Taxonomy discipline
 

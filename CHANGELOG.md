@@ -16,6 +16,288 @@ filed upstream include that version.
 
 ---
 
+## v0.11.0 — 2026-04-23 (MINOR bundle)
+
+Additive features + allowed breaking changes (0.y convention).
+Ships with `migrations/0.11.0.sh` when a breaking item lands.
+See `V0_10_RELEASE_PLAN.md` §"Consolidated release queue" for
+scope. Placeholder; entries below will be filled as items land.
+
+### Added
+- `docs/templates/pm/TOKEN_LEDGER-template.md` — PM token ledger
+  scaffold. Append-only schema (`Date | Task ID | Agent | Tokens |
+  Prompt (verbatim, fenced) | Notes`), example row, conventions.
+  `task-template.md` DoD row now points at it; first task closure
+  per project copies it to `docs/pm/TOKEN_LEDGER.md`. (Issues
+  #17, #26.)
+- **SWEBOK V4 / PMBOK 8 audit-pass-2 P1 remediation (2026-04-23).**
+  Eight P1 gaps landed from `docs/audits/P1-REMEDIATION-PLAN.md`
+  (downstream project audit; plan superseded by these edits).
+    - `.claude/agents/security-engineer.md` — new agent, SWEBOK V4
+      ch. 13 "Software Security" owner. Joint review with
+      `code-reviewer` on auth / authz / secrets / PII / network-
+      exposed changes. (SWEBOK V4 audit §2.1.)
+    - `docs/templates/security-template.md` — new. Threat model
+      + security requirements + assurance case shape per SWEBOK V4
+      ch. 13 §§1–6.
+    - `docs/templates/operations-plan-template.md` — new. CONOPS,
+      supplier mgmt, IaC/PaC environments, capacity, DR pointer,
+      DevSecOps touchpoints per SWEBOK V4 ch. 6 §2.
+    - `docs/templates/dr-plan-template.md` — new. RTO/RPO,
+      backup strategy, failover, restore-rehearsal schedule per
+      SWEBOK V4 ch. 6 §2.5.
+    - `docs/templates/pm/TEAM-CHARTER-template.md` — new. PMBOK 8
+      §2.6 output; covers human + agent team norms.
+    - `docs/templates/pm/RESOURCES-template.md` — new. PMBOK 8
+      §2.6 Resources Performance Domain; human + physical +
+      virtual tracking.
+    - `docs/templates/pm/AI-USE-POLICY-template.md` — new. PMBOK 8
+      Appendix X3; three adoption strategies + eight ethical factors.
+    - `SW_DEV_ROLE_TAXONOMY.md` — new §2.4c "Security engineer";
+      §2.3 SRE + §2.8 release-engineer gain SWEBOK V4 ch. 6
+      operations-split citations.
+    - `docs/glossary/ENGINEERING.md` — ISO/IEC 27001:2022 binding;
+      "Restricted-source clause" binding.
+    - `.claude/agents/project-manager.md` — three new PMBOK 8
+      artifact rows (AI Use Policy, Team Charter, Resources) +
+      expanded Responsibilities for sustainability, AI-use policy,
+      team-charter stewardship, PMBOK 8 §2.6 resource management.
+    - `.claude/agents/sre.md` + `.claude/agents/release-engineer.md`
+      — SWEBOK V4 ch. 6 operations-split responsibilities.
+    - `.claude/agents/architect.md` — security-engineer hand-off
+      + operations trade-off arbitration.
+    - `.claude/agents/code-reviewer.md` — security-engineer joint-
+      review hand-off.
+    - `.claude/agents/tech-lead.md` — routing-table row for
+      `security-engineer`.
+    - `.claude/agents/researcher.md` — new "Cite hygiene for
+      restricted sources" section + source-handling matrix.
+    - `docs/templates/pm/CHARTER-template.md` — §1 renamed
+      "Purpose, justification, and value proposition"; new §11
+      Sustainability considerations.
+    - `docs/templates/pm/RISKS-template.md` + `LESSONS-template.md`
+      — `sustainability` and `AI-use` added to category enums.
+    - `CLAUDE.md` — new Hard Rule #7 (security-engineer sign-off
+      for auth/secrets/PII/network-exposed releases); new Step-2
+      DoD rows (Team Charter, AI Use Policy); new "Operations KA
+      ownership" routing section; IP-policy bullet for
+      restricted-source clauses (PMBOK 8 "NO AI TRAINING")
+      + customer's narrow-interpretation ruling; roster gains
+      `security-engineer.md`.
+- **#5 part C — `scripts/repair-in-place.sh`.** New. Converts an
+  unzipped-in-place template directory into a scaffolded project
+  without copying to a new path: strips template-only files, resets
+  the three project registers, stamps `TEMPLATE_VERSION`, seeds
+  `.template-customizations`, `git init -b main`. `--dry-run` for
+  preview; `--force` skips the interactive confirmation; refuses
+  to run if `TEMPLATE_VERSION` is already present (already
+  scaffolded) or if the current directory does not look like an
+  unzipped template (sanity checks on `CLAUDE.md`,
+  `.claude/agents/`, `docs/templates/`, `VERSION`). `README.md`
+  Quickstart §"I already unzipped into my working directory"
+  updated to point at it. Closes upstream issue #5 part C.
+- **#25 Zero-context onboarding auditor.** New
+  `.claude/agents/onboarding-auditor.md` — one-shot, deliberately
+  context-constrained agent (no `CUSTOMER_NOTES.md`, no LESSONS /
+  CHANGES / handovers / intake-log). Reads only public docs +
+  source + scripts + tests. Produces `docs/pm/FRICTION_REPORT-
+  <date>.md` enumerating doc gaps that block a notional new hire.
+  Dispatched at milestone close (by `qa-engineer`) or ad-hoc (by
+  `tech-lead`); does not escalate — stuck points are findings.
+  Added to roster in `CLAUDE.md` and `tech-lead.md` routing table.
+- **V2 roadmap §2 — QA outlines (7 templates).** New
+  `docs/templates/qa/`:
+    - `test-strategy-template.md` — master test plan, ISTQB + IEEE 829 shape
+    - `unit-test-plan-template.md`
+    - `integration-test-plan-template.md`
+    - `system-test-plan-template.md`
+    - `acceptance-test-plan-template.md` — customer sign-off protocol
+    - `regression-test-plan-template.md` — three-tier suite + flaky-test policy
+    - `performance-test-plan-template.md` — co-owned by `sre`
+  (Plus `intake-conformance-template.md` from #16 fix — the 8th
+  QA template, listed separately under #16.)
+- **V2 roadmap §3 — Style-guide seeds (5 templates).** New
+  `docs/style-guides/`:
+    - `python.md` — PEP 8/257/484 + ruff + mypy
+    - `typescript.md` — tsconfig strict + eslint + prettier
+    - `rust.md` — rustfmt + clippy pedantic + unsafe-block SAFETY comments
+    - `go.md` — gofmt + staticcheck + golangci-lint + context rules
+    - `bash.md` — shellcheck + shfmt + mandatory `set -euo pipefail` header
+  Cross-referenced from `.claude/agents/software-engineer.md` (follow
+  the guide) and `.claude/agents/code-reviewer.md` (cite it in
+  findings).
+- **Premature-close drift fix (2026-04-23).** Issues #11, #13, #16
+  were batch-closed on 2026-04-21 but the work had not all landed.
+  Reopened and fixed:
+    - `scripts/audit-agent-tools.sh` — new. Pre-flight keyword audit
+      of `.claude/agents/*.md` frontmatter `tools:` grants against
+      description / Job body. `--strict` exits non-zero for CI /
+      pre-commit. Closes #11 secondary ask.
+    - `docs/agent-health-contract.md` — new "Heartbeat convention
+      (binding for long-running agents)" section; long-running
+      agents SHOULD emit a one-line heartbeat at least every
+      10 minutes, accepted forms: file write / `TaskUpdate` /
+      `SendMessage`. `tech-lead.md` §Job item 3 adds a liveness-
+      expectation bullet pointing at the contract. Closes #13.
+    - `docs/templates/intake-log-template.md` — new. Append-only
+      YAML-block log per customer question; `agents-running-at-ask:`
+      invariant enforces atomic-question rule.
+      `scripts/intake-show.sh` renders the log;
+      `--violations-only` exits non-zero on violations.
+      `docs/templates/qa/intake-conformance-template.md` — qa-
+      engineer-owned checklist (C1–C10 per-entry + S1–S4 session-
+      scope). `tech-lead.md` Step-2 now requires appending an
+      intake-log entry per customer question. `researcher.md` now
+      requires every `CUSTOMER_NOTES.md` entry to cite the matching
+      intake-log `turn:`. Closes #16.
+
+### Changed
+- **SME contract — Fix-C hybrid ruling (issue #6).** Per
+  customer ruling 2026-04-19, SME agents now come in two modes
+  chosen at creation:
+  - `primary-source` — has a non-public knowledge source
+    (human expert or proprietary doc); cites that first, may
+    consult public web on top; authoritative voice for the
+    domain.
+  - `derivative` — no primary source; consumes `researcher`'s
+    paraphrases and public citations, adds domain-specialist
+    framing / opinions explicitly flagged as judgment. Exists
+    for context segmentation so `researcher` does not carry
+    every vendor ecosystem in one context window.
+
+  Rewritten: `CLAUDE.md` § "SME scope: what is and is not an
+  SME (binding)" replaces the single-mode text with the two-mode
+  formulation plus rule of thumb. `.claude/agents/sme-template.md`
+  gains a "Mode (pick one at creation; binding)" section and a
+  `Mode:` metadata field. `CUSTOMER_NOTES.md` captures the
+  ruling verbatim.
+
+  Gate 5 (no open contract-breaking themes) cleared by this
+  ruling. Not breaking in practice — existing primary-source-
+  only projects continue to work.
+- `docs/templates/task-template.md` — DoD token-usage row
+  references the new template file instead of embedding the
+  schema inline.
+
+### Pending (from the release plan)
+- #6 SME contract decision memo + customer ruling
+- #15 customer → product owner rename (breaking; needs `migrations/0.12.0.sh`; MAJOR-track when the rest of the v1 contract is re-stabilised)
+- #21 GitHub contributor workflow (v2 scope — deferred)
+- #25 cultural-disruptor half (zero-context half landed this cycle)
+
+### Advisor recommendations landed (roll-up)
+
+- **§5.4 Adversarial QA stance** (qa-engineer agent). Added to
+  `.claude/agents/qa-engineer.md` as "## Adversarial stance
+  (binding)" §24–54. QA's default posture is to try to break the
+  work under review, not to affirm it; works with the test-pass
+  gating row in `docs/templates/task-template.md` DoD.
+- **§5.5 Archival + size budgets** (researcher agent). Added to
+  `.claude/agents/researcher.md` §Job item 7 "Archival + size
+  budgets (binding)" §107–135. Append-only `ARCHIVE.md` peers for
+  every register that accumulates closed rows; soft line-caps on
+  docs loaded into agent context (`CUSTOMER_NOTES.md` — 500 lines;
+  `OPEN_QUESTIONS.md` — 200 open rows; glossaries — 300 lines;
+  SME inventories — 200 rows). 80 %-cap librarian warning to
+  `tech-lead`; caps are guidance not gates.
+
+---
+
+## v0.10.1 — unreleased (PATCH bundle)
+
+Non-breaking doc / wording / routing fixes from the Gate-3
+engagement. See `V0_10_RELEASE_PLAN.md` §"v0.10.1 — PATCH
+bundle" for the issue list. Placeholder; entries below will
+be filled as items land.
+
+### Changed (landed so far)
+- `CLAUDE.md` FIRST ACTIONS — issue-feedback opt-in promoted
+  from Step 4 to Step 0 (asked first, before skill menu and
+  scoping). Step 2 DoD references Step 0 as backstop. (Issue
+  #7.)
+- `CLAUDE.md` Step 1 menu — `[6]` rewritten to reflect that
+  `trailofbits/skills` is a marketplace, not a bundle, with
+  per-plugin install syntax. (Issue #4.)
+- `CLAUDE.md` Step 1 menu — `[7] context-optimization` and
+  `[8] token-usage` entries added; `Skip` renumbered to `[9]`;
+  verification date bumped to 2026-04-21. (Issue #29a.)
+- `CLAUDE.md` — new `## Time-based cadences` section
+  establishing session-anchored, run-once semantics.
+  (Issue #31.)
+- `CLAUDE.md` Step 3 — new Step 3a "Category scope pin"
+  before dispatching `researcher` for naming. (Issue #9.)
+- `.claude/agents/tech-lead.md` — customer-facing output
+  discipline consolidated (R-1 idleness check as numbered
+  procedure, R-2 Turn Ledger with formatting spec + DECISIONS
+  handshake, R-3 teammate-naming discipline with pre-Step-3
+  fallback); parallelism default with anti-pattern bullet and
+  "dispatch now when inputs on disk" clause; scoping-transcript
+  debug dump at Step 2 close. (Issues #10, #12, #18, #23,
+  #28.)
+- `.claude/agents/qa-engineer.md` — new "Adversarial stance
+  (binding)" section. (Advisor §5.4 / issue #24.)
+- `.claude/agents/researcher.md` — new "Archival + size
+  budgets (binding)" item with soft caps and `ARCHIVE.md`
+  rule. (Issue #20 / advisor §5.5 partial.)
+- `docs/agent-health-contract.md` — signal 11 "Silent hang /
+  lost heartbeat" added with default windows (3 / 10 / 20 /
+  30 min) and liveness protocol (`SendMessage` ping, 60 s
+  deadline, partial-artifact preservation). (Issue #13
+  partial.)
+- `docs/ISSUE_FILING.md` — "Rule 0 — redact project identity"
+  added to "What to include"; Step 4 → Step 0 cross-reference
+  updated. (Issue #8.)
+- `docs/templates/task-template.md` — DoD token-usage row
+  strengthened (schema inline; later replaced by reference to
+  v0.11.0 template). (Issues #17 / #26 partial; full scope is
+  v0.11.0.)
+- `docs/templates/task-template.md` — DoD test-pass
+  verification row strengthened (raw runner output required;
+  `qa-engineer` re-runs). (Advisor §5.3.)
+- `docs/templates/pm/RISKS-template.md`,
+  `docs/templates/pm/STAKEHOLDERS-template.md` — cadence
+  wording replaced with session-anchored / locale-agnostic
+  phrasing. (Issue #31.)
+- `docs/versioning.md` — SemVer 2.0.0 normative reference
+  added. (Issue #30.)
+- Step 4 → Step 0 rename swept through `README.md`,
+  `scripts/scaffold.sh`, `docs/templates/scoping-questions-template.md`,
+  `docs/ISSUE_FILING.md`, `docs/OPEN_QUESTIONS.md`, and the
+  `brewday-log-annotator` example. (Issue #7 follow-through.)
+- `.claude/agents/architect.md` — ADR trigger list +
+  role-conflict tie-break. (Advisor §5.1 / §5.2.)
+- `scripts/version-check.sh` — unzipped-in-place detector. Warns
+  on stderr when `VERSION` is present but `TEMPLATE_VERSION` and
+  `.git` are absent (user unzipped the template release into a
+  working directory without running `scaffold.sh`). Points at the
+  supported re-scaffold path. (Issue #5 part B.)
+- `.claude/agents/tech-lead.md` — frontmatter `tools:` now
+  includes `Write, Edit`. `tech-lead` writes
+  `OPEN_QUESTIONS.md` rows, `AGENT_NAMES.md`, `TEMPLATE_VERSION`,
+  and the Step-2 scoping-transcript dump. The audit pass against
+  every agent's description confirmed the rest of the roster
+  (including `researcher` `SendMessage` for #14) was already
+  correct. (Issues #11 / #14, roster `tools:` audit pass 1.)
+- `CLAUDE.md` Step 1 menu — "Detect already-installed skill
+  packs before asking" rule in place; installed lines annotated
+  `[already installed]` and not re-proposed. (Issue #22.)
+- **Fix B for `tech-lead` respawn announcement (issue #19).**
+  Verified consistent across three files:
+  `docs/agent-health-contract.md` § 5.4 defines the rule
+  (announcement comes from the newly-spawned `tech-lead` on its
+  own first turn, quoting the handover brief's "First-turn
+  customer message" section; `project-manager` does not contact
+  the customer directly); `.claude/agents/project-manager.md` §
+  "Tech-lead health audits + respawn" enforces it on the PM
+  side; `.claude/agents/tech-lead.md` § "Agent health + respawn"
+  mirrors it on the tech-lead side. Sole-human-interface
+  invariant preserved without carve-outs.
+
+### Pending
+- (none — v0.10.1 scope complete pending release notes)
+
+---
+
 ## v0.10.0 — 2026-04-20
 
 **Release-track reset.** The template is withdrawing from the

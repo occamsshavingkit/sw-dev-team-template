@@ -22,6 +22,36 @@ fi
 project_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 tv="$project_root/TEMPLATE_VERSION"
 
+# Unzipped-in-place detector (issue #5 part B).
+#
+# Symptoms of an unzipped-but-unscaffolded directory:
+#   * VERSION present (ships with the template release zip)
+#   * TEMPLATE_VERSION absent (scaffold.sh stamps this)
+#   * .git absent (scaffold.sh runs `git init`)
+#
+# The template repo itself has VERSION + .git, so it is exempt.
+# A scaffolded project has TEMPLATE_VERSION, so it is exempt.
+if [[ -f "$project_root/VERSION" && ! -f "$tv" && ! -d "$project_root/.git" ]]; then
+  cat >&2 <<'EOF'
+====================================================================
+WARNING: this directory looks like an unzipped template, not a
+scaffolded project.
+
+Symptoms: VERSION is present, TEMPLATE_VERSION is missing, and there
+is no .git directory. Running a Claude session here will appear to
+work but will skip template invariants (no version stamp, no reset
+registers, no stripped template-only files).
+
+Fix: re-scaffold into a new directory --
+    scripts/scaffold.sh <new-target-dir> <project-name>
+then cd into the new directory and start your session there.
+
+If an in-place repair script ships later, it will be documented in
+README.md. Until then, re-scaffolding is the supported path.
+====================================================================
+EOF
+fi
+
 if [[ ! -f "$tv" ]]; then
   # Not a scaffolded project (or run from the template repo itself). Stay quiet.
   exit 0

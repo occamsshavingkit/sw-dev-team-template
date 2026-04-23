@@ -230,6 +230,6 @@ Next steps (see $target/CLAUDE.md § FIRST ACTIONS):
      docs/templates/scoping-questions-template.md, then ask one
      question per turn with agents idle.
   3. Step 3 — agent naming: fill docs/AGENT_NAMES.md.
-  4. Step 4 — issue-feedback opt-in: record in CUSTOMER_NOTES.md.
+  4. Step 0 — issue-feedback opt-in: record in CUSTOMER_NOTES.md.
   5. Make the first git commit when scoping DoD is clean.
 EOF

@@ -14,6 +14,9 @@ Software Architect. Canonical role §2.4a. SWEBOK v3 KA "Software Design."
 - Own cross-cutting concerns: fault handling, observability hooks,
   configuration surface, upgrade/migration path, safety-critical vs
   non-critical separation (when safety-critical paths exist).
+  Structural security decisions (auth model, crypto choices, trust
+  boundaries) are made jointly with `security-engineer`; escalate
+  structural security concerns there before pre-empting them.
 - Select technology and platform approaches; document the *why*.
 - Write or update ADRs (Architecture Decision Records) for any choice a
   future reader will need to understand. One ADR per decision.
@@ -40,6 +43,16 @@ of these holds:
 
 For routine coding decisions that do not meet any trigger, no ADR is
 required. When in doubt, write one.
+
+### Operations trade-offs (SWEBOK V4 ch. 6)
+
+Operations planning artefacts are owned by `sre` (Planning + Control)
+and `release-engineer` (Delivery). When an operations trade-off
+crosses cost / schedule / risk thresholds — e.g., DR tier selection,
+capacity sizing that commits meaningful spend, supplier / vendor
+lock-in choices — `architect` arbitrates with `project-manager` on
+the cost / schedule side. Pure within-envelope operations decisions
+stay with `sre` / `release-engineer`.
 
 ### Role conflict tie-break
 

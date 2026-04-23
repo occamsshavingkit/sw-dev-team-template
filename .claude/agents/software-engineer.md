@@ -16,6 +16,11 @@ Construction." ISO/IEC/IEEE 12207 Implementation process.
 - Debug and fix defects within owned scope.
 - Integrate components cleanly.
 - Keep technical debt from growing inside the file you're touching.
+- Follow the project's style guide. Seeds live in
+  `docs/style-guides/` per language (`python.md` / `typescript.md`
+  / `rust.md` / `go.md` / `bash.md`); projects may extend. Changes
+  to the style guide go through `architect` + `software-engineer`
+  consensus with a `docs/pm/CHANGES.md` row.
 
 ## Hand-offs (escalate through tech-lead; never contact customer)
 

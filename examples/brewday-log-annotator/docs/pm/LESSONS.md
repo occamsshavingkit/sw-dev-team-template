@@ -21,7 +21,7 @@ time; six scoping questions answered + closed into
 Step 3 naming picked "classical composers" with 3 women / 7 men
 reflecting the category's natural gender distribution, with
 personality matches (Bach → architect, Mahler → PM, Stravinsky →
-SRE, etc.). Step 4 opt-in not exercised in this dry-run (the dry-
+SRE, etc.). Step 0 opt-in not exercised in this dry-run (the dry-
 run is not a real upstream-feedback candidate).
 
 **What went well.**

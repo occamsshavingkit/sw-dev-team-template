@@ -35,12 +35,22 @@ project's own notes.
 ## Opt-in
 
 Filing upstream is per-project opt-in, recorded in
-`CUSTOMER_NOTES.md` § "Issue feedback opt-in" and set at Step 4 of
+`CUSTOMER_NOTES.md` § "Issue feedback opt-in" and set at Step 0 of
 FIRST ACTIONS. If the project is opt-out, `tech-lead` still keeps a
 local gap log at `docs/pm/LESSONS.md` — it just does not push
 upstream.
 
 ## What to include
+
+**Rule 0 — redact project identity.** Do NOT include the downstream
+project name, customer name, product codename, or any identifier
+that would let a third party attribute the issue to a specific
+downstream project. Describe the project only in enough abstract
+terms to make the gap pattern reproducible (e.g., *"a softPLC-in-
+Rust project"*, *"a regulated-industry data-pipeline project"*).
+`tech-lead` scans every drafted issue body for project / customer /
+codename strings before filing; if in doubt, the default phrasing
+is "a downstream project."
 
 Every issue includes:
 

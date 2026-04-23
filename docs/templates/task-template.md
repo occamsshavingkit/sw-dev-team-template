@@ -90,6 +90,16 @@ Team-wide. Applies to every completed task, regardless of type.
 - [ ] Documentation updated by `tech-writer` where user-visible.
 - [ ] No new open defects of severity ≥ <threshold>.
 - [ ] Requirements traceability row updated.
+- [ ] **Token usage recorded.** Aggregate tokens consumed across all
+      agent dispatches for this task, plus each dispatch's prompt
+      (verbatim), appended to `docs/pm/TOKEN_LEDGER.md` by
+      `project-manager`. This feeds the estimation model the PM
+      uses for future task budgeting; a task closed without a
+      ledger row cannot inform future estimates. On first use, copy
+      `docs/templates/pm/TOKEN_LEDGER-template.md` to
+      `docs/pm/TOKEN_LEDGER.md`; schema columns are
+      `Date | Task ID | Agent | Tokens | Prompt (verbatim, fenced) |
+      Notes`.
 - [ ] Change merged to the integration branch and deployable artifact
       confirmed by `release-engineer`.
 

@@ -298,3 +298,24 @@ cited; is external if it is merely reformatted.
 **Citation** — the reference that allows a third party to independently
 locate the external material (URL, ISBN, DOI, standard number, or
 equivalent). Required in inventories for every external item.
+
+**ISO/IEC 27001:2022** — Information Security Management Systems
+(ISMS) standard. Binding reference for the `security-engineer` agent
+alongside SWEBOK V4 ch. 13. When a project's scope includes
+information-security controls (auth / authz / secrets / PII /
+network-exposed endpoints), the security assurance case produced
+per `docs/templates/security-template.md` may cross-reference
+27001 control IDs. The standard itself is copyrighted — treat it
+as Tier-1 external material per the library inventory; do not
+commit its text.
+
+**Restricted-source clause** — a use restriction on external material
+that goes beyond default copyright. Most common case: a "NO AI
+TRAINING" clause prohibiting use of the material to train, fine-tune,
+or embed into retrieval-augmented corpora for generative AI.
+Restricted-source material receives paraphrase-and-cite handling only;
+it never enters AI training pipelines or persistent embedding /
+vector stores. Record the specific restriction in the inventory row
+(library or SME) under the IP-restrictions column. See CLAUDE.md §
+IP policy for the binding rule and `researcher` § Cite hygiene for
+restricted sources for the enforcement surface.

@@ -33,6 +33,9 @@ routine review (§2.7a). IEEE 1028-2008 for formal audit (§2.7b).
 - Build/packaging defect → `release-engineer`.
 - Perf regression suspected → `sre`.
 - Standards/spec citation for an audit finding → `researcher`.
+- Security review for changes touching authentication / authorization /
+  secrets / PII / network-exposed surface → `security-engineer` (joint
+  review; either can block).
 
 ## Escalation format
 
@@ -60,3 +63,6 @@ Do not approve if:
 - Review the code, not the author. No personal commentary.
 - If you approve, say so plainly. If you don't, say what must change to
   approve. Don't leave the author guessing.
+- Cite the project's style guide (`docs/style-guides/<lang>.md`) when
+  a finding is a style-guide rule. "Violates style-guide §X" is
+  cleaner than re-litigating the rule in every review.

@@ -28,7 +28,7 @@ tooling gaps, knowledge gaps, communication gaps.
 template, training, check). Name who should own adopting it.
 
 **Category.** schedule / cost / quality / technical / people /
-process / customer / tooling / external.
+process / customer / tooling / external / sustainability / AI-use.
 
 **References.** Links to `OPEN_QUESTIONS.md` rows, ADRs, commits,
 incidents, `CHANGES.md` rows if the lesson led to a change.

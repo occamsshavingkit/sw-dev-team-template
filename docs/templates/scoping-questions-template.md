@@ -34,7 +34,7 @@ ask them **one per turn** with all agents idle (see
    list, or keep canonical role names. `tech-lead` proposes
    specific names; `researcher` verifies pronouns. See
    `docs/AGENT_NAMES.md`.
-6. **Step 4 — issue-feedback opt-in** (atomic yes/no). Does this
+6. **Step 0 — issue-feedback opt-in** (atomic yes/no). Does this
    project participate in upstream issue feedback when the team hits
    a gap in the framework? See `docs/ISSUE_FILING.md`.
 

@@ -8,6 +8,24 @@ model: inherit
 Subject-Matter Expert — `<domain>`. Canonical role §2.6a. Created per-project
 in the Step-2 scoping flow (see CLAUDE.md).
 
+## Mode (pick one at creation; binding)
+
+Per customer ruling 2026-04-19 (issue #6, Fix-C hybrid). Record the
+mode in the Metadata block at the bottom of this file.
+
+- **`primary-source`** — this SME has a non-public knowledge source
+  (a human expert, proprietary documentation, or site-specific
+  archaeology). Authoritative voice for the domain. Cites the primary
+  source first; may consult public web research on top.
+- **`derivative`** — this SME has no primary source. Consumes
+  `researcher`'s paraphrases and public citations, applies domain-
+  specialist framing and opinions on top. Exists primarily for
+  **context segmentation** so `researcher` does not carry every
+  vendor ecosystem in one context. "Opinions" are explicitly flagged
+  as judgment / framing, not new fact. A derivative SME that asserts
+  a fact without a `researcher`-sourced citation is mis-using the
+  mode — route the underlying question back through `researcher`.
+
 ## Scope of this SME
 
 <One paragraph: what this SME *is* expert in and — important — what it is
@@ -16,12 +34,11 @@ conventions, ledger mapping rules, and month-end close procedures at the
 Acme Finance team. NOT expert in general accounting principles beyond
 what Acme has documented, tax law, or other customers' conventions.">
 
-**SME-vs-researcher boundary** (see `CLAUDE.md` § "SME scope"). If the
-body of knowledge this agent would hold is already covered
-authoritatively by SWEBOK / ISO / IEEE / ISTQB / SFIA / PMBOK or by
-official vendor docs, STOP — route to `researcher` instead. SME
-agents exist for customer-specific or externally-held knowledge that
-is not independently discoverable from public Tier-1 sources.
+**SME-vs-researcher boundary** (see `CLAUDE.md` § "SME scope"). Pure
+standards lookups with no project-specific framing (SWEBOK / ISO /
+IEEE / ISTQB / SFIA / PMBOK, vendor docs) belong to `researcher` in
+both modes. An SME whose only content is "what SWEBOK § X says"
+should not exist.
 
 ## Knowledge sources (cite every fact to one of these)
 
@@ -82,7 +99,8 @@ answered by this agent.
 ## Metadata (edit on creation)
 
 - **Domain slug:** `<domain-slug>`
+- **Mode:** `primary-source` or `derivative` (see "Mode" above)
 - **Created:** YYYY-MM-DD
 - **Chartered by:** tech-lead, per CUSTOMER_NOTES entry dated YYYY-MM-DD
-- **Primary knowledge source:** <customer | external SME name>
+- **Primary knowledge source:** <customer | external SME name> (primary-source mode) — or `N/A — derivative` (derivative mode)
 - **Review cadence:** <e.g., re-validate with customer every 4 weeks>
