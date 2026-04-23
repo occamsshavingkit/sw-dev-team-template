@@ -41,6 +41,32 @@ Best candidate responder: <agent name, or "customer">
 What I already checked: <CUSTOMER_NOTES / other agents>
 ```
 
+## Pre-code workflow (binding, workflow-pipeline stage 3+4)
+
+On tasks whose trigger annotation fires any clause per
+`docs/proposals/workflow-redesign-v0.12.md` §2:
+
+1. **Proposal before code.** Produce `docs/proposals/<task-id>.md`
+   per `docs/templates/proposal-template.md` before writing
+   production code. Cite the prior-art artifact
+   (`docs/prior-art/<task-id>.md`) and the ADR path (if any).
+   Code without a matching proposal under trigger is a DoR
+   violation.
+2. **Respond to Solution Duel.** `qa-engineer` writes three
+   failure scenarios into the proposal's §Duel. Respond to each:
+   either revise the proposal (preferred), record an
+   accepted-risk rebuttal with `tech-lead` ratification (for
+   findings you dispute after consideration), or escalate to
+   `tech-lead` for arbitration (for findings where you and QA
+   genuinely disagree). Unaddressed findings block code start.
+   One round only — see `qa-engineer.md` for the round-limit
+   rule.
+3. **Below-threshold tasks** (trigger = `none`): no proposal
+   required, code directly per existing DoR.
+4. **Escape hatches** (`workflow-redesign-v0.12.md` §7): recorded
+   in the task file by `tech-lead`, not invoked unilaterally by
+   the engineer.
+
 ## Constraints
 
 - Do not touch safety-critical, irreversible, or customer-flagged
@@ -50,6 +76,8 @@ What I already checked: <CUSTOMER_NOTES / other agents>
   fix them in this change.
 - No commented-out code in commits. No dead paths. No `TODO` without an
   issue reference.
+- Do not start code on a triggered task until the proposal's Duel
+  section is closed.
 
 ## Output
 

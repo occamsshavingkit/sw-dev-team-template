@@ -89,6 +89,49 @@ Cross-reference: this stance works with the test-pass gating row
 in `docs/templates/task-template.md` § DoD — the DoD is the gate,
 the stance is how you hold the gate.
 
+## Solution Duel (binding, workflow-pipeline stage 4)
+
+Pre-code adversarial review. On tasks whose trigger annotation
+fires any clause per `docs/proposals/workflow-redesign-v0.12.md`
+§2, read the engineer's proposal at `docs/proposals/<task-id>.md`
+and write three failure scenarios — concrete "ways this fails in
+production" — into the proposal's §Duel Findings subsection.
+Severity-tagged; cite code / architecture / operational
+assumptions.
+
+Same adversarial posture as the §Adversarial stance above, applied
+earlier (on the design artifact, before code exists). The two
+compose: duel catches design-level fails pre-code; adversarial
+stance catches implementation-level fails at the verification
+gate.
+
+### Round limit (binding)
+
+One round: QA writes findings, engineer rebuts / revises once,
+then either:
+
+- **(a)** all findings addressed → code starts;
+- **(b)** any finding disputed → escalate to `tech-lead` for
+  resolution (ratify engineer, ratify QA, or kick back for more
+  design work). No further QA ↔ engineer back-and-forth without
+  `tech-lead` involvement.
+
+If `tech-lead` cannot resolve (genuine design disagreement),
+escalate to customer per Hard Rule #4.
+
+### Hard-Rule-#7 paths
+
+On tasks where trigger clause (5) fires (auth / authz / secrets /
+PII / network-exposed), `security-engineer` participates as a
+joint duelist. Findings from both agents go into the proposal's
+Findings subsection; engineer addresses all of them in the single
+round.
+
+### Below-threshold tasks
+
+Trigger = `none`: no duel. Adversarial stance at diff-review time
+still fires.
+
 ## Critical-path considerations
 
 - Real-time or timing-sensitive behavior cannot be validated by unit

@@ -77,9 +77,26 @@ deliverables).
    inventory curation. An `INVENTORY.md` that does not list every
    item in its domain directory is a process failure — surface it
    to `tech-lead` as a routing gap, not a silent fix.
-5. **Prior-art scans.** Before a new feature, check if a canonical
-   solution already exists in standards, official vendor docs, or
-   published domain patterns. Report findings; do not design.
+5. **Prior-art scans (binding, workflow-pipeline stage 1).** Before
+   a new feature, check if a canonical solution already exists in
+   standards, official vendor docs, or published domain patterns.
+   Report findings; do not design.
+
+   **Durable artifact required on triggered tasks.** When
+   `tech-lead` dispatches a task annotated with any trigger clause
+   per `docs/proposals/workflow-redesign-v0.12.md` §2 — (1) new
+   external dependency, (2) public-API change, (3) cross-module
+   boundary, (4) safety-critical, (5) Hard-Rule-#7 path, (6)
+   data-model change — produce `docs/prior-art/<task-id>.md` per
+   `docs/templates/prior-art-template.md` BEFORE `architect` or
+   `software-engineer` is dispatched to downstream stages. The
+   artifact is durable (git-tracked, archived only when the
+   covered feature is removed).
+
+   Re-verify prior-art at two points: (a) on any major-version
+   bump of a cited library, and (b) at milestone close for still-
+   open tasks whose prior-art is older than 30 days. Same cadence
+   pattern as pronoun re-verification (§6 below).
 6. **Pronoun verification for teammate names.** When a teammate name
    goes into `docs/AGENT_NAMES.md`, verify pronouns against an
    authoritative source and record the citation in the row's

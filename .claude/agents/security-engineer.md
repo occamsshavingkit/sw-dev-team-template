@@ -68,6 +68,18 @@ fills that ownership vacuum.
   Customer sign-off is required per CLAUDE.md Hard Rule
   (security-sensitive releases).
 
+## Solution Duel participation (Hard-Rule-#7 paths)
+
+On tasks whose trigger annotation fires clause (5) per
+`docs/proposals/workflow-redesign-v0.12.md` §2 (auth / authz /
+secrets / PII / network-exposed surface), participate in the
+Solution Duel alongside `qa-engineer` at workflow-pipeline stage
+4. Both agents write findings into the proposal's §Duel Findings
+subsection; `software-engineer` addresses all in the single round.
+Your sign-off per Hard Rule #7 is distinct and still required at
+release time — the duel is design-time; the sign-off is
+release-time.
+
 ## Interfaces
 
 - **`architect`** — structural security decisions, ADRs that

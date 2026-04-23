@@ -42,12 +42,17 @@ is no .git directory. Running a Claude session here will appear to
 work but will skip template invariants (no version stamp, no reset
 registers, no stripped template-only files).
 
-Fix: re-scaffold into a new directory --
-    scripts/scaffold.sh <new-target-dir> <project-name>
-then cd into the new directory and start your session there.
+Two supported recoveries (v0.11.0+):
+  (a) Repair in place -- strips template-only files, resets project
+      registers, stamps TEMPLATE_VERSION, git-inits, seeds
+      .template-customizations. You keep this directory.
+          scripts/repair-in-place.sh --dry-run   # preview first
+          scripts/repair-in-place.sh             # apply
+  (b) Re-scaffold into a fresh directory, move your work back in.
+          scripts/scaffold.sh <new-target-dir> <project-name>
+          cd <new-target-dir>
 
-If an in-place repair script ships later, it will be documented in
-README.md. Until then, re-scaffolding is the supported path.
+Pick (a) if you want to keep this path; (b) if you want a new one.
 ====================================================================
 EOF
 fi

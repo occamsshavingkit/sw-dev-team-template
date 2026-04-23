@@ -227,6 +227,26 @@ if [[ ${#added[@]} -gt 0 ]]; then
   echo
 fi
 
+# Detect newly-added standard agents — these require a Claude Code
+# session restart before they become dispatchable via subagent_type.
+# sme-*.md files are user-owned (not shipped) so they never appear in
+# the 'added' list; no filtering needed here beyond the prefix match.
+# Upstream issue #36.
+new_agents=()
+for f in "${added[@]:-}"; do
+  case "$f" in
+    .claude/agents/*.md) new_agents+=("$f") ;;
+  esac
+done
+if [[ ${#new_agents[@]} -gt 0 ]]; then
+  echo "${prefix}ACTION REQUIRED: restart Claude Code to register ${#new_agents[@]} new agent(s)."
+  echo "${prefix}  The agent registry is initialized at session start and does not rescan"
+  echo "${prefix}  .claude/agents/ mid-session. Dispatches via subagent_type will fail with"
+  echo "${prefix}  \"Agent type not found\" until the session is restarted. Upstream issue #36."
+  for f in "${new_agents[@]}"; do echo "${prefix}  · $f"; done
+  echo
+fi
+
 if [[ ${#upgraded[@]} -gt 0 ]]; then
   echo "${prefix}Upgraded in place — unchanged since scaffold (${#upgraded[@]}):"
   for f in "${upgraded[@]}"; do echo "  ~ $f"; done

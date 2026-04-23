@@ -16,6 +16,143 @@ filed upstream include that version.
 
 ---
 
+## v0.13.0 — unreleased (MINOR bundle)
+
+Additive features. Placeholder.
+
+### Pending
+- **retrofit-playbook (#3)** — agent workflow (not a script) for
+  migrating an existing project into a freshly-scaffolded target.
+  Shape pinned by customer ruling 2026-04-23
+  (`CUSTOMER_NOTES.md`); implementation awaits `/ultraplan` output
+  + review. Deliverable: `docs/templates/retrofit-playbook-template.md`.
+- **#33 Three-Path Rule** (Phase 3 of workflow redesign) — expand
+  `docs/templates/architecture-template.md` Alternatives-considered
+  guidance to require three named alternatives (Minimalist /
+  Scalable / Creative). Deferred from v0.12.0 per architect's
+  phased-rollout recommendation in
+  `docs/proposals/workflow-redesign-v0.12.md` §10.
+
+---
+
+## v0.12.0 — 2026-04-23 (MINOR bundle)
+
+Additive features. Placeholder; entries fill in as items land.
+
+### Added
+- **#36 new-agent registration warning.** `scripts/upgrade.sh`
+  detects newly-added `.claude/agents/*.md` in the upgrade's "Added
+  from upstream" set and prints a loud `ACTION REQUIRED` line
+  naming the restart requirement. `CLAUDE.md` § "Template version
+  check + upgrade" gains a one-paragraph warning to the same
+  effect. Harness limitation (Claude Code initializes its agent
+  registry at session start and does not rescan mid-session); this
+  change documents the requirement rather than working around it.
+  Closes #36 (part); upstream question #36 ¶3 (runtime agent
+  registration) stays open pending Claude Code guidance.
+- **#6 SME contract decision memo.** New
+  `docs/sme/CONTRACT.md` — consolidated reference for the two-mode
+  SME contract (primary-source vs derivative) from the 2026-04-19
+  customer ruling. Replaces prior scattered references in CHANGELOG
+  + `CUSTOMER_NOTES.md` with one durable memo. Closes #6.
+- **#5 option 2 — repair-script pointer in unzipped-state warning.**
+  `scripts/version-check.sh` already detected the unzipped-in-place
+  state (VERSION present + TEMPLATE_VERSION absent + `.git` absent)
+  in v0.10.x. Updated the user-facing message to point at
+  `scripts/repair-in-place.sh` (new in v0.11.0) as option (a); the
+  previous text said "if an in-place repair script ships later…".
+  Closes #5 option 2.
+
+### Pending
+- (none — all v0.12.0 scope items landed or deferred)
+
+### Added (continued)
+- **#25 Cultural-disruptor / process-auditor agent.** New
+  `.claude/agents/process-auditor.md` — one-shot auditor spawned
+  every 2–3 milestone closes to challenge unspoken process
+  conventions, find Process Debt (rituals whose justification is
+  gone), ceremony without payoff, redundant checks. Counterpart to
+  `onboarding-auditor` (which is zero-context by design — this one
+  needs full project history). Findings route to `tech-lead` for
+  customer decision; agent never removes rules unilaterally. Closes
+  second half of #25.
+- **#32/#33/#34/#35 design memo.** New
+  `docs/proposals/workflow-redesign-v0.12.md` — architect-authored
+  recommendation memo composing the four pre-code thinking
+  proposals into one pipeline (prior-art → three-path → proposal →
+  duel → code) gated by a mechanical OR-set trigger. Recommends
+  phased rollout (Phase 1 = #34 + #32 in v0.12.0; Phase 2 = #35;
+  Phase 3 = #33 last). **Recommendation only — implementation is
+  the next cycle after customer review.** Flagged tool-grant
+  anomaly: architect spawn did not receive its declared `Write`
+  tool; tech-lead persisted memo manually. Auditor script
+  `scripts/audit-agent-tools.sh` checks declared tools, not
+  dispatched tools — if this is a harness pattern, file upstream.
+- **Agent tool-grant fix (pre-flight).** `onboarding-auditor` and
+  `process-auditor` gained `Write` in their tools grants — both
+  write durable report files (FRICTION_REPORT / PROCESS_AUDIT)
+  under `docs/pm/`. `scripts/audit-agent-tools.sh` flagged the
+  missing grant; fix verified clean.
+- **Claude Code harness anomaly — architect spawns not inheriting
+  declared tools (2026-04-23).** Confirmed via a trivial diagnostic
+  dispatch: architect agent spawns in this harness receive only
+  `Read`, not the `Read, Grep, Glob, Write, Edit, SendMessage` set
+  declared in `architect.md` frontmatter. Pattern, not one-off.
+  This is an upstream Claude Code runtime issue, not a template
+  defect. Reported in the workflow-redesign memo
+  (`docs/proposals/workflow-redesign-v0.12.md` §Note). **To file:**
+  the customer (repo owner) should report at
+  `https://github.com/anthropics/claude-code/issues` if they want
+  it fixed upstream. Template-side workaround: `tech-lead` persists
+  architect-authored artifacts manually when the architect spawn
+  reports missing tools (as was done for the workflow-redesign
+  memo itself). No template change required; this entry is
+  provenance.
+- **Workflow redesign — Phase 1+2 implementation (customer bundled
+  them per 2026-04-23 ruling).** The composed pre-code pipeline
+  per `docs/proposals/workflow-redesign-v0.12.md` §1–§6. Lands
+  #34 Researcher-First, #32 Options Before Actions, #35 Solution
+  Duel. Phase 3 (#33 Three-Path) defers to v0.13.0.
+    - New `docs/templates/prior-art-template.md` — `researcher`-
+      owned durable artifact at workflow-pipeline stage 1.
+    - New `docs/templates/proposal-template.md` — `software-
+      engineer`-owned at stage 3; ships with the §Duel section
+      attached so the stage-4 Solution Duel is an annex, not a
+      separate file.
+    - `.claude/agents/researcher.md` §Job item 5 gains the
+      "Durable artifact required on triggered tasks" binding rule
+      plus re-verification cadence (major-version bumps + 30-day
+      stale check at milestone close).
+    - `.claude/agents/software-engineer.md` gains a "Pre-code
+      workflow (binding, workflow-pipeline stage 3+4)" section:
+      produce proposal before code on triggered tasks; respond to
+      every Duel finding; one round limit; escalate disputes to
+      `tech-lead`.
+    - `.claude/agents/qa-engineer.md` gains a "Solution Duel
+      (binding, workflow-pipeline stage 4)" section: write three
+      failure scenarios into proposal §Duel; one-round limit with
+      tech-lead escalation on disputes; Hard-Rule-#7 paths pull
+      `security-engineer` in as joint duelist. Composes with the
+      existing Adversarial stance (diff-time) — same posture,
+      applied earlier on the design artifact.
+    - `.claude/agents/security-engineer.md` gains "Solution Duel
+      participation (Hard-Rule-#7 paths)" — design-time duelist
+      on auth / authz / secrets / PII / network-exposed triggers;
+      release-time sign-off per Hard Rule #7 is distinct and
+      unchanged.
+    - `.claude/agents/tech-lead.md` §Job item 2 gains "Trigger
+      annotation (binding, workflow-pipeline gate)" — annotate
+      every task's `Trigger: <clauses|none>`, dispatch the
+      pipeline on non-none triggers, escape hatches per memo §7.
+      Routing table gains three new rows: prior-art,
+      implementation proposal, Solution Duel.
+    - `docs/templates/task-template.md` DoR gains two new rows:
+      workflow-pipeline trigger annotated, and pipeline artifacts
+      present if trigger fires. Identification block gains a
+      `Trigger:` field.
+
+---
+
 ## v0.11.0 — 2026-04-23 (MINOR bundle)
 
 Additive features + allowed breaking changes (0.y convention).
@@ -203,14 +340,17 @@ scope. Placeholder; entries below will be filled as items land.
 
 ---
 
-## v0.10.1 — unreleased (PATCH bundle)
+## v0.10.1 — **rolled into v0.11.0** (2026-04-23)
 
 Non-breaking doc / wording / routing fixes from the Gate-3
-engagement. See `V0_10_RELEASE_PLAN.md` §"v0.10.1 — PATCH
-bundle" for the issue list. Placeholder; entries below will
-be filled as items land.
+engagement. **This bundle was never tagged independently — its
+contents landed in the v0.11.0 commit (ee9729d) alongside the
+v0.11.0 MINOR bundle.** Kept below for historical traceability; if
+you are reading an `scripts/upgrade.sh` summary or a `git log` entry
+and see a reference to v0.10.1, check the v0.11.0 tag for the actual
+merge point.
 
-### Changed (landed so far)
+### Changed (rolled into v0.11.0)
 - `CLAUDE.md` FIRST ACTIONS — issue-feedback opt-in promoted
   from Step 4 to Step 0 (asked first, before skill menu and
   scoping). Step 2 DoD references Step 0 as backstop. (Issue

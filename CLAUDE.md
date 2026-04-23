@@ -86,6 +86,14 @@ To actually upgrade:
 
     scripts/upgrade.sh [--dry-run]
 
+**If the upgrade adds new agents under `.claude/agents/`, restart
+Claude Code before dispatching them.** The agent registry is
+initialized at session start and does not rescan the agents
+directory mid-session; dispatches via `subagent_type` will fail
+with "Agent type not found" on newly-added agents until restart.
+`scripts/upgrade.sh` prints a loud `ACTION REQUIRED` line listing
+the new agents when this applies. (Upstream issue #36.)
+
 Upgrade strategy, per template-shipped file:
 
 1. **Not present in the project** → added from upstream.
@@ -394,7 +402,8 @@ Upstream issues filed from the project cite this stamp (see
 | `code-reviewer.md`    | Code Reviewer + Auditor (IEEE 1028)                     | §2.7 |
 | `release-engineer.md` | Build + Release Engineer                                | §2.8 |
 | `security-engineer.md`| Security Engineer — SWEBOK V4 ch. 13 "Software Security" owner | §2.4c |
-| `onboarding-auditor.md`| Zero-context documentation auditor (one-shot, milestone-close) | custom, upstream issue #25 |
+| `onboarding-auditor.md`| Zero-context documentation auditor (one-shot, milestone-close) | custom, upstream issue #25 first half |
+| `process-auditor.md`  | Cultural-disruptor process auditor (one-shot, every 2–3 milestones) | custom, upstream issue #25 second half |
 | `sme-<domain>.md` ×N  | Domain SME — created per-project in Step 2 above, from `sme-template.md` | §2.6a |
 | `sme-template.md`     | Scaffold for new SME agents; copy and fill in           | §2.6a |
 

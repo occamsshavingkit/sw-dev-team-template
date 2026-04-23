@@ -16,6 +16,8 @@ Owned by a single agent (the "assignee"). Routed by `tech-lead`.
 - **Type:** Task | Spike | Bug fix | Refactor | Chore
 - **Assignee (agent):** `software-engineer` | `qa-engineer` | `sre` | …
 - **Estimate:** ≤ 2 days of one person's effort, else split.
+- **Trigger:** `<comma-separated clauses, or "none">` (annotated by
+  `tech-lead` at dispatch — see DoR).
 
 ---
 
@@ -69,6 +71,26 @@ If any box is unchecked, the item is not ready.
 - [ ] Estimate assigned.
 - [ ] For safety-critical or customer-flagged critical paths: customer
       sign-off referenced.
+- [ ] **Workflow-pipeline trigger annotated.** `tech-lead` has
+      recorded `Trigger: <clauses|none>` in the Identification
+      block (see top of this file) per
+      `docs/proposals/workflow-redesign-v0.12.md` §2. Trigger
+      clauses are: (1) new external dependency, (2) public-API
+      change, (3) cross-module boundary, (4) safety-critical /
+      Hard-Rule-#4 path, (5) Hard-Rule-#7 path (auth / authz /
+      secrets / PII / network-exposed), (6) data-model change.
+- [ ] **Pipeline artifacts present if trigger fires.** If trigger
+      is not `none`, the following exist and are linked from
+      this task (unless an escape hatch under
+      `workflow-redesign-v0.12.md` §7 is invoked and recorded):
+      - `docs/prior-art/<task-id>.md` (`researcher`, stage 1)
+      - ADR with three alternatives, OR no-ADR justification
+        (`architect`, stage 2) — Phase 3 item, optional until
+        v0.13.0
+      - `docs/proposals/<task-id>.md` (`software-engineer`,
+        stage 3)
+      - Duel section in the proposal, status = closed
+        (`qa-engineer` + `software-engineer`, stage 4)
 
 ---
 

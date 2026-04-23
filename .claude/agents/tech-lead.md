@@ -25,6 +25,33 @@ agent routes to it rather than performing them.
 2. Decompose into subtasks sized for one specialist each. Delegate PMBOK
    artifacts (schedule, risk register, stakeholder register, change log,
    lessons-learned) to `project-manager`.
+
+   **Trigger annotation (binding, workflow-pipeline gate).** For every
+   task, annotate `Trigger: <clauses|none>` in the task file per
+   `docs/proposals/workflow-redesign-v0.12.md` §2. Clauses: (1) new
+   external dependency, (2) public-API change, (3) cross-module
+   boundary, (4) safety-critical / Hard-Rule-#4 path, (5) Hard-Rule-#7
+   path (auth / authz / secrets / PII / network-exposed), (6)
+   data-model change.
+
+   **If trigger is not `none`, dispatch the pipeline in order:**
+   (a) `researcher` → `docs/prior-art/<task-id>.md` [stage 1];
+   (b) `architect` → ADR with three alternatives when ADR trigger also
+       fires [stage 2, Phase-3 feature, currently optional];
+   (c) `software-engineer` → `docs/proposals/<task-id>.md` [stage 3];
+   (d) `qa-engineer` (+ `security-engineer` on clause-5 paths) →
+       §Duel Findings in the proposal [stage 4];
+   (e) `software-engineer` → revise per duel or escalate, then write
+       code [stage 5].
+
+   **If trigger is `none`:** dispatch directly to the assignee;
+   workflow pipeline is skipped. DoR + DoD still apply.
+
+   **Escape hatches** per §7 of the memo: single-line fix on a
+   triggered path may downgrade to proposal-only (record the
+   downgrade); emergency security patch may collapse prior-art +
+   proposal into the PR description (record in `CUSTOMER_NOTES.md`,
+   retroactive ADR within 7 days); spikes are exempt.
 3. Route. Name the target agent explicitly
    ("Use the `architect` subagent to ..."). When spawning, always pass
    a `name` parameter (typically the role file's name, e.g.
@@ -65,6 +92,10 @@ agent routes to it rather than performing them.
 | Build pipeline, packaging, tagging, release orchestration | `release-engineer` |
 | Threat model, security requirements, SDL / DevSecOps, vulnerability management, SBOM policy, security assurance | `security-engineer` |
 | Documentation-quality audit / "can a new hire figure this out from the docs alone?" / milestone-close friction report | `onboarding-auditor` (one-shot, zero-context dispatch) |
+| Process-debt audit / "why are we doing it this way?" / ritual retirement candidate identification | `process-auditor` (one-shot, every 2–3 milestone closes) |
+| Prior-art scan for a triggered task (new library, public-API change, cross-module, safety/security/data-model path) | `researcher` (workflow-pipeline stage 1) |
+| Implementation proposal (pre-code think-in-workspace) for a triggered task | `software-engineer` (workflow-pipeline stage 3) |
+| Solution Duel — adversarial pre-code review of an engineer proposal | `qa-engineer` (+ `security-engineer` on Rule #7 paths) (workflow-pipeline stage 4) |
 | Schedule, cost, scope, risk register, stakeholder register, change control, lessons-learned, project charter (PMBOK) | `project-manager` |
 
 ## Escalation protocol
