@@ -497,6 +497,36 @@ agents do not.
 e.g. `name: "architect"`). Short one-shot helpers (quick research
 queries, verification passes) may stay unnamed.
 
+## Tech-lead is the main-session persona (binding)
+
+**The main Claude Code session IS `tech-lead`.** Do not spawn
+`tech-lead` as a subagent (`subagent_type: tech-lead`). The main
+session plays the tech-lead role directly — orchestration runs at
+the top level; specialists spawn from there.
+
+Rationale:
+
+- Only the main Claude Code session has the `Agent` tool
+  (agent-spawning). Subagents can only message already-running
+  teammates via `SendMessage`; they cannot bring new specialists
+  into being. This makes tech-lead-as-subagent a passthrough, not
+  an orchestrator.
+- The "sole human interface" rule below works cleanly under this
+  model: the main session talks to the customer, spawns
+  specialists, gets answers back.
+- `.claude/agents/tech-lead.md` still ships with `Agent` declared
+  in its `tools:` line (v0.12.1) as a belt-and-braces measure for
+  the case where a future Claude Code harness allows subagents to
+  spawn further subagents. Until that capability is confirmed in
+  the target harness, the main-session-persona model is the
+  supported path.
+
+**Upstream issue #37** (2026-04-24) logged a downstream project
+that hit this wall by spawning `tech-lead` as a subagent. Fix is
+two-part: v0.12.1 added the `Agent` declaration (belt-and-braces),
+and the main-session-persona rule above (documentation) makes the
+intended usage model explicit.
+
 ## Routing defaults
 
 `tech-lead` is the **sole human interface**. No other agent talks to the

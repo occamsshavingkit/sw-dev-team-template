@@ -37,33 +37,55 @@ Additive features. Placeholder.
 
 ## v0.12.1 — 2026-04-24 (PATCH)
 
-Single-issue PATCH for a correctness gap surfaced in v0.11.0-v0.12.0.
+Two-part PATCH for issue #37 (tech-lead orchestration gap).
 
 ### Fixed
 
-- **#37 tech-lead has no spawn capability.** `.claude/agents/tech-lead.md`
+- **#37 tech-lead has no spawn capability — two-part fix.**
+
+  **Part 1 (belt-and-braces declaration).** `.claude/agents/tech-lead.md`
   frontmatter `tools:` line extended from
   `Read, Grep, Glob, Bash, Write, Edit, SendMessage` to
   `Read, Grep, Glob, Bash, Write, Edit, SendMessage, Agent` — adding
-  the agent-spawn tool (`Agent`) so `tech-lead` can actually dispatch
-  specialists when invoked as a subagent, not just when running in the
-  main harness context. This matches what `tech-lead.md` has always
-  described itself as doing (§Job item 3, §Routing table, §liveness
-  expectation on background dispatches, parallelism default).
+  the agent-spawn tool. Matches what `tech-lead.md` has always
+  described itself as doing.
+
+  **Part 2 (main-session-persona rule — the actual supported path).**
+  `CLAUDE.md` gains a new binding section "Tech-lead is the
+  main-session persona (binding)" immediately before § "Routing
+  defaults", and `tech-lead.md` gains a "Usage model (binding)"
+  paragraph at the top of its body. Both state explicitly: the
+  main Claude Code session IS `tech-lead`; do not spawn
+  `subagent_type: tech-lead`. The main session plays the role
+  directly because only the main session has the `Agent` tool
+  needed to spawn specialists. Subagents can only `SendMessage`
+  already-running teammates; they cannot bring new specialists
+  into being. Tech-lead-as-subagent is a passthrough, not an
+  orchestrator, so don't use it.
+
+  Part 1 is correctness; part 2 is the documentation that makes
+  the intended usage model unambiguous. Future harness improvements
+  (subagents being granted the tools their frontmatter declares)
+  would make the Part-1 declaration functionally meaningful;
+  Part-2 is independent of harness behaviour.
 
   **Harness-trust caveat (upstream).** A diagnostic dispatch of the
   patched `tech-lead` confirmed that the Claude Code harness in use
   when this PATCH was cut drops 6 of the 8 declared tools from
   subagent grants — not just `Agent` but also `Grep`, `Glob`, `Write`,
   `Edit`, `SendMessage`. The diagnosed `tech-lead` received only
-  `Read, Bash`. The template declaration is now correct; the harness
-  behaviour is not. This is the same class of anomaly flagged in
-  v0.12.0 CHANGELOG for `architect` spawns receiving only `Read`.
-  **Pattern, not one-off; affects multiple roster agents.** Needs
-  upstream report at `https://github.com/anthropics/claude-code/issues`
-  by the repo owner. Template-side, nothing more can be done — the
-  frontmatter declarations are correct; the runtime grant is the
-  upstream's responsibility.
+  `Read, Bash`. Same class of anomaly as the `architect` case
+  flagged in v0.12.0. **Open interpretation:** could be a real
+  upstream bug, or could be registration-timing (harness loaded the
+  pre-edit frontmatter at session start and doesn't pick up in-
+  session edits — same pattern as #36 for new-agent registration).
+  A post-session-restart diagnostic will disambiguate. Regardless,
+  Part 2 of this PATCH is the supported path either way — the
+  declaration is belt-and-braces for the day the harness honors it.
+
+  If the repo owner confirms post-restart that declared tools are
+  still dropped, file upstream at
+  `https://github.com/anthropics/claude-code/issues`.
 
 ---
 

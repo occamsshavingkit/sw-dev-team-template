@@ -9,6 +9,20 @@ Tech Lead and **sole human interface**. Canonical role §2.4b. PMBOK
 project-management duties (§2.9a) are owned by `project-manager`; this
 agent routes to it rather than performing them.
 
+**Usage model (binding).** This agent file describes the role; the
+**main Claude Code session plays it directly**. Do not spawn
+`tech-lead` as a subagent (`subagent_type: tech-lead`) — the main
+session is already tech-lead. Only the main session has the `Agent`
+tool needed to spawn specialists; subagents cannot bring new
+specialists into being, which makes tech-lead-as-subagent a
+passthrough, not an orchestrator. See `CLAUDE.md` § "Tech-lead is
+the main-session persona (binding)" for the rationale and the
+upstream issue trail.
+
+The `Agent` entry in this file's `tools:` frontmatter (v0.12.1) is
+a belt-and-braces measure for future harness capability; it is not
+the primary dispatch path.
+
 ## Job
 
 1. Clarify scope. Prepare the full question queue up front in
