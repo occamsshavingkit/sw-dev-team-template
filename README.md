@@ -4,7 +4,7 @@ A ready-to-use Claude Code project scaffold that turns a single Claude
 session into a 9-role software-development team with a strict escalation
 protocol and a per-project SME pattern.
 
-**Status.** Pre-1.0 (currently `v0.10.0`). The public contract is not
+**Status.** Pre-1.0 (currently `v0.13.0`). The public contract is not
 yet stable; breaking changes are permitted in minor bumps per SemVer
 0.y rules. See `docs/versioning.md` for the criteria that will return
 the template to a `v1.0.0-rc` track.
@@ -111,6 +111,100 @@ Two options:
 Do not proceed with the unzipped-as-project state — the session will
 compound the drift.
 
+## Adopting the template into an existing codebase (retrofit)
+
+New in **v0.13.0**. If you already have a real project (git history,
+code, docs, issues) and want to bring it under this template without
+rewriting from scratch, use the **Retrofit Playbook**:
+`docs/templates/retrofit-playbook-template.md`.
+
+There is no retrofit *script* — by design. The retrofit is an
+**agent workflow** because every source project is shaped
+differently; a script would have to assume a layout that does not
+exist. The playbook orchestrates the template's agents to audit the
+source, triage IP, plan the migration, reconstruct the charter, and
+execute the moves.
+
+### How to run a retrofit
+
+1. **Scaffold a fresh target directory** with `scripts/scaffold.sh`
+   (see Quickstart step 2). The target must be a **sibling** of
+   your source project, not the source itself — the retrofit is
+   scaffold-first, source-read-only by design (customer ruling
+   2026-04-23).
+
+   ```
+   scripts/scaffold.sh ~/code/my-project-retrofit "My Project"
+   ```
+
+2. **Freeze the source project.** Do not edit the source during
+   the retrofit; do not return to it afterward. The retrofit
+   produces a new project at the target path; the source is
+   archival once the retrofit completes.
+
+3. **Start a Claude session in the new scaffolded target:**
+
+   ```
+   cd ~/code/my-project-retrofit
+   claude
+   ```
+
+4. **Run FIRST ACTIONS Steps 0–1** (opt-in + skill packs) normally.
+   Step 2 scoping opens the retrofit conversation.
+
+5. **Tell `tech-lead` to run the Retrofit Playbook**, naming the
+   source path:
+
+   > "Run the Retrofit Playbook against source `~/code/my-project`."
+
+   `tech-lead` then:
+   - Runs **pre-flight** (readiness triage — VCS state, license,
+     tests, CI, docs, secrets, issue tracker, size) and records
+     a go/no-go.
+   - Dispatches **Stage A `onboarding-auditor`** for a
+     zero-context inventory of the source.
+   - Dispatches **Stage B `researcher`** for IP triage; loops in
+     **`security-engineer`** for any auth / secrets / PII /
+     network-endpoint row (Hard-Rule-#7 advisory).
+   - Dispatches **Stage C `architect`** for the structural
+     migration plan; escalates any safety-critical artefact to
+     you for live approval (Hard Rule #4).
+   - Dispatches **Stage D `project-manager`** to reconstruct the
+     charter from `git log` + README + interview.
+   - Dispatches **Stage E `software-engineer`** to execute the
+     moves commit-by-commit, gated by `code-reviewer` (and
+     `security-engineer` on Hard-Rule-#7 rows).
+   - Optionally dispatches **Stage F `project-manager`** to
+     migrate source issues/tickets into `docs/tasks/` and
+     `docs/OPEN_QUESTIONS.md`.
+
+6. **Sign off on retrofit completion** when `tech-lead` presents
+   the Definition-of-Done checklist from § 14 of the playbook.
+   Your sign-off is recorded in `CUSTOMER_NOTES.md` and is the
+   final gate before post-retrofit work begins.
+
+### What if the retrofit stalls?
+
+The playbook's § 12 rollback plan covers three outcomes:
+**continue** (re-scope remaining stages), **pivot** (green-rewrite
+with the source as a read-only reference), **roll back** (delete
+the target; lessons carry-out file survives outside the target).
+Rollback is cheap by design — the source is unaffected because of
+the read-only freeze.
+
+### What the playbook does *not* do
+
+- **In-place retrofit** (layering the template onto the source
+  tree itself). Rejected by design; see playbook § 2.2 for the
+  reasoning (reversibility, clean audit surface, IP triage).
+- **Multi-source retrofit** (N sources → 1 target). Deferred;
+  file issue #45 tracks the reshape work needed.
+- **`scripts/repair-in-place.sh` is not a retrofit tool** — it
+  normalizes an *unzipped* template directory, nothing more.
+
+Full procedure, decision matrix, anti-patterns, and DoD:
+`docs/templates/retrofit-playbook-template.md`.
+
 ## Upgrading an existing scaffolded project
 
 From inside your scaffolded project, on a later session:
@@ -152,6 +246,9 @@ contract, including per-version migration scripts under `migrations/`.
 | `scripts/agent-health.sh` | Assembles a ground-truth health-check packet for an agent. |
 | `scripts/respawn.sh` | Stubs a handover brief for respawning a long-running teammate. |
 | `docs/templates/` | Document templates shaped after the relevant standards (ISO/IEC/IEEE 29148 / 42010 / 12207, arc42, C4, INVEST). |
+| `docs/templates/retrofit-playbook-template.md` | Agent workflow for adopting the template into an existing codebase (v0.13.0+). See README § "Adopting the template into an existing codebase". |
+| `docs/templates/adr-template.md` | MADR 3.0-shaped ADR template with the **Three-Path Rule** (Minimalist / Scalable / Creative) (v0.13.0+). |
+| `docs/adr/` | Template-level ADRs. `0001-context-memory-strategy.md` is also the canonical worked example for the ADR template. |
 | `.claude/agents/*.md` | 9 specialist subagents + 1 SME template. |
 | `docs/sme/` | SME reference material, per-domain. `INVENTORY.md` per domain; copyrighted items in `local/` (gitignored). |
 
