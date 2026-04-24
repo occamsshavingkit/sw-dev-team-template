@@ -16,22 +16,122 @@ filed upstream include that version.
 
 ---
 
-## v0.13.0 — unreleased (MINOR bundle)
+## v0.13.0 — 2026-04-24 (MINOR bundle)
 
-Additive features. Placeholder.
+Additive features. Placeholder; entries fill in as items land.
+
+### Added
+- **#33 Three-Path Rule (Phase 3 of workflow redesign).** New
+  `docs/templates/adr-template.md` — MADR 3.0-shaped ADR template
+  with § "Considered options" binding three named alternatives
+  (Minimalist / Scalable / Creative), not a single recommendation
+  with variations narrated in passing. Rationale from the
+  workflow-redesign memo: LLMs converge on the "average" solution;
+  naming Creative explicitly bypasses that bias. Creative's
+  function is to make the team name the constraint that rejects
+  it, not to be seriously considered every time.
+    - New `docs/templates/adr-template.md` (MADR-based, Three-Path
+      in Considered-options).
+    - `.claude/agents/architect.md` gains "Three-Path Rule
+      (binding, v0.13.0)" subsection in the ADR trigger list.
+    - `docs/templates/architecture-template.md` § 10 "Architecture
+      decisions (index)" cross-references the new ADR template and
+      names the filename convention.
+  Prior to this, ADRs were referenced throughout the template but
+  no template existed for them — this lands both at once.
+
+- **#3 Retrofit Playbook — adopting the template into an existing
+  codebase.** New `docs/templates/retrofit-playbook-template.md`
+  — agent workflow (not a script) for migrating an existing,
+  non-scaffolded codebase into a freshly scaffolded target. Shape
+  pinned by customer ruling 2026-04-23 (`CUSTOMER_NOTES.md`):
+  scaffold-first, agent-discovers flow. Covers pre-flight readiness
+  triage; Path-A-vs-Path-B decision record (scaffold-into-sibling
+  wins over in-place by default, with Path B ADR-able per project);
+  six stages (Pre-flight → A onboarding-auditor inventory → B
+  researcher IP triage → C architect migration plan → D
+  project-manager charter reconstruction from git log + README +
+  interview → E software-engineer execution under code-reviewer →
+  F optional ticket migration); decision matrix for per-artifact
+  outcomes; convention-conflict protocol (§ 7 — migrate-to-template
+  by default, ADR-pin exceptions, Hard-Rule invariants never
+  overridable); IP triage aligned with CLAUDE.md § IP policy;
+  rollback plan with stall detection and three outcomes (continue /
+  pivot / roll back); register-population summary;
+  `docs/retrofit/` directory shape; 10 anti-patterns; 12-item
+  Definition of Done. Also amended:
+    - `.claude/agents/tech-lead.md` routing table gains a
+      "Migrate from an existing (non-scaffolded) codebase" row.
+    - Scripts section of `CLAUDE.md` continues to cover the
+      other three adjacent cases (`scaffold.sh`,
+      `repair-in-place.sh`, `upgrade.sh`); `repair-in-place.sh`
+      is **not** a retrofit tool and the playbook § 2.3 says so
+      explicitly.
+  Deliverable: `docs/templates/retrofit-playbook-template.md`
+  (16 sections; revised after code-reviewer + architect review).
+  Revision pass on 2026-04-24 landed 5 blocking findings:
+    - New § 2.4 *Interstitial cases* routing (half-scaffolded,
+      hand-edited scaffold, imported codebase, partial upgrade).
+    - Hard Rules § 3 extended with **#7 security** binding
+      (`security-engineer` sign-off on auth / secrets / PII /
+      network-endpoint rows) and clarified **#4** to cover
+      audit-discovered safety-critical surface, not only
+      customer-pre-flagged rows.
+    - § 4 stage table + § 4.6 Stage E + § 5 stage-gates table
+      + § 6 decision-matrix note updated to name
+      `security-engineer` as conditional Stage E gate with
+      cross-stage Hard-Rule gates documented.
+    - § 12.4 rollback now mandates write-before-delete:
+      `retrofit-summary.md` finalized and carry-out
+      `retrofit-lessons-YYYY-MM-DD.md` preserved outside
+      `<tgt-path>` before deletion.
+    - § 13 anti-patterns grew from 10 to 14: mid-stage
+      abandonment without § 12 decision; undetected source
+      drift (SHA compared at pre-flight vs Stage E start);
+      stale Stage-D approvals invoked at Stage E; unratified
+      escalations treated as ratified.
+    - § 14 DoD gains: customer sign-off on retrofit completion;
+      TEMPLATE_VERSION integrity check (matches scaffold-stamp,
+      not just "unchanged"); `docs/INDEX.md` cross-link;
+      Hard-Rule-#7 and Hard-Rule-#4 sign-off checkboxes.
+    - § 15 cross-refs gain `.claude/agents/security-engineer.md`
+      and `docs/templates/security-template.md`.
+  Six non-blocking findings filed as #40–#45 for v0.13.1.
+
+- **#39 Context-memory strategy — default guidance (adopt
+  `claude-mem`, do not adopt orchestration frameworks).** New
+  `docs/adr/0001-context-memory-strategy.md` — first template
+  ADR, also the canonical worked example for the v0.13.0
+  Three-Path ADR template. Evaluates `claude-mem` (thedotmack —
+  passive memory layer) vs. `ruflo` / ex-"claude-flow"
+  (ruvnet/ruflo — full multi-agent orchestration framework) in
+  Three-Path shape (M: no tooling / S: claude-mem / C: ruflo),
+  chooses S. Binding rationale: Option C's Q-learning router,
+  autonomous swarms, and shadow roster collide with Hard Rules #1
+  (only `tech-lead` talks to the customer) and #4 (live customer
+  approval on safety-critical changes). Amendments to ship the
+  decision:
+    - `CLAUDE.md` § "Escalation protocol" — memory-first lookup
+      becomes step 1 (before `CUSTOMER_NOTES.md`); explicit
+      guardrail "memory is a lookup, not a source of truth."
+    - `CLAUDE.md` new § "Memory and orchestration tooling" —
+      records the stance and names the ADR. Orchestration
+      frameworks require a superseding ADR before adoption;
+      customer sign-off required.
+    - `CLAUDE.md` FIRST ACTIONS Step 1 skill-pack menu — new
+      entry [9] `claude-mem` (recommended default), with an
+      explicit note that orchestration frameworks are off-menu
+      by design.
+    - `.claude/agents/tech-lead.md` — new binding § "Memory-first
+      lookup" above § "Escalation protocol".
+    - `.claude/agents/researcher.md` — prior-art scans check
+      `claude-mem` first.
+  Graceful fallback preserved: projects that cannot install
+  `claude-mem` (air-gapped, policy restriction) skip the memory
+  step and read artifacts directly; the rest of the escalation
+  protocol is unaffected.
 
 ### Pending
-- **retrofit-playbook (#3)** — agent workflow (not a script) for
-  migrating an existing project into a freshly-scaffolded target.
-  Shape pinned by customer ruling 2026-04-23
-  (`CUSTOMER_NOTES.md`); implementation awaits `/ultraplan` output
-  + review. Deliverable: `docs/templates/retrofit-playbook-template.md`.
-- **#33 Three-Path Rule** (Phase 3 of workflow redesign) — expand
-  `docs/templates/architecture-template.md` Alternatives-considered
-  guidance to require three named alternatives (Minimalist /
-  Scalable / Creative). Deferred from v0.12.0 per architect's
-  phased-rollout recommendation in
-  `docs/proposals/workflow-redesign-v0.12.md` §10.
 
 ---
 

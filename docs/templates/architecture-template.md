@@ -123,12 +123,19 @@ Each subsection: one paragraph + link to detailed ADR or external doc.
 ## 10. Architecture decisions (index)
 
 A chronological list of ADRs under `docs/adr/`. One row per ADR.
+Shape per `docs/templates/adr-template.md` (MADR-based with the
+binding Three-Path Rule — Minimalist / Scalable / Creative —
+under § "Considered options").
 
 | # | Title | Status | Date |
 |---|---|---|---|
 | ADR-0001 | <short title> | accepted | YYYY-MM-DD |
 
 Do not paraphrase ADR content here; just index them.
+
+Filename convention: `docs/adr/NNNN-<kebab-case-slug>.md`. New ADRs
+are required whenever any row of `.claude/agents/architect.md`
+§ "ADR trigger list" fires.
 
 ---
 

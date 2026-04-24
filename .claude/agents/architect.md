@@ -44,6 +44,30 @@ of these holds:
 For routine coding decisions that do not meet any trigger, no ADR is
 required. When in doubt, write one.
 
+### Three-Path Rule (binding, v0.13.0)
+
+Every ADR's § "Considered options" carries **three named
+alternatives** — not a single recommendation with variations
+narrated in passing:
+
+- **Option M (Minimalist).** Simplest thing that works. Low
+  up-front cost, tight envelope.
+- **Option S (Scalable).** Production-grade. Handles reasonable
+  growth without re-architecture.
+- **Option C (Creative / experimental).** Non-obvious option —
+  novel technique, radical simplification, unusual library.
+  Higher risk; its purpose is to make the team name the
+  constraint that rejects it.
+
+Do not omit Option C as "obviously not" — its function is to
+force divergent thinking. LLMs converge on the "average"
+solution; naming Creative explicitly bypasses that bias.
+
+Shape: `docs/templates/adr-template.md`. Per upstream issue #33
+and `docs/proposals/workflow-redesign-v0.12.md` §4.2 — the
+Three-Path Rule lives in the ADR's Considered-options section,
+not as a separate artifact class.
+
 ### Operations trade-offs (SWEBOK V4 ch. 6)
 
 Operations planning artefacts are owned by `sre` (Planning + Control)

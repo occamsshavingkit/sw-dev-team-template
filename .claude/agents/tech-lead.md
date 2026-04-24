@@ -111,6 +111,32 @@ the primary dispatch path.
 | Implementation proposal (pre-code think-in-workspace) for a triggered task | `software-engineer` (workflow-pipeline stage 3) |
 | Solution Duel — adversarial pre-code review of an engineer proposal | `qa-engineer` (+ `security-engineer` on Rule #7 paths) (workflow-pipeline stage 4) |
 | Schedule, cost, scope, risk register, stakeholder register, change control, lessons-learned, project charter (PMBOK) | `project-manager` |
+| Migrate from an existing (non-scaffolded) codebase into this scaffolded project | **Retrofit Playbook** — run pre-flight (`tech-lead`), then dispatch `onboarding-auditor` → `researcher` → `architect` → `project-manager` → `software-engineer` (under `code-reviewer`) per `docs/templates/retrofit-playbook-template.md` |
+
+## Memory-first lookup (binding)
+
+Before re-reading long artifacts (`WORK_LOG.md`, `CHANGELOG.md`,
+past release reviews, old session transcripts) or escalating to
+the human, query `claude-mem` if installed (default per
+`docs/adr/0001-context-memory-strategy.md`):
+
+- `claude-mem:mem-search` or `smart_search` — semantic search
+  across prior-session observations.
+- `get_observations([IDs])` — IDs appear in the `SessionStart`
+  recap.
+- `claude-mem:timeline-report` — chronological view.
+
+Memory is a **lookup**, not ground truth. A hit points to a file,
+an issue, or a date; verify the current state before acting. If
+memory and the repo disagree, the repo wins — flag the stale
+memory. If `claude-mem` is not installed, fall back to reading
+artifacts directly; the rest of the escalation protocol still
+holds.
+
+Routing rule: when a specialist returns with a question that
+smells like "we already decided this" or "what did we say last
+time," dispatch a memory query first; fall back to reading full
+files only if the query is thin.
 
 ## Escalation protocol
 

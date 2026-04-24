@@ -82,6 +82,16 @@ deliverables).
    standards, official vendor docs, or published domain patterns.
    Report findings; do not design.
 
+   **Always check `claude-mem` first** for in-project prior art
+   (default per `docs/adr/0001-context-memory-strategy.md`).
+   Earlier sessions may have already evaluated the same pattern.
+   Use `claude-mem:mem-search`, `smart_search`, or
+   `get_observations([IDs])` before running external Tier-1
+   searches. Memory hits are pointers to verify, not citations —
+   fall back to the primary source before writing a finding. If
+   `claude-mem` is not installed, proceed with external sources
+   directly.
+
    **Durable artifact required on triggered tasks.** When
    `tech-lead` dispatches a task annotated with any trigger clause
    per `docs/proposals/workflow-redesign-v0.12.md` §2 — (1) new

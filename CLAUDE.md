@@ -32,19 +32,68 @@ the customer directly.
 
 When any agent has a question it cannot answer from its own context:
 
-1. Check `CUSTOMER_NOTES.md` — the customer may have already answered it.
-2. Check whether another agent on the roster is the right one to ask.
+1. **Check prior-session memory first** (if `claude-mem` is installed;
+   see § "Memory and orchestration tooling"). Before reading long
+   artifacts (`WORK_LOG.md`, `CHANGELOG.md`, past release reviews) or
+   escalating, query memory via `claude-mem:mem-search`,
+   `smart_search`, `get_observations([IDs])`, or
+   `claude-mem:timeline-report`. Memory is a **lookup**, not a
+   source of truth — a hit points you at a file / issue / date to
+   verify against the current repo state. If memory and repo
+   disagree, the repo wins; flag the stale memory.
+2. Check `CUSTOMER_NOTES.md` — the customer may have already answered it.
+3. Check whether another agent on the roster is the right one to ask.
    Route there first. Example: `software-engineer` wondering about a
    standards citation asks `researcher`, not the customer.
-3. Only if no agent can answer, escalate to `tech-lead` with a precisely
+4. Only if no agent can answer, escalate to `tech-lead` with a precisely
    worded question.
-4. `tech-lead` either answers, routes further, or takes the question to
+5. `tech-lead` either answers, routes further, or takes the question to
    the customer. When `tech-lead` gets an answer, it records the verbatim
    response in `CUSTOMER_NOTES.md` (via `researcher`) and relays to the
    asking agent.
 
 The customer's inbox is scarce. Do not flood it. A well-framed question
 batched with others is better than three drip-feed interruptions.
+
+## Memory and orchestration tooling
+
+Sessions accumulate context quickly. The template takes an explicit
+stance on two adjacent tool categories: **memory layers** (passive
+session summarization + search) and **orchestration frameworks**
+(multi-agent coordination with their own rosters, routers, and
+escalation models). The reasoning is recorded in
+`docs/adr/0001-context-memory-strategy.md` (also the canonical
+worked example for the Three-Path ADR template).
+
+**Recommended default: `claude-mem`** (passive memory layer,
+thedotmack/claude-mem). Summarizes each session into searchable
+observations exposed via MCP. Additive, does not alter agent
+design, does not conflict with any Hard Rule. The memory-first
+lookup step in § "Escalation protocol" is the binding integration
+point; `tech-lead.md` and `researcher.md` cross-reference it.
+Projects that cannot install `claude-mem` (air-gapped, policy
+restriction) fall back gracefully to reading artifacts directly.
+
+**Orchestration frameworks require a project ADR.** Any tool that
+ships its own agent roster, its own router, its own escalation
+model, or its own hook chain (examples: `ruflo` / ex-claude-flow,
+CrewAI, AutoGen, MetaGPT) is out-of-scope for default adoption
+because Hard Rules #1 (only `tech-lead` talks to the customer)
+and #4 (live customer approval on safety-critical changes) are
+not expressible as a learned-routing reward signal without bolt-
+ons that defeat the point. A project that genuinely needs such a
+framework records an ADR under `docs/adr/` using
+`docs/templates/adr-template.md` (Three-Path shape) that
+**explicitly supersedes ADR-0001** and identifies, per Hard Rule,
+how the framework preserves the invariant or why the project is
+willing to weaken it. Customer sign-off on the ADR is required
+before the framework is installed.
+
+**Memory rule-of-thumb.** A recalled memory is a pointer, not a
+citation. If a recommendation would act on the recalled fact,
+verify against the current file, `git log`, or a fresh read
+first. Stale memory that caused a near-miss is worth noting in
+`docs/pm/LESSONS.md` for future summarizer tuning.
 
 ## Scaffolding a new project
 
@@ -224,7 +273,25 @@ Skill packs to consider installing. Which should I help install?
                                           budget and estimate
         npx skillfish add kmylpenter/kfg-ccv2-installer-stable token-usage
 
-  [9] Skip — I have what I need.
+  [9] claude-mem (thedotmack)          — RECOMMENDED default memory layer.
+                                          Passive session summarization +
+                                          searchable observations via MCP.
+                                          Binding integration points in
+                                          CLAUDE.md § Escalation protocol,
+                                          tech-lead.md, and researcher.md
+                                          already assume it is installed.
+                                          See docs/adr/0001-context-memory-strategy.md.
+        /plugin marketplace add thedotmack/claude-mem
+        /plugin install claude-mem@thedotmack
+
+       Note on orchestration frameworks (ruflo / ex-claude-flow,
+       CrewAI, AutoGen, MetaGPT, etc.): NOT on this menu by design.
+       They ship their own agent roster, router, and escalation
+       model, which collide with Hard Rules #1 and #4. If a project
+       genuinely needs one, record a superseding ADR first per
+       § "Memory and orchestration tooling".
+
+  [10] Skip — I have what I need.
 ```
 
 Rules:
