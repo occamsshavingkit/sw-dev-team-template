@@ -35,6 +35,38 @@ Additive features. Placeholder.
 
 ---
 
+## v0.12.1 — 2026-04-24 (PATCH)
+
+Single-issue PATCH for a correctness gap surfaced in v0.11.0-v0.12.0.
+
+### Fixed
+
+- **#37 tech-lead has no spawn capability.** `.claude/agents/tech-lead.md`
+  frontmatter `tools:` line extended from
+  `Read, Grep, Glob, Bash, Write, Edit, SendMessage` to
+  `Read, Grep, Glob, Bash, Write, Edit, SendMessage, Agent` — adding
+  the agent-spawn tool (`Agent`) so `tech-lead` can actually dispatch
+  specialists when invoked as a subagent, not just when running in the
+  main harness context. This matches what `tech-lead.md` has always
+  described itself as doing (§Job item 3, §Routing table, §liveness
+  expectation on background dispatches, parallelism default).
+
+  **Harness-trust caveat (upstream).** A diagnostic dispatch of the
+  patched `tech-lead` confirmed that the Claude Code harness in use
+  when this PATCH was cut drops 6 of the 8 declared tools from
+  subagent grants — not just `Agent` but also `Grep`, `Glob`, `Write`,
+  `Edit`, `SendMessage`. The diagnosed `tech-lead` received only
+  `Read, Bash`. The template declaration is now correct; the harness
+  behaviour is not. This is the same class of anomaly flagged in
+  v0.12.0 CHANGELOG for `architect` spawns receiving only `Read`.
+  **Pattern, not one-off; affects multiple roster agents.** Needs
+  upstream report at `https://github.com/anthropics/claude-code/issues`
+  by the repo owner. Template-side, nothing more can be done — the
+  frontmatter declarations are correct; the runtime grant is the
+  upstream's responsibility.
+
+---
+
 ## v0.12.0 — 2026-04-23 (MINOR bundle)
 
 Additive features. Placeholder; entries fill in as items land.
