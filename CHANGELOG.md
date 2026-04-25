@@ -16,6 +16,48 @@ filed upstream include that version.
 
 ---
 
+## v0.13.1 — 2026-04-25 (PATCH bundle)
+
+Doc + agent-frontmatter PATCH. No behavior changes.
+
+### Added
+- **ADR-0002 — Upgrade content verification (hash-based, manifest-primary).**
+  New `docs/adr/0002-upgrade-content-verification.md` documenting the
+  v0.14.0 design fix for `scripts/upgrade.sh`'s content-trust bug
+  (issue #61). MADR 3.0 shape with three alternatives
+  (Minimalist on-demand re-fetch / Scalable hash manifest / Creative
+  tree-hash). Decision: hash manifest at scaffold/upgrade with
+  on-demand re-fetch as `--verify` fallback. Implementation lands in
+  v0.14.0; the ADR ships now so downstream projects can review the
+  approach before the implementation.
+
+### Fixed
+- **#57 — `security-engineer` agent frontmatter.** Tool surface was
+  `Read, Grep, Glob, SendMessage`, missing `Write` and `Edit`. The
+  role contract assigns advisory-note authoring, threat-model
+  authoring, and SBOM stewardship docs to this agent; without write
+  tools it could not persist its own deliverables. Fixed to
+  `Read, Write, Edit, Grep, Glob, SendMessage`. One-line frontmatter
+  change; no body or behaviour rewrite.
+
+### Closed (no code change)
+- **#62 — `architect` agent tool gap.** Filed during this session
+  based on the architect subagent's runtime self-report ("I only have
+  Read available"). Investigation found the v0.13.0 frontmatter is
+  already correct (`Read, Grep, Glob, Write, Edit, SendMessage`); the
+  runtime divergence is a harness-layer behaviour to investigate
+  separately. Closed as not-a-frontmatter-bug. Same pattern observed
+  in subagent Edit denials despite project allowlist; will be tracked
+  as a Claude Code harness issue on next investigation.
+
+### Notes
+- v0.13.1 is a doc-and-frontmatter PATCH; the upgrade.sh
+  content-verify implementation, version-check.sh pre-release
+  gating fix (#60), and upgrade.sh --help fix (#58) all stay in the
+  v0.14.0 queue.
+
+---
+
 ## v0.13.0 — 2026-04-24 (MINOR bundle)
 
 Additive features. Placeholder; entries fill in as items land.
