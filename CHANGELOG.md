@@ -16,6 +16,66 @@ filed upstream include that version.
 
 ---
 
+## v0.14.2 — 2026-04-25 (PATCH bundle)
+
+`migrations/v0.14.0.sh` now writes a **predicted post-sync manifest**
+so a single `scripts/upgrade.sh` run from any starting version
+produces a manifest that `--verify` reports clean. Removes the
+two-run requirement that v0.14.1 introduced for projects upgrading
+from v0.13.x (whose `upgrade.sh` predates the post-sync
+`manifest_write` step).
+
+### Fixed
+
+- **`migrations/v0.14.0.sh`** — synthesises the manifest by
+  predicting the post-sync state via the same 3-way compare
+  `upgrade.sh`'s sync loop performs:
+  - File in upstream but not in project → predicted SHA = upstream
+    SHA (sync will add it).
+  - File in both, baseline available, project SHA == baseline SHA
+    (unchanged since scaffold) → predicted SHA = upstream SHA
+    (sync will overwrite).
+  - File in both, baseline available, project SHA != baseline SHA
+    (customisation since scaffold) → predicted SHA = project's
+    current SHA (sync will leave it alone, "kept").
+  - File in both, baseline unavailable → conservative: treat as
+    customisation; predicted SHA = project's current SHA.
+  Output reports counts by category (`+added ~upgraded !kept`).
+- **Single-run clean upgrade.** v0.13.x → v0.14.2 in one shot
+  produces a correct manifest; `--verify` exits 0 immediately
+  after, no manual regeneration step needed.
+
+### Smoke-test additions
+
+2 new assertions:
+
+- `TEMPLATE_MANIFEST.lock` exists after the simulated v0.1.0 →
+  vCURRENT upgrade.
+- `upgrade.sh --verify` exits 0 after that single upgrade run —
+  confirms the migration's prediction matches actual post-sync
+  state.
+
+Total smoke coverage: **62 passes / 0 failures**.
+
+### Note on v0.14.0 → v0.14.2 path
+
+Projects already on v0.14.0 (whose `upgrade.sh` has the
+broken-signature post-sync `manifest_write` call) may still need
+a second run, since the running v0.14.0 process invokes
+v0.14.0's broken helper after sync. The migration writes a
+correct manifest first; the v0.14.0 post-sync write may then
+clobber it with a broken one. Workaround: after the v0.14.0 →
+v0.14.2 upgrade, run `bash scripts/upgrade.sh --verify`; if
+drift is reported, a second `bash scripts/upgrade.sh` run
+self-heals via the v0.14.2 stamp-with-drift handler.
+
+Projects on **v0.13.x or earlier** have no such issue —
+single-run clean. v0.14.0 was a brief release; if the only
+deployed users of it are the maintainer's own projects, they
+self-heal in one extra run.
+
+---
+
 ## v0.14.1 — 2026-04-25 (PATCH bundle)
 
 `TEMPLATE_MANIFEST.lock` correctness fix. v0.14.0's manifest helpers
