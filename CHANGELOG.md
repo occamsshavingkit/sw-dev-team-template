@@ -16,6 +16,123 @@ filed upstream include that version.
 
 ---
 
+## v0.14.0 — 2026-04-25 (MINOR bundle)
+
+Upgrade-flow content verification, leaner template variants per the
+jam01 pattern, MADR required/optional split, and a binding
+"inspire, don't paste" rule. No breaking changes; existing v0.13.x
+projects upgrade cleanly via `scripts/upgrade.sh` (which now runs
+`migrations/v0.14.0.sh` to synthesise an initial manifest before
+the file-sync step).
+
+### Added
+
+- **ADR-0002 implementation — `TEMPLATE_MANIFEST.lock` content
+  verification.** Per-file SHA256 manifest at project root, written
+  by `scripts/scaffold.sh` at scaffold time and rewritten by
+  `scripts/upgrade.sh` after every successful sync. New
+  `scripts/upgrade.sh --verify` subcommand checks project files
+  against the manifest with no network access. Exit codes:
+  `0` clean, `1` drift, `2` missing manifest, `3` corrupt manifest.
+  Closes the upstream issue #61 trust-the-stamp bug:
+  `upgrade.sh` no longer short-circuits on `TEMPLATE_VERSION`
+  equality alone — if the stamp matches but the manifest disagrees,
+  it falls through to the sync flow and reconciles. Helpers live in
+  `scripts/lib/manifest.sh`; sourced by both `scaffold.sh` and
+  `upgrade.sh`.
+- **ADR-0003 — bare variants of `architecture-template.md` and
+  `requirements-template.md`.** New
+  `docs/templates/architecture-template-bare.md` and
+  `docs/templates/requirements-template-bare.md` ship the same
+  structural shape as the guided variants without the explanatory
+  prose, ~50% smaller. Authors and agents pick the variant that
+  matches their fluency. Synchronisation rule: structural changes
+  land in bare first; guided is regenerated or hand-updated to
+  match.
+- **ADR-0004 — per-item / per-view file templates.** New
+  `docs/templates/req-item-template.md` (+ bare variant) for
+  per-FR/NFR files at `docs/req/<ID>.md`; new
+  `docs/templates/architecture-view-template.md` (+ bare variant)
+  for per-IEEE-1016-viewpoint files at
+  `docs/views/<viewpoint>-<name>.md`. Lets agents load only the
+  requirement or view in scope, not the whole monolithic doc.
+- **ADR-0006 — MADR required/optional split in
+  `docs/templates/adr-template.md`.** Each section now tagged
+  **REQUIRED**, **RECOMMENDED**, or **OPTIONAL** with a top-of-file
+  Section discipline note. Minimal ADR ~40 lines; full ADR ~200+.
+  The Three-Path Rule remains binding (Required, never omitted).
+- **ADR-0007 binding rule — "Inspire, don't paste"** added to
+  `docs/glossary/ENGINEERING.md` § Intellectual property. Borrowing
+  a structural pattern is fine; copying prose / headings / table
+  content is not, regardless of source license.
+- **ADR-0005 (Accepted, implementation deferred to v0.15.0).**
+  `docs/standards/paraphrase-cards.md` — single source for IEEE/ISO
+  paraphrase content cited from agent contracts. Deferred because
+  the extraction touches five agent files and three templates; not
+  bundling with v0.14.0's upgrade-flow work. The citation pattern
+  (LIB-NNNN row IDs) is already in place so v0.15.0's extraction
+  has nothing to invent.
+- **`migrations/v0.14.0.sh`** — synthesises an initial
+  `TEMPLATE_MANIFEST.lock` for projects upgrading from v0.13.x.
+  Uses `WORKDIR_OLD` (baseline clone) when available; falls back
+  to current on-disk SHAs otherwise. Idempotent.
+
+### Fixed
+
+- **#60 `scripts/version-check.sh` false-positive on withdrawn
+  pre-release.** Stable-track projects (no `-suffix` in
+  `TEMPLATE_VERSION`) now consider only stable tags as upgrade
+  candidates; pre-release tags like `v1.0.0-rc2` are no longer
+  surfaced as upgrade prompts. Pre-release-track projects continue
+  to see all tags. Closes the stale-banner annoyance discovered
+  this session.
+- **#58 `scripts/upgrade.sh --help` and unknown flags.** Argument
+  parser now handles `--help` / `-h` (prints usage, exits 0) and
+  unknown flags (prints `ERROR: unknown flag: <X>` + usage to stderr,
+  exits 2). Previously, `--help` and unknown flags fell through to a
+  full upgrade.
+
+### Smoke-test additions (`scripts/smoke-test.sh`)
+
+11 new assertions covering the v0.14.0 contract:
+
+- `TEMPLATE_MANIFEST.lock` exists after scaffold; carries the
+  ADR-0002 marker; non-empty (≥10 entries); excludes itself and
+  `TEMPLATE_VERSION` by design.
+- `upgrade.sh --verify` on fresh scaffold exits 0 and reports OK.
+- After perturbation: drift detected (exit 1) with file-level
+  report. After restore: clean (exit 0).
+- Missing manifest: exit 2 with helpful message.
+- Corrupt manifest: exit 3.
+- `upgrade.sh --help` exits 0 and prints Usage; unknown flag
+  exits 2 and prints ERROR.
+
+Total smoke coverage: **57 passes / 0 failures** end-to-end.
+
+### Closed (carried over from earlier review)
+
+- **#62** (architect agent tools gap) — closed in v0.13.1 with
+  corrected analysis: not a frontmatter bug, runtime divergence at
+  the harness layer.
+
+### Deferred to v0.15.0
+
+- ADR-0005 implementation (extract paraphrases from agent files).
+- LIB-0015..0018 inventory rows in downstream library inventories
+  (per ADR-0007, applied per project on-demand).
+- `--verify --format=json` machine-parseable output (ADR-0002 marks
+  it as a public CLI contract; not v0.14.0-mandatory).
+
+### Notes for downstream projects
+
+After upgrading, you'll have a new `TEMPLATE_MANIFEST.lock` at the
+project root (committed). `scripts/upgrade.sh --verify` provides
+offline drift detection; useful as a CI gate. Existing local
+customisations are preserved per `.template-customizations` and the
+existing per-file customisation-vs-upgrade resolution rules.
+
+---
+
 ## v0.13.1 — 2026-04-25 (PATCH bundle)
 
 Doc + agent-frontmatter PATCH. No behavior changes.

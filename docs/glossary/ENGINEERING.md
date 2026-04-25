@@ -319,3 +319,33 @@ vector stores. Record the specific restriction in the inventory row
 (library or SME) under the IP-restrictions column. See CLAUDE.md §
 IP policy for the binding rule and `researcher` § Cite hygiene for
 restricted sources for the enforcement surface.
+
+**Inspire, don't paste (binding, ADR-0007)** — when external material
+is brought into the project as a *structural pattern* or *idea*
+(rather than as a citeable text), the project draws inspiration but
+does not copy. Concretely: borrowing a template shape, a process
+pattern, an information-item layout, a naming convention, or a
+review-stage decomposition is fine; copying the prose, headings, or
+table content of the source file into a project file is not. This
+rule applies regardless of source license — it is stricter than CC0
+(which requires nothing) and stricter than MIT (which requires
+attribution on copy). The benefits:
+
+- License-class agnostic. Inspire-don't-paste material can be
+  re-licensed under the project's own license without a redistribution
+  audit.
+- Drift control. A "borrowed pattern" cannot accidentally pull in
+  prose updates from upstream over time; we own our wording.
+- Audit clarity. A reviewer asking "where did this come from?" gets
+  an INVENTORY.md row pointing at the inspiration source, not a copy
+  with attribution overhead.
+
+Borrowed-pattern provenance is recorded in the project's
+`docs/library/INVENTORY.md` under the same row shape as Tier-1
+references, with the row body noting "pattern source — inspire-don't-
+paste" in the disposition field. URL-only references (no PDF, no
+local copy) are valid; the row's local-path field reads "URL-only
+(no local copy)". If verbatim text is genuinely load-bearing (a
+defined term whose exact wording matters), the verbatim fragment is
+kept under 15 words and attributed inline, per the standard
+paraphrase policy.
