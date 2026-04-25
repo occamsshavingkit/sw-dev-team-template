@@ -16,6 +16,140 @@ filed upstream include that version.
 
 ---
 
+## v0.16.0 — 2026-04-25 (MINOR bundle)
+
+Issue-clearing release ahead of v1.0.0-rc3 entry. Lands the v2
+deferral placeholders, addresses 16 retrofit-playbook items in
+one revision pass, ships the stepwise-upgrade smoke (re-entry
+checklist criterion C-7), and adds the `SWDT_UPSTREAM_URL`
+override that makes the smoke possible.
+
+### Added
+
+- **`scripts/stepwise-smoke.sh`** — walks every stable tag from
+  v0.14.4 forward, runs `scripts/upgrade.sh` against a local
+  clone with each tag checked out at the matching hop. Verifies
+  exit code, `TEMPLATE_VERSION` stamping, `--verify` clean, and
+  no stale `.tmp.*` files at every hop. Direct deliverable for
+  v1.0.0-rc3 re-entry checklist C-7. Default start v0.14.4 (the
+  bootstrap-enabled minimum); pre-v0.14.4 hops cannot be made
+  cleanly stepwise because the in-place cp pattern in v0.13.0
+  through v0.14.2 mutates the running upgrade.sh's inode mid-
+  execution. Projects on those versions need the one-time curl
+  recovery from v0.14.3's CHANGELOG to land v0.14.4's upgrade.sh,
+  from which point they are stepwise-clean.
+- **`SWDT_UPSTREAM_URL` env override on `scripts/upgrade.sh`** —
+  redirects the upstream clone to a custom path. Used by
+  `stepwise-smoke.sh` to point at a local clone with specific
+  tags checked out per hop. Falls back to the canonical GitHub
+  URL when unset; existing flows are unaffected.
+- **`docs/v2/triage-repair-agent.md`** — v2-proposal placeholder
+  for issue #3 (project triage + repair agent for retrofit
+  adoption). Reserves the slot; v2.0 picks it up.
+- **`docs/v2/claude-mem-hybrid-ledger.md`** — v2-proposal
+  placeholder for issue #27 (claude-mem / SQLite hybrid ledger).
+  Reserves the slot; v0.15.x ships only the design memo, v2.0
+  picks up the implementation.
+
+### Fixed (retrofit-playbook revision pass — 16 issues)
+
+A single revision pass on `docs/templates/retrofit-playbook-template.md`
+addresses every retrofit-playbook issue filed against v0.13.x:
+
+- **#40** § 12.1 stall signal — agent-observable: ">3
+  OPEN_QUESTIONS rows with `answerer: customer status: open` for
+  >5 days" (N, M tunable).
+- **#41** § 12.3 pivot — explicit artifact-survival list (Stage A
+  / B / C reports kept; Stage D registers kept; Stage E commits
+  reverted).
+- **#42** § 4.2 — "Stage A seeds, Stage C resolves" clarification
+  for convention-conflict register.
+- **#43** § 4.6 — stale plan-row evidence escalates to architect
+  rather than software-engineer deciding locally.
+- **#44** § 7.2 — pinning ADRs require cost citation; >3 pins
+  triggers a meta-ADR.
+- **#45** § 1.2 — N→1 multi-source deferred-reshape note (per-
+  source subdirs, inception-date tie-breaker, CHANGES numbering).
+- **#46** § 2.4 — interstitial case for retrofit-and-upgrade-
+  simultaneously.
+- **#47** § 12.4 — default carry-out path for retrofit-lessons
+  file (`<tgt-path>/../retrofit-lessons-YYYY-MM-DD.md`).
+- **#49** § 4.1 — exact hash recipe for no-VCS source-drift check
+  (`find -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum`).
+- **#50** § 4.3 — Hard-Rule-#7 wording split (binding obligation
+  to loop in vs non-binding advisory).
+- **#51** § 1.3 — FIRST-ACTIONS Step 0/1 absorption path so
+  retrofit-first invocation doesn't stall on a menu.
+- **#52** § 4.6 — scaffold baseline commit allowed without
+  code-reviewer review; retrofit audit-artifact commits are
+  Hard-Rule-#3 with narrowed scope (evidence-traceability,
+  redaction hygiene, no committed sensitive content).
+- **#53** new § 8.1 — nested sibling git repos (meta-repo +
+  sibling-fork pattern) treated as out-of-scope artifacts.
+- **#54** § 4.5 — inherited naming category from
+  `<src-path>/.claude/agents/`; Step 3 becomes confirmation,
+  not fresh conversation.
+- **#55** § 4.7 + § 9 — versioned-doc governance (contract files,
+  decision logs) recognised as a tracker-equivalent shape; Stage
+  F handles row-by-row work-queue migration without assuming an
+  external tracker.
+- **#56** § 4.1 + § 4.3 — customer / employer / third-party
+  identifying content as a pre-flight row (distribution-posture
+  ruling); new Stage B disposition "project-authored,
+  distribution-restricted" with target-posture-dependent landing.
+
+### Issue-tracker triage (closes / labels, not code)
+
+- **Closed (already-resolved)**: #5 (v0.11.0 unzipped detector),
+  #13 (v0.12.0 agent-health-contract + v0.13.0 liveness rules),
+  #16 (v0.13.0 scoping-transcript dump), #21 (partially across
+  v0.5.x–v0.13.x; remaining as v0.15.x carry-over), #25 (v0.12.0
+  process-auditor + onboarding-auditor), #33 (v0.13.0 Three-Path
+  Rule), #36 (Claude Code harness limitation, documented),
+  #38 (v0.12.0 agent-health-contract liveness), #48 (DoD
+  checkbox shipped in v0.13.0; Stage-G promotion deferred per
+  customer ruling).
+- **Labelled `v2-proposal`**: #27 (claude-mem hybrid ledger).
+  #3 (triage-repair agent) was already so labelled; both now
+  have placeholders in `docs/v2/`.
+
+### Smoke-test additions
+
+`scripts/smoke-test.sh` already at 76 / 0 from v0.15.x; this
+release adds `scripts/stepwise-smoke.sh` as a separate
+deliverable for the v1.0.0-rc3 re-entry checklist (C-7). The
+stepwise smoke is invoked manually for now; future release-CI
+work would invoke it on every release tag.
+
+### v1.0.0-rc3 re-entry checklist progress
+
+After v0.16.0:
+
+- C-1 (contract stability) — clean (no contract-break labels).
+- C-2 (migration infra proven) — under test through the v0.14.x
+  release window; zero customer escalations through v0.16.0.
+- C-3 (retrofit field-tested) — pending real retrofit attempt
+  with DoD met; needs downstream evidence.
+- C-4 (workflow-pipeline empirical usage) — partial; three-path
+  green (7 framework ADRs ratified); other three stages need
+  downstream evidence.
+- C-5 (audit agents exercised) — pending; needs at least two
+  runs of `onboarding-auditor` + `process-auditor` against the
+  template repo or representative downstream.
+- C-6 (v2-proposal queue cleared) — clean (#3 + #27 labelled
+  with placeholders).
+- C-7 (stepwise upgrade smoke) — script lands; first run from
+  v0.14.4 forward green.
+
+C-3, C-4, C-5 need downstream-time evidence accumulation.
+v0.16.0 is **issue-clean**: the only open items are aggregate
+trackers (#3 + #27 with placeholders, #59 RC backlog tracker)
+and the v0.15.0 deferred carry-overs (#21 contributor workflow
+polish, #27 claude-mem implementation — both v2-proposal
+labelled). No bug-class issues remain.
+
+---
+
 ## v0.15.1 — 2026-04-25 (PATCH bundle)
 
 ### Fixed

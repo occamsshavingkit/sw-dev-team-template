@@ -59,9 +59,14 @@ EOF
 # shellcheck source=lib/manifest.sh
 source "$(dirname "$0")/lib/manifest.sh"
 
-upstream="https://github.com/occamsshavingkit/sw-dev-team-template"
-if [[ -n "${GH_TOKEN:-}" ]]; then
-  upstream_auth="https://${GH_TOKEN}@github.com/occamsshavingkit/sw-dev-team-template"
+# Upstream URL is overrideable via SWDT_UPSTREAM_URL. Used by
+# scripts/stepwise-smoke.sh to point at a local clone with specific
+# tags checked out — supports stepwise upgrade testing without
+# polluting the live remote. Falls back to the canonical GitHub URL
+# for normal upgrades.
+upstream="${SWDT_UPSTREAM_URL:-https://github.com/occamsshavingkit/sw-dev-team-template}"
+if [[ -n "${GH_TOKEN:-}" && "$upstream" == https://github.com/* ]]; then
+  upstream_auth="${upstream/https:\/\//https://${GH_TOKEN}@}"
 else
   upstream_auth="$upstream"
 fi

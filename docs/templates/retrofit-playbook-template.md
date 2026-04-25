@@ -38,6 +38,16 @@ roll-up.
 
 - **Multi-source retrofit** (N→1). Deferred. If needed, run the
   playbook sequentially per source with merges recorded as ADRs.
+  N→1 will need three reshapes before it is properly supported,
+  targeted at v0.16+ (issue #45):
+  (a) per-source `docs/retrofit/src-N/` subdirectories so artefacts
+      don't collide;
+  (b) a CHARTER-inception-date tie-breaker rule for git-log
+      inference across multiple sources (earliest / customer-
+      declared / latest — pick one);
+  (c) `CHANGES.md` numbering convention `CH-0001` … `CH-000N`
+      with cross-referencing.
+  Until those reshape, sequential-per-source is best-effort only.
 - **Retrofit-in-place** (convert `<src-path>` itself into a
   template-shaped project). See § 2 for the decision record that
   rules this path out by default.
@@ -55,7 +65,15 @@ Before the playbook starts:
 - `scripts/scaffold.sh <tgt-path> "<project-display-name>"` has
   produced `<tgt-path>` with `TEMPLATE_VERSION` stamped.
 - FIRST ACTIONS Step 0 (issue-feedback opt-in) and Step 1
-  (skill-pack menu) have run in `<tgt-path>`.
+  (skill-pack menu) have run in `<tgt-path>`, **OR** the retrofit
+  absorbs them as the first actions of pre-flight (issue #51).
+  In the absorbed case: tech-lead asks Step 0 atomically (once,
+  when idle) at session start; Step 1's skill-pack menu is
+  **deferred until after pre-flight's go/no-go** so a tangential
+  menu doesn't stall the retrofit. Existing-codebase customers
+  invoking retrofit before they have a mental model of FIRST
+  ACTIONS is the typical case; this absorption path is the
+  ergonomic default.
 - Step 2 scoping has begun in `<tgt-path>` but has **not** closed
   — the retrofit feeds Step 2's Definition-of-Done fields
   (CHARTER, SME classification, first milestone) with evidence
@@ -166,6 +184,16 @@ Some projects arrive in shapes that are not cleanly "fresh",
   concern, not a retrofit concern. Resolve via the upgrade path
   (`--dry-run` + per-file conflict resolution) before considering
   retrofit.
+- **Scaffold at older `TEMPLATE_VERSION`, hand-edited and drifted**
+  — customer wants both retrofit and upgrade in one motion (issue
+  #46). Retrofit uses the fresh target's scaffolded
+  `TEMPLATE_VERSION` (the newest); the upgrade from old→new is
+  implicit. Do not attempt retrofit and upgrade in separate passes;
+  one retrofit produces a clean result at the latest version. If
+  the customer specifically wants the retrofit to preserve the
+  *old* `TEMPLATE_VERSION`, record it as an ADR (usual reason:
+  deferred upgrade that will run as a separate `scripts/upgrade.sh`
+  motion later).
 
 If the customer's project shape does not match any of the above
 and does not match § 2.1's four paths, `tech-lead` escalates
@@ -279,9 +307,19 @@ partial / unknown":
       timestamp into `docs/retrofit/preflight.md`** — Stage E
       DoR re-verifies this to detect source drift (anti-pattern
       #12). If not under VCS, retrofit is viable but (a) the
-      drift check falls back to a content-hash snapshot taken at
-      pre-flight, and (b) registers carry a "no prior history"
-      risk.
+      drift check falls back to a content-hash snapshot, and
+      (b) registers carry a "no prior history" risk. **Drift-hash
+      recipe (binding, issue #49):**
+      - Under VCS: HEAD SHA (above).
+      - Not under VCS: output of
+        `find <src-path> -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum`
+        (the `-type f` limits to regular files, `sort -z` makes the
+        ordering deterministic across filesystems, and the chained
+        sha256sum collapses the manifest to a single 64-char hash
+        that fits cleanly in `preflight.md`).
+      - Under VCS but `.git` is shallow / squashed / fresh-clone
+        and HEAD is not meaningful: fall back to the non-VCS
+        recipe and note why in `preflight.md`.
 - [ ] **License.** Does `<src-path>` declare a license? Is it
       compatible with the project's intended disposition (target
       license decided in Step 2 scoping)?
@@ -299,6 +337,17 @@ partial / unknown":
       history? If yes, Stage E must handle them (scrub to
       `<scratch-path>`; do not carry to `<tgt-path>`; consider
       rotation as a risk item).
+- [ ] **Customer / employer / third-party identifying content
+      (issue #56).** Are there vendor product names, customer-site
+      codenames, plant/tenant identifiers, or operational context
+      strings that would identify a customer or employer the
+      project is embedded in? These need a **distribution-posture
+      ruling at pre-flight, not at Stage D** — their Stage B
+      triage disposition depends on whether the target repo will
+      ever leave the local host. Public-target retrofits with
+      identifying content require Hard-Rule-#4 customer approval
+      before triage begins; a wrong call is expensive to undo
+      (git history rewrite).
 - [ ] **Size.** Rough LoC + file count. A retrofit for a 10-file
       project and a 10 000-file project need different pacing.
 - [ ] **Open issues.** Is there a GitHub/GitLab/Jira issue tracker
@@ -351,7 +400,10 @@ Contents:
   conventions differ from template defaults (see § 7 for the
   handling protocol). Example rows: "source uses `master`, template
   docs reference `main`"; "source uses `poetry`, template docs
-  assume `pip-tools`".
+  assume `pip-tools`". **Stage A seeds rows (observed conflict);
+  Stage C resolves them (migrate-to-template-default or
+  pin-source-via-ADR per § 7). The auditor does not decide.**
+  (Issue #42.)
 
 The auditor does not decide what moves. Its output is input to
 Stages B, C, D, F.
@@ -378,19 +430,33 @@ For each listed artifact, `researcher` assigns one of:
 `researcher` also produces the `.gitignore` delta covering any
 new local-only paths.
 
-**Hard-Rule-#7 early fire (binding).** When a triage row is
-tagged auth / secrets / PII / net-endpoint (either from Stage A
-suspicious-list carry-over or newly surfaced during `researcher`'s
-own review), **`researcher` loops in `security-engineer` for an
-advisory note** before Stage B closes. The advisory appends to
-`B-triage.md` and flags concerns the Stage C plan must encode
-(license-compatibility of auth libraries, committed-secret
-rotation cost, endpoint-exposure implications, restrictive-
-redistribution risks). The advisory is non-binding at Stage B;
-the Hard-Rule-#7 binding sign-off happens at Stage E (§ 4.6 /
-§ 3 rule 8). Surfacing at Stage B prevents Stage C from locking
-in dispositions that `security-engineer` would later have to
-block.
+**Hard-Rule-#7 early fire.** (Binding obligation, per issue #50:
+`researcher` MUST loop in `security-engineer` when a triage row is
+tagged auth / secrets / PII / net-endpoint. The advisory produced
+at Stage B is **non-binding** and does not gate Stage B closure;
+the binding Hard-Rule-#7 sign-off is at Stage E.) Either from
+Stage A suspicious-list carry-over or newly surfaced during
+`researcher`'s own review, the loop-in produces an advisory note
+that appends to `B-triage.md`, flagging concerns the Stage C plan
+must encode (license-compatibility of auth libraries, committed-
+secret rotation cost, endpoint-exposure implications, restrictive-
+redistribution risks). Surfacing at Stage B prevents Stage C from
+locking in dispositions that `security-engineer` would later have
+to block; the binding sign-off lives at Stage E (§ 4.6 / § 3
+rule 8).
+
+**New triage disposition (issue #56): project-authored,
+distribution-restricted.** Material the project authored but whose
+redistribution is limited by an external relationship (employer,
+customer, NDA, regulatory). Landing depends on the target's
+distribution posture (recorded at pre-flight per § 4.1):
+- target is **local-only** → commit as-is with a `RISKS.md` row
+  capturing the restriction.
+- target is **private-shared** (named collaborators) → as above,
+  plus a `STAKEHOLDERS.md` row naming the boundary.
+- target is **public** (any) → **escalate**: paraphrase-and-
+  redact, or Leave-behind, at customer ruling. Hard Rule #4 fires
+  (live customer approval) — git-history rewrite is expensive.
 
 ### 4.4 Stage C — `architect` structural migration plan
 
@@ -460,7 +526,21 @@ Output-specific notes:
   generalizes.
 - **`TEAM-CHARTER.md`** — reconstructed if possible from
   CONTRIBUTING / CODE_OF_CONDUCT; otherwise flagged for Step 2
-  follow-up.
+  follow-up. **Inherited naming category (issue #54):** if
+  `<src-path>/.claude/agents/` (or equivalent team-roster
+  directory) exists and encodes a coherent naming scheme,
+  reconstruct `TEAM-CHARTER.md` to:
+  (a) name the inherited category and enumerate the existing
+      role→name mapping;
+  (b) map each inherited name to a canonical role per
+      `CLAUDE.md` § Agent roster — inherited names that don't
+      map cleanly are flagged for Step 2 customer decision
+      (retire / merge / keep as custom SME);
+  (c) preserve the inherited `docs/AGENT_NAMES.md` at the
+      target unless the customer explicitly requests refresh.
+  Step 3 / Step 3a of FIRST ACTIONS is then a **confirmation**,
+  not a fresh conversation: tech-lead presents the inherited
+  category and mapping; customer confirms or requests refresh.
 - **`AI-USE-POLICY.md`** — new, per template default; customer
   ratifies in Step 2.
 
@@ -475,6 +555,28 @@ Rules:
   Commit message cites the plan row.
 - `code-reviewer` reviews per commit per Hard Rule #3. Retrofits
   accrete queue fast; resist batching.
+- **Stale plan-row evidence escalates (issue #43).** If fresh
+  context at Stage E suggests a Stage B / C decision was wrong
+  (e.g., a row's ambiguity was resolved at Stage B but new
+  evidence contradicts the resolution), `software-engineer`
+  **halts the row and escalates to `architect`** rather than
+  deciding locally. The row re-enters Stage C for re-planning;
+  Stage E resumes on the remaining rows in the meantime.
+- **Scaffold baseline commit (issue #52).** The initial
+  `scripts/scaffold.sh` output may be committed as a single
+  "Initial scaffold — template vX.Y.Z" commit **without
+  code-reviewer review**, on the basis that the content is
+  mechanical template output traceable to the upstream template
+  tag. `code-reviewer`'s first review applies to the first
+  authored commit in the target repo (typically the pre-flight
+  artefact or the Stage A inventory).
+- **Retrofit audit-artefact commits are subject to Hard Rule #3,
+  with narrowed scope (issue #52).** `docs/retrofit/*` and
+  `docs/pm/*` register commits get `code-reviewer` review with
+  scope narrowed to: (a) evidence-traceability (every claim cites
+  an input), (b) redaction hygiene, (c) no committed secrets / PII
+  / restricted-source / customer-confidential text. This is not a
+  code review in the narrow sense, but the rule still applies.
 - **`security-engineer` reviews before `code-reviewer` on any
   plan row flagged Hard-Rule-#7** (auth, authorization, secrets,
   PII, network-exposed endpoints), per § 3 rule 8. Sign-off is
@@ -513,8 +615,29 @@ Mapping:
   `docs/retrofit/archived-tickets.md` with rationale; do not carry
   forward.
 
+**Versioned-doc governance (issue #55).** If `<src-path>` governs
+via versioned documents (contract files, decision logs, spec
+zips) rather than an external tracker, Stage F treats the contract
+file(s) / decision log(s) as the tracker:
+
+- Each open row in a contract-style doc maps to one
+  `docs/tasks/T-NNNN.md`, preserving the source row ID as a
+  `source-contract:` field.
+- Decision-log WIP entries map per their own shape: technical →
+  task; customer call → `docs/OPEN_QUESTIONS.md`; risk-tagged →
+  `docs/pm/RISKS.md`.
+- Closed / superseded rows archive to
+  `docs/retrofit/archived-tickets.md` with their source IDs and a
+  one-line rationale.
+- The source's contract file(s) and decision log(s) are themselves
+  migrated as regular Stage C / Stage E artefacts (typically to
+  `docs/architecture/` and `docs/decisions/` or the target's
+  convention). Stage F only covers the **row-by-row work-queue
+  migration**, not the host-document migration.
+
 Stage F preserves traceability: every `T-NNNN` that originated
-in the source has a `source-issue:` field citing tracker + ID.
+in the source has a `source-issue:` or `source-contract:` field
+citing tracker / contract + ID.
 
 ## 5. Stage gates
 
@@ -623,6 +746,22 @@ Customer signs off on the chosen option. The ADR links from
 `docs/INDEX.md` and is cross-referenced from the convention's
 home (e.g., CONTRIBUTING.md if branching convention).
 
+**Guardrails (issue #44, binding):**
+
+1. **Cost citation required.** Every § 7.2 pinning ADR MUST cite
+   the specific migration cost justifying the pin: team-training
+   hours, tooling cost, regulatory dependency. Costs are
+   auditable; preferences are not. ADRs without a cost citation
+   are **rejected at Stage C** — `architect` returns the row for
+   re-decision (migrate-to-default or supply the cost).
+2. **Cap on pinned exceptions.** If a project accumulates more
+   than 3 pinned-convention ADRs in a single retrofit, `architect`
+   MUST write a meta-ADR asking whether the template is wrong for
+   this domain, rather than accreting exceptions. The meta-ADR
+   either escalates the mismatch upstream
+   (`docs/ISSUE_FILING.md`) or documents why the template is a
+   genuinely poor fit and the project should fork its conventions.
+
 ### 7.3 Conflicts requiring escalation (not ADR-able)
 
 Some conflicts are not design choices; they are safety invariants:
@@ -664,10 +803,40 @@ Governed by `CLAUDE.md` § IP policy. Retrofit-specific notes:
   (Stage E commits against the scaffolded `git init`). Rotation
   of the exposed secret is a Stage D risk.
 
+### 8.1 Nested sibling git repositories (issue #53)
+
+If `<src-path>` contains one or more nested git repositories that
+are excluded from `<src-path>`'s git tracking (typically via
+`.gitignore` and a documented boundary invariant — the
+"meta-repo + sibling-fork" pattern), the retrofit treats each
+nested repo as an **out-of-scope artefact**:
+
+- **Pre-flight (§ 4.1)** records nested repo paths, each nested
+  HEAD SHA (or content-hash recipe per issue #49 if the nested
+  repo is not under VCS), and the source's declared rationale
+  for the exclusion. Stage E drift-check re-verifies all recorded
+  HEADs.
+- **Stage A (§ 4.2)** does not walk into nested repos. Their
+  presence and exclusion are one line in `A-inventory.md`; their
+  contents are not inventoried.
+- **Stage B (§ 4.3)** triages each nested repo as a single
+  artefact with its own license + provenance, landing as an SME
+  inventory row.
+- **Stage C (§ 4.4)** decides whether the target preserves the
+  nesting or flattens it. **Default: preserve** — the source's
+  boundary choice was deliberate.
+- **Stage E (§ 4.6)** moves the `.gitignore` entry covering the
+  nesting into the target; the nested repo itself is **not
+  moved** by the retrofit. The customer moves / re-clones it
+  out-of-band after the retrofit completes.
+
 ## 9. Migration of existing issues / tickets
 
 Handled by Stage F (§ 4.7). Covers GitHub Issues, GitLab Issues,
-Jira, Linear, Shortcut, Trello, and ad-hoc TODO files.
+Jira, Linear, Shortcut, Trello, ad-hoc TODO files, **and
+contract-file or decision-log governance** (versioned-doc shape
+where open work lives as rows in checked-in documents — see § 4.7
+"Versioned-doc governance").
 
 Flow:
 
@@ -735,8 +904,12 @@ Stall signals that warrant rollback consideration:
 
 - A stage DoD cannot be met because the source is too fragmented,
   too under-documented, or too IP-encumbered.
-- The customer cannot make decisions at the pace the playbook
-  requires (triage escalations piling up with no answers).
+- **Customer-decision pace lags (issue #40, agent-observable).**
+  More than **3** rows in `docs/OPEN_QUESTIONS.md` with
+  `answerer: customer` and `status: open` for more than **5
+  days** (UTC). N=3, M=5 are project-tunable defaults; record any
+  override in `docs/pm/LESSONS.md`. An agent can count this; an
+  agent cannot assess "pace" qualitatively.
 - Pre-flight findings were wrong in material ways (e.g., "source
   has tests" was recorded but Stage A finds none).
 - Stage C plan grows past the point where the customer still
@@ -762,6 +935,16 @@ Stage D are kept (charter, risks, lessons — all valuable evidence
 even if the code is not being ported). `docs/retrofit/` gets a
 final entry in `retrofit-summary.md` recording the pivot.
 
+**Artifact-survival list (issue #41).** On pivot, these survive:
+`docs/retrofit/preflight.md`, `A-inventory.md`, `B-triage.md`,
+`C-plan.md` (kept as historical record, not as a forward
+manifest); all `docs/pm/*` Stage D outputs (`CHARTER.md`,
+`STAKEHOLDERS.md`, `RISKS.md`, `CHANGES.md`, `LESSONS.md`,
+`TEAM-CHARTER.md`, `AI-USE-POLICY.md`); SME inventories;
+any `docs/adr/` entries authored during the retrofit. **Reverted:
+Stage E commits only** — the migration moves themselves. The
+survival list prevents silent loss during pivot.
+
 ### 12.4 Roll back
 
 True rollback when the retrofit has produced no viable forward
@@ -774,11 +957,13 @@ path:
    (§ 12.1) and the stage at which the retrofit stopped.
    `project-manager` copies generalizable lessons from the
    Stage D `LESSONS.md` and the retrofit's friction log into a
-   standalone file the customer can carry forward — by default
-   `<customer-retained-path>/retrofit-lessons-YYYY-MM-DD.md`,
-   a location outside `<tgt-path>` since `<tgt-path>` is about
-   to be deleted. Without this step, rollback destroys the
-   audit trail the retrofit spent five stages building.
+   standalone file the customer can carry forward — **default
+   path (issue #47): `<tgt-path>/../retrofit-lessons-YYYY-MM-DD.md`**,
+   a sibling of the doomed target in the parent directory the
+   customer has already chosen. The customer may redirect the
+   file elsewhere before the write, but the default requires no
+   decision. Without this step, rollback destroys the audit
+   trail the retrofit spent five stages building.
 2. `<tgt-path>` is deleted (`rm -rf <tgt-path>` — reversibility
    per § 2.2 is why this is cheap).
 3. `<src-path>` is unaffected (source-freeze was binding).
@@ -945,3 +1130,4 @@ Retrofit is complete when **all** are true:
 | 2026-04-24 | tech-lead | DRAFT (project-local) rewritten against `/ultraplan`-spec scope — adds pre-flight, decision record for Path A vs B, convention-conflict protocol (§ 7), ticket migration (§ 4.7, § 9), rollback plan (§ 12), register-population summary (§ 10), `docs/retrofit/` directory shape (§ 11). Pinned to v0.13.0. |
 | 2026-04-24 | tech-lead | Revision pass addressing `code-reviewer` + `architect` blocking findings (see review artifacts in session record): new § 2.4 interstitial cases (B4); Hard Rules § 3 extended with #7 security binding and clarified #4 audit-discovered safety-critical (B1); § 4 stage table + Stage E + § 5 stage-gates table + § 6 decision matrix updated to name `security-engineer` as conditional Stage E gate (B1); § 12.4 rollback now mandates write-before-delete of `retrofit-summary.md` + carry-out LESSONS file (B5); § 13 gains 4 anti-patterns (mid-stage abandonment, undetected source drift, stale-Stage-D approvals, unratified-as-ratified escalations) (B3); § 14 DoD adds customer sign-off, TEMPLATE_VERSION integrity check, `docs/INDEX.md` cross-link, #7 + #4 sign-off checkboxes (B2); § 15 gains `security-engineer.md` + `security-template.md` cross-refs. Six non-blocking findings filed as v0.13.1 issues. |
 | 2026-04-24 | tech-lead | Second-round review pass: architect flagged three items, two accepted (Items 2 and 5), one declined (Item 4). **Item 5 (SHA-capture completeness gap):** § 4.1 pre-flight "Version control" bullet now mandates recording `<src-path>` HEAD SHA + UTC timestamp into `preflight.md`; § 5 Stage E DoR re-verifies the SHA (mismatch aborts per § 3.2). This gives anti-pattern #12 ("undetected source drift") a concrete input to compare against. **Item 2 (Hard-Rule-#7 two-fire asymmetry):** § 3 rule 8 rewritten as a two-fire pattern mirroring Hard Rule #4 — (a) Stage B advisory fire (non-binding, shapes the Stage C plan) when `researcher` first tags an auth/secrets/PII/net-endpoint row, (b) Stage E binding sign-off unchanged. § 4.3 Stage B gains a binding "Hard-Rule-#7 early fire" paragraph. § 5 "Cross-stage Hard-Rule gates" block reformatted to show both rules using the same early-fire / binding-sign-off structure. **Item 4 (Stage G promotion):** declined per customer decision — code-reviewer's simpler-wins-on-ties argument preferred; customer-sign-off stays as DoD checkbox owned by `tech-lead` inline, filed as future consideration (#48). Non-blocking items from second round filed as #46 (§ 2.4 upgrade-during-retrofit one-liner) and #47 (`<customer-retained-path>` default). |
+| 2026-04-25 | tech-lead | **v0.16.0 revision pass** addressing 16 deferred issues from the v0.13.x review batches in one motion: §1.2 N→1 deferred-reshape note (#45); §1.3 absorbed Step 0/1 path (#51); §2.4 retrofit-and-upgrade simultaneously (#46); §4.1 hash recipe for no-VCS sources (#49) + customer-confidential pre-flight row (#56); §4.2 Stage A seeds vs Stage C resolves clarification (#42); §4.3 Hard-Rule-#7 wording split (#50) + new project-authored-distribution-restricted disposition (#56); §4.5 inherited naming category path (#54); §4.6 stale plan-row escalation (#43) + scaffold-baseline + audit-artifact commit rules (#52); §4.7 + §9 versioned-doc governance (#55); §7.2 cost-citation + cap guardrails (#44); new §8.1 nested sibling git repos (#53); §12.1 agent-observable customer-pace stall signal (#40); §12.3 explicit artifact-survival list on pivot (#41); §12.4 default carry-out path for retrofit-lessons (#47). All 16 source issues closed in v0.16.0. |
