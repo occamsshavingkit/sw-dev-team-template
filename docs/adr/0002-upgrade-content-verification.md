@@ -7,8 +7,11 @@ Shape per MADR 3.0 + this template's Three-Path Rule
 
 ## Status
 
-- **Proposed**
+- **Accepted**
 - **Date:** 2026-04-25
+- **Implementation:** shipped in v0.14.0 — `scripts/lib/manifest.sh`,
+  `scripts/upgrade.sh --verify` subcommand, scaffold-time manifest
+  write + self-verify, `migrations/v0.14.0.sh`, smoke-test coverage.
 - **Deciders:** `architect` + `tech-lead` + customer (public-API change to
   `scripts/upgrade.sh`; customer approval required per CLAUDE.md Hard Rules)
 - **Consulted:** upstream issue #61; `software-engineer` (proposal phase
