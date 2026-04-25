@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
 #
 # scripts/upgrade.sh — upgrade this scaffolded project to the latest
 # template version. Respects user-added agents and SMEs; flags
@@ -27,13 +30,20 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/upgrade.sh [--dry-run | --verify | --help]
+Usage: scripts/upgrade.sh [--dry-run | --verify | --target <ver> | --help]
 
-  --dry-run    Print the upgrade plan; change nothing.
-  --verify     Verify project files match TEMPLATE_MANIFEST.lock.
-               No network. Exit codes: 0 clean, 1 drift, 2 missing
-               manifest, 3 corrupt manifest. (FW-ADR-0002, v0.14.0+)
-  --help, -h   Print this help and exit.
+  --dry-run         Print the upgrade plan; change nothing.
+  --verify          Verify project files match TEMPLATE_MANIFEST.lock.
+                    No network. Exit codes: 0 clean, 1 drift, 2 missing
+                    manifest, 3 corrupt manifest. (FW-ADR-0002, v0.14.0+)
+  --target <ver>    Pin the upgrade to a specific upstream tag (e.g.
+                    v0.14.4). Validates the tag exists, checks it out
+                    in the upstream clone, runs migrations between
+                    current TEMPLATE_VERSION and the target, stamps
+                    target's tag. Without this flag, upgrade.sh
+                    targets the latest stable upstream tag. (Issue #68,
+                    v0.17.0+.)
+  --help, -h        Print this help and exit.
 
 With no flag, run the full upgrade. The script:
   - Clones the upstream template into a workdir.
@@ -75,15 +85,26 @@ tv="$project_root/TEMPLATE_VERSION"
 
 # Argument parsing (issue #58 — --help / unknown flags should print
 # usage, not run an upgrade). --verify per FW-ADR-0002.
+# --target per issue #68.
 dry_run=0
 verify_mode=0
-case "${1:-}" in
-  "")              ;;
-  "--dry-run")     dry_run=1 ;;
-  "--verify")      verify_mode=1 ;;
-  "--help"|"-h")   usage; exit 0 ;;
-  *)               echo "ERROR: unknown flag: $1" >&2; echo >&2; usage >&2; exit 2 ;;
-esac
+target_version=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    "--dry-run")     dry_run=1; shift ;;
+    "--verify")      verify_mode=1; shift ;;
+    "--target")
+      if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
+        echo "ERROR: --target requires a tag argument (e.g. --target v0.14.4)" >&2
+        usage >&2
+        exit 2
+      fi
+      target_version="$2"
+      shift 2 ;;
+    "--help"|"-h")   usage; exit 0 ;;
+    *)               echo "ERROR: unknown flag: $1" >&2; echo >&2; usage >&2; exit 2 ;;
+  esac
+done
 
 if [[ ! -f "$tv" ]]; then
   echo "ERROR: no TEMPLATE_VERSION at project root. Not a scaffolded project?" >&2
@@ -109,6 +130,22 @@ git clone -q "$upstream_auth" "$workdir/new" 2>/dev/null || {
   echo "ERROR: clone of $upstream failed. Check network / auth." >&2
   exit 1
 }
+
+# --- Pin to --target if requested (issue #68) ---------------------------------
+# Check out the requested tag in the upstream clone before any other
+# steps run. Bootstrap, baseline-clone, and sync all see the target
+# state. VERSION inside the clone is the target's VERSION, so
+# new_version derived below picks up correctly.
+if [[ -n "$target_version" ]]; then
+  if ! git -C "$workdir/new" rev-parse --verify --quiet "refs/tags/$target_version" >/dev/null; then
+    echo "ERROR: --target $target_version is not a known tag in $upstream." >&2
+    echo "  Recent tags (last 10):" >&2
+    git -C "$workdir/new" tag -l 'v*' | sort -V | tail -10 | sed 's/^/    /' >&2
+    exit 2
+  fi
+  echo "Pinning upgrade to --target $target_version" >&2
+  git -C "$workdir/new" checkout -q "$target_version"
+fi
 
 # --- Self-bootstrap (issue #63 follow-up) ----------------------------------
 # Before we run any sync logic, make sure THIS upgrade.sh and its lib are

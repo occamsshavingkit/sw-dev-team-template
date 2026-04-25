@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
 #
 # scripts/intake-show.sh — render docs/intake-log.md as a readable
 # transcript for customer review and qa-engineer conformance audit.

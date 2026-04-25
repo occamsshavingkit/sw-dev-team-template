@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
 #
 # scripts/audit-agent-tools.sh — pre-flight audit of .claude/agents/*.md
 # frontmatter against the body. Flags agents whose `description:` or

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
 #
 # scripts/agent-health.sh — assemble a health-check packet for a named
 # teammate. Ground-truth based: the packet contains the fixed prompt

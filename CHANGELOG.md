@@ -16,6 +16,49 @@ filed upstream include that version.
 
 ---
 
+## v0.17.0 — 2026-04-25 (MINOR bundle)
+
+Three downstream-reported issues addressed.
+
+### Added
+
+- **`scripts/upgrade.sh --target <version>` flag (#68).** Pin the
+  upgrade to a specific upstream tag (e.g.
+  `--target v0.14.4`) instead of always taking the latest. The
+  script validates the tag exists in the upstream repo, checks it
+  out in the upstream clone, runs migrations only up to and
+  including the target, and stamps the target's tag. Without the
+  flag, behaviour is unchanged — latest stable tag wins. Use case:
+  pin to a known-stable mid-cycle version when a later release has
+  a regression that needs evaluation.
+- **SPDX headers on all `scripts/*.sh` (#69).** Each shipped script
+  now carries the two-line `SPDX-License-Identifier: MIT` +
+  copyright header. Eliminates per-project back-fill on downstream
+  CI gates that enforce SPDX presence (a common NFR-0005 shape).
+- **`docs/templates/github-actions-ci.yml` (#70).** Reference CI
+  workflow for downstream projects with `paths-ignore`-style
+  filtering on heavy jobs (test, miri, cross-compile) so doc-only
+  pushes don't burn full CI minutes. Documented as a reference,
+  not an active workflow — projects copy it to their own
+  `.github/workflows/ci.yml` and adapt. The diff-detection step
+  is preferred over `on.push.paths-ignore` because the latter
+  filters the entire workflow rather than per-job.
+
+### Notes
+
+- v0.17.0 is `MINOR` because the `--target` flag is a feature
+  add (new public CLI surface). #69 + #70 alone would be `PATCH`;
+  bundled with #68 they ship together.
+- All three issues filed mid-v0.16.0 release window. The triage
+  bar from earlier in the v0.15.0 / v0.16.0 cycle holds: rc3
+  shouldn't have known bugs. After v0.17.0 the only open items
+  are aggregate trackers (#3 v2-proposal, #27 v2-proposal, #59 RC
+  backlog) — none are bug-class.
+
+Closes #68, #69, #70.
+
+---
+
 ## v0.16.0 — 2026-04-25 (MINOR bundle)
 
 Issue-clearing release ahead of v1.0.0-rc3 entry. Lands the v2

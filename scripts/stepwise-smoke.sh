@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
 #
 # scripts/stepwise-smoke.sh — stepwise upgrade smoke for the
 # v1.0.0-rc3 re-entry checklist (criterion C-7).

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
 #
 # scripts/repair-in-place.sh — convert an unzipped-in-place template
 # directory into a scaffolded project WITHOUT copying to a new path.

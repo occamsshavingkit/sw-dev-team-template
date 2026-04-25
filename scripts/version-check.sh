@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
 #
 # scripts/version-check.sh — at session start, compare this project's
 # TEMPLATE_VERSION against the upstream template's latest tag and tell
