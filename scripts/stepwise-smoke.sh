@@ -106,14 +106,82 @@ git -C "$clone" checkout -q "$start_tag"
 start_sha="$(git -C "$clone" rev-parse "$start_tag")"
 printf '%s\n%s\n%s\n' "$start_tag" "$start_sha" "$(date -u +%Y-%m-%d)" > "$target/TEMPLATE_VERSION"
 
+# Redirect the GitHub upstream URL to our local $clone via git's insteadOf
+# rewrite, exported through GIT_CONFIG_COUNT/KEY/VALUE so every git invocation
+# in the upgrade subprocess tree picks it up — including bootstrap re-execs
+# that use the historical (pre-v0.16.0) upgrade.sh, which hardcodes the
+# GitHub URL with no SWDT_UPSTREAM_URL override. With this redirect in
+# place, each hop runs its OWN historical upgrade.sh naturally — bootstrap,
+# re-exec, and all — and clones still hit the pinned local repo. This
+# replaces the earlier workaround of pre-installing HEAD's upgrade.sh and
+# suppressing bootstrap (which avoided the bug but didn't exercise the real
+# upgrade flow).
+export GIT_CONFIG_COUNT=1
+export GIT_CONFIG_KEY_0="url.file://$clone.insteadOf"
+export GIT_CONFIG_VALUE_0="https://github.com/occamsshavingkit/sw-dev-team-template"
+
+# Per-hop upstream pinning. upgrade.sh in older versions has no
+# --target flag; it reads VERSION from upstream's default-branch
+# HEAD and walks tags up to "latest". `git clone $clone` copies
+# `main` (not the detached HEAD), so `git checkout $tag` in $clone
+# alone is invisible to upgrade.sh. We pin each hop two ways:
+#
+# 1. Reset $clone/main to $tag's commit (so upstream's VERSION is
+#    $tag's VERSION).
+# 2. Delete tags strictly newer than $tag (so the "latest tag"
+#    walker stops at $tag).
+#
+# Both are restored after the hop so the next iteration can move
+# forward. If anything aborts mid-hop, the EXIT trap restores.
+declare -a masked_tags=()
+declare -a masked_shas=()
+saved_main_sha=""
+
+pin_clone_to_tag() {
+  local boundary="$1"
+  saved_main_sha="$(git -C "$clone" rev-parse refs/heads/main)"
+  git -C "$clone" checkout -q main
+  git -C "$clone" reset -q --hard "$boundary"
+  local newer
+  newer="$(git -C "$clone" tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V \
+           | sed -n "/^${boundary}\$/,\$p" | tail -n +2)"
+  masked_tags=()
+  masked_shas=()
+  for nt in $newer; do
+    masked_tags+=("$nt")
+    masked_shas+=("$(git -C "$clone" rev-parse "refs/tags/$nt")")
+    git -C "$clone" tag -d "$nt" >/dev/null
+  done
+}
+unpin_clone() {
+  local i
+  for i in "${!masked_tags[@]}"; do
+    git -C "$clone" tag "${masked_tags[$i]}" "${masked_shas[$i]}" >/dev/null 2>&1 || true
+  done
+  masked_tags=()
+  masked_shas=()
+  if [[ -n "$saved_main_sha" ]]; then
+    git -C "$clone" checkout -q main 2>/dev/null || true
+    git -C "$clone" reset -q --hard "$saved_main_sha" 2>/dev/null || true
+    saved_main_sha=""
+  fi
+}
+
 passed=0
 failed_at=""
+trap 'unpin_clone 2>/dev/null || true; if [[ $keep -eq 0 ]]; then rm -rf "$tmp"; else echo "(kept $tmp for inspection)" >&2; fi' EXIT
+
 for tag in "${hop_tags[@]}"; do
   echo "  hop $tag" | tee -a "$log"
-  git -C "$clone" checkout -q "$tag"
+  pin_clone_to_tag "$tag"
   hop_log="$tmp/hop-$tag.log"
   rc=0
-  ( cd "$target" && SWDT_UPSTREAM_URL="$clone" bash ./scripts/upgrade.sh ) > "$hop_log" 2>&1 || rc=$?
+  # Each hop runs the project's CURRENT upgrade.sh (whatever historical
+  # version is in $target/scripts/). The exported GIT_CONFIG_* redirect
+  # above transparently sends GitHub clones to $clone. Tag-masking pins
+  # $clone so the historical upgrade.sh's "latest tag" picker stops at $tag.
+  ( cd "$target" && bash ./scripts/upgrade.sh ) > "$hop_log" 2>&1 || rc=$?
+  unpin_clone
   if [[ $rc -ne 0 ]]; then
     echo "    FAIL: upgrade.sh exited $rc — see $hop_log" | tee -a "$log"
     failed_at="$tag"
@@ -128,7 +196,7 @@ for tag in "${hop_tags[@]}"; do
   fi
   # Verify --verify exits 0 (manifest matches state).
   vrc=0
-  ( cd "$target" && SWDT_UPSTREAM_URL="$clone" bash ./scripts/upgrade.sh --verify ) > "$tmp/hop-$tag-verify.log" 2>&1 || vrc=$?
+  ( cd "$target" && bash ./scripts/upgrade.sh --verify ) > "$tmp/hop-$tag-verify.log" 2>&1 || vrc=$?
   if [[ $vrc -ne 0 ]]; then
     echo "    FAIL: --verify exited $vrc after hop to $tag" | tee -a "$log"
     failed_at="$tag"

@@ -26,6 +26,8 @@ node_modules/
 __pycache__/
 *.pyc
 *.log
+# Audit logs are binding artefacts — keep tracked.
+!docs/audits/*.log
 .env
 .env.local
 dist/
