@@ -16,6 +16,21 @@ filed upstream include that version.
 
 ---
 
+## v0.15.1 — 2026-04-25 (PATCH bundle)
+
+### Fixed
+
+- **`scripts/upgrade.sh` exit code 1 on clean upgrades.** The
+  final summary block ended with `[[ ${#conflicts[@]} -gt 0 ]]
+  && echo "..."`. When `conflicts` was empty (the happy path)
+  the test failed, the `&&` short-circuited, and the script's
+  last-command exit status was 1 — even though the upgrade itself
+  completed cleanly and printed `Done.`. Replaced with an
+  explicit `if`-block + `exit 0` at end. Closes a smoke-test
+  failure introduced by v0.15.0's flow.
+
+---
+
 ## v0.15.0 — 2026-04-25 (MINOR bundle)
 
 Two structural fixes for upgrade-flow ergonomics + the

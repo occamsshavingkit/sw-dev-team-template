@@ -479,7 +479,10 @@ fi
 
 if [[ $dry_run -eq 0 ]]; then
   echo "Done. TEMPLATE_VERSION now $new_version / $new_sha."
-  [[ ${#conflicts[@]} -gt 0 ]] && echo "Resolve the ${#conflicts[@]} conflict(s) above, then commit."
+  if [[ ${#conflicts[@]} -gt 0 ]]; then
+    echo "Resolve the ${#conflicts[@]} conflict(s) above, then commit."
+  fi
 else
   echo "(No changes written — this was a dry run.)"
 fi
+exit 0
