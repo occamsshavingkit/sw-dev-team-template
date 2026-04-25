@@ -46,6 +46,31 @@ Downstream projects record the template version they scaffolded from
 in `TEMPLATE_VERSION`. MAJOR bumps carry a migration note in
 `CHANGELOG.md`.
 
+## GitHub Releases policy
+
+Two distinct artefacts: **git tags** and **GitHub Release objects**.
+
+- **Every release-worthy change gets a git tag** (PATCH included).
+  Tags push at the maintainer's normal cadence and feed
+  `scripts/version-check.sh`.
+- **GitHub Release objects are published at MINOR boundaries only.**
+  PATCH tags (e.g., `v0.14.3`) do not get a Release — their notes
+  fold into the next MINOR Release. Release notes for the MINOR are
+  the union of its `CHANGELOG.md` section plus all intervening PATCH
+  sections.
+- Pre-release Releases (e.g., `v1.0.0-rc*`) follow the same rule and
+  are flagged `--prerelease`.
+- **Backfilling skipped MINOR Releases is not required.** The
+  `CHANGELOG.md` is the binding contract for what shipped; the
+  Release object is convenience UI. If a MINOR boundary was missed
+  (e.g., publish credit constraints), the next MINOR Release covers
+  the cumulative range and notes the rollup.
+
+Rationale: under 0.y SemVer, MINOR is the meaningful contract
+boundary. Publishing one Release per tag inflates the Releases page
+without adding signal, and the Releases UI can lag tags without harm
+as long as `CHANGELOG.md` is current.
+
 ## IP policy (binding)
 
 See `CLAUDE.md` § IP policy. Any material not created within this
