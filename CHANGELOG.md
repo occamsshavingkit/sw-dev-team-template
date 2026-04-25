@@ -16,6 +16,80 @@ filed upstream include that version.
 
 ---
 
+## v0.14.1 — 2026-04-25 (PATCH bundle)
+
+`TEMPLATE_MANIFEST.lock` correctness fix. v0.14.0's manifest helpers
+enumerated paths from the **project tree**, which produced bloated
+manifests on projects that contain non-template content (nested
+clones, operator notes, gitignored secrets). On non-git-initialised
+projects the bug was worse: a `find`-fallback walked the entire tree
+unfiltered, capturing 400+ paths instead of the ~95 template-shipped
+files.
+
+### Fixed
+
+- **`scripts/lib/manifest.sh`** — path enumeration and SHA
+  computation are now decoupled. `manifest_write` takes
+  `<paths-repo> <project-repo> <out>`: paths come from the upstream
+  clone or template source (which MUST be git-controlled);
+  SHA256 hashes are computed from the project tree. The
+  `find`-fallback is gone — `manifest_ship_files` now errors out
+  with a clear message if `paths-repo` is not a git repository.
+- **`scripts/upgrade.sh`** — post-sync `manifest_write` call now
+  passes `WORKDIR_NEW` (upstream clone) for paths and
+  `project_root` for SHAs. Manifest contains only files the
+  upstream v0.14.x ships, with project-tree SHAs.
+- **`scripts/scaffold.sh`** — `manifest_write` call passes
+  `repo_root` (template source) for paths and the scaffolded
+  `target` for SHAs.
+- **`migrations/v0.14.0.sh`** — synthesis path now uses
+  `WORKDIR_OLD` for both paths and SHAs in the baseline-available
+  case; falls back to `WORKDIR_NEW` paths × `PROJECT_ROOT` SHAs
+  when the baseline SHA is unreachable. Migration's manifest is
+  transient (rewritten by upgrade's post-sync write) so the
+  fallback's correctness only matters for projects that abort
+  the sync mid-flow.
+- **`manifest_verify`** simplified — walks manifest entries
+  directly; no longer enumerates the project tree (which on a
+  non-git project would have hit the same `find`-fallback bug).
+  "Extra" detection at verify time is dropped: under v0.14.1's
+  design, the manifest IS the canonical list of template-shipped
+  paths; project-added files are out of scope by definition.
+
+### Smoke-test additions
+
+3 new assertions cover the regression specifically:
+
+- Manifest excludes project-added `wg0.conf`-style secrets.
+- Manifest excludes user-added `sme-*.md` agents.
+- Manifest excludes project `docs/pm/*` PMBOK artefacts.
+
+These are written by adding the synthetic files, regenerating the
+manifest via the lib helpers, asserting absence, then cleaning
+up. Total smoke coverage: **60 passes / 0 failures**.
+
+### Backwards compatibility
+
+This is a PATCH-level fix; no migration needed. Projects already
+upgraded to v0.14.0 with bloated manifests can run
+`scripts/upgrade.sh` again to get the corrected manifest written
+post-sync; alternatively, `scripts/upgrade.sh --verify` will now
+work cleanly on the next regeneration.
+
+The v0.14.0 manifest format is unchanged (still
+`<sha256>  <project-relative path>` lines after a comment header);
+only the **selection** of which paths land in the manifest is
+changed.
+
+### Note for projects holding off
+
+Downstream projects that paused at v0.13.0 waiting for v0.14.x to
+stabilise can now proceed straight to v0.14.1 — no need to install
+v0.14.0 first. The `migrations/v0.14.0.sh` script still runs and
+produces the correct shape under v0.14.1's helpers.
+
+---
+
 ## v0.14.0 — 2026-04-25 (MINOR bundle)
 
 Upgrade-flow content verification, leaner template variants per the
