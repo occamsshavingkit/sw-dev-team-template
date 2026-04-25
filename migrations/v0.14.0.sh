@@ -47,16 +47,24 @@ fi
 # shellcheck source=../scripts/lib/manifest.sh
 source "$WORKDIR_NEW/scripts/lib/manifest.sh"
 
-# Pick the synthesis source.
+# Pick the synthesis source. Paths come from a git-controlled tree
+# (upstream clone); SHAs come from the project tree.
+# v0.14.1 split: path-source and sha-source are separate args.
 if [[ -n "${WORKDIR_OLD:-}" && -d "$WORKDIR_OLD" ]]; then
-  src="$WORKDIR_OLD"
+  paths_src="$WORKDIR_OLD"
+  shas_src="$WORKDIR_OLD"
   src_label="WORKDIR_OLD (baseline at $OLD_VERSION)"
 else
-  src="$PROJECT_ROOT"
-  src_label="project tree (current on-disk SHAs — baseline unavailable)"
+  # Baseline unavailable — use the upstream-target paths but the
+  # project's current SHAs. The post-sync manifest_write in
+  # upgrade.sh will rewrite this with WORKDIR_NEW × project SHAs;
+  # the migration's manifest is transient.
+  paths_src="$WORKDIR_NEW"
+  shas_src="$PROJECT_ROOT"
+  src_label="WORKDIR_NEW paths × project SHAs (baseline unavailable)"
 fi
 
-manifest_write "$src" "$manifest"
+manifest_write "$paths_src" "$shas_src" "$manifest"
 
 count="$(grep -cv '^#' "$manifest" 2>/dev/null || echo 0)"
 

@@ -40,6 +40,7 @@ fi
 [[ $# -ge 1 ]] || usage
 target="$1"
 project_name="${2:-$(basename "$target")}"
+repo_root="$(pwd)"
 
 if [[ -e "$target" ]]; then
   if [[ -d "$target" && -z "$(ls -A "$target" 2>/dev/null || true)" ]]; then
@@ -214,9 +215,11 @@ EOF
 # Per ADR-0002. Captures per-file SHA256 of every shipped file at scaffold
 # time so future `scripts/upgrade.sh --verify` runs can detect drift.
 # Self-verify immediately after write — fail-fast on a corrupt scaffold.
+# Paths come from the template source (this repo, $repo_root); SHAs from
+# the freshly-scaffolded $target. v0.14.1 split.
 # shellcheck source=lib/manifest.sh
 source "$(dirname "$0")/lib/manifest.sh"
-manifest_write "$target" "$target/TEMPLATE_MANIFEST.lock"
+manifest_write "$repo_root" "$target" "$target/TEMPLATE_MANIFEST.lock"
 if ! manifest_verify "$target" "$target/TEMPLATE_MANIFEST.lock" >/dev/null; then
   echo "ERROR: scaffold-time manifest self-verify failed at $target" >&2
   echo "  This is a scaffold bug — the manifest does not match the files just written." >&2

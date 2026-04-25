@@ -101,6 +101,32 @@ check "manifest is non-empty (>= 10 entries)"             bash -c "[ \"\$(grep -
 check "TEMPLATE_MANIFEST.lock excluded from manifest"     bash -c "! grep -q ' TEMPLATE_MANIFEST\\.lock\$' '$target/TEMPLATE_MANIFEST.lock'"
 check "TEMPLATE_VERSION excluded from manifest"           bash -c "! grep -q ' TEMPLATE_VERSION\$' '$target/TEMPLATE_MANIFEST.lock'"
 
+# v0.14.1 regression: manifest must NOT include project-added files.
+# Add a project-owned file (mimics sme-*, docs/pm/*, an operator
+# secret, etc.) and a nested directory, regenerate the manifest by
+# rerunning the upgrade flow's writeup path, then assert.
+mkdir -p "$target/docs/pm" "$target/.claude/agents"
+echo "project secret" > "$target/wg0.conf"
+echo "project sme" > "$target/.claude/agents/sme-fake.md"
+echo "project pm" > "$target/docs/pm/CHARTER.md"
+# Re-run scaffold-style manifest_write with the lib helpers.
+bash -c "
+  source '$repo_root/scripts/lib/manifest.sh'
+  manifest_write '$repo_root' '$target' '$target/TEMPLATE_MANIFEST.lock'
+"
+check "manifest excludes project-added wg0.conf"          bash -c "! grep -q ' wg0\\.conf\$' '$target/TEMPLATE_MANIFEST.lock'"
+check "manifest excludes user-added sme-*.md"             bash -c "! grep -q ' sme-fake\\.md\$' '$target/TEMPLATE_MANIFEST.lock'"
+check "manifest excludes docs/pm/* artefacts"             bash -c "! grep -q ' docs/pm/CHARTER\\.md\$' '$target/TEMPLATE_MANIFEST.lock'"
+# Cleanup the synthetic project-added paths so subsequent tests run
+# against the clean scaffold.
+find "$target/wg0.conf" "$target/.claude/agents/sme-fake.md" "$target/docs/pm/CHARTER.md" -delete 2>/dev/null
+find "$target/docs/pm" -depth -delete 2>/dev/null
+# Regenerate manifest from clean state for the rest of the suite.
+bash -c "
+  source '$repo_root/scripts/lib/manifest.sh'
+  manifest_write '$repo_root' '$target' '$target/TEMPLATE_MANIFEST.lock'
+"
+
 # Helper: run a command capturing its exit code without tripping set -e.
 # The expected nonzero exits (drift=1, missing=2, corrupt=3, bogus=2)
 # would otherwise abort the smoke test under -e.

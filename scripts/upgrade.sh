@@ -281,9 +281,11 @@ $(date -u +%Y-%m-%d)
 EOF
 
   # Rewrite the per-file manifest to reflect the post-upgrade state.
-  # ADR-0002. Manifest captures the on-disk SHAs after sync; the next
-  # `--verify` checks for tamper/drift against this snapshot.
-  manifest_write "$project_root" "$project_root/TEMPLATE_MANIFEST.lock"
+  # ADR-0002. Paths come from the upstream clone (authoritative
+  # ship_files list at the upgraded version); SHAs come from the
+  # project tree (post-sync state). v0.14.1 split — see
+  # scripts/lib/manifest.sh.
+  manifest_write "$workdir/new" "$project_root" "$project_root/TEMPLATE_MANIFEST.lock"
 fi
 
 # --- Report ------------------------------------------------------------------
