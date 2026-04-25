@@ -16,6 +16,72 @@ filed upstream include that version.
 
 ---
 
+## v0.14.3 — 2026-04-25 (PATCH bundle)
+
+`scripts/upgrade.sh` now syncs files atomically (stage to `.tmp.$$`,
+then `mv`), eliminating the in-place inode mutation that corrupted
+the running `upgrade.sh` mid-execution.
+
+### Fixed
+
+- **#63 — `scripts/upgrade.sh`: in-place sync overwrites the running
+  upgrade.sh mid-execution.** `cp src dst` truncates and rewrites
+  `dst` in place, mutating the inode. When `dst` is the running
+  `scripts/upgrade.sh` (or any other script bash is reading from),
+  bash's open fd flips to new content mid-parse, producing arbitrary
+  parse errors at random offsets and aborting the sync loop before
+  `TEMPLATE_VERSION` is stamped — leaving the project in a partial-
+  upgrade state. **Fix:** new `atomic_install` helper stages each
+  file to `<dst>.tmp.<pid>` then renames atomically. `mv` on the
+  same filesystem changes the inode rather than mutating the in-use
+  file; bash continues reading the original inode (now unlinked but
+  still resident) until the script ends.
+- **Smoke-test additions:** new assertion that no stale `.tmp.*`
+  files remain after a simulated upgrade. The post-upgrade verify
+  assertion already added in v0.14.2 indirectly catches script
+  corruption (a corrupted `upgrade.sh --verify` would fail to run
+  cleanly).
+
+### Recovery for projects in a partial-upgrade state
+
+A project bitten by issue #63 (file-sync landed but
+`TEMPLATE_VERSION` not stamped, manifest possibly stale or absent):
+
+1. Confirm partial state: `cat TEMPLATE_VERSION` shows the *old*
+   version even though new files like `scripts/lib/manifest.sh`
+   exist on disk.
+2. Manually replace the corrupted `scripts/upgrade.sh` with the
+   v0.14.3 fixed version:
+   ```
+   curl -fsSL https://raw.githubusercontent.com/occamsshavingkit/sw-dev-team-template/v0.14.3/scripts/upgrade.sh \
+     -o scripts/upgrade.sh
+   ```
+3. Run `bash scripts/upgrade.sh` — the v0.14.3 stamp-with-drift
+   handler resyncs (atomically this time), stamps
+   `TEMPLATE_VERSION`, and rewrites the manifest.
+
+After step 3 the project is at v0.14.3 cleanly.
+
+### Why earlier syncs didn't always trigger this
+
+Pre-v0.14.0 syncs typically shifted `upgrade.sh` line counts only
+slightly — bash's mid-parse offset usually landed on whitespace or
+a duplicated comment, no parse error. The v0.14.0 release added the
+manifest helper (`scripts/lib/manifest.sh`), bumped line counts,
+and shifted everything down — so the same sync pattern that worked
+silently on smaller diffs now exposes the latent bug. The atomic
+fix removes the latency entirely.
+
+### Note on v0.14.0 → v0.14.3 path
+
+Projects on v0.14.0 / v0.14.1 / v0.14.2 may also have been bitten
+by this latent bug on prior upgrades. Recovery is the same as
+above: pull v0.14.3's `upgrade.sh`, then run.
+
+Reported by downstream project (QuackS7) — issue #63.
+
+---
+
 ## v0.14.2 — 2026-04-25 (PATCH bundle)
 
 `migrations/v0.14.0.sh` now writes a **predicted post-sync manifest**
