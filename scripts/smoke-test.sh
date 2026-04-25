@@ -251,6 +251,20 @@ if timeout 5 git ls-remote --tags --refs "$probe_url" >/dev/null 2>&1; then
   # v0.14.3 / issue #63: atomic_install via tmp+mv must not leave
   # stale .tmp.* files after upgrade.
   check "no stale .tmp.* files after upgrade"               bash -c "[ \"\$(find '$target' -name '*.tmp.*' 2>/dev/null | wc -l)\" -eq 0 ]"
+
+# v0.14.4 / issue #65: scaffold pre-populates canonical stub-fills.
+check "stub-fill: CUSTOMER_NOTES.md in .template-customizations" \
+  bash -c "grep -qE '^CUSTOMER_NOTES\\.md\$' '$target/.template-customizations'"
+check "stub-fill: docs/OPEN_QUESTIONS.md in .template-customizations" \
+  bash -c "grep -qE '^docs/OPEN_QUESTIONS\\.md\$' '$target/.template-customizations'"
+check "stub-fill: docs/AGENT_NAMES.md in .template-customizations" \
+  bash -c "grep -qE '^docs/AGENT_NAMES\\.md\$' '$target/.template-customizations'"
+check "stub-fill: docs/glossary/PROJECT.md in .template-customizations" \
+  bash -c "grep -qE '^docs/glossary/PROJECT\\.md\$' '$target/.template-customizations'"
+check "stub-fill: .gitignore in .template-customizations" \
+  bash -c "grep -qE '^\\.gitignore\$' '$target/.template-customizations'"
+check "stub-fill: README.md in .template-customizations" \
+  bash -c "grep -qE '^README\\.md\$' '$target/.template-customizations'"
 else
   echo "  SKIP: upgrade (upstream unreachable)"
 fi

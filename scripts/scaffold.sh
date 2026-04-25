@@ -175,7 +175,13 @@ $template_sha
 $today
 EOF
 
-# --- Seed empty .template-customizations -------------------------------------
+# --- Seed .template-customizations with canonical stub-fills ----------------
+# Issue #65: stub-fill files diverge from their empty-template upstream
+# the moment Step 0–3 onboarding runs. Without an entry in
+# .template-customizations, every future upgrade re-flags them as
+# conflicts even though there is nothing to merge. Pre-populate the list
+# with the canonical stub-fills so the project gets the right behaviour
+# on first upgrade with no extra steps.
 cat > "$target/.template-customizations" <<'EOF'
 # .template-customizations — one path per line (project-root-relative).
 #
@@ -185,16 +191,34 @@ cat > "$target/.template-customizations" <<'EOF'
 #   - never flagged as conflicts
 #   - reported as "preserved" in the upgrade summary
 #
-# Common candidates: .gitignore (if you added project-specific ignores),
-# README.md (if you rewrote the project stub), docs/templates/<name>.md
-# (if you adapted a template to your project's shape).
-#
 # SME agents (.claude/agents/sme-<domain>.md), all of docs/pm/*.md, and
 # any other file the template does not ship are ALREADY preserved by
 # default — they don't need to be listed here.
 #
 # Blank lines and lines starting with # are ignored.
 
+# --- Canonical stub-fills (pre-populated at scaffold time, issue #65) ---
+# These files ship as empty-or-shaped stubs the project is required to
+# fill during Step 0–3 onboarding. Once filled, they diverge permanently
+# from the empty-stub upstream; upstream typically does not change them.
+# Listing them here silences the false-positive conflict on every
+# upgrade. Remove a line if you genuinely want upgrades to overwrite the
+# corresponding file.
+
+# Append-only customer rulings; never overwrite.
+CUSTOMER_NOTES.md
+# Project-state register; never overwrite.
+docs/OPEN_QUESTIONS.md
+# Project-specific role-name mapping (Step 3); never upstream content.
+docs/AGENT_NAMES.md
+# Project-specific glossary (customer-domain, vendor, site, codenames).
+docs/glossary/PROJECT.md
+# Project-specific gitignore additions (e.g., wg0.conf, secrets).
+.gitignore
+# Project README rewritten by scaffold + edited per project.
+README.md
+
+# --- Add your own permanent customizations below -----------------------
 EOF
 
 # --- Replace template README with project stub -------------------------------

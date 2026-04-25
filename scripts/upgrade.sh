@@ -105,6 +105,55 @@ git clone -q "$upstream_auth" "$workdir/new" 2>/dev/null || {
   exit 1
 }
 
+# --- Self-bootstrap (issue #63 follow-up) ----------------------------------
+# Before we run any sync logic, make sure THIS upgrade.sh and its lib are
+# the upstream's current versions. Older versions have buggy in-place cp
+# that mutates the running script's inode mid-execution. Atomically install
+# upstream's upgrade.sh + lib, then re-exec — the new code does the actual
+# upgrade with atomic_install + correct manifest semantics.
+if [[ "${SWDT_BOOTSTRAPPED:-}" != "1" ]]; then
+  upstream_upgrade="$workdir/new/scripts/upgrade.sh"
+  upstream_lib="$workdir/new/scripts/lib/manifest.sh"
+  local_lib="$(dirname "$0")/lib/manifest.sh"
+  bootstrap=0
+  if [[ -f "$upstream_upgrade" ]] && ! cmp -s "$upstream_upgrade" "$0"; then
+    bootstrap=1
+  fi
+  if [[ -f "$upstream_lib" ]]; then
+    if [[ ! -f "$local_lib" ]] || ! cmp -s "$upstream_lib" "$local_lib"; then
+      bootstrap=1
+    fi
+  fi
+  if [[ $bootstrap -eq 1 ]]; then
+    echo "Bootstrapping: replacing local scripts/upgrade.sh + scripts/lib/manifest.sh with upstream and re-execing." >&2
+    # Atomic mv-rename so bash's open fd stays on the original (now-unlinked)
+    # inode through the rest of THIS run. The exec below replaces the process.
+    if [[ -f "$upstream_upgrade" ]]; then
+      cp "$upstream_upgrade" "$0.tmp.$$"
+      mv "$0.tmp.$$" "$0"
+    fi
+    if [[ -f "$upstream_lib" ]]; then
+      mkdir -p "$(dirname "$0")/lib"
+      cp "$upstream_lib" "$(dirname "$0")/lib/manifest.sh.tmp.$$"
+      mv "$(dirname "$0")/lib/manifest.sh.tmp.$$" "$(dirname "$0")/lib/manifest.sh"
+    fi
+    # Reuse the workdir we just cloned — no need to clone twice. Hand the
+    # path to the re-execed self via env; child trap takes ownership of
+    # cleanup.
+    export SWDT_BOOTSTRAPPED=1
+    export SWDT_PRESTAGED_WORKDIR="$workdir"
+    trap '' EXIT  # don't double-rm; child owns the workdir now
+    exec bash "$0" "$@"
+  fi
+fi
+
+# Re-execed instance: workdir was pre-staged by the parent.
+if [[ -n "${SWDT_PRESTAGED_WORKDIR:-}" && -d "$SWDT_PRESTAGED_WORKDIR/new" ]]; then
+  rm -rf "$workdir"
+  workdir="$SWDT_PRESTAGED_WORKDIR"
+  trap 'rm -rf "$workdir"' EXIT
+fi
+
 new_version="$(cat "$workdir/new/VERSION" | tr -d '[:space:]')"
 new_sha="$(git -C "$workdir/new" rev-parse HEAD)"
 
@@ -225,6 +274,30 @@ if [[ -f "$customizations_file" ]]; then
   done < "$customizations_file"
 fi
 
+# Agent-name-aware compare (issue #64).
+#
+# `.claude/agents/<canonical>.md` files carry a project-specific `name:`
+# frontmatter line after Step 3 (muppet rename). Treating that line as a
+# customization re-flags every agent as a conflict on every upgrade even
+# when the agent body is byte-identical. Strip the name line before the
+# 3-way compare; splice the project's name line back into the upstream
+# version after install.
+#
+# Returns 0 if files match modulo `name:`, non-zero otherwise.
+agent_cmp() {
+  diff <(grep -v '^name:[[:space:]]' "$1") <(grep -v '^name:[[:space:]]' "$2") >/dev/null 2>&1
+}
+
+# After installing upstream's version of an agent file, restore the
+# project's name: line if there was one.
+agent_splice_name() {
+  local installed="$1"
+  local name_line="$2"
+  [[ -z "$name_line" ]] && return 0
+  # Replace upstream's `name: <canonical>` with the project's name line.
+  sed -i "s|^name:[[:space:]].*\$|$name_line|" "$installed"
+}
+
 # Atomic in-place replacement helper (issue #63).
 #
 # `cp src dst` truncates+rewrites dst in place, mutating the inode.
@@ -268,14 +341,39 @@ for f in $ship_files; do
     continue
   fi
 
+  # Determine if this is an agent file with a possible muppet rename.
+  # Capture the project's `name:` line so we can splice it back after
+  # an in-place upgrade, instead of clobbering it with upstream's
+  # canonical name.
+  is_agent=0
+  agent_name_line=""
+  case "$f" in
+    .claude/agents/*.md)
+      is_agent=1
+      agent_name_line="$(grep -m1 '^name:[[:space:]]' "$proj_path" 2>/dev/null || true)"
+      ;;
+  esac
+
+  # Compare helpers. For agent files, ignore the `name:` line.
+  files_match() {
+    if [[ $is_agent -eq 1 ]]; then
+      agent_cmp "$1" "$2"
+    else
+      cmp -s "$1" "$2"
+    fi
+  }
+
   # Project already has this file. Compare.
   if [[ $baseline_available -eq 1 ]]; then
     old_path="$workdir/old/$f"
-    if [[ -f "$old_path" ]] && cmp -s "$old_path" "$proj_path"; then
-      # Unchanged since scaffold — safe to overwrite.
-      if ! cmp -s "$new_path" "$proj_path"; then
+    if [[ -f "$old_path" ]] && files_match "$old_path" "$proj_path"; then
+      # Unchanged since scaffold (modulo agent name) — safe to overwrite.
+      if ! files_match "$new_path" "$proj_path"; then
         upgraded+=("$f")
-        [[ $dry_run -eq 0 ]] && atomic_install "$new_path" "$proj_path"
+        if [[ $dry_run -eq 0 ]]; then
+          atomic_install "$new_path" "$proj_path"
+          [[ $is_agent -eq 1 ]] && agent_splice_name "$proj_path" "$agent_name_line"
+        fi
       fi
       continue
     fi
@@ -285,8 +383,8 @@ for f in $ship_files; do
   fi
 
   # Project diverges from baseline (or baseline unavailable).
-  if cmp -s "$new_path" "$proj_path"; then
-    : # Project already matches new upstream — coincidence, no action.
+  if files_match "$new_path" "$proj_path"; then
+    : # Project already matches new upstream (modulo agent name) — coincidence, no action.
   else
     conflicts+=("$f")
     kept+=("$f")
