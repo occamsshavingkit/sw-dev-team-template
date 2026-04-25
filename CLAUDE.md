@@ -62,7 +62,7 @@ stance on two adjacent tool categories: **memory layers** (passive
 session summarization + search) and **orchestration frameworks**
 (multi-agent coordination with their own rosters, routers, and
 escalation models). The reasoning is recorded in
-`docs/adr/0001-context-memory-strategy.md` (also the canonical
+`docs/adr/fw-adr-0001-context-memory-strategy.md` (also the canonical
 worked example for the Three-Path ADR template).
 
 **Recommended default: `claude-mem`** (passive memory layer,
@@ -84,7 +84,7 @@ not expressible as a learned-routing reward signal without bolt-
 ons that defeat the point. A project that genuinely needs such a
 framework records an ADR under `docs/adr/` using
 `docs/templates/adr-template.md` (Three-Path shape) that
-**explicitly supersedes ADR-0001** and identifies, per Hard Rule,
+**explicitly supersedes FW-ADR-0001** and identifies, per Hard Rule,
 how the framework preserves the invariant or why the project is
 willing to weaken it. Customer sign-off on the ADR is required
 before the framework is installed.
@@ -280,7 +280,7 @@ Skill packs to consider installing. Which should I help install?
                                           CLAUDE.md § Escalation protocol,
                                           tech-lead.md, and researcher.md
                                           already assume it is installed.
-                                          See docs/adr/0001-context-memory-strategy.md.
+                                          See docs/adr/fw-adr-0001-context-memory-strategy.md.
         /plugin marketplace add thedotmack/claude-mem
         /plugin install claude-mem@thedotmack
 

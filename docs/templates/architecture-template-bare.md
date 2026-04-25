@@ -1,6 +1,6 @@
 # Architecture — <project name>
 
-Bare variant per ADR-0003. For fluent authors and agents. The
+Bare variant per FW-ADR-0003. For fluent authors and agents. The
 guided variant at `architecture-template.md` carries the prose; this
 file carries the structure only. Synchronisation rule: heading sets
 must match between this file and the guided variant. Smoke check

@@ -7,10 +7,24 @@ co-owned with `security-engineer` on Hard-Rule-#7 paths and with
 `sre` on operations-critical paths.
 
 One file per decision. Indexed from `docs/architecture.md` § 10.
-Filename convention: `docs/adr/NNNN-<kebab-case-slug>.md` with
-sequential NNNN.
 
-## Section discipline (per ADR-0006)
+**Namespace split (per FW-ADR-0007 / issue #67):**
+
+- **Framework ADRs** (decisions affecting the template itself —
+  shipped to every downstream project): `FW-ADR-NNNN` ID, filename
+  `docs/adr/fw-adr-NNNN-<kebab-case-slug>.md`. Maintained in the
+  upstream template repo.
+- **Project ADRs** (decisions for one specific downstream project):
+  `ADR-NNNN` ID, filename `docs/adr/NNNN-<kebab-case-slug>.md`.
+  Maintained per-project; never touched by upgrades.
+
+The two namespaces share the directory but never collide. When this
+template (`docs/templates/adr-template.md`) is used to author a new
+ADR, choose the namespace based on whether the decision is
+template-wide (FW-ADR) or project-local (ADR). Sequential NNNN within
+each namespace.
+
+## Section discipline (per FW-ADR-0006)
 
 Sections below are tagged **REQUIRED**, **RECOMMENDED**, or
 **OPTIONAL**.

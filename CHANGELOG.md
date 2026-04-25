@@ -16,6 +16,74 @@ filed upstream include that version.
 
 ---
 
+## v0.15.0 — 2026-04-25 (MINOR bundle)
+
+Two structural fixes for upgrade-flow ergonomics + the
+v1.0.0-rc3 re-entry checklist as a binding artefact.
+
+### Added
+
+- **`docs/v1.0-rc3-checklist.md`** — binding 7-point criteria
+  list (C-1 through C-7) for re-entering the v1.0.0-rc track.
+  Drafted now; ratification by customer is the gate before any
+  v1.0.0-rc cut. Per ROADMAP.md § v0.15.0.
+- **`docs/INDEX-PROJECT.md`** — project-authored content index,
+  paired with `docs/INDEX-FRAMEWORK.md` (renamed from the old
+  `docs/INDEX.md`). Top-level `docs/INDEX.md` becomes a tiny
+  dispatcher pointing at both. Both INDEX.md and
+  INDEX-PROJECT.md are pre-populated in
+  `.template-customizations` at scaffold time.
+- **`migrations/v0.15.0.sh`** — handles the structural
+  changes for existing projects: rename framework ADRs from
+  `docs/adr/NNNN-*.md` → `docs/adr/fw-adr-NNNN-*.md` (slug-
+  comparison heuristic); preserve any project content from old
+  `docs/INDEX.md` as `docs/INDEX-PROJECT.md`; add INDEX
+  customizations entries.
+
+### Fixed
+
+- **#66 — `docs/INDEX.md` hybrid file produces unavoidable merge
+  work on every upgrade.** Adopted Option A (split files) per
+  the issue's recommendation. Framework content moves to
+  `INDEX-FRAMEWORK.md` (replaced by upstream every upgrade);
+  project content moves to `INDEX-PROJECT.md` (project-owned,
+  never overwritten); top-level `INDEX.md` is a dispatcher
+  pointing at both. The two streams are physically separated;
+  merge work collapses to zero.
+- **#67 — Framework ADR namespace collision with project ADRs.**
+  Adopted Option A (separate ID prefix) per the issue. Framework
+  ADRs use `FW-ADR-NNNN` IDs and `fw-adr-NNNN-*.md` filenames.
+  Project ADRs continue to use the bare `ADR-NNNN` namespace and
+  plain `NNNN-*.md` filenames. Renamed framework ADRs:
+  `fw-adr-0001-context-memory-strategy.md` ..
+  `fw-adr-0007-external-reference-adoption.md`. All cross-
+  references updated in the same release (88 references across
+  20 files, mass sed-replace from `ADR-000N` → `FW-ADR-000N`
+  and `adr/000N-` → `adr/fw-adr-000N-`). `docs/templates/
+  adr-template.md` documents the namespace split for future ADR
+  authors.
+
+### Smoke-test additions
+
+7 new assertions covering the INDEX split + ADR rename. Total:
+**75 passes / 0 failures** (after push — pre-push the simulated
+upgrade against origin's lagging content shows one expected
+artefact).
+
+### Note for projects upgrading
+
+`migrations/v0.15.0.sh` is automatic; no manual steps. After
+the upgrade, prior `docs/INDEX.md` edits surface at
+`docs/INDEX-PROJECT.md`. Framework ADRs renamed in-place;
+cross-references in framework-shipped files update via the
+file-sync.
+
+**Project-authored files** that cite framework ADRs by the old
+`ADR-000N` form are NOT auto-rewritten — project owners can
+grep + sed for `ADR-000[1-7]\b` if they want consistency.
+
+---
+
 ## v0.14.4 — 2026-04-25 (PATCH bundle)
 
 Three fixes for upgrade-flow ergonomics surfaced by downstream
@@ -304,7 +372,7 @@ the file-sync step).
 
 ### Added
 
-- **ADR-0002 implementation — `TEMPLATE_MANIFEST.lock` content
+- **FW-ADR-0002 implementation — `TEMPLATE_MANIFEST.lock` content
   verification.** Per-file SHA256 manifest at project root, written
   by `scripts/scaffold.sh` at scaffold time and rewritten by
   `scripts/upgrade.sh` after every successful sync. New
@@ -317,7 +385,7 @@ the file-sync step).
   it falls through to the sync flow and reconciles. Helpers live in
   `scripts/lib/manifest.sh`; sourced by both `scaffold.sh` and
   `upgrade.sh`.
-- **ADR-0003 — bare variants of `architecture-template.md` and
+- **FW-ADR-0003 — bare variants of `architecture-template.md` and
   `requirements-template.md`.** New
   `docs/templates/architecture-template-bare.md` and
   `docs/templates/requirements-template-bare.md` ship the same
@@ -326,23 +394,23 @@ the file-sync step).
   matches their fluency. Synchronisation rule: structural changes
   land in bare first; guided is regenerated or hand-updated to
   match.
-- **ADR-0004 — per-item / per-view file templates.** New
+- **FW-ADR-0004 — per-item / per-view file templates.** New
   `docs/templates/req-item-template.md` (+ bare variant) for
   per-FR/NFR files at `docs/req/<ID>.md`; new
   `docs/templates/architecture-view-template.md` (+ bare variant)
   for per-IEEE-1016-viewpoint files at
   `docs/views/<viewpoint>-<name>.md`. Lets agents load only the
   requirement or view in scope, not the whole monolithic doc.
-- **ADR-0006 — MADR required/optional split in
+- **FW-ADR-0006 — MADR required/optional split in
   `docs/templates/adr-template.md`.** Each section now tagged
   **REQUIRED**, **RECOMMENDED**, or **OPTIONAL** with a top-of-file
   Section discipline note. Minimal ADR ~40 lines; full ADR ~200+.
   The Three-Path Rule remains binding (Required, never omitted).
-- **ADR-0007 binding rule — "Inspire, don't paste"** added to
+- **FW-ADR-0007 binding rule — "Inspire, don't paste"** added to
   `docs/glossary/ENGINEERING.md` § Intellectual property. Borrowing
   a structural pattern is fine; copying prose / headings / table
   content is not, regardless of source license.
-- **ADR-0005 (Accepted, implementation deferred to v0.15.0).**
+- **FW-ADR-0005 (Accepted, implementation deferred to v0.15.0).**
   `docs/standards/paraphrase-cards.md` — single source for IEEE/ISO
   paraphrase content cited from agent contracts. Deferred because
   the extraction touches five agent files and three templates; not
@@ -374,7 +442,7 @@ the file-sync step).
 11 new assertions covering the v0.14.0 contract:
 
 - `TEMPLATE_MANIFEST.lock` exists after scaffold; carries the
-  ADR-0002 marker; non-empty (≥10 entries); excludes itself and
+  FW-ADR-0002 marker; non-empty (≥10 entries); excludes itself and
   `TEMPLATE_VERSION` by design.
 - `upgrade.sh --verify` on fresh scaffold exits 0 and reports OK.
 - After perturbation: drift detected (exit 1) with file-level
@@ -394,10 +462,10 @@ Total smoke coverage: **57 passes / 0 failures** end-to-end.
 
 ### Deferred to v0.15.0
 
-- ADR-0005 implementation (extract paraphrases from agent files).
+- FW-ADR-0005 implementation (extract paraphrases from agent files).
 - LIB-0015..0018 inventory rows in downstream library inventories
-  (per ADR-0007, applied per project on-demand).
-- `--verify --format=json` machine-parseable output (ADR-0002 marks
+  (per FW-ADR-0007, applied per project on-demand).
+- `--verify --format=json` machine-parseable output (FW-ADR-0002 marks
   it as a public CLI contract; not v0.14.0-mandatory).
 
 ### Notes for downstream projects
@@ -415,8 +483,8 @@ existing per-file customisation-vs-upgrade resolution rules.
 Doc + agent-frontmatter PATCH. No behavior changes.
 
 ### Added
-- **ADR-0002 — Upgrade content verification (hash-based, manifest-primary).**
-  New `docs/adr/0002-upgrade-content-verification.md` documenting the
+- **FW-ADR-0002 — Upgrade content verification (hash-based, manifest-primary).**
+  New `docs/adr/fw-adr-0002-upgrade-content-verification.md` documenting the
   v0.14.0 design fix for `scripts/upgrade.sh`'s content-trust bug
   (issue #61). MADR 3.0 shape with three alternatives
   (Minimalist on-demand re-fetch / Scalable hash manifest / Creative
@@ -536,7 +604,7 @@ Additive features. Placeholder; entries fill in as items land.
 
 - **#39 Context-memory strategy — default guidance (adopt
   `claude-mem`, do not adopt orchestration frameworks).** New
-  `docs/adr/0001-context-memory-strategy.md` — first template
+  `docs/adr/fw-adr-0001-context-memory-strategy.md` — first template
   ADR, also the canonical worked example for the v0.13.0
   Three-Path ADR template. Evaluates `claude-mem` (thedotmack —
   passive memory layer) vs. `ruflo` / ex-"claude-flow"

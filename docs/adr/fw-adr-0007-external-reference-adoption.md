@@ -1,4 +1,4 @@
-# ADR-0007 — External reference adoption (LIB-0015 through LIB-0018)
+# FW-ADR-0007 — External reference adoption (LIB-0015 through LIB-0018)
 
 Shape per MADR 3.0 + this template's Three-Path Rule
 (`docs/templates/adr-template.md`).
@@ -23,11 +23,11 @@ woven into the template, but which are not yet inventoried:
 
 - **`donnemartin/system-design-primer`** (MIT) — system design
   checklist, useful for `architect` paraphrase reference.
-- **`jam01/SDD-Template`** (CC0 1.0) — pattern source for ADR-0003
-  (bare variants) and ADR-0004 (per-view file breakout).
+- **`jam01/SDD-Template`** (CC0 1.0) — pattern source for FW-ADR-0003
+  (bare variants) and FW-ADR-0004 (per-view file breakout).
 - **`jam01/SRS-Template`** (CC0 1.0) — same, for requirements.
 - **`adr.github.io/madr`** (MIT for code, CC0 for spec) — MADR 3.0
-  spec, basis for this project's ADR template + ADR-0006's
+  spec, basis for this project's ADR template + FW-ADR-0006's
   required/optional split.
 
 All four are URL-only references (no PDF, no local file). All four
@@ -89,11 +89,11 @@ path. License + paraphrase-policy fields filled per resource.
   - **LIB-0015** — `donnemartin/system-design-primer` (MIT) —
     paraphrase source for `architect`.
   - **LIB-0016** — `jam01/SDD-Template` (CC0 1.0) — pattern source
-    for ADR-0003 / ADR-0004.
+    for FW-ADR-0003 / FW-ADR-0004.
   - **LIB-0017** — `jam01/SRS-Template` (CC0 1.0) — pattern source
-    for ADR-0003 / ADR-0004.
+    for FW-ADR-0003 / FW-ADR-0004.
   - **LIB-0018** — MADR 3.0 spec at `adr.github.io/madr`
-    (MIT for code, CC0 for spec) — pattern source for ADR-0006.
+    (MIT for code, CC0 for spec) — pattern source for FW-ADR-0006.
   Add a paragraph to INVENTORY.md's IP-policy section noting the
   URL-only shape (parallel to the existing remote-only and
   local-copy shapes).
@@ -178,7 +178,7 @@ license fields).
 - **Success signal:** by v0.14.0 release, INVENTORY.md has rows
   LIB-0015 through LIB-0018 with the URL-only shape. The
   glossary contains the binding "inspire, don't paste" rule.
-  ADR-0003, ADR-0004, ADR-0006 cite the new rows by ID.
+  FW-ADR-0003, FW-ADR-0004, FW-ADR-0006 cite the new rows by ID.
 - **Failure signal:** authors add new external references without
   filing a LIB row; `code-reviewer` audit findings cite the gap.
 - **Review cadence:** at v0.15.0 release planning.
@@ -186,7 +186,7 @@ license fields).
 ## Links
 
 - Survey: `docs/research/sw-dev-repos-survey-2026-04-25.md` (Recommendation 5)
-- Related ADRs: ADR-0003, ADR-0004, ADR-0005, ADR-0006 (all cite
+- Related ADRs: FW-ADR-0003, FW-ADR-0004, FW-ADR-0005, FW-ADR-0006 (all cite
   one or more of the new rows).
 - Glossary update: `docs/glossary/ENGINEERING.md` § Intellectual
   property (adds "inspire, don't paste" as binding rule).

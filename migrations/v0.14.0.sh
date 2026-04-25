@@ -2,7 +2,7 @@
 #
 # migrations/v0.14.0.sh — upgrade TO v0.14.0 (or any v0.14.x).
 #
-# v0.14.0 introduces TEMPLATE_MANIFEST.lock (per ADR-0002): a per-file
+# v0.14.0 introduces TEMPLATE_MANIFEST.lock (per FW-ADR-0002): a per-file
 # SHA256 manifest at project root, used by `scripts/upgrade.sh
 # --verify` for offline drift / tamper detection.
 #
@@ -69,7 +69,7 @@ kept=0
 total=0
 
 {
-  echo "# TEMPLATE_MANIFEST.lock — per ADR-0002"
+  echo "# TEMPLATE_MANIFEST.lock — per FW-ADR-0002"
   echo "# Generated $(date -u +%Y-%m-%dT%H:%M:%SZ) by migrations/v0.14.0.sh"
   echo "# Format: <sha256>  <project-relative path>"
   echo "# Predicted post-sync state (3-way compare against baseline=$baseline_label)."

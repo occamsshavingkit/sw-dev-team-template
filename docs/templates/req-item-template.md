@@ -1,6 +1,6 @@
 # Requirement — <ID> — <one-line title>
 
-One file per requirement per ADR-0004. Each requirement satisfies
+One file per requirement per FW-ADR-0004. Each requirement satisfies
 the nine characteristics in ISO/IEC/IEEE 29148 § 5.2 (`LIB-0010`):
 necessary, implementation-free, unambiguous, consistent, complete,
 singular, feasible, traceable, verifiable.

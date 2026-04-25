@@ -2,7 +2,7 @@
 #
 # scripts/lib/manifest.sh — shared TEMPLATE_MANIFEST.lock helpers.
 #
-# Per ADR-0002 (upgrade content verification, hash-based, manifest-
+# Per FW-ADR-0002 (upgrade content verification, hash-based, manifest-
 # primary). Sourced by scripts/upgrade.sh (write at upgrade-end +
 # verify at --verify) and scripts/scaffold.sh (write at scaffold-end
 # + immediate self-verify).
@@ -88,7 +88,7 @@ manifest_write() {
   local project_repo="$2"
   local out="$3"
   {
-    echo "# TEMPLATE_MANIFEST.lock — per ADR-0002"
+    echo "# TEMPLATE_MANIFEST.lock — per FW-ADR-0002"
     echo "# Generated $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "# Format: <sha256>  <project-relative path>"
     echo "# Paths from upstream ship_files; SHAs from project tree."

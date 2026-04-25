@@ -1,4 +1,4 @@
-# ADR-0002 — Upgrade content verification (hash-based, manifest-primary)
+# FW-ADR-0002 — Upgrade content verification (hash-based, manifest-primary)
 
 Shape per MADR 3.0 + this template's Three-Path Rule
 (`docs/templates/adr-template.md`).
@@ -359,7 +359,7 @@ For each starting state:
 ## Links
 
 - Upstream issue: `#61 — upgrade.sh content-trust bug`.
-- Related ADRs: ADR-0001 (orchestration stance) — unrelated, but
+- Related ADRs: FW-ADR-0001 (orchestration stance) — unrelated, but
   establishes the ADR numbering precedent.
 - Related artifacts: `scripts/upgrade.sh`, `scripts/scaffold.sh`,
   `scripts/version-check.sh`, `migrations/README.md`,

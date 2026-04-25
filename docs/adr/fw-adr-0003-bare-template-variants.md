@@ -1,4 +1,4 @@
-# ADR-0003 — Bare variants of structural templates
+# FW-ADR-0003 — Bare variants of structural templates
 
 Shape per MADR 3.0 + this template's Three-Path Rule
 (`docs/templates/adr-template.md`).
@@ -148,7 +148,7 @@ artefact don't get the savings at all. Option C's build step is
 overkill for two template families and would be the right answer
 only if Recommendation 2 (per-item / per-view breakout) materially
 increases the variant count beyond two — which is a separate ADR
-(ADR-0004), and even there S-shape pairs are tractable.
+(FW-ADR-0004), and even there S-shape pairs are tractable.
 
 The S-shape "bare files are canonical; guided is the prose overlay"
 synchronisation rule is binding: when the structure changes, bare
@@ -177,10 +177,10 @@ is updated first, guided second. A heading-set diff in
 
 ### Follow-up ADRs
 
-- ADR-0004 — Per-item / per-view file breakout (separate decision;
+- FW-ADR-0004 — Per-item / per-view file breakout (separate decision;
   changes how a finished artefact decomposes, not how the template
   itself is shaped).
-- ADR-0007 — Reference adoption (catalogues the jam01 templates that
+- FW-ADR-0007 — Reference adoption (catalogues the jam01 templates that
   inspired this ADR; required for the inspire-don't-paste audit
   trail).
 
@@ -204,7 +204,7 @@ is updated first, guided second. A heading-set diff in
 - External references:
   - `https://github.com/jam01/SDD-Template` (CC0 1.0; pattern source)
   - `https://github.com/jam01/SRS-Template` (CC0 1.0; pattern source)
-- Related ADRs: ADR-0004 (per-item breakout), ADR-0007 (reference
+- Related ADRs: FW-ADR-0004 (per-item breakout), FW-ADR-0007 (reference
   adoption catalogue).
 - External standards: `LIB-0009` IEEE 1016 § 4.7 (tailoring),
   `LIB-0010` ISO/IEC/IEEE 29148 § 2.5 (tailored conformance).

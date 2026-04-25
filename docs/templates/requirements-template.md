@@ -123,7 +123,7 @@ Maintained by `researcher`. A row per requirement.
 
 | Req ID | Source | Design | Implementation | Test | Status |
 |---|---|---|---|---|---|
-| FR-0001 | CUSTOMER_NOTES 2026-MM-DD | ADR-0003, §X of arch | module/path.ext | T-0001 | verified |
+| FR-0001 | CUSTOMER_NOTES 2026-MM-DD | FW-ADR-0003, §X of arch | module/path.ext | T-0001 | verified |
 
 Empty cells flag gaps. No row is "complete" until all cells are filled.
 

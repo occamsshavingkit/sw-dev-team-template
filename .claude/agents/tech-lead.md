@@ -118,7 +118,7 @@ the primary dispatch path.
 Before re-reading long artifacts (`WORK_LOG.md`, `CHANGELOG.md`,
 past release reviews, old session transcripts) or escalating to
 the human, query `claude-mem` if installed (default per
-`docs/adr/0001-context-memory-strategy.md`):
+`docs/adr/fw-adr-0001-context-memory-strategy.md`):
 
 - `claude-mem:mem-search` or `smart_search` — semantic search
   across prior-session observations.

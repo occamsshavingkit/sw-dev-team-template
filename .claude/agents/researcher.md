@@ -83,7 +83,7 @@ deliverables).
    Report findings; do not design.
 
    **Always check `claude-mem` first** for in-project prior art
-   (default per `docs/adr/0001-context-memory-strategy.md`).
+   (default per `docs/adr/fw-adr-0001-context-memory-strategy.md`).
    Earlier sessions may have already evaluated the same pattern.
    Use `claude-mem:mem-search`, `smart_search`, or
    `get_observations([IDs])` before running external Tier-1

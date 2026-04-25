@@ -1,6 +1,6 @@
 # View — <viewpoint> — <name>
 
-One file per significant view per ADR-0004. Each view is an instance
+One file per significant view per FW-ADR-0004. Each view is an instance
 of one IEEE 1016-2009 (`LIB-0009`) viewpoint, addressing specific
 stakeholder concerns. Lives at
 `docs/views/<viewpoint>-<name>.md`.

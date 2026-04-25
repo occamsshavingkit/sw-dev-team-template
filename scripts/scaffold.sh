@@ -217,6 +217,10 @@ docs/glossary/PROJECT.md
 .gitignore
 # Project README rewritten by scaffold + edited per project.
 README.md
+# Project-owned docs index dispatcher + project content index
+# (per FW-ADR-0007 follow-up / issue #66, v0.15.0+).
+docs/INDEX.md
+docs/INDEX-PROJECT.md
 
 # --- Add your own permanent customizations below -----------------------
 EOF
@@ -236,7 +240,7 @@ Template version is recorded in \`TEMPLATE_VERSION\`.
 EOF
 
 # --- Write TEMPLATE_MANIFEST.lock + self-verify ------------------------------
-# Per ADR-0002. Captures per-file SHA256 of every shipped file at scaffold
+# Per FW-ADR-0002. Captures per-file SHA256 of every shipped file at scaffold
 # time so future `scripts/upgrade.sh --verify` runs can detect drift.
 # Self-verify immediately after write — fail-fast on a corrupt scaffold.
 # Paths come from the template source (this repo, $repo_root); SHAs from

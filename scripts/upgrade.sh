@@ -32,7 +32,7 @@ Usage: scripts/upgrade.sh [--dry-run | --verify | --help]
   --dry-run    Print the upgrade plan; change nothing.
   --verify     Verify project files match TEMPLATE_MANIFEST.lock.
                No network. Exit codes: 0 clean, 1 drift, 2 missing
-               manifest, 3 corrupt manifest. (ADR-0002, v0.14.0+)
+               manifest, 3 corrupt manifest. (FW-ADR-0002, v0.14.0+)
   --help, -h   Print this help and exit.
 
 With no flag, run the full upgrade. The script:
@@ -55,7 +55,7 @@ version-check.sh, migrations/README.md).
 EOF
 }
 
-# Manifest helpers (ADR-0002, v0.14.0).
+# Manifest helpers (FW-ADR-0002, v0.14.0).
 # shellcheck source=lib/manifest.sh
 source "$(dirname "$0")/lib/manifest.sh"
 
@@ -69,7 +69,7 @@ project_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 tv="$project_root/TEMPLATE_VERSION"
 
 # Argument parsing (issue #58 — --help / unknown flags should print
-# usage, not run an upgrade). --verify per ADR-0002.
+# usage, not run an upgrade). --verify per FW-ADR-0002.
 dry_run=0
 verify_mode=0
 case "${1:-}" in
@@ -89,7 +89,7 @@ local_version="$(head -1 "$tv" | tr -d '[:space:]')"
 local_sha="$(sed -n '2p' "$tv" | tr -d '[:space:]')"
 
 # Verify mode short-circuits before clone — no network needed.
-# (ADR-0002.)
+# (FW-ADR-0002.)
 if [[ $verify_mode -eq 1 ]]; then
   rc=0
   manifest_verify "$project_root" "$project_root/TEMPLATE_MANIFEST.lock" || rc=$?
@@ -171,10 +171,10 @@ if [[ "$local_version" == "$new_version" ]]; then
   fi
   if [[ ! -f "$manifest_path" ]]; then
     echo "WARN: stamp says $local_version but TEMPLATE_MANIFEST.lock is missing." >&2
-    echo "       Falling through to sync to (re)establish a manifest. (ADR-0002, #61)" >&2
+    echo "       Falling through to sync to (re)establish a manifest. (FW-ADR-0002, #61)" >&2
   else
     echo "WARN: stamp says $local_version but file tree drifts from manifest." >&2
-    echo "       Falling through to sync to reconcile. (ADR-0002, #61)" >&2
+    echo "       Falling through to sync to reconcile. (FW-ADR-0002, #61)" >&2
   fi
   # Fall through to the sync flow below.
 fi
@@ -401,7 +401,7 @@ $(date -u +%Y-%m-%d)
 EOF
 
   # Rewrite the per-file manifest to reflect the post-upgrade state.
-  # ADR-0002. Paths come from the upstream clone (authoritative
+  # FW-ADR-0002. Paths come from the upstream clone (authoritative
   # ship_files list at the upgraded version); SHAs come from the
   # project tree (post-sync state). v0.14.1 split — see
   # scripts/lib/manifest.sh.

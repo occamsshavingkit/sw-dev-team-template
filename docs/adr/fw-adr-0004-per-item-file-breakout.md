@@ -1,4 +1,4 @@
-# ADR-0004 — Per-item / per-view file breakout for requirements and architecture
+# FW-ADR-0004 — Per-item / per-view file breakout for requirements and architecture
 
 Shape per MADR 3.0 + this template's Three-Path Rule
 (`docs/templates/adr-template.md`).
@@ -45,7 +45,7 @@ that loads requirements or architecture is affected).
 
 ## Decision drivers
 
-- **Token economy.** Same as ADR-0003; this one is about loading
+- **Token economy.** Same as FW-ADR-0003; this one is about loading
   granularity, not template shape.
 - **Tooling neutrality.** The choice must not require a specific
   documentation generator or build step in the default path.
@@ -180,7 +180,7 @@ item with `ID | Title | Status | File`.
 
 ### Follow-up ADRs
 
-- ADR-0003 — Bare variants of structural templates (decides the
+- FW-ADR-0003 — Bare variants of structural templates (decides the
   shape of each individual per-item template, not the breakout
   itself).
 - A future ADR if downstream projects request automation
@@ -208,8 +208,8 @@ item with `ID | Title | Status | File`.
     file pattern)
   - `https://github.com/jam01/SRS-Template` (CC0 1.0; per-req
     file pattern)
-- Related ADRs: ADR-0003 (bare variants — pairs with this one for
-  per-item templates), ADR-0007 (reference adoption catalogue).
+- Related ADRs: FW-ADR-0003 (bare variants — pairs with this one for
+  per-item templates), FW-ADR-0007 (reference adoption catalogue).
 - External standards: `LIB-0009` IEEE 1016 § 5 (per-viewpoint
   views), `LIB-0010` ISO/IEC/IEEE 29148 § 5.4 (information items
   composed of requirement records).

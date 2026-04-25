@@ -1,6 +1,6 @@
 # Requirement — <ID> — <one-line title>
 
-Bare variant per ADR-0003. Lives at `docs/req/<ID>.md` per ADR-0004.
+Bare variant per FW-ADR-0003. Lives at `docs/req/<ID>.md` per FW-ADR-0004.
 
 ---
 

@@ -94,9 +94,9 @@ actual_version="$(head -1 "$target/TEMPLATE_VERSION" | tr -d '[:space:]')"
 check "TEMPLATE_VERSION matches current VERSION ($expected_version)" \
   bash -c "[ '$actual_version' = '$expected_version' ]"
 
-echo "-- manifest (ADR-0002, v0.14.0+) --"
+echo "-- manifest (FW-ADR-0002, v0.14.0+) --"
 check "TEMPLATE_MANIFEST.lock exists after scaffold"      test -f "$target/TEMPLATE_MANIFEST.lock"
-check "manifest header carries the ADR-0002 marker"       bash -c "head -1 '$target/TEMPLATE_MANIFEST.lock' | grep -q 'ADR-0002'"
+check "manifest header carries the FW-ADR-0002 marker"       bash -c "head -1 '$target/TEMPLATE_MANIFEST.lock' | grep -q 'FW-ADR-0002'"
 check "manifest is non-empty (>= 10 entries)"             bash -c "[ \"\$(grep -cv '^#' '$target/TEMPLATE_MANIFEST.lock')\" -ge 10 ]"
 check "TEMPLATE_MANIFEST.lock excluded from manifest"     bash -c "! grep -q ' TEMPLATE_MANIFEST\\.lock\$' '$target/TEMPLATE_MANIFEST.lock'"
 check "TEMPLATE_VERSION excluded from manifest"           bash -c "! grep -q ' TEMPLATE_VERSION\$' '$target/TEMPLATE_MANIFEST.lock'"
@@ -240,7 +240,7 @@ if timeout 5 git ls-remote --tags --refs "$probe_url" >/dev/null 2>&1; then
   check "TEMPLATE_VERSION matches current VERSION after upgrade ($expected_version)" \
     bash -c "[ '$post_version' = '$expected_version' ]"
 
-  # ADR-0002 / v0.14.2: TEMPLATE_MANIFEST.lock should exist + verify clean
+  # FW-ADR-0002 / v0.14.2: TEMPLATE_MANIFEST.lock should exist + verify clean
   # immediately after a single upgrade run, no manual regen needed.
   # This exercises migrations/v0.14.0.sh's predicted-post-sync logic.
   check "TEMPLATE_MANIFEST.lock present after upgrade"      test -f "$target/TEMPLATE_MANIFEST.lock"
@@ -265,6 +265,23 @@ check "stub-fill: .gitignore in .template-customizations" \
   bash -c "grep -qE '^\\.gitignore\$' '$target/.template-customizations'"
 check "stub-fill: README.md in .template-customizations" \
   bash -c "grep -qE '^README\\.md\$' '$target/.template-customizations'"
+# v0.15.0 / issue #66: INDEX split — both INDEX.md (dispatcher) and
+# INDEX-PROJECT.md are project-owned post-scaffold.
+check "stub-fill: docs/INDEX.md in .template-customizations" \
+  bash -c "grep -qE '^docs/INDEX\\.md\$' '$target/.template-customizations'"
+check "stub-fill: docs/INDEX-PROJECT.md in .template-customizations" \
+  bash -c "grep -qE '^docs/INDEX-PROJECT\\.md\$' '$target/.template-customizations'"
+check "INDEX-FRAMEWORK.md present after scaffold (template-shipped)" \
+  test -f "$target/docs/INDEX-FRAMEWORK.md"
+check "INDEX-PROJECT.md present after scaffold (project-fillable stub)" \
+  test -f "$target/docs/INDEX-PROJECT.md"
+check "INDEX.md present after scaffold (dispatcher)" \
+  test -f "$target/docs/INDEX.md"
+# v0.15.0 / issue #67: framework ADRs use fw-adr-NNNN-* filename prefix.
+check "fw-adr-0001 present in scaffolded project" \
+  test -f "$target/docs/adr/fw-adr-0001-context-memory-strategy.md"
+check "no unprefixed 0001-context-memory-strategy.md (collision-prone old name)" \
+  bash -c "[ ! -f '$target/docs/adr/0001-context-memory-strategy.md' ]"
 else
   echo "  SKIP: upgrade (upstream unreachable)"
 fi

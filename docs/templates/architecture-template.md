@@ -129,7 +129,7 @@ under § "Considered options").
 
 | # | Title | Status | Date |
 |---|---|---|---|
-| ADR-0001 | <short title> | accepted | YYYY-MM-DD |
+| FW-ADR-0001 | <short title> | accepted | YYYY-MM-DD |
 
 Do not paraphrase ADR content here; just index them.
 

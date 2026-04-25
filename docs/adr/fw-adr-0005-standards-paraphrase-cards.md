@@ -1,4 +1,4 @@
-# ADR-0005 — Standards paraphrase cards (single source for IEEE/ISO citations)
+# FW-ADR-0005 — Standards paraphrase cards (single source for IEEE/ISO citations)
 
 Shape per MADR 3.0 + this template's Three-Path Rule
 (`docs/templates/adr-template.md`).
@@ -75,7 +75,7 @@ contract carries standards material).
   IEEE 730 § 5.4" is shorter, and clearer, than one that includes
   the paraphrase of § 5.4 inline. The paraphrase is reference
   material, not contract language.
-- **First-time vs Nth-time author.** Same dynamic as ADR-0003: the
+- **First-time vs Nth-time author.** Same dynamic as FW-ADR-0003: the
   paraphrase content helps a first-time reader; it's overhead for
   fluent agents.
 
@@ -195,7 +195,7 @@ what, when) but cite the card for the underlying paraphrase.
 
 - A future ADR if the cards file grows past ~30 KB and per-standard
   files become preferable.
-- Possible interaction with ADR-0004 (per-item file breakout):
+- Possible interaction with FW-ADR-0004 (per-item file breakout):
   per-standard files would mirror that pattern.
 
 ## Verification
@@ -214,7 +214,7 @@ what, when) but cite the card for the underlying paraphrase.
 ## Links
 
 - Survey: `docs/research/sw-dev-repos-survey-2026-04-25.md` (Recommendation 3)
-- Related ADRs: ADR-0003, ADR-0004, ADR-0007.
+- Related ADRs: FW-ADR-0003, FW-ADR-0004, FW-ADR-0007.
 - INVENTORY rows directly affected: LIB-0003 through LIB-0011.
 - Existing agent files affected: `architect.md`, `qa-engineer.md`,
   `code-reviewer.md`, `release-engineer.md`,

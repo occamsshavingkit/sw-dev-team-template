@@ -1,4 +1,4 @@
-# ADR-0001 — Context-memory strategy: adopt `claude-mem`, do not adopt `ruflo`-class orchestration frameworks
+# FW-ADR-0001 — Context-memory strategy: adopt `claude-mem`, do not adopt `ruflo`-class orchestration frameworks
 
 Shape per MADR 3.0 adapted to this template's Three-Path Rule
 (upstream issue #33). This ADR is also the canonical worked example
@@ -230,7 +230,7 @@ that is S's only material downside.
 - Upstream issue: #39
 - Task: (no task artifact — this is a template-level decision)
 - Prior-art: sources evaluated are recorded in the referenced
-  originating downstream project's `docs/adr/ADR-0001-context-memory-strategy.md`
+  originating downstream project's `docs/adr/FW-ADR-0001-context-memory-strategy.md`
 - Proposal: (no separate proposal — ADR is the proposal)
 - Related ADRs: (none yet; this is the template's first ADR)
 - External references:

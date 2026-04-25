@@ -1,4 +1,4 @@
-# ADR-0006 — MADR required-vs-optional split in adr-template.md
+# FW-ADR-0006 — MADR required-vs-optional split in adr-template.md
 
 Shape per MADR 3.0 + this template's Three-Path Rule
 (`docs/templates/adr-template.md`).
@@ -12,7 +12,7 @@ Shape per MADR 3.0 + this template's Three-Path Rule
 - **Deciders:** `architect` + `tech-lead` + customer
 - **Consulted:** `docs/research/sw-dev-repos-survey-2026-04-25.md`
   (Recommendation 4); MADR 3.0 spec at `https://adr.github.io/madr/`
-  (LIB-0018 candidate per ADR-0007); the project's Three-Path Rule
+  (LIB-0018 candidate per FW-ADR-0007); the project's Three-Path Rule
   (issue #33) which is layered on top of MADR.
 
 ## Context and problem statement
@@ -25,8 +25,8 @@ ADR is small (e.g., a single-line tooling choice) or when sections
 are genuinely n/a (e.g., Verification on a documentation-only ADR).
 
 Realised ADR sizes in the upstream tree:
-- ADR-0001 (orchestration stance): 239 lines
-- ADR-0002 (upgrade content verification): 364 lines
+- FW-ADR-0001 (orchestration stance): 239 lines
+- FW-ADR-0002 (upgrade content verification): 364 lines
 
 MADR 3.0 itself separates **required** from **optional** sections:
 - Required: title, status, context+problem, considered options,
@@ -178,7 +178,7 @@ is enforceable by `code-reviewer` audit.
 - Two ADR shapes in the upstream tree (small + full). Mitigated
   by the structural similarity — both follow the same Required
   set in the same order.
-- ADR-0001 and ADR-0002 retain full-shape; not back-migrated.
+- FW-ADR-0001 and FW-ADR-0002 retain full-shape; not back-migrated.
   Existing ADRs grandfathered.
 
 ### Follow-up ADRs
@@ -200,7 +200,7 @@ is enforceable by `code-reviewer` audit.
 
 - Survey: `docs/research/sw-dev-repos-survey-2026-04-25.md` (Recommendation 4)
 - External references: MADR 3.0 spec at
-  `https://adr.github.io/madr/` (LIB-0018 candidate per ADR-0007).
-- Related ADRs: ADR-0003 (bare variants — different decision,
-  similar shape), ADR-0007 (reference adoption catalogue).
+  `https://adr.github.io/madr/` (LIB-0018 candidate per FW-ADR-0007).
+- Related ADRs: FW-ADR-0003 (bare variants — different decision,
+  similar shape), FW-ADR-0007 (reference adoption catalogue).
 - Standards: project Three-Path Rule per upstream issue #33.

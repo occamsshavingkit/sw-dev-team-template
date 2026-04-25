@@ -320,7 +320,7 @@ vector stores. Record the specific restriction in the inventory row
 IP policy for the binding rule and `researcher` § Cite hygiene for
 restricted sources for the enforcement surface.
 
-**Inspire, don't paste (binding, ADR-0007)** — when external material
+**Inspire, don't paste (binding, FW-ADR-0007)** — when external material
 is brought into the project as a *structural pattern* or *idea*
 (rather than as a citeable text), the project draws inspiration but
 does not copy. Concretely: borrowing a template shape, a process
