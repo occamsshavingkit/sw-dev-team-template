@@ -10,9 +10,27 @@ One file per decision. Indexed from `docs/architecture.md` § 10.
 Filename convention: `docs/adr/NNNN-<kebab-case-slug>.md` with
 sequential NNNN.
 
+## Section discipline (per ADR-0006)
+
+Sections below are tagged **REQUIRED**, **RECOMMENDED**, or
+**OPTIONAL**.
+
+- **Required** sections must be present in every ADR.
+  Missing-required is a `code-reviewer` audit-mode finding.
+- **Recommended** sections are present by default; may be omitted
+  by replacing their body with a single-line rationale (e.g.,
+  *"omitted: this ADR has no measurable verification signal"*).
+  Silent omission of a Recommended section is a finding.
+- **Optional** sections are present when they add value; absent
+  otherwise. No rationale needed.
+
+A minimal ADR (Required only, all Recommended omitted-with-rationale)
+fits in ~40 lines. A full ADR runs ~200+. Choose the shape that
+matches the decision's substance, not the template's habit.
+
 ---
 
-## Status
+## Status &nbsp; <sub>**REQUIRED**</sub>
 
 - **Proposed** | **Accepted** | **Rejected** | **Deprecated** | **Superseded by ADR-NNNN**
 - **Date:** YYYY-MM-DD (accept date, not propose date)
@@ -21,7 +39,7 @@ sequential NNNN.
   approval is required per CLAUDE.md Hard Rules)
 - **Consulted:** <SMEs, external experts, documents>
 
-## Context and problem statement
+## Context and problem statement &nbsp; <sub>**REQUIRED**</sub>
 
 Two paragraphs max. What situation forces a decision? What is
 being optimised for? What constraints are in play (requirement,
@@ -36,20 +54,23 @@ Cite:
 - The prior-art artifact if one exists
   (`docs/prior-art/<task-id>.md`)
 
-## Decision drivers
+## Decision drivers &nbsp; <sub>**RECOMMENDED**</sub>
 
 What makes this decision non-trivial. Each driver is a one-line
-constraint or priority.
+constraint or priority. *Omit-with-rationale acceptable for trivial
+decisions (e.g., naming convention, tooling pin).*
 
 - <driver 1>
 - <driver 2>
 
-## Considered options (Three-Path Rule, binding)
+## Considered options (Three-Path Rule, binding) &nbsp; <sub>**REQUIRED**</sub>
 
 **Three named alternatives are required**, not one recommendation
 disguised as alternatives. Forces divergent thinking and documents
 the road not taken, for future auditors. Per upstream issue #33
-and `docs/proposals/workflow-redesign-v0.12.md` §4.2.
+and `docs/proposals/workflow-redesign-v0.12.md` §4.2. The
+Three-Path Rule is **binding** and stays Required even on minimal
+ADRs — never omit-with-rationale.
 
 ### Option M — Minimalist
 
@@ -101,13 +122,13 @@ are the safe pair; Creative is the provocation. Do not omit
 Creative as "obviously not"; its purpose is to make the team
 name the constraint that rejects it.
 
-## Decision outcome
+## Decision outcome &nbsp; <sub>**REQUIRED**</sub>
 
 **Chosen option:** M | S | C
 **Reason:** one-paragraph justification keyed to the decision
 drivers above. Why this option wins against the other two.
 
-## Consequences
+## Consequences &nbsp; <sub>**RECOMMENDED**</sub>
 
 ### Positive
 - <what this enables>
@@ -115,10 +136,10 @@ drivers above. Why this option wins against the other two.
 ### Negative / trade-offs accepted
 - <what this costs>
 
-### Follow-up ADRs
+### Follow-up ADRs &nbsp; <sub>*OPTIONAL*</sub>
 - <ADR-NNN — title — reason this decision triggers a downstream one>
 
-## Verification
+## Verification &nbsp; <sub>**RECOMMENDED**</sub>
 
 How we'll know the decision was right / wrong:
 
@@ -129,7 +150,10 @@ How we'll know the decision was right / wrong:
 - **Review cadence:** <when this ADR is re-examined; session-
   anchored per `CLAUDE.md` § "Time-based cadences">
 
-## Links
+*Omit-with-rationale acceptable when the decision has no measurable
+post-hoc signal (e.g., a naming convention).*
+
+## Links &nbsp; <sub>*OPTIONAL*</sub>
 
 - Task: `docs/tasks/<T-NNNN>.md`
 - Prior-art: `docs/prior-art/<T-NNNN>.md` (if applicable)
