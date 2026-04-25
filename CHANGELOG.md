@@ -16,6 +16,83 @@ filed upstream include that version.
 
 ---
 
+## v0.14.4 — 2026-04-25 (PATCH bundle)
+
+Three fixes for upgrade-flow ergonomics surfaced by downstream
+project (QuackS7) reports.
+
+### Fixed
+
+- **#63 root cause — `upgrade.sh` self-bootstrap.** v0.14.3's
+  atomic-install only protected v0.14.3+ runs; projects upgrading
+  *from* v0.13.x or v0.14.0–v0.14.2 still ran their old buggy
+  `upgrade.sh` first and hit the inode mutation. v0.14.4 adds a
+  bootstrap step at the top of `upgrade.sh`: clone upstream, check
+  if `scripts/upgrade.sh` or `scripts/lib/manifest.sh` differs
+  from local, atomically install upstream's versions, and `exec`
+  the new script. The old process is replaced before any sync
+  runs. After bootstrap (`SWDT_BOOTSTRAPPED=1` env var), the
+  re-execed instance reuses the already-cloned `WORKDIR_NEW`
+  via `SWDT_PRESTAGED_WORKDIR`. Note: this fix takes effect
+  *from v0.14.4 forward*. Projects on older versions still need
+  the one-time recovery procedure documented in v0.14.3's
+  CHANGELOG (curl + replace `scripts/upgrade.sh`); after that one
+  manual upgrade lands v0.14.4's `upgrade.sh`, every subsequent
+  upgrade self-bootstraps cleanly.
+- **#64 — agent `name:` rename produces false-positive
+  conflicts.** Step 3 of FIRST ACTIONS encourages projects to
+  give each agent a teammate name (`name: kermit`, etc.). The
+  3-way file compare in `upgrade.sh` treated this as a
+  customization, so every standard agent got flagged as a
+  conflict on every upgrade — even when 12/13 agent files were
+  byte-identical to upstream. **Fix:** `agent_cmp` helper
+  ignores the `name:` line for `.claude/agents/<canonical>.md`
+  files; `agent_splice_name` re-applies the project's name line
+  after an in-place upgrade so the rename survives. Projects
+  with muppet-named teammates now see only the agents that
+  actually changed in upstream as conflicts.
+- **#65 — project-content stubs flagged forever.**
+  `scripts/scaffold.sh` now pre-populates `.template-customizations`
+  with the canonical stub-fill paths (`CUSTOMER_NOTES.md`,
+  `docs/OPEN_QUESTIONS.md`, `docs/AGENT_NAMES.md`,
+  `docs/glossary/PROJECT.md`, `.gitignore`, `README.md`). New
+  projects get the right behaviour from first scaffold; existing
+  projects upgrading to v0.14.4 get a `migrations/v0.14.4.sh`
+  that appends any missing canonical entries to their existing
+  `.template-customizations` (idempotent — skips entries already
+  present).
+
+### Smoke-test additions
+
+6 new assertions verify each stub-fill is in the scaffolded
+project's `.template-customizations`. Total: **69 passes / 0
+failures**.
+
+### Note for projects on v0.13.x / v0.14.0–v0.14.2
+
+The recovery procedure from v0.14.3's CHANGELOG still applies for
+the first upgrade hop:
+
+```
+curl -fsSL https://raw.githubusercontent.com/occamsshavingkit/sw-dev-team-template/v0.14.4/scripts/upgrade.sh \
+  -o scripts/upgrade.sh
+bash scripts/upgrade.sh
+```
+
+After that one manual upgrade, the project lands v0.14.4's
+self-bootstrapping `upgrade.sh`. Every future upgrade self-
+bootstraps cleanly — no further manual intervention.
+
+### Deferred
+
+- **#66 — `docs/INDEX.md` hybrid template/project content.**
+  Design decision (split files vs HTML fences) — v0.15.0.
+- **#67 — Framework ADR namespace collision.** Design decision
+  (FW-ADR-NNNN prefix vs separate directory vs reserved range)
+  — v0.15.0.
+
+---
+
 ## v0.14.3 — 2026-04-25 (PATCH bundle)
 
 `scripts/upgrade.sh` now syncs files atomically (stage to `.tmp.$$`,
