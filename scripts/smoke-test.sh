@@ -247,6 +247,10 @@ if timeout 5 git ls-remote --tags --refs "$probe_url" >/dev/null 2>&1; then
   post_verify_rc=$(run_capture "$tmp/post-upgrade-verify.log" \
                    bash -c "cd '$target' && bash '$repo_root/scripts/upgrade.sh' --verify")
   check "upgrade.sh --verify clean after one upgrade run"   bash -c "[ $post_verify_rc -eq 0 ]"
+
+  # v0.14.3 / issue #63: atomic_install via tmp+mv must not leave
+  # stale .tmp.* files after upgrade.
+  check "no stale .tmp.* files after upgrade"               bash -c "[ \"\$(find '$target' -name '*.tmp.*' 2>/dev/null | wc -l)\" -eq 0 ]"
 else
   echo "  SKIP: upgrade (upstream unreachable)"
 fi

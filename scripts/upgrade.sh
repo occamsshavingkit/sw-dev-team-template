@@ -225,6 +225,28 @@ if [[ -f "$customizations_file" ]]; then
   done < "$customizations_file"
 fi
 
+# Atomic in-place replacement helper (issue #63).
+#
+# `cp src dst` truncates+rewrites dst in place, mutating the inode.
+# Catastrophic when dst is the *running* `scripts/upgrade.sh` (or any
+# other script bash is reading from) — bash reads from the open fd,
+# the file under that fd flips to new content mid-parse, parse errors
+# erupt at random offsets, sync loop aborts before stamping.
+#
+# Fix: stage to `dst.tmp`, then `mv` (rename-over). On the same
+# filesystem, `mv` is atomic and changes the inode — bash's open fd
+# continues pointing at the original inode (now unlinked but still
+# resident), the running script finishes cleanly. The next invocation
+# picks up the new inode.
+#
+# Always same-filesystem: tmp lives next to dst.
+atomic_install() {
+  local src="$1"
+  local dst="$2"
+  cp "$src" "$dst.tmp.$$"
+  mv "$dst.tmp.$$" "$dst"
+}
+
 added=(); upgraded=(); kept=(); conflicts=(); preserved=()
 
 for f in $ship_files; do
@@ -241,7 +263,7 @@ for f in $ship_files; do
     added+=("$f")
     if [[ $dry_run -eq 0 ]]; then
       mkdir -p "$(dirname "$proj_path")"
-      cp "$new_path" "$proj_path"
+      atomic_install "$new_path" "$proj_path"
     fi
     continue
   fi
@@ -253,7 +275,7 @@ for f in $ship_files; do
       # Unchanged since scaffold — safe to overwrite.
       if ! cmp -s "$new_path" "$proj_path"; then
         upgraded+=("$f")
-        [[ $dry_run -eq 0 ]] && cp "$new_path" "$proj_path"
+        [[ $dry_run -eq 0 ]] && atomic_install "$new_path" "$proj_path"
       fi
       continue
     fi
