@@ -239,6 +239,14 @@ if timeout 5 git ls-remote --tags --refs "$probe_url" >/dev/null 2>&1; then
   post_version="$(head -1 "$target/TEMPLATE_VERSION" | tr -d '[:space:]')"
   check "TEMPLATE_VERSION matches current VERSION after upgrade ($expected_version)" \
     bash -c "[ '$post_version' = '$expected_version' ]"
+
+  # ADR-0002 / v0.14.2: TEMPLATE_MANIFEST.lock should exist + verify clean
+  # immediately after a single upgrade run, no manual regen needed.
+  # This exercises migrations/v0.14.0.sh's predicted-post-sync logic.
+  check "TEMPLATE_MANIFEST.lock present after upgrade"      test -f "$target/TEMPLATE_MANIFEST.lock"
+  post_verify_rc=$(run_capture "$tmp/post-upgrade-verify.log" \
+                   bash -c "cd '$target' && bash '$repo_root/scripts/upgrade.sh' --verify")
+  check "upgrade.sh --verify clean after one upgrade run"   bash -c "[ $post_verify_rc -eq 0 ]"
 else
   echo "  SKIP: upgrade (upstream unreachable)"
 fi
