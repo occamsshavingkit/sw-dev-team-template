@@ -210,6 +210,19 @@ for how to file framework gaps back upstream.
 Template version is recorded in \`TEMPLATE_VERSION\`.
 EOF
 
+# --- Write TEMPLATE_MANIFEST.lock + self-verify ------------------------------
+# Per ADR-0002. Captures per-file SHA256 of every shipped file at scaffold
+# time so future `scripts/upgrade.sh --verify` runs can detect drift.
+# Self-verify immediately after write — fail-fast on a corrupt scaffold.
+# shellcheck source=lib/manifest.sh
+source "$(dirname "$0")/lib/manifest.sh"
+manifest_write "$target" "$target/TEMPLATE_MANIFEST.lock"
+if ! manifest_verify "$target" "$target/TEMPLATE_MANIFEST.lock" >/dev/null; then
+  echo "ERROR: scaffold-time manifest self-verify failed at $target" >&2
+  echo "  This is a scaffold bug — the manifest does not match the files just written." >&2
+  exit 1
+fi
+
 # --- Init git (no initial commit; let the project owner do that) -------------
 (
   cd "$target"

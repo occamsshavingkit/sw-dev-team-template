@@ -25,6 +25,40 @@
 
 set -euo pipefail
 
+usage() {
+  cat <<'EOF'
+Usage: scripts/upgrade.sh [--dry-run | --verify | --help]
+
+  --dry-run    Print the upgrade plan; change nothing.
+  --verify     Verify project files match TEMPLATE_MANIFEST.lock.
+               No network. Exit codes: 0 clean, 1 drift, 2 missing
+               manifest, 3 corrupt manifest. (ADR-0002, v0.14.0+)
+  --help, -h   Print this help and exit.
+
+With no flag, run the full upgrade. The script:
+  - Clones the upstream template into a workdir.
+  - Runs per-version migrations between TEMPLATE_VERSION and the
+    upstream tag, in order.
+  - Per shipped file, classifies as: added / upgraded / kept (project
+    customisation wins) / conflict (both customised — flagged for
+    human review).
+  - Stamps the new TEMPLATE_VERSION and rewrites
+    TEMPLATE_MANIFEST.lock on success.
+
+Files listed in .template-customizations are skipped entirely (also
+omitted from the manifest).
+sme-<domain>.md agents and docs/pm/* artefacts are project-owned;
+they are never overwritten.
+
+See docs/INDEX.md for related upgrade contracts (scaffold.sh,
+version-check.sh, migrations/README.md).
+EOF
+}
+
+# Manifest helpers (ADR-0002, v0.14.0).
+# shellcheck source=lib/manifest.sh
+source "$(dirname "$0")/lib/manifest.sh"
+
 upstream="https://github.com/occamsshavingkit/sw-dev-team-template"
 if [[ -n "${GH_TOKEN:-}" ]]; then
   upstream_auth="https://${GH_TOKEN}@github.com/occamsshavingkit/sw-dev-team-template"
@@ -34,8 +68,17 @@ fi
 project_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 tv="$project_root/TEMPLATE_VERSION"
 
+# Argument parsing (issue #58 — --help / unknown flags should print
+# usage, not run an upgrade). --verify per ADR-0002.
 dry_run=0
-[[ "${1:-}" == "--dry-run" ]] && dry_run=1
+verify_mode=0
+case "${1:-}" in
+  "")              ;;
+  "--dry-run")     dry_run=1 ;;
+  "--verify")      verify_mode=1 ;;
+  "--help"|"-h")   usage; exit 0 ;;
+  *)               echo "ERROR: unknown flag: $1" >&2; echo >&2; usage >&2; exit 2 ;;
+esac
 
 if [[ ! -f "$tv" ]]; then
   echo "ERROR: no TEMPLATE_VERSION at project root. Not a scaffolded project?" >&2
@@ -44,6 +87,14 @@ fi
 
 local_version="$(head -1 "$tv" | tr -d '[:space:]')"
 local_sha="$(sed -n '2p' "$tv" | tr -d '[:space:]')"
+
+# Verify mode short-circuits before clone — no network needed.
+# (ADR-0002.)
+if [[ $verify_mode -eq 1 ]]; then
+  rc=0
+  manifest_verify "$project_root" "$project_root/TEMPLATE_MANIFEST.lock" || rc=$?
+  exit "$rc"
+fi
 
 workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
@@ -58,8 +109,25 @@ new_version="$(cat "$workdir/new/VERSION" | tr -d '[:space:]')"
 new_sha="$(git -C "$workdir/new" rev-parse HEAD)"
 
 if [[ "$local_version" == "$new_version" ]]; then
-  echo "Template already at $local_version — nothing to do." >&2
-  exit 0
+  # Stamp matches upstream. Closes the #61 bug: do not short-circuit
+  # on stamp alone — verify the manifest first. If the manifest is
+  # present and clean, truly nothing to do. Otherwise drift exists
+  # (or the manifest is missing on a pre-v0.14.0 project that needs
+  # the migration), so fall through to the sync flow.
+  manifest_path="$project_root/TEMPLATE_MANIFEST.lock"
+  if [[ -f "$manifest_path" ]] \
+     && manifest_verify "$project_root" "$manifest_path" >/dev/null 2>&1; then
+    echo "Template already at $local_version — files match manifest, nothing to do." >&2
+    exit 0
+  fi
+  if [[ ! -f "$manifest_path" ]]; then
+    echo "WARN: stamp says $local_version but TEMPLATE_MANIFEST.lock is missing." >&2
+    echo "       Falling through to sync to (re)establish a manifest. (ADR-0002, #61)" >&2
+  else
+    echo "WARN: stamp says $local_version but file tree drifts from manifest." >&2
+    echo "       Falling through to sync to reconcile. (ADR-0002, #61)" >&2
+  fi
+  # Fall through to the sync flow below.
 fi
 
 # Clone the baseline (the version this project was scaffolded from) so we
@@ -211,6 +279,11 @@ $new_version
 $new_sha
 $(date -u +%Y-%m-%d)
 EOF
+
+  # Rewrite the per-file manifest to reflect the post-upgrade state.
+  # ADR-0002. Manifest captures the on-disk SHAs after sync; the next
+  # `--verify` checks for tamper/drift against this snapshot.
+  manifest_write "$project_root" "$project_root/TEMPLATE_MANIFEST.lock"
 fi
 
 # --- Report ------------------------------------------------------------------

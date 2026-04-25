@@ -29,6 +29,7 @@ if [[ ! -f VERSION || ! -x scripts/scaffold.sh ]]; then
   exit 1
 fi
 
+repo_root="$(pwd)"
 tmp="$(mktemp -d -t sw-dev-smoke-XXXXXX)"
 trap 'if [[ $keep -eq 0 ]]; then rm -rf "$tmp"; else echo "(kept $tmp for inspection)" >&2; fi' EXIT
 
@@ -92,6 +93,69 @@ expected_version="$(cat VERSION | tr -d '[:space:]')"
 actual_version="$(head -1 "$target/TEMPLATE_VERSION" | tr -d '[:space:]')"
 check "TEMPLATE_VERSION matches current VERSION ($expected_version)" \
   bash -c "[ '$actual_version' = '$expected_version' ]"
+
+echo "-- manifest (ADR-0002, v0.14.0+) --"
+check "TEMPLATE_MANIFEST.lock exists after scaffold"      test -f "$target/TEMPLATE_MANIFEST.lock"
+check "manifest header carries the ADR-0002 marker"       bash -c "head -1 '$target/TEMPLATE_MANIFEST.lock' | grep -q 'ADR-0002'"
+check "manifest is non-empty (>= 10 entries)"             bash -c "[ \"\$(grep -cv '^#' '$target/TEMPLATE_MANIFEST.lock')\" -ge 10 ]"
+check "TEMPLATE_MANIFEST.lock excluded from manifest"     bash -c "! grep -q ' TEMPLATE_MANIFEST\\.lock\$' '$target/TEMPLATE_MANIFEST.lock'"
+check "TEMPLATE_VERSION excluded from manifest"           bash -c "! grep -q ' TEMPLATE_VERSION\$' '$target/TEMPLATE_MANIFEST.lock'"
+
+# Helper: run a command capturing its exit code without tripping set -e.
+# The expected nonzero exits (drift=1, missing=2, corrupt=3, bogus=2)
+# would otherwise abort the smoke test under -e.
+run_capture() {
+  local _logfile="$1"; shift
+  local _rc=0
+  "$@" > "$_logfile" 2>&1 || _rc=$?
+  echo "$_rc"
+}
+
+# upgrade.sh --verify on a freshly scaffolded project should be clean (exit 0).
+verify_rc=$(run_capture "$tmp/verify-clean.log" \
+            bash -c "cd '$target' && bash '$repo_root/scripts/upgrade.sh' --verify")
+check "upgrade.sh --verify on fresh scaffold exits 0"     bash -c "[ $verify_rc -eq 0 ]"
+check "verify reports OK"                                 bash -c "grep -q '^OK:' '$tmp/verify-clean.log'"
+
+# Perturb a file; verify should detect drift (exit 1).
+echo "  // smoke-test perturbation" >> "$target/CLAUDE.md"
+drift_rc=$(run_capture "$tmp/verify-drift.log" \
+           bash -c "cd '$target' && bash '$repo_root/scripts/upgrade.sh' --verify")
+check "verify detects drift after perturbation (exit 1)"  bash -c "[ $drift_rc -eq 1 ]"
+check "drift report names the perturbed file"             bash -c "grep -q '^drift:.*CLAUDE\\.md' '$tmp/verify-drift.log'"
+
+# Restore (truncate the trailing line we added).
+head -n -1 "$target/CLAUDE.md" > "$tmp/claude.tmp" && mv "$tmp/claude.tmp" "$target/CLAUDE.md"
+restore_rc=$(run_capture "$tmp/verify-restore.log" \
+             bash -c "cd '$target' && bash '$repo_root/scripts/upgrade.sh' --verify")
+check "verify clean again after restore (exit 0)"         bash -c "[ $restore_rc -eq 0 ]"
+
+# Missing manifest should yield exit 2.
+mv "$target/TEMPLATE_MANIFEST.lock" "$tmp/manifest-stash"
+missing_rc=$(run_capture "$tmp/verify-missing.log" \
+             bash -c "cd '$target' && bash '$repo_root/scripts/upgrade.sh' --verify")
+check "verify with no manifest exits 2"                   bash -c "[ $missing_rc -eq 2 ]"
+mv "$tmp/manifest-stash" "$target/TEMPLATE_MANIFEST.lock"
+
+# Corrupt manifest (mangled SHA on the first non-comment line) → exit 3.
+cp "$target/TEMPLATE_MANIFEST.lock" "$tmp/manifest-pristine"
+sed -i '/^[a-f0-9]\{64\}  /{s/^.\{20\}/SHORT/;:done;n;b done}' "$target/TEMPLATE_MANIFEST.lock"
+corrupt_rc=$(run_capture "$tmp/verify-corrupt.log" \
+             bash -c "cd '$target' && bash '$repo_root/scripts/upgrade.sh' --verify")
+check "verify with corrupt manifest exits 3"              bash -c "[ $corrupt_rc -eq 3 ]"
+cp "$tmp/manifest-pristine" "$target/TEMPLATE_MANIFEST.lock"
+
+# upgrade.sh --help should print usage and exit 0 (issue #58).
+help_rc=$(run_capture "$tmp/upgrade-help.log" \
+          bash "$repo_root/scripts/upgrade.sh" --help)
+check "upgrade.sh --help exits 0"                         bash -c "[ $help_rc -eq 0 ]"
+check "upgrade.sh --help prints Usage"                    bash -c "grep -q '^Usage:' '$tmp/upgrade-help.log'"
+
+# upgrade.sh with unknown flag should exit 2 with error + usage.
+bogus_rc=$(run_capture "$tmp/upgrade-bogus.log" \
+           bash "$repo_root/scripts/upgrade.sh" --no-such-flag)
+check "upgrade.sh with unknown flag exits 2"              bash -c "[ $bogus_rc -eq 2 ]"
+check "upgrade.sh unknown-flag prints ERROR"              bash -c "grep -q '^ERROR: unknown flag' '$tmp/upgrade-bogus.log'"
 
 echo "-- version-check (scaffolded project should be up-to-date) --"
 # Run version-check in the scaffolded project. It requires network — if unavailable,

@@ -65,13 +65,49 @@ fi
 local_version="$(head -1 "$tv" 2>/dev/null | tr -d '[:space:]')"
 
 # Short timeout — don't stall the session on flaky network.
-latest_tag="$(timeout 5 git ls-remote --tags --refs "$upstream_auth" 2>/dev/null \
-               | awk '{print $2}' | sed 's|refs/tags/||' \
-               | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$' \
-               | sort -V | tail -1)"
+all_tags="$(timeout 5 git ls-remote --tags --refs "$upstream_auth" 2>/dev/null \
+             | awk '{print $2}' | sed 's|refs/tags/||' \
+             | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$' \
+             | sort -V)"
+
+if [[ -z "$all_tags" ]]; then
+  # Network failed or upstream returned nothing. Don't nag.
+  exit 0
+fi
+
+# Pre-release gating (issue #60).
+#
+# Pre-release tags (e.g., v1.0.0-rc2) sort higher than the most-recent
+# stable on lower majors but may be withdrawn or experimental. A
+# project on a stable release should not be nudged toward a higher-
+# major pre-release just because the tag exists. Filter:
+#
+#   - Local is stable (no -suffix) → consider only stable tags.
+#   - Local is pre-release         → consider all tags (stay on the
+#                                    pre-release track until the user
+#                                    bumps to stable).
+#
+# This avoids the false-positive where a withdrawn pre-release
+# (e.g., v1.0.0-rc2) keeps surfacing on every session start of a
+# stable v0.x.y project.
+is_local_prerelease=0
+[[ "$local_version" == *-* ]] && is_local_prerelease=1
+
+if [[ $is_local_prerelease -eq 0 ]]; then
+  candidates="$(echo "$all_tags" | grep -vE -- '-[A-Za-z0-9.]+$' || true)"
+else
+  candidates="$all_tags"
+fi
+
+if [[ -z "$candidates" ]]; then
+  # Only pre-release tags exist upstream and the project is on a
+  # stable. Don't suggest a downgrade or a cross-track jump; stay quiet.
+  exit 0
+fi
+
+latest_tag="$(echo "$candidates" | tail -1)"
 
 if [[ -z "$latest_tag" ]]; then
-  # Network failed or upstream returned nothing. Don't nag.
   exit 0
 fi
 
