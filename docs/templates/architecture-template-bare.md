@@ -1,5 +1,24 @@
 # Architecture — <project name>
 
+<!-- TOC -->
+
+- [SDD viewpoint mapping](#sdd-viewpoint-mapping)
+- [1. Introduction and goals](#1-introduction-and-goals)
+- [2. Constraints](#2-constraints)
+- [3. Context (C4 level 1)](#3-context-c4-level-1)
+- [4. Solution strategy](#4-solution-strategy)
+- [5. Container view (C4 level 2)](#5-container-view-c4-level-2)
+- [6. Component view (C4 level 3)](#6-component-view-c4-level-3)
+- [7. Runtime view](#7-runtime-view)
+- [8. Deployment view](#8-deployment-view)
+- [9. Cross-cutting concepts](#9-cross-cutting-concepts)
+- [10. Architecture decisions (index)](#10-architecture-decisions-index)
+- [11. Quality requirements (trade-off scenarios)](#11-quality-requirements-trade-off-scenarios)
+- [12. Risks and technical debt](#12-risks-and-technical-debt)
+- [13. Glossary delta](#13-glossary-delta)
+
+<!-- /TOC -->
+
 Bare variant per FW-ADR-0003. For fluent authors and agents. The
 guided variant at `architecture-template.md` carries the prose; this
 file carries the structure only. Synchronisation rule: heading sets

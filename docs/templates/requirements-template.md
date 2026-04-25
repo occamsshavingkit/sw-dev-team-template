@@ -1,5 +1,20 @@
 # Requirements — <project name>
 
+<!-- TOC -->
+
+- [1. Introduction](#1-introduction)
+- [2. Stakeholders and their concerns](#2-stakeholders-and-their-concerns)
+- [3. System context](#3-system-context)
+- [4. Functional requirements](#4-functional-requirements)
+  - [FR-0001 — <one-line title>](#fr-0001-one-line-title)
+- [5. Non-functional requirements (quality attributes)](#5-non-functional-requirements-quality-attributes)
+  - [NFR-0001 — <characteristic>: <one-line title>](#nfr-0001-characteristic-one-line-title)
+- [6. Constraints](#6-constraints)
+- [7. Traceability matrix](#7-traceability-matrix)
+- [8. Change log](#8-change-log)
+
+<!-- /TOC -->
+
 Shaped after ISO/IEC/IEEE 29148:2018. Terms are binding per
 `docs/glossary/ENGINEERING.md` and `docs/glossary/PROJECT.md`. Each
 requirement is uniquely identified, testable, traceable, and owns at

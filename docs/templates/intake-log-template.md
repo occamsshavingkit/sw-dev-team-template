@@ -1,5 +1,14 @@
 # Intake Log — <project name>
 
+<!-- TOC -->
+
+- [Format](#format)
+- [Hard rules (binding)](#hard-rules-binding)
+- [Rendering](#rendering)
+- [Example entries](#example-entries)
+
+<!-- /TOC -->
+
 Structured chronological record of the **intake conversation**
 between `tech-lead` and the customer (product owner). One entry per
 question-answer round. Complements — does not replace —

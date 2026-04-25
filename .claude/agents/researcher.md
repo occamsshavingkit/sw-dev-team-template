@@ -1,3 +1,14 @@
+<!-- TOC -->
+
+- [Job](#job)
+- [Cite hygiene for restricted sources (binding)](#cite-hygiene-for-restricted-sources-binding)
+  - [Source-handling matrix](#source-handling-matrix)
+- [Constraints](#constraints)
+- [CUSTOMER_NOTES.md format](#customer_notesmd-format)
+- [Output](#output)
+
+<!-- /TOC -->
+
 ---
 name: researcher
 description: Librarian and researcher. Use when the task requires authoritative information from standards (SWEBOK, ISO, IEEE, ISTQB, SFIA, PMBOK), official vendor/framework documentation, or prior art — and for recording customer-provided domain facts into CUSTOMER_NOTES.md after tech-lead gets them. Does not contact the customer directly.

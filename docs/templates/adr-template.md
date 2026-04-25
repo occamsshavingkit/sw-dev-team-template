@@ -1,5 +1,25 @@
 # ADR-NNNN — <short title>
 
+<!-- TOC -->
+
+- [Section discipline (per FW-ADR-0006)](#section-discipline-per-fw-adr-0006)
+- [Status &nbsp; <sub>**REQUIRED**</sub>](#status-nbsp-subrequiredsub)
+- [Context and problem statement &nbsp; <sub>**REQUIRED**</sub>](#context-and-problem-statement-nbsp-subrequiredsub)
+- [Decision drivers &nbsp; <sub>**RECOMMENDED**</sub>](#decision-drivers-nbsp-subrecommendedsub)
+- [Considered options (Three-Path Rule, binding) &nbsp; <sub>**REQUIRED**</sub>](#considered-options-three-path-rule-binding-nbsp-subrequiredsub)
+  - [Option M — Minimalist](#option-m-minimalist)
+  - [Option S — Scalable](#option-s-scalable)
+  - [Option C — Creative (experimental)](#option-c-creative-experimental)
+- [Decision outcome &nbsp; <sub>**REQUIRED**</sub>](#decision-outcome-nbsp-subrequiredsub)
+- [Consequences &nbsp; <sub>**RECOMMENDED**</sub>](#consequences-nbsp-subrecommendedsub)
+  - [Positive](#positive)
+  - [Negative / trade-offs accepted](#negative-trade-offs-accepted)
+  - [Follow-up ADRs &nbsp; <sub>*OPTIONAL*</sub>](#follow-up-adrs-nbsp-suboptionalsub)
+- [Verification &nbsp; <sub>**RECOMMENDED**</sub>](#verification-nbsp-subrecommendedsub)
+- [Links &nbsp; <sub>*OPTIONAL*</sub>](#links-nbsp-suboptionalsub)
+
+<!-- /TOC -->
+
 Shape per MADR 3.0 (Markdown Architecture Decision Records;
 `https://adr.github.io/madr/`), adapted to this template's
 Three-Path Rule (upstream issue #33). Owned by `architect`;

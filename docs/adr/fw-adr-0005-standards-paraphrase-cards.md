@@ -1,5 +1,24 @@
 # FW-ADR-0005 — Standards paraphrase cards (single source for IEEE/ISO citations)
 
+<!-- TOC -->
+
+- [Status](#status)
+- [Context and problem statement](#context-and-problem-statement)
+- [Decision drivers](#decision-drivers)
+- [Considered options (Three-Path Rule, binding)](#considered-options-three-path-rule-binding)
+  - [Option M — Minimalist: status quo, accept duplication](#option-m-minimalist-status-quo-accept-duplication)
+  - [Option S — Scalable: extract paraphrases into a single cards file](#option-s-scalable-extract-paraphrases-into-a-single-cards-file)
+  - [Option C — Creative: paraphrase-as-code with structured frontmatter](#option-c-creative-paraphrase-as-code-with-structured-frontmatter)
+- [Decision outcome](#decision-outcome)
+- [Consequences](#consequences)
+  - [Positive](#positive)
+  - [Negative / trade-offs accepted](#negative-trade-offs-accepted)
+  - [Follow-up ADRs](#follow-up-adrs)
+- [Verification](#verification)
+- [Links](#links)
+
+<!-- /TOC -->
+
 Shape per MADR 3.0 + this template's Three-Path Rule
 (`docs/templates/adr-template.md`).
 

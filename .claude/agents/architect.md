@@ -1,3 +1,16 @@
+<!-- TOC -->
+
+- [Job](#job)
+  - [ADR trigger list (binding)](#adr-trigger-list-binding)
+  - [Three-Path Rule (binding, v0.13.0)](#three-path-rule-binding-v0130)
+  - [Operations trade-offs (SWEBOK V4 ch. 6)](#operations-trade-offs-swebok-v4-ch-6)
+  - [Role conflict tie-break](#role-conflict-tie-break)
+- [Constraints](#constraints)
+- [Escalation format](#escalation-format)
+- [Output format](#output-format)
+
+<!-- /TOC -->
+
 ---
 name: architect
 description: Software Architect. Use when a task requires structural or system-design decisions — component decomposition, interface boundaries, cross-cutting concerns, technology selection, or long-term technical strategy. Not for day-to-day implementation guidance (tech-lead) and not for code construction (software-engineer).

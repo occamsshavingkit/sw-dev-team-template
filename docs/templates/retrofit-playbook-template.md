@@ -1,5 +1,48 @@
 # Retrofit Playbook — adopting `sw-dev-team-template` into an existing codebase
 
+<!-- TOC -->
+
+- [1. Scope and pinned flow](#1-scope-and-pinned-flow)
+  - [1.1 In scope](#11-in-scope)
+  - [1.2 Out of scope](#12-out-of-scope)
+  - [1.3 Preconditions (binding)](#13-preconditions-binding)
+- [2. Decision record — scaffold-first vs in-place (pinned)](#2-decision-record-scaffold-first-vs-in-place-pinned)
+  - [2.1 The three adoption paths](#21-the-three-adoption-paths)
+  - [2.2 Side-by-side vs in-place — the explicit ruling](#22-side-by-side-vs-in-place-the-explicit-ruling)
+  - [2.3 `scripts/repair-in-place.sh` is not a retrofit tool](#23-scriptsrepair-in-placesh-is-not-a-retrofit-tool)
+  - [2.4 Interstitial cases](#24-interstitial-cases)
+- [3. Hard rules specific to retrofit](#3-hard-rules-specific-to-retrofit)
+- [4. Roles and stage order](#4-roles-and-stage-order)
+  - [4.1 Pre-flight — readiness triage](#41-pre-flight-readiness-triage)
+  - [4.2 Stage A — `onboarding-auditor` inventory](#42-stage-a-onboarding-auditor-inventory)
+  - [4.3 Stage B — `researcher` IP triage](#43-stage-b-researcher-ip-triage)
+  - [4.4 Stage C — `architect` structural migration plan](#44-stage-c-architect-structural-migration-plan)
+  - [4.5 Stage D — `project-manager` charter reconstruction](#45-stage-d-project-manager-charter-reconstruction)
+  - [4.6 Stage E — `software-engineer` execution, `code-reviewer` gate (+ conditional `security-engineer`)](#46-stage-e-software-engineer-execution-code-reviewer-gate-conditional-security-engineer)
+  - [4.7 Stage F — `project-manager` ticket migration (optional)](#47-stage-f-project-manager-ticket-migration-optional)
+- [5. Stage gates](#5-stage-gates)
+- [6. Decision matrix — per-artifact outcomes](#6-decision-matrix-per-artifact-outcomes)
+- [7. Handling pre-existing conventions that conflict with template defaults](#7-handling-pre-existing-conventions-that-conflict-with-template-defaults)
+  - [7.1 Default: migrate to template conventions](#71-default-migrate-to-template-conventions)
+  - [7.2 Exception: pin source convention via ADR](#72-exception-pin-source-convention-via-adr)
+  - [7.3 Conflicts requiring escalation (not ADR-able)](#73-conflicts-requiring-escalation-not-adr-able)
+- [8. IP triage protocol](#8-ip-triage-protocol)
+  - [8.1 Nested sibling git repositories (issue #53)](#81-nested-sibling-git-repositories-issue-53)
+- [9. Migration of existing issues / tickets](#9-migration-of-existing-issues-tickets)
+- [10. Register population — summary](#10-register-population-summary)
+- [11. `docs/retrofit/` directory](#11-docsretrofit-directory)
+- [12. Rollback plan](#12-rollback-plan)
+  - [12.1 Stall detection](#121-stall-detection)
+  - [12.2 Continue](#122-continue)
+  - [12.3 Pivot](#123-pivot)
+  - [12.4 Roll back](#124-roll-back)
+- [13. Anti-patterns](#13-anti-patterns)
+- [14. Exit criteria / Definition of Done](#14-exit-criteria-definition-of-done)
+- [15. Related artifacts](#15-related-artifacts)
+- [16. Change log](#16-change-log)
+
+<!-- /TOC -->
+
 **Introduced in:** v0.13.0 (MINOR; additive — introduces
 `docs/templates/retrofit-playbook-template.md` and amends
 `tech-lead.md` routing).

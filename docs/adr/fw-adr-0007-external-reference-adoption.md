@@ -1,5 +1,24 @@
 # FW-ADR-0007 — External reference adoption (LIB-0015 through LIB-0018)
 
+<!-- TOC -->
+
+- [Status](#status)
+- [Context and problem statement](#context-and-problem-statement)
+- [Decision drivers](#decision-drivers)
+- [Considered options (Three-Path Rule, binding)](#considered-options-three-path-rule-binding)
+  - [Option M — Minimalist: cite by URL inline; no INVENTORY rows](#option-m-minimalist-cite-by-url-inline-no-inventory-rows)
+  - [Option S — Scalable: add LIB-0015 through LIB-0018 with URL-only shape](#option-s-scalable-add-lib-0015-through-lib-0018-with-url-only-shape)
+  - [Option C — Creative: separate URL-only register](#option-c-creative-separate-url-only-register)
+- [Decision outcome](#decision-outcome)
+- [Consequences](#consequences)
+  - [Positive](#positive)
+  - [Negative / trade-offs accepted](#negative-trade-offs-accepted)
+  - [Follow-up ADRs](#follow-up-adrs)
+- [Verification](#verification)
+- [Links](#links)
+
+<!-- /TOC -->
+
 Shape per MADR 3.0 + this template's Three-Path Rule
 (`docs/templates/adr-template.md`).
 

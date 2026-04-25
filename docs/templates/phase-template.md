@@ -1,5 +1,19 @@
 # Phase / Iteration — <identifier>
 
+<!-- TOC -->
+
+- [Identification](#identification)
+- [Entry criteria](#entry-criteria)
+- [Objectives](#objectives)
+- [Deliverables](#deliverables)
+- [V-model pairing (if applicable)](#v-model-pairing-if-applicable)
+- [Activities](#activities)
+- [Exit criteria](#exit-criteria)
+- [Gate review](#gate-review)
+- [Retrospective](#retrospective)
+
+<!-- /TOC -->
+
 Shaped after ISO/IEC/IEEE 12207:2017 life-cycle process structure. One
 phase (or iteration, if the project is iterative) per file. Terms are
 binding per `docs/glossary/ENGINEERING.md` (and `docs/glossary/PROJECT.md`

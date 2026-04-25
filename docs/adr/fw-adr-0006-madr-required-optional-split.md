@@ -1,5 +1,24 @@
 # FW-ADR-0006 — MADR required-vs-optional split in adr-template.md
 
+<!-- TOC -->
+
+- [Status](#status)
+- [Context and problem statement](#context-and-problem-statement)
+- [Decision drivers](#decision-drivers)
+- [Considered options (Three-Path Rule, binding)](#considered-options-three-path-rule-binding)
+  - [Option M — Minimalist: keep full-shape requirement](#option-m-minimalist-keep-full-shape-requirement)
+  - [Option S — Scalable: MADR required + project required + optional](#option-s-scalable-madr-required-project-required-optional)
+  - [Option C — Creative: ADR severity tiers](#option-c-creative-adr-severity-tiers)
+- [Decision outcome](#decision-outcome)
+- [Consequences](#consequences)
+  - [Positive](#positive)
+  - [Negative / trade-offs accepted](#negative-trade-offs-accepted)
+  - [Follow-up ADRs](#follow-up-adrs)
+- [Verification](#verification)
+- [Links](#links)
+
+<!-- /TOC -->
+
 Shape per MADR 3.0 + this template's Three-Path Rule
 (`docs/templates/adr-template.md`).
 

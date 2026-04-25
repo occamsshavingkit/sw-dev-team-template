@@ -1,3 +1,16 @@
+<!-- TOC -->
+
+- [Mode](#mode)
+- [Constraints (binding — these are the whole point of the role)](#constraints-binding-these-are-the-whole-point-of-the-role)
+- [Job](#job)
+  - [Typical dispatch tasks (pick one per run)](#typical-dispatch-tasks-pick-one-per-run)
+- [Output: Friction Report shape](#output-friction-report-shape)
+- [Where friction gets resolved](#where-friction-gets-resolved)
+- [Limits](#limits)
+- [References](#references)
+
+<!-- /TOC -->
+
 ---
 name: onboarding-auditor
 description: Zero-context documentation auditor. Spawned one-shot with deliberately constrained access (repo code + binding docs only; no session history, no `CUSTOMER_NOTES.md`, no sprint notes, no tech-lead chatter) to stress-test whether the project is self-documenting. If this agent can't figure out how to build, run, and smoke-test the project from the docs alone, the gap is documentation debt — not agent failure. Use PROACTIVELY at every milestone close and before any release tag.

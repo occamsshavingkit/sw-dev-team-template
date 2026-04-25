@@ -1,5 +1,29 @@
 # Roadmap — sw-dev-team-template
 
+<!-- TOC -->
+
+- [v0.13.0 — "Pipeline maturity + retrofit"](#v0130-pipeline-maturity-retrofit)
+  - [Scope (pinned)](#scope-pinned)
+  - [Scope (data-driven; lands if v0.12.0 usage reveals it)](#scope-data-driven-lands-if-v0120-usage-reveals-it)
+  - [Out of scope for v0.13.0](#out-of-scope-for-v0130)
+  - [Exit criteria (ready to tag)](#exit-criteria-ready-to-tag)
+- [v0.14.0 — "Breaking: customer → product-owner rename (#15)"](#v0140-breaking-customer-product-owner-rename-15)
+  - [Scope](#scope)
+  - [Exit criteria](#exit-criteria)
+  - [Out of scope for v0.14.0](#out-of-scope-for-v0140)
+- [v0.15.0 — "v1.0-rc re-entry prep"](#v0150-v10-rc-re-entry-prep)
+  - [Theme](#theme)
+  - [Scope](#scope)
+  - [Exit criteria](#exit-criteria)
+- [v1.0.0-rc3 — Contract stabilisation](#v100-rc3-contract-stabilisation)
+  - [Scope](#scope)
+  - [Explicitly deferred to post-1.0](#explicitly-deferred-to-post-10)
+- [Cross-release dependencies](#cross-release-dependencies)
+- [Out-of-band items](#out-of-band-items)
+- [Revision log](#revision-log)
+
+<!-- /TOC -->
+
 Forward-looking release plan. Authoritative source for what is
 scheduled into v0.13.0 / v0.14.0 / v0.15.0 and the criteria for
 re-entering the v1.0.0 release-candidate track.

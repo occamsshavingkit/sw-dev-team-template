@@ -1,5 +1,34 @@
 # Software Development Role Taxonomy — External Benchmark Reference
 
+<!-- TOC -->
+
+- [§1 Methodology + source list](#1-methodology-source-list)
+  - [Retrieval strategy](#retrieval-strategy)
+  - [Source-authority tiers](#source-authority-tiers)
+  - [Global sources](#global-sources)
+- [§2 Per-role canonical definitions](#2-per-role-canonical-definitions)
+  - [2.1 Software engineer / developer (implementation)](#21-software-engineer-developer-implementation)
+  - [2.2 QA engineer / test engineer (quality assurance)](#22-qa-engineer-test-engineer-quality-assurance)
+  - [2.3 Site reliability engineer / performance engineer (production behavior, optimization)](#23-site-reliability-engineer-performance-engineer-production-behavior-optimization)
+    - [2.3a Site Reliability Engineer (SRE)](#23a-site-reliability-engineer-sre)
+    - [2.3b Performance engineer](#23b-performance-engineer)
+  - [2.4 Software architect / technical lead (structural decisions)](#24-software-architect-technical-lead-structural-decisions)
+    - [2.4a Software architect](#24a-software-architect)
+    - [2.4b Tech lead (technical lead within a delivery team)](#24b-tech-lead-technical-lead-within-a-delivery-team)
+  - [2.4c Security engineer (software security ownership)](#24c-security-engineer-software-security-ownership)
+  - [2.5 Technical writer / documentation engineer (prose artifacts)](#25-technical-writer-documentation-engineer-prose-artifacts)
+  - [2.6 Domain SME / principal engineer (domain authority)](#26-domain-sme-principal-engineer-domain-authority)
+  - [2.7 Code reviewer / auditor (drift detection, traceability)](#27-code-reviewer-auditor-drift-detection-traceability)
+  - [2.8 Release engineer / build engineer (build-infra, toolchain)](#28-release-engineer-build-engineer-build-infra-toolchain)
+  - [2.9 Product / project planner (scope, phase planning, where distinct from architect)](#29-product-project-planner-scope-phase-planning-where-distinct-from-architect)
+- [§3 Cross-role boundary heatmap](#3-cross-role-boundary-heatmap)
+  - [Key overlap / conflict zones (anchor text for sam-eagle audit)](#key-overlap-conflict-zones-anchor-text-for-sam-eagle-audit)
+  - [Industry-framework resolution patterns](#industry-framework-resolution-patterns)
+- [§4 Mapping-crosswalk scaffold (sam-eagle populates)](#4-mapping-crosswalk-scaffold-sam-eagle-populates)
+- [§5 Known gaps in this taxonomy](#5-known-gaps-in-this-taxonomy)
+
+<!-- /TOC -->
+
 **Purpose:** External benchmark reference for sam-eagle's Task #22 audit of
 `.claude/agents/*.md`. Provides industry-canonical definitions of the SW-dev
 roles our team maps onto, drawn from authoritative sources (IEEE/ISO/IEC

@@ -1,5 +1,19 @@
 # Engineering Glossary (binding)
 
+<!-- TOC -->
+
+- [Structure and design](#structure-and-design)
+- [Requirements](#requirements)
+- [Work decomposition](#work-decomposition)
+- [Life cycle](#life-cycle)
+- [Testing and quality](#testing-and-quality)
+- [Operations](#operations)
+- [Roles and parties](#roles-and-parties)
+- [Risk and uncertainty](#risk-and-uncertainty)
+- [Intellectual property](#intellectual-property)
+
+<!-- /TOC -->
+
 Generic software-engineering vocabulary. Every agent and every human
 contributor MUST use these terms in these senses. Disagreement with a
 definition is resolved by amending this file (via `researcher` +

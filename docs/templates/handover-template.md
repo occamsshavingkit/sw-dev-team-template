@@ -1,5 +1,19 @@
 # Handover brief — `<teammate-name>` (`<canonical-role>`)
 
+<!-- TOC -->
+
+- [1. Who you are](#1-who-you-are)
+- [2. The project](#2-the-project)
+- [3. State of your work (as of last known-good turn)](#3-state-of-your-work-as-of-last-known-good-turn)
+- [4. Open questions assigned to you](#4-open-questions-assigned-to-you)
+- [5. Current blocker (if any)](#5-current-blocker-if-any)
+- [6. Decisions NOT to revisit](#6-decisions-not-to-revisit)
+- [7. Hand-off in flight](#7-hand-off-in-flight)
+- [8. Next concrete action](#8-next-concrete-action)
+- [9. First-turn customer message (tech-lead respawn only)](#9-first-turn-customer-message-tech-lead-respawn-only)
+
+<!-- /TOC -->
+
 **Generated:** YYYY-MM-DD HH:MM
 **Author:** `<agent-writing-the-brief>` (e.g., `tech-lead`, or
 `project-manager` when handing over tech-lead itself).

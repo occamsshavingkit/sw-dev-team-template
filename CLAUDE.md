@@ -1,5 +1,39 @@
 # Claude Code Project Guide
 
+<!-- TOC -->
+
+- [The human is the customer (and may also be an SME)](#the-human-is-the-customer-and-may-also-be-an-sme)
+- [Escalation protocol (strict)](#escalation-protocol-strict)
+- [Memory and orchestration tooling](#memory-and-orchestration-tooling)
+- [Scaffolding a new project](#scaffolding-a-new-project)
+- [Template version check + upgrade](#template-version-check-upgrade)
+  - [Per-version migrations](#per-version-migrations)
+- [FIRST ACTIONS — EVERY NEW SESSION](#first-actions-every-new-session)
+  - [Step 0 — Issue-feedback opt-in (atomic, asked FIRST)](#step-0-issue-feedback-opt-in-atomic-asked-first)
+  - [Step 1 — Skill packs](#step-1-skill-packs)
+  - [Step 2 — Project scoping + SME discovery](#step-2-project-scoping-sme-discovery)
+  - [Step 3 — Agent naming (optional but encouraged)](#step-3-agent-naming-optional-but-encouraged)
+    - [Step 3a — Category scope pin (before dispatching researcher)](#step-3a-category-scope-pin-before-dispatching-researcher)
+- [Template version stamp](#template-version-stamp)
+- [Agent roster](#agent-roster)
+- [Creating an SME agent](#creating-an-sme-agent)
+  - [SME scope: what is and is not an SME (binding)](#sme-scope-what-is-and-is-not-an-sme-binding)
+    - [Primary-source SME](#primary-source-sme)
+    - [Derivative SME](#derivative-sme)
+    - [What is still NOT an SME (either mode)](#what-is-still-not-an-sme-either-mode)
+- [Agent-teams panel](#agent-teams-panel)
+- [Tech-lead is the main-session persona (binding)](#tech-lead-is-the-main-session-persona-binding)
+- [Routing defaults](#routing-defaults)
+  - [Operations KA ownership (SWEBOK V4 ch. 6)](#operations-ka-ownership-swebok-v4-ch-6)
+- [Binding references](#binding-references)
+- [Standard document templates](#standard-document-templates)
+- [IP policy (non-negotiable)](#ip-policy-non-negotiable)
+- [Time-based cadences](#time-based-cadences)
+- [Hard rules](#hard-rules)
+- [Taxonomy discipline](#taxonomy-discipline)
+
+<!-- /TOC -->
+
 Multi-agent software-development workflow. Each canonical role from
 `SW_DEV_ROLE_TAXONOMY.md` (SWEBOK v3 / ISO 12207 / IEEE 1028 / ISTQB /
 SFIA v9 / Google SRE / PMBOK) has a dedicated subagent in `.claude/agents/`.

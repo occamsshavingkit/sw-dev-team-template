@@ -1,5 +1,23 @@
 # Architecture — <project name>
 
+<!-- TOC -->
+
+- [1. Introduction and goals](#1-introduction-and-goals)
+- [2. Constraints](#2-constraints)
+- [3. Context (C4 level 1)](#3-context-c4-level-1)
+- [4. Solution strategy](#4-solution-strategy)
+- [5. Container view (C4 level 2)](#5-container-view-c4-level-2)
+- [6. Component view (C4 level 3)](#6-component-view-c4-level-3)
+- [7. Runtime view](#7-runtime-view)
+- [8. Deployment view](#8-deployment-view)
+- [9. Cross-cutting concepts](#9-cross-cutting-concepts)
+- [10. Architecture decisions (index)](#10-architecture-decisions-index)
+- [11. Quality requirements (trade-off scenarios)](#11-quality-requirements-trade-off-scenarios)
+- [12. Risks and technical debt](#12-risks-and-technical-debt)
+- [13. Glossary delta](#13-glossary-delta)
+
+<!-- /TOC -->
+
 Shaped after ISO/IEC/IEEE 42010:2022 (Architecture description) and the
 arc42 template, with diagrams in the C4 model (Context / Container /
 Component / Code). Terms are binding per `docs/glossary/ENGINEERING.md`

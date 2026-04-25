@@ -1,5 +1,24 @@
 # FW-ADR-0001 — Context-memory strategy: adopt `claude-mem`, do not adopt `ruflo`-class orchestration frameworks
 
+<!-- TOC -->
+
+- [Status](#status)
+- [Context and problem statement](#context-and-problem-statement)
+- [Decision drivers](#decision-drivers)
+- [Considered options (Three-Path Rule, binding)](#considered-options-three-path-rule-binding)
+  - [Option M — Minimalist](#option-m-minimalist)
+  - [Option S — Scalable](#option-s-scalable)
+  - [Option C — Creative (experimental)](#option-c-creative-experimental)
+- [Decision outcome](#decision-outcome)
+- [Consequences](#consequences)
+  - [Positive](#positive)
+  - [Negative / trade-offs accepted](#negative-trade-offs-accepted)
+  - [Follow-up ADRs](#follow-up-adrs)
+- [Verification](#verification)
+- [Links](#links)
+
+<!-- /TOC -->
+
 Shape per MADR 3.0 adapted to this template's Three-Path Rule
 (upstream issue #33). This ADR is also the canonical worked example
 for `docs/templates/adr-template.md`.

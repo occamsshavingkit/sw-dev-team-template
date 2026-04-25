@@ -1,5 +1,22 @@
 # Proposal — <task-id>
 
+<!-- TOC -->
+
+- [1. Task reference](#1-task-reference)
+- [2. Chosen ADR path](#2-chosen-adr-path)
+- [3. Implementation sketch](#3-implementation-sketch)
+- [4. Dependencies touched](#4-dependencies-touched)
+- [5. Test plan outline](#5-test-plan-outline)
+- [6. Risks and mitigations](#6-risks-and-mitigations)
+- [7. Open questions](#7-open-questions)
+- [8. Duel](#8-duel)
+  - [8.1 Findings (`qa-engineer`)](#81-findings-qa-engineer)
+  - [8.2 Rebuttals / revisions (`software-engineer`)](#82-rebuttals-revisions-software-engineer)
+  - [8.3 Status](#83-status)
+- [9. Post-close](#9-post-close)
+
+<!-- /TOC -->
+
 Owned by `software-engineer`. Produced at workflow-pipeline stage 3
 for tasks whose trigger annotation fires any of the six clauses in
 `docs/proposals/workflow-redesign-v0.12.md` §2. The proposal is the

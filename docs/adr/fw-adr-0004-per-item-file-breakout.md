@@ -1,5 +1,24 @@
 # FW-ADR-0004 — Per-item / per-view file breakout for requirements and architecture
 
+<!-- TOC -->
+
+- [Status](#status)
+- [Context and problem statement](#context-and-problem-statement)
+- [Decision drivers](#decision-drivers)
+- [Considered options (Three-Path Rule, binding)](#considered-options-three-path-rule-binding)
+  - [Option M — Minimalist: keep monolithic, document a search-first protocol](#option-m-minimalist-keep-monolithic-document-a-search-first-protocol)
+  - [Option S — Scalable: break out per-item / per-view, with a thin index](#option-s-scalable-break-out-per-item-per-view-with-a-thin-index)
+  - [Option C — Creative: per-item with content-addressed naming](#option-c-creative-per-item-with-content-addressed-naming)
+- [Decision outcome](#decision-outcome)
+- [Consequences](#consequences)
+  - [Positive](#positive)
+  - [Negative / trade-offs accepted](#negative-trade-offs-accepted)
+  - [Follow-up ADRs](#follow-up-adrs)
+- [Verification](#verification)
+- [Links](#links)
+
+<!-- /TOC -->
+
 Shape per MADR 3.0 + this template's Three-Path Rule
 (`docs/templates/adr-template.md`).
 

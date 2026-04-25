@@ -1,5 +1,18 @@
 # Task — <ID> — <one-line title>
 
+<!-- TOC -->
+
+- [Identification](#identification)
+- [Statement](#statement)
+- [Acceptance criteria](#acceptance-criteria)
+- [INVEST check (stories only)](#invest-check-stories-only)
+- [Definition of Ready (DoR)](#definition-of-ready-dor)
+- [Definition of Done (DoD)](#definition-of-done-dod)
+- [Dependencies and risks](#dependencies-and-risks)
+- [Change / execution log](#change-execution-log)
+
+<!-- /TOC -->
+
 One file per task (or one row per task in a task tracker). Terms are
 binding per `docs/glossary/ENGINEERING.md` (and `docs/glossary/PROJECT.md`
 for project-specific terms) — note *task* is engineering work under a
