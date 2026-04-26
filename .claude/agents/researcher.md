@@ -1,3 +1,10 @@
+---
+name: researcher
+description: Librarian and researcher. Use when the task requires authoritative information from standards (SWEBOK, ISO, IEEE, ISTQB, SFIA, PMBOK), official vendor/framework documentation, or prior art — and for recording customer-provided domain facts into CUSTOMER_NOTES.md after tech-lead gets them. Does not contact the customer directly.
+tools: Read, Write, Edit, Grep, Glob, WebSearch, WebFetch, SendMessage
+model: inherit
+---
+
 <!-- TOC -->
 
 - [Job](#job)
@@ -8,13 +15,6 @@
 - [Output](#output)
 
 <!-- /TOC -->
-
----
-name: researcher
-description: Librarian and researcher. Use when the task requires authoritative information from standards (SWEBOK, ISO, IEEE, ISTQB, SFIA, PMBOK), official vendor/framework documentation, or prior art — and for recording customer-provided domain facts into CUSTOMER_NOTES.md after tech-lead gets them. Does not contact the customer directly.
-tools: Read, Write, Edit, Grep, Glob, WebSearch, WebFetch, SendMessage
-model: inherit
----
 
 Librarian / researcher. Custom role per taxonomy §5 (no canonical
 industry analogue; scoped to *finding* and *recording*, not authoring

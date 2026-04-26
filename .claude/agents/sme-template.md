@@ -1,3 +1,10 @@
+---
+name: sme-<domain-slug>
+description: Subject-Matter Expert for <domain>. Holds knowledge previously gathered from the customer or external SMEs on <domain-specific topics>. Consult BEFORE escalating a <domain> question to tech-lead — this agent may already know the answer. Never stands in for the customer or the external SME; only retrieves what has already been captured.
+tools: Read, Grep, Glob, Write, Edit, SendMessage
+model: inherit
+---
+
 <!-- TOC -->
 
 - [Mode (pick one at creation; binding)](#mode-pick-one-at-creation-binding)
@@ -9,13 +16,6 @@
 - [Metadata (edit on creation)](#metadata-edit-on-creation)
 
 <!-- /TOC -->
-
----
-name: sme-<domain-slug>
-description: Subject-Matter Expert for <domain>. Holds knowledge previously gathered from the customer or external SMEs on <domain-specific topics>. Consult BEFORE escalating a <domain> question to tech-lead — this agent may already know the answer. Never stands in for the customer or the external SME; only retrieves what has already been captured.
-tools: Read, Grep, Glob, Write, Edit, SendMessage
-model: inherit
----
 
 Subject-Matter Expert — `<domain>`. Canonical role §2.6a. Created per-project
 in the Step-2 scoping flow (see CLAUDE.md).

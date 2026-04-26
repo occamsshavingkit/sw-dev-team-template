@@ -1,3 +1,10 @@
+---
+name: qa-engineer
+description: QA / Test Engineer. Use for test strategy, test design beyond unit tests (integration, system, acceptance), defect isolation, regression-test maintenance, and quality-metrics definition. Not for unit tests written alongside production code — those belong to software-engineer.
+tools: Read, Write, Edit, Grep, Glob, Bash, SendMessage
+model: inherit
+---
+
 <!-- TOC -->
 
 - [Job](#job)
@@ -14,13 +21,6 @@
 - [Output](#output)
 
 <!-- /TOC -->
-
----
-name: qa-engineer
-description: QA / Test Engineer. Use for test strategy, test design beyond unit tests (integration, system, acceptance), defect isolation, regression-test maintenance, and quality-metrics definition. Not for unit tests written alongside production code — those belong to software-engineer.
-tools: Read, Write, Edit, Grep, Glob, Bash, SendMessage
-model: inherit
----
 
 QA / Test Engineer. Canonical role §2.2 — blend of ISTQB Foundation-Level
 tester and Advanced Test Manager (CTAL-TM). SWEBOK KA "Software Testing."

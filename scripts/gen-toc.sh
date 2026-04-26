@@ -81,13 +81,30 @@ splice_toc() {
 }
 
 insert_markers() {
-  # Insert empty TOC markers after the first H1 (or at top if no H1).
-  # Stdout: file with markers inserted. No splice yet — caller should
-  # re-run splice_toc afterwards.
+  # Insert empty TOC markers after the YAML frontmatter (if any), else
+  # after the first H1, else at the top of the file. Stdout: file with
+  # markers inserted. No splice yet — caller should re-run splice_toc
+  # afterwards.
   local file="$1"
   awk '
-    BEGIN { inserted = 0 }
-    NR == 1 && !/^# / {
+    BEGIN { inserted = 0; in_fm = 0; fm_done = 0 }
+    NR == 1 && /^---[[:space:]]*$/ {
+      in_fm = 1
+      print
+      next
+    }
+    in_fm && /^---[[:space:]]*$/ {
+      in_fm = 0
+      fm_done = 1
+      print
+      print ""
+      print "<!-- TOC -->"
+      print "<!-- /TOC -->"
+      inserted = 1
+      next
+    }
+    in_fm { print; next }
+    NR == 1 && !/^# / && !fm_done {
       print "<!-- TOC -->"
       print "<!-- /TOC -->"
       print ""
