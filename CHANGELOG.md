@@ -16,6 +16,91 @@ filed upstream include that version.
 
 ---
 
+## v1.0.0-rc3 — 2026-04-25
+
+Third release candidate. Closes the C-4 empirical-usage criterion on
+the workflow pipeline (≥5 prior-art docs, reviewed proposals, Solution
+Duels, three-path ADRs across two real downstream projects), lands the
+formal IEEE 1028 readiness audit with recommendation **SHIP**, and
+clears the rc3 tech-writer pass (17 findings, none blocker). Also
+hardens scaffold/upgrade strip-set parity (F-002), the gen-toc
+frontmatter contract (TW-001), and scrubs leaked downstream-project
+context from the binding docs (F-001, F-003 through F-006, F-008,
+TW-008, TW-009, TW-017).
+
+### Added
+
+- **C-4 evidence — workflow-pipeline empirical-usage closure.** Five
+  prior-art memos across two downstream projects (three in QuackS7
+  `docs/prior-art/`, two in QuackPLC `docs/prior-art/` after the
+  relocation noted under *Changed*), four reviewed proposals, three
+  Solution Duels, and ten three-path ADRs — over the ≥5 bar that
+  C-4 sets for the workflow pipeline's empirical-usage criterion.
+- **`docs/audits/v1.0.0-rc3-readiness-audit.md`** — formal IEEE 1028
+  sign-off document for the rc3 cut. Recommendation: **SHIP**. Major
+  condition (A-001 dirty-tree at audit time) was resolved by the
+  four commits in this wave.
+- **`docs/audits/v1.0.0-rc3-tech-writer-pass.md`** — prose / link /
+  glossary / agent-contract style audit. Seventeen findings, none
+  blocker; the in-scope subset (TW-001, TW-008, TW-009, TW-017) is
+  fixed in this wave.
+- **Revised `docs/audits/c4-evidence-tracker.md`** — reflects the now-
+  closed C-4 stages.
+- **`ROADMAP.md`** — rewritten for the v0.17 → rc3 era (was
+  structurally stale by ~5 MINORs).
+
+### Fixed
+
+- **TW-001 (`9124d3b`).** `scripts/gen-toc.sh` now preserves YAML
+  frontmatter when regenerating in-file tables of contents. Nine of
+  fourteen agent contracts re-sequenced so the opening `---` is on
+  line 1, restoring the loader contract.
+- **F-002 (`d1238c6`).** `scripts/scaffold.sh` and `scripts/upgrade.sh`
+  strip-set parity. Added `ROADMAP.md`, `docs/audits/`, `docs/v2/`,
+  `docs/proposals/`, `docs/v1.0-rc3-checklist.md`, and
+  `docs/pm/process-audit-*.md` to both filters in lockstep. Closes
+  the upgrade-contract-hardening gap. *Note: this fix only takes
+  effect for downstream projects after this tag is published, since
+  `upgrade.sh` self-bootstraps from upstream's committed copy.*
+- **F-001 (`0aae060`).** Scrubbed leaked downstream-project context
+  from the body of `SW_DEV_ROLE_TAXONOMY.md`.
+- **F-003 / F-004 / F-005 / F-006 / F-008 (`0aae060`).** README
+  version stamp + step-numbering alignment + roster-count alignment
+  + scaffolding-narrative alignment + scaffold-banner step-numbering.
+- **TW-008 (`0aae060`).** `ROADMAP.md` rewritten (see *Added*).
+- **TW-009 / TW-017 (`0aae060`).** `SW_DEV_ROLE_TAXONOMY.md` header
+  status + attribution corrected.
+
+### Changed
+
+- **Pipeline location convention.** Prior-art memos canonically live
+  at `docs/prior-art/<task-id>.md` (per workflow-redesign-v0.12 § 1).
+  QuackPLC's prior-session memos relocated from `docs/research/` to
+  `docs/prior-art/` to match (downstream-side commit, separate tree).
+- **`VERSION`:** `v0.17.0` → `v1.0.0-rc3`.
+
+### Notes for downstream
+
+- This is the **v1.0.0-rc3 release candidate**. Downstream projects
+  should NOT bump `TEMPLATE_VERSION` to v1.0.0-rc3 unless they want
+  to ride the rc track. The v1.0.0 final tag will follow if rc3
+  sign-off holds without breakage.
+- The F-002 strip-set fix only takes effect for downstream upgrades
+  against this tag once it has been pushed to upstream's GitHub
+  remote. Until then, downstream `scripts/upgrade.sh` runs continue
+  to ship the older (leak-y) strip-set.
+
+### Notes for upstream (carried into v1.0.0)
+
+- Credit-gated follow-ups: file the C-3 upstream-attestation issue
+  citing the QuackS7 retrofit summary; close the two `v2-proposal`
+  GitHub issues (#3, #27) that reference the existing
+  `docs/v2/*.md` placeholders; publish a GitHub Release object at
+  v1.0.0 final (rc cycles skip Release objects per the
+  MINOR-only-Releases rule).
+
+---
+
 ## v0.17.0 — 2026-04-25 (MINOR bundle)
 
 Three downstream-reported issues addressed.
