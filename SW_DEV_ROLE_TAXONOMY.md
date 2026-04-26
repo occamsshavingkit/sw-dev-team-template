@@ -22,23 +22,28 @@
   - [2.8 Release engineer / build engineer (build-infra, toolchain)](#28-release-engineer-build-engineer-build-infra-toolchain)
   - [2.9 Product / project planner (scope, phase planning, where distinct from architect)](#29-product-project-planner-scope-phase-planning-where-distinct-from-architect)
 - [§3 Cross-role boundary heatmap](#3-cross-role-boundary-heatmap)
-  - [Key overlap / conflict zones (anchor text for sam-eagle audit)](#key-overlap-conflict-zones-anchor-text-for-sam-eagle-audit)
+  - [Key overlap / conflict zones](#key-overlap-conflict-zones)
   - [Industry-framework resolution patterns](#industry-framework-resolution-patterns)
-- [§4 Mapping-crosswalk scaffold (sam-eagle populates)](#4-mapping-crosswalk-scaffold-sam-eagle-populates)
+- [§4 Mapping-crosswalk scaffold (per-project; populated downstream)](#4-mapping-crosswalk-scaffold-per-project-populated-downstream)
 - [§5 Known gaps in this taxonomy](#5-known-gaps-in-this-taxonomy)
 
 <!-- /TOC -->
 
-**Purpose:** External benchmark reference for sam-eagle's Task #22 audit of
-`.claude/agents/*.md`. Provides industry-canonical definitions of the SW-dev
-roles our team maps onto, drawn from authoritative sources (IEEE/ISO/IEC
-standards, vendor-neutral skills frameworks, body-of-knowledge guides).
+**Purpose:** External benchmark reference for any audit of
+`.claude/agents/*.md` against industry-canonical role definitions.
+Provides those definitions for the SW-dev roles the template maps onto,
+drawn from authoritative sources (IEEE/ISO/IEC standards, vendor-neutral
+skills frameworks, body-of-knowledge guides).
 
-**Author:** bunsen (librarian, not interpreter).
-**Date:** 2026-04-18.
-**Status:** Untracked reference material. Not committed. Audit-input only.
-**Explicit non-goal:** mapping canonical roles onto specific QuackS7 muppets.
-That mapping is sam-eagle's audit output, not bunsen's. §4 is a scaffold only.
+**Status:** Binding reference (per `CLAUDE.md` § "Binding references").
+Generic / industry-canonical role vocabulary — every agent and every human
+contributor MUST use these role definitions in these senses.
+**Maintained by:** `researcher` + `architect` + `tech-lead` consensus.
+Disagreement is resolved by amending this file, not by diverging in practice.
+**First retrieved:** 2026-04-18.
+**Explicit non-goal:** mapping these canonical roles onto a specific
+project's named teammates. That mapping is per-project audit output and
+lives in the downstream project, not here. §4 is a scaffold only.
 
 ---
 
@@ -723,7 +728,7 @@ ownership.
 | **Release Eng** | MED | LOW | HIGH | MED | LOW | LOW | LOW | — | MED |
 | **Planner** | LOW | LOW | LOW | MED | LOW | MED | LOW | MED | — |
 
-### Key overlap / conflict zones (anchor text for sam-eagle audit)
+### Key overlap / conflict zones
 
 **HIGH overlaps (most prone to organizational ambiguity):**
 
@@ -795,61 +800,74 @@ framework; cross-referencing against multiple is load-bearing.
 
 ---
 
-## §4 Mapping-crosswalk scaffold (sam-eagle populates)
+## §4 Mapping-crosswalk scaffold (per-project; populated downstream)
 
-Table structured for sam-eagle's Task #22 audit. The "Plausible QuackS7
-agent(s)" column is intentionally blank — mapping canonical roles onto
-specific muppets is the *output* of the audit, not input.
+This table is a **scaffold**, not a populated mapping. It enumerates the
+canonical roles defined in §2 and leaves a column for downstream projects
+to fill in their own teammate names.
 
-| Canonical Role (§2) | Primary Source | Key Sub-responsibilities (one-line) | Plausible QuackS7 agent(s) |
+The right-most column ("Per-project teammate") is **not owned by the
+upstream template**. Each downstream project records its mapping in
+`docs/AGENT_NAMES.md` (per CLAUDE.md Step 3 — agent naming). A project
+that keeps canonical role names leaves that column at the canonical role
+file (e.g., `software-engineer`); a project that names its teammates
+(Muppets, composers, etc.) records the chosen name there.
+
+The first three columns are the binding upstream content: canonical
+role identifier, primary standards source, and one-line responsibility
+summary. Those do not change per project; they change only when this
+taxonomy file changes.
+
+| Canonical Role (§2) | Primary Source | Key Sub-responsibilities (one-line) | Per-project teammate (downstream fills) |
 |---|---|---|---|
-| 2.1 Software Engineer / Developer | SWEBOK v3 KA "Software Construction"; ISO 12207 Implementation process | Translate design → code; unit test; debug; integrate | *(sam-eagle)* |
-| 2.2a Test Engineer | ISTQB Foundation-Level | Design/execute tests; defect reporting; automation | *(sam-eagle)* |
-| 2.2b QA Engineer | ISTQB CTAL-TM; SWEBOK KA "Software Quality" | Test strategy; quality metrics; process improvement | *(sam-eagle)* |
-| 2.3a SRE | Google SRE Book | SLOs; error budgets; incident response; capacity | *(sam-eagle)* |
-| 2.3b Performance Engineer | Wikipedia Performance engineering; SFIA PETE | Non-functional requirements; perf test; profiling; tuning | *(sam-eagle)* |
-| 2.4a Software Architect | SWEBOK KA "Software Design" | System decomposition; long-term strategy; cross-cutting concerns | *(sam-eagle)* |
-| 2.4b Tech Lead | staffeng.com archetypes | Day-to-day team guidance; sprint design; mentoring | *(sam-eagle)* |
-| 2.4c Staff Engineer (archetype-based) | staffeng.com | Level, not role; 4 archetypes (TL/Arch/Solver/Right Hand) | *(sam-eagle)* |
-| 2.5a Technical Writer | BLS OOH 27-3042.00 | User docs; API refs; how-tos | *(sam-eagle)* |
-| 2.5b Documentation Engineer | ClickHelp/Passo (Tier-3 only) | Doc-system arch; toolchain; team coord | *(sam-eagle)* |
-| 2.6a Domain SME | Wikipedia SME; DOE definition | Domain oracle; requirement validation; correctness authority | *(sam-eagle)* |
-| 2.6b Principal Engineer | SFIA v9 "Specialist advice" | Depth in technical specialty; research; cross-team consult | *(sam-eagle)* |
-| 2.7a Code Reviewer | Google eng-practices | CL/PR review; codebase health; balance guide/correct | *(sam-eagle)* |
-| 2.7b Auditor | IEEE 1028-2008 §8 | Independent evaluation; conformance check; formal audit report | *(sam-eagle)* |
-| 2.8a Build Engineer | Wikipedia Release Engineering (inferred) | Build-system arch; toolchain; deps; compile-pipeline | *(sam-eagle)* |
-| 2.8b Release Engineer | Wikipedia Release Engineering | Release pipeline; tagging; packaging; reproducibility | *(sam-eagle)* |
-| 2.8c DevOps Engineer | Atlassian / BMC (Tier-3) | CI/CD; IaC; observability; DORA metrics | *(sam-eagle)* |
-| 2.9a Project Manager | PMI PMBOK | Schedule; budget; scope; risk; stakeholder comms | *(sam-eagle)* |
-| 2.9b Product Manager | Industry consensus (no Tier-1) | Vision; roadmap; prioritization; market research | *(sam-eagle)* |
+| 2.1 Software Engineer / Developer | SWEBOK v3 KA "Software Construction"; ISO 12207 Implementation process | Translate design → code; unit test; debug; integrate | *(downstream)* |
+| 2.2a Test Engineer | ISTQB Foundation-Level | Design/execute tests; defect reporting; automation | *(downstream)* |
+| 2.2b QA Engineer | ISTQB CTAL-TM; SWEBOK KA "Software Quality" | Test strategy; quality metrics; process improvement | *(downstream)* |
+| 2.3a SRE | Google SRE Book | SLOs; error budgets; incident response; capacity | *(downstream)* |
+| 2.3b Performance Engineer | Wikipedia Performance engineering; SFIA PETE | Non-functional requirements; perf test; profiling; tuning | *(downstream)* |
+| 2.4a Software Architect | SWEBOK KA "Software Design" | System decomposition; long-term strategy; cross-cutting concerns | *(downstream)* |
+| 2.4b Tech Lead | staffeng.com archetypes | Day-to-day team guidance; sprint design; mentoring | *(downstream)* |
+| 2.4c Staff Engineer (archetype-based) | staffeng.com | Level, not role; 4 archetypes (TL/Arch/Solver/Right Hand) | *(downstream)* |
+| 2.5a Technical Writer | BLS OOH 27-3042.00 | User docs; API refs; how-tos | *(downstream)* |
+| 2.5b Documentation Engineer | ClickHelp/Passo (Tier-3 only) | Doc-system arch; toolchain; team coord | *(downstream)* |
+| 2.6a Domain SME | Wikipedia SME; DOE definition | Domain oracle; requirement validation; correctness authority | *(downstream)* |
+| 2.6b Principal Engineer | SFIA v9 "Specialist advice" | Depth in technical specialty; research; cross-team consult | *(downstream)* |
+| 2.7a Code Reviewer | Google eng-practices | CL/PR review; codebase health; balance guide/correct | *(downstream)* |
+| 2.7b Auditor | IEEE 1028-2008 §8 | Independent evaluation; conformance check; formal audit report | *(downstream)* |
+| 2.8a Build Engineer | Wikipedia Release Engineering (inferred) | Build-system arch; toolchain; deps; compile-pipeline | *(downstream)* |
+| 2.8b Release Engineer | Wikipedia Release Engineering | Release pipeline; tagging; packaging; reproducibility | *(downstream)* |
+| 2.8c DevOps Engineer | Atlassian / BMC (Tier-3) | CI/CD; IaC; observability; DORA metrics | *(downstream)* |
+| 2.9a Project Manager | PMI PMBOK | Schedule; budget; scope; risk; stakeholder comms | *(downstream)* |
+| 2.9b Product Manager | Industry consensus (no Tier-1) | Vision; roadmap; prioritization; market research | *(downstream)* |
 
-**Notes for sam-eagle:**
+**Notes for downstream-project fill:**
 - Canonical roles that are *levels* rather than *roles* (Staff Engineer per
-  staffeng.com) may map to multiple QuackS7 agents or to none.
+  staffeng.com) may map to multiple project teammates or to none.
 - Canonical roles with weak standards backing (Documentation Engineer, DevOps
   Engineer, Product Manager) should be weighted less authoritatively than
   Tier-1-source-backed roles.
-- The audit can legitimately conclude that a QuackS7 agent spans multiple
-  canonical roles (e.g., a combined Planner + Architect) — this is not a
-  drift finding per se; note only whether the split/combination matches
-  industry patterns and whether the agent's .md accurately describes the
-  combined scope.
-- Heckle Gate (statler_and_waldorf) and Taste Gate (miss_piggy) have no direct
-  canonical-role parallels in the taxonomy above. Closest industry analogue
-  to Heckle is "devil's advocate review" in IEEE 1028 inspection (§2.7 role
-  "inspector" subset). Closest industry analogue to Taste is the "design
-  review" practice in SWEBOK KA "Software Design" and the style-guide
-  enforcement portion of §2.5b Documentation Engineer. Neither maps cleanly
-  to a canonical industry role — flag as QuackS7-specific if the .md files
-  claim canonical-role authority for these two gates.
+- A downstream project may legitimately have one teammate spanning multiple
+  canonical roles (e.g., a combined Planner + Architect). That is not a drift
+  finding per se; the project's own audit should note whether the
+  split/combination matches industry patterns and whether the agent's `.md`
+  accurately describes the combined scope.
+- Project-specific custom gates or roles that have no direct canonical-role
+  parallel in the taxonomy above should be flagged as project-specific.
+  Closest industry analogue for an adversarial-review gate is "devil's
+  advocate review" under IEEE 1028 inspection (§2.7 "inspector" subset);
+  closest analogue for a style/quality gate is the "design review" practice
+  in SWEBOK KA "Software Design" plus the style-guide enforcement portion of
+  §2.5b Documentation Engineer. If neither maps cleanly, treat the gate as
+  project-specific rather than claiming canonical-role authority.
 
 ---
 
 ## §5 Known gaps in this taxonomy
 
-Librarian's explicit flag for sam-eagle:
+Explicit flags for any downstream audit that uses this taxonomy as a
+benchmark:
 
-1. **No single industry framework covers all 9 canonical roles.** SWEBOK covers
+1. **No single industry framework covers all canonical roles.** SWEBOK covers
    core SWE work; ISTQB covers test; Google SRE book covers SRE; IEEE 1028
    covers review/audit; PMBOK covers PM; no umbrella framework exists. Cross-
    referencing is load-bearing.
@@ -863,16 +881,17 @@ Librarian's explicit flag for sam-eagle:
    standards-level definition.
 
 4. **Role-boundary debates are not resolved by any single framework.** §3
-   heatmap documents overlaps but industry has no canonical resolution.
-   Audit findings on QuackS7 agent overlaps should not cite "industry
-   agrees on X" where X is under genuine debate — §3 enumerates the debates.
+   heatmap documents overlaps but industry has no canonical resolution. Audit
+   findings on a project's role overlaps should not cite "industry agrees on
+   X" where X is under genuine debate — §3 enumerates the debates.
 
-5. **Muppet-specific gates (Heckle, Taste) have no canonical role analogue.**
-   Flagged in §4 notes. Not a taxonomy failure — these are novel to QuackS7.
+5. **Project-specific gates may have no canonical role analogue.** A
+   downstream project that introduces custom review/quality gates beyond the
+   §2 roles should treat them as project-specific rather than canonical;
+   §4's notes give the closest industry analogues.
 
-6. **No role maps directly to "librarian" or "researcher" as defined in QuackS7.**
-   Closest industry analogues: technical writer (author role) and SME (domain
-   authority role) — but QuackS7's `bunsen` role (research librarian, not
-   authority) is a custom scope. Flag as QuackS7-specific.
-
-Retrieved 2026-04-18 by bunsen. Untracked memo; not committed.
+6. **The "researcher / librarian" role used in this template is custom.**
+   Closest industry analogues are technical writer (author role) and SME
+   (domain authority role), but neither captures a research-librarian scope
+   (retrieves and cites Tier-1 sources, does not adjudicate). Treat as a
+   template-specific role not covered by a single Tier-1 source.

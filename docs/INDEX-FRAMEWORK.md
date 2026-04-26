@@ -142,4 +142,7 @@ FW-ADR-0006). Numbering is sequential within each namespace.
 | `tech-writer.md` | Technical Writer (§2.5a). |
 | `code-reviewer.md` | Code Reviewer + Auditor, IEEE 1028 (§2.7). |
 | `release-engineer.md` | Build + Release Engineer (§2.8). |
+| `security-engineer.md` | Security Engineer; SWEBOK V4 ch. 13 owner (§2.4c). |
+| `onboarding-auditor.md` | Zero-context documentation auditor (one-shot, milestone-close). |
+| `process-auditor.md` | Cultural-disruptor process auditor (one-shot, every 2–3 milestones). |
 | `sme-template.md` | Scaffold for SME agents; copy to `sme-<domain>.md`. |

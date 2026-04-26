@@ -86,5 +86,5 @@ line of every framework-gap issue. Without that, the maintainer
 cannot tell whether the reported gap is still current. Redact
 customer-sensitive content but keep the pattern intact.
 
-Filing is gated by Step-4 opt-in; projects that opted out log gaps
+Filing is gated by Step-0 opt-in; projects that opted out log gaps
 locally in their own `docs/pm/LESSONS.md` only.

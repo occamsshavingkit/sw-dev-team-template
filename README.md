@@ -1,10 +1,10 @@
 # SW-dev Team Template for Claude Code
 
 A ready-to-use Claude Code project scaffold that turns a single Claude
-session into a 9-role software-development team with a strict escalation
+session into a 13-role software-development team with a strict escalation
 protocol and a per-project SME pattern.
 
-**Status.** Pre-1.0 (currently `v0.13.0`). The public contract is not
+**Status.** Pre-1.0 (currently `v0.17.0`). The public contract is not
 yet stable; breaking changes are permitted in minor bumps per SemVer
 0.y rules. See `docs/versioning.md` for the criteria that will return
 the template to a `v1.0.0-rc` track.
@@ -71,6 +71,10 @@ claude
 Claude reads `CLAUDE.md` on session start and runs the **FIRST ACTIONS
 flow** (four steps, documented in `CLAUDE.md`):
 
+- **Step 0 — Issue-feedback opt-in (asked first).** `tech-lead` asks
+  atomically whether you want framework gaps filed upstream as issues.
+  Asked first because Steps 1–2 themselves are prime sources of
+  feedback.
 - **Step 1 — Skill packs.** Claude shows a catalog of skill packs and
   waits for you to pick any you want installed.
 - **Step 2 — Project scoping + SME discovery.** `tech-lead` asks one
@@ -81,8 +85,6 @@ flow** (four steps, documented in `CLAUDE.md`):
 - **Step 3 — Agent naming (optional).** `tech-lead` offers a naming
   category (Muppets, composers, etc.) and maps teammate names onto
   the canonical roles.
-- **Step 0 — Issue-feedback opt-in.** `tech-lead` asks atomically
-  whether you want framework gaps filed upstream as issues.
 
 ## I already unzipped into my working directory — now what?
 
@@ -249,7 +251,7 @@ contract, including per-version migration scripts under `migrations/`.
 | `docs/templates/retrofit-playbook-template.md` | Agent workflow for adopting the template into an existing codebase (v0.13.0+). See README § "Adopting the template into an existing codebase". |
 | `docs/templates/adr-template.md` | MADR 3.0-shaped ADR template with the **Three-Path Rule** (Minimalist / Scalable / Creative) (v0.13.0+). |
 | `docs/adr/` | Template-level ADRs. `0001-context-memory-strategy.md` is also the canonical worked example for the ADR template. |
-| `.claude/agents/*.md` | 9 specialist subagents + 1 SME template. |
+| `.claude/agents/*.md` | 13 specialist subagents + 1 SME template. |
 | `docs/sme/` | SME reference material, per-domain. `INVENTORY.md` per domain; copyrighted items in `local/` (gitignored). |
 
 ### IP policy, in one line
@@ -273,6 +275,9 @@ stay in `docs/sme/<domain>/local/` and are cited in the domain's
 | `tech-writer` | User-facing documentation |
 | `code-reviewer` | Pre-commit review + IEEE 1028-style audit |
 | `release-engineer` | Build pipeline + packaging + releases |
+| `security-engineer` | Software-security ownership (SWEBOK V4 ch. 13) |
+| `onboarding-auditor` | Zero-context documentation auditor (one-shot, milestone-close) |
+| `process-auditor` | Cultural-disruptor process auditor (one-shot, every 2–3 milestones) |
 | `sme-<domain>` (×N) | Per-project domain experts, created in Step 2 |
 
 ## The escalation model in one line
