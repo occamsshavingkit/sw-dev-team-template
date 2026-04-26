@@ -31,8 +31,8 @@ TW-008, TW-009, TW-017).
 ### Added
 
 - **C-4 evidence — workflow-pipeline empirical-usage closure.** Five
-  prior-art memos across two downstream projects (three in QuackS7
-  `docs/prior-art/`, two in QuackPLC `docs/prior-art/` after the
+  prior-art memos across two downstream projects (three in one downstream project, two in another, both at
+  `docs/prior-art/` after the
   relocation noted under *Changed*), four reviewed proposals, three
   Solution Duels, and ten three-path ADRs — over the ≥5 bar that
   C-4 sets for the workflow pipeline's empirical-usage criterion.
@@ -75,7 +75,7 @@ TW-008, TW-009, TW-017).
 
 - **Pipeline location convention.** Prior-art memos canonically live
   at `docs/prior-art/<task-id>.md` (per workflow-redesign-v0.12 § 1).
-  QuackPLC's prior-session memos relocated from `docs/research/` to
+  Downstream prior-session memos relocated from `docs/research/` to
   `docs/prior-art/` to match (downstream-side commit, separate tree).
 - **`VERSION`:** `v0.17.0` → `v1.0.0-rc3`.
 
@@ -93,7 +93,7 @@ TW-008, TW-009, TW-017).
 ### Notes for upstream (carried into v1.0.0)
 
 - Credit-gated follow-ups: file the C-3 upstream-attestation issue
-  citing the QuackS7 retrofit summary; close the two `v2-proposal`
+  citing the downstream retrofit summary; close the two `v2-proposal`
   GitHub issues (#3, #27) that reference the existing
   `docs/v2/*.md` placeholders; publish a GitHub Release object at
   v1.0.0 final (rc cycles skip Release objects per the
@@ -363,8 +363,8 @@ grep + sed for `ADR-000[1-7]\b` if they want consistency.
 
 ## v0.14.4 — 2026-04-25 (PATCH bundle)
 
-Three fixes for upgrade-flow ergonomics surfaced by downstream
-project (QuackS7) reports.
+Three fixes for upgrade-flow ergonomics surfaced by
+downstream-project reports.
 
 ### Fixed
 
@@ -500,7 +500,7 @@ Projects on v0.14.0 / v0.14.1 / v0.14.2 may also have been bitten
 by this latent bug on prior upgrades. Recovery is the same as
 above: pull v0.14.3's `upgrade.sh`, then run.
 
-Reported by downstream project (QuackS7) — issue #63.
+Reported by a downstream project — issue #63.
 
 ---
 
