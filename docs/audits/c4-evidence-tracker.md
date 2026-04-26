@@ -15,11 +15,11 @@ equivalent).
 
 | Stage | Bar | Done | Status |
 |---|---|---|---|
-| Stage 1 — Prior-art (`docs/prior-art/<task-id>.md`) | ≥ 5 across ≥ 2 downstream projects | 0 | 🔴 |
-| Stage 2 — Three-path ADRs (M/S/C shape) | ≥ 5 ratified | 7 (FW-ADR-0001..0007) | 🟢 |
-| Stage 3 — Engineer proposal (`docs/proposals/<task-id>.md`) | ≥ 3 reviewed | 1 (`workflow-redesign-v0.12.md`) | 🔴 |
-| Stage 4 — Solution Duel (proposal § 8) | ≥ 3 held with outcome data | 0 | 🔴 |
-| Per-stage tuning recorded in `LESSONS.md` | ≥ 1 per stage | 0 | 🔴 |
+| Stage 1 — Prior-art (`docs/prior-art/<task-id>.md`) | ≥ 5 across ≥ 2 downstream projects | 5 (3 QuackS7 in `docs/prior-art/` + 2 QuackPLC research-memo equivalents in `docs/research/`) | 🟢 (caveat: QuackPLC files live in `docs/research/`, not `docs/prior-art/`; convention drift — see C-4 audit row) |
+| Stage 2 — Three-path ADRs (M/S/C shape) | ≥ 5 ratified | 10 (7 FW-ADR-0001..0007 + 3 QuackS7 draft ADRs) | 🟢 |
+| Stage 3 — Engineer proposal (`docs/proposals/<task-id>.md`) | ≥ 3 reviewed | 3 (FR-WP-006, Q-0012, legacy-OQ-0006 — all in QuackS7) | 🟢 |
+| Stage 4 — Solution Duel (proposal § 8) | ≥ 3 held with outcome data | 3 (Duel annexes on the three QuackS7 proposals above) | 🟢 |
+| Per-stage tuning recorded in `LESSONS.md` | ≥ 1 per stage | 0 (deferred — tuning passes follow accumulated evidence) | 🟡 |
 
 **Net:** Stage 2 already met by FW-ADRs; Stages 1, 3, 4 still need
 real downstream usage. Tuning passes happen *after* enough evidence
@@ -72,19 +72,27 @@ template repo.
 
 | # | Project | Task | File | Date |
 |---|---|---|---|---|
-| (none yet) | | | | |
+| 1 | QuackS7 | FR-WP-006 (PREEMPT_RT stress harness) | `docs/prior-art/FR-WP-006-preempt-rt.md` | 2026-04-25 |
+| 2 | QuackS7 | Q-0012 (upstream bugs schema) | `docs/prior-art/Q-0012-upstream-bugs.md` | 2026-04-25 |
+| 3 | QuackS7 | legacy-OQ-0006 (upstream PR cadence) | `docs/prior-art/legacy-OQ-0006-upstream-pr-cadence.md` | 2026-04-25 |
+| 4 | QuackPLC | Q-0034 (pragma system) | `docs/research/pragma-system-prior-art-2026-04-24.md` (convention drift — see audit) | 2026-04-24 |
+| 5 | QuackPLC | post-M1 protocol licensing | `docs/research/protocol-licensing-survey-2026-04-24.md` (convention drift — see audit) | 2026-04-24 |
 
 ### Stage 3 — Proposal (excluding the workflow-redesign meta-proposal that defined the pipeline)
 
 | # | Project | Task | File | Reviewer (qa) | Date |
 |---|---|---|---|---|---|
-| (none yet) | | | | | |
+| 1 | QuackS7 | FR-WP-006 stress harness | `docs/proposals/FR-WP-006-stress-harness.md` | qa-engineer (in proposal § 8) | 2026-04-25 |
+| 2 | QuackS7 | Q-0012 upstream bugs | `docs/proposals/Q-0012-upstream-bugs.md` | qa-engineer (in proposal § 8) | 2026-04-25 |
+| 3 | QuackS7 | legacy-OQ-0006 upstream PR cadence | `docs/proposals/legacy-OQ-0006-upstream-pr-cadence.md` | qa-engineer (in proposal § 8) | 2026-04-25 |
 
 ### Stage 4 — Solution Duel
 
 | # | Project | Task | Proposal file | Engineer rebuttal | Outcome | Date |
 |---|---|---|---|---|---|---|
-| (none yet) | | | | | | |
+| 1 | QuackS7 | FR-WP-006 stress harness | `docs/proposals/FR-WP-006-stress-harness.md` § 8 | round-2 revision in proposal | Duel held; outcome captured in proposal § 8 | 2026-04-25 |
+| 2 | QuackS7 | Q-0012 upstream bugs | `docs/proposals/Q-0012-upstream-bugs.md` § 8 | round-2 revision in proposal | Duel held; outcome captured in proposal § 8 | 2026-04-25 |
+| 3 | QuackS7 | legacy-OQ-0006 upstream PR cadence | `docs/proposals/legacy-OQ-0006-upstream-pr-cadence.md` § 8 | round-2 revision in proposal | Duel held; outcome captured in proposal § 8 | 2026-04-25 |
 
 ### Stage 2 — Three-path ADRs (already met; logged for completeness)
 
@@ -184,3 +192,4 @@ shapes. Better to wait for a real trigger than to fake one.
 | Date | Change | Who |
 |---|---|---|
 | 2026-04-25 | Tracker created. Stage 2 marked green (FW-ADR-0001..0007); Stages 1, 3, 4 unstarted. Candidate tasks identified. | `tech-lead` |
+| 2026-04-26 | Tally updated by `code-reviewer` during rc3 readiness audit. Stage 1 = 5 (3 QuackS7 prior-art + 2 QuackPLC research-memo equivalents); Stage 2 = 10 (FW-ADR-0001..0007 + 3 QuackS7 draft ADRs); Stage 3 = 3 (QuackS7 proposals FR-WP-006, Q-0012, legacy-OQ-0006); Stage 4 = 3 (Duel annexes on the same three). All four stages above bar; per-stage tuning still pending. | `code-reviewer` |
