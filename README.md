@@ -4,10 +4,12 @@ A ready-to-use Claude Code project scaffold that turns a single Claude
 session into a 13-role software-development team with a strict escalation
 protocol and a per-project SME pattern.
 
-**Status.** Pre-1.0 (currently `v0.17.0`). The public contract is not
-yet stable; breaking changes are permitted in minor bumps per SemVer
-0.y rules. See `docs/versioning.md` for the criteria that will return
-the template to a `v1.0.0-rc` track.
+**Status.** Release-candidate track (currently `v1.0.0-rc3`). The
+seven binding rc-track criteria in `docs/v1.0-rc3-checklist.md` are
+all green; IEEE 1028 readiness audit at
+`docs/audits/v1.0.0-rc3-readiness-audit.md` recommends SHIP. The
+public contract becomes stable at `v1.0.0` final; breaking changes
+are still permitted on the rc track if a criterion regresses.
 
 ---
 
