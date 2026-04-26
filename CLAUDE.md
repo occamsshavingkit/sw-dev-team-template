@@ -140,7 +140,10 @@ The script copies the template into `<target-dir>`, resets project-
 specific registers (`docs/OPEN_QUESTIONS.md`, `CUSTOMER_NOTES.md`,
 `docs/AGENT_NAMES.md`) to empty-but-shaped stubs, strips template-only
 files (`VERSION`, `CHANGELOG.md`, `CONTRIBUTING.md`, `LICENSE`,
-`dryrun-project/`, `.github/`, `migrations/`), stamps
+`dryrun-project/`, `examples/`, `.github/`, `migrations/`,
+`scripts/smoke-test.sh`, `ROADMAP.md`, `docs/audits/`, `docs/v2/`,
+`docs/proposals/`, `docs/v1.0-rc3-checklist.md`,
+`docs/pm/process-audit-*.md`), stamps
 `TEMPLATE_VERSION` at the project root (SemVer + git SHA + date),
 replaces `README.md` with a project stub, seeds an empty
 `.template-customizations`, and runs `git init -b main` in the

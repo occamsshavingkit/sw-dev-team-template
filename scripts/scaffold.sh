@@ -67,10 +67,16 @@ tar --exclude='./.git' \
     --exclude='./CHANGELOG.md' \
     --exclude='./CONTRIBUTING.md' \
     --exclude='./LICENSE' \
+    --exclude='./ROADMAP.md' \
     --exclude='./dryrun-project' \
     --exclude='./examples' \
     --exclude='./.github' \
     --exclude='./migrations' \
+    --exclude='./docs/audits' \
+    --exclude='./docs/v2' \
+    --exclude='./docs/proposals' \
+    --exclude='./docs/v1.0-rc3-checklist.md' \
+    --exclude='./docs/pm/process-audit-*.md' \
     --exclude='./scripts/smoke-test.sh' \
     -cf - . | (cd "$target" && tar -xf -)
 
@@ -272,11 +278,12 @@ Scaffolded "$project_name" at: $target
   Stamped:   $today
 
 Next steps (see $target/CLAUDE.md § FIRST ACTIONS):
-  1. Step 1 — install skill packs.
-  2. Step 2 — scoping: seed docs/OPEN_QUESTIONS.md from
+  1. Step 0 — issue-feedback opt-in (asked first): record yes/no in
+     CUSTOMER_NOTES.md before anything else.
+  2. Step 1 — install skill packs.
+  3. Step 2 — scoping: seed docs/OPEN_QUESTIONS.md from
      docs/templates/scoping-questions-template.md, then ask one
      question per turn with agents idle.
-  3. Step 3 — agent naming: fill docs/AGENT_NAMES.md.
-  4. Step 0 — issue-feedback opt-in: record in CUSTOMER_NOTES.md.
+  4. Step 3 — agent naming: fill docs/AGENT_NAMES.md.
   5. Make the first git commit when scoping DoD is clean.
 EOF

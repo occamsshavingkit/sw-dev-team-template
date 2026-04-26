@@ -293,10 +293,16 @@ fi
 
 # Files the template ships to downstream projects.
 # This exclusion list MUST match scaffold.sh's --exclude list (template-only
-# files that downstream projects should never receive).
+# files that downstream projects should never receive). Anything stripped at
+# scaffold time MUST also be stripped here, otherwise an upgrade re-ships
+# the maintainer's release-planning artefacts into downstream (regression
+# of F-002 from the v1.0-rc3 onboarding audit).
 ship_files=$(cd "$workdir/new" && git ls-files \
-  | grep -vE '^(VERSION|CHANGELOG\.md|CONTRIBUTING\.md|LICENSE)$' \
+  | grep -vE '^(VERSION|CHANGELOG\.md|CONTRIBUTING\.md|LICENSE|ROADMAP\.md)$' \
   | grep -vE '^(\.github/|dryrun-project/|examples/|migrations/)' \
+  | grep -vE '^docs/(audits|v2|proposals)/' \
+  | grep -vE '^docs/v1\.0-rc3-checklist\.md$' \
+  | grep -vE '^docs/pm/process-audit-.*\.md$' \
   | grep -vE '^scripts/smoke-test\.sh$')
 
 # --- Load customization preserve-list ----------------------------------------
