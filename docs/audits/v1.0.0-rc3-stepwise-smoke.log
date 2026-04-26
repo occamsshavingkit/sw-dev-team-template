@@ -1,9 +1,0 @@
-stepwise-smoke: v0.14.4 → HEAD
-  workdir: /tmp/sw-dev-stepwise-ZIwgdS
-  hops: 4 (v0.15.0 → v0.17.0)
-  hop v0.15.0
-  hop v0.15.1
-  hop v0.16.0
-  hop v0.17.0
-------------------------------------------------------------
-SUMMARY: stepwise-smoke OK — 4/4 hops passed (v0.15.0 → v0.17.0)

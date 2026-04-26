@@ -30,9 +30,10 @@ SemVer rules (see `CHANGELOG.md` header for the binding wording):
   permits breaking changes inside MINOR while we are pre-1.0).
 - **PATCH** — non-structural clarifications.
 
-Tag currently shipping: **v0.17.0** (local tag; public GitHub
-Release latest is v0.16.0 — see `docs/audits/v1.0.0-rc3-status-2026-04-25.md`
-for credit-policy hold #779).
+Tag currently shipping: **v1.0.0-rc3** (annotated tag pushed
+to `origin`). GitHub Release object publication waits for
+v1.0.0 final per the MINOR-only-Releases convention; the rc
+cycle is tag-only. Audit deliverables held upstream-private.
 
 ---
 
@@ -64,14 +65,13 @@ re-evaluate post-1.0 if downstream evidence demands it.
 
 ---
 
-## Path to v1.0.0-rc3
+## v1.0.0-rc3 — shipped 2026-04-26
 
-Binding criteria live in `docs/v1.0-rc3-checklist.md` (C-1 through
-C-7). Current standing per
-`docs/audits/v1.0.0-rc3-status-2026-04-25.md` (this session):
-**all seven criteria evidence-pass.** Remaining work is
-attestation, push, and a formal IEEE 1028 audit — not new
-substance.
+Binding criteria are recorded in `docs/v1.0-rc3-checklist.md`
+(C-1 through C-7). All seven were green at the rc3 cut; IEEE
+1028 readiness audit recommended **SHIP**. The audit deliverable
+itself is held upstream-private per redaction policy and is not
+in this repo.
 
 | # | Criterion | Standing | Remaining work |
 |---|---|---|---|
@@ -95,14 +95,16 @@ audit (#779: hold until 2026-05-01 or next milestone cut).
 - **Credit-free:** all in-tree work — script runs, doc drafts,
   re-capture of the C-7 log at the rc cut.
 
-### Final binding step — IEEE 1028 readiness audit
+### Audit + sign-off — held upstream-private
 
 Per `docs/v1.0-rc3-checklist.md` § Audit + sign-off, after every
-row is green `code-reviewer` runs an IEEE 1028-style audit pass
-producing `docs/audits/v1.0.0-rc3-readiness-audit.md`. `tech-lead`
-presents the audit summary; the customer ratifies (or returns
-specific rows). Only on ratification does `release-engineer` cut
-v1.0.0-rc3. The status snapshot is **not** that audit.
+row is green `code-reviewer` runs an IEEE 1028-style audit pass.
+`tech-lead` presents the audit summary; the customer ratifies
+(or returns specific rows). Only on ratification does
+`release-engineer` cut the rc tag. The audit deliverable is held
+upstream-private per redaction policy because it cites concrete
+downstream-project evidence files; it is not committed to this
+repo.
 
 ---
 
@@ -179,8 +181,8 @@ Things that may interrupt the linear plan:
 - **Real downstream incidents.** A downstream production incident
   traceable to a template rule failure takes priority over planned
   scope; ships as a PATCH between MINOR bumps. Precedent: issue
-  #63 (atomic-install) surfaced from QuackS7 and shipped in
-  v0.14.3.
+  #63 (atomic-install) surfaced from a downstream project and
+  shipped in v0.14.3.
 
 ---
 
@@ -189,4 +191,4 @@ Things that may interrupt the linear plan:
 | Date | Change | Who |
 |---|---|---|
 | 2026-04-23 | Roadmap created after v0.12.0 tag; customer ruled path to v1.0.0-rc3 via v0.13.0 / v0.14.0 / v0.15.0. | `tech-lead` |
-| 2026-04-26 | Rewrite for the rc3 era. Current shipping tag updated to v0.17.0. Stale v0.13/v0.14/v0.15 forward-plan sections collapsed into a one-paragraph history pointing at `CHANGELOG.md`. v0.14.0 customer→product-owner rename noted as not-shipped and unscheduled. New "Path to v1.0.0-rc3" section cites `docs/v1.0-rc3-checklist.md` and `docs/audits/v1.0.0-rc3-status-2026-04-25.md` (7/7 criteria evidence-pass after C-4 flip this session). New "Post-rc3" section sketches rc4-conditional / v1.0 final / v2 placeholders. Cross-release dependency diagram redrawn for current state. | `tech-writer` |
+| 2026-04-26 | Rewrite for the rc3 era; v1.0.0-rc3 cut and pushed; audit deliverables held upstream-private per redaction policy. | `tech-writer` + `tech-lead` |
