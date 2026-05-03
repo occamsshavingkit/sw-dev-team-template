@@ -85,8 +85,8 @@ downgraded by customer ruling.
 
 ### Verification
 
-- `scripts/smoke-test.sh`: 100 checks passing as of the first rc4
-  implementation pass.
+- `scripts/smoke-test.sh`: 100 checks passing as of the rc4 readiness
+  pass.
 - `scripts/audit-agent-tools.sh`: clean.
 - `docs/audits/v1.0.0-rc4-review.md`: review pass found no hidden
   #59 blocker and approved continued rc4 stabilization.
