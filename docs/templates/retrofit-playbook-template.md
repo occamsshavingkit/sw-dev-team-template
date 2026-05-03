@@ -20,6 +20,7 @@
   - [4.5 Stage D — `project-manager` charter reconstruction](#45-stage-d-project-manager-charter-reconstruction)
   - [4.6 Stage E — `software-engineer` execution, `code-reviewer` gate (+ conditional `security-engineer`)](#46-stage-e-software-engineer-execution-code-reviewer-gate-conditional-security-engineer)
   - [4.7 Stage F — `project-manager` ticket migration (optional)](#47-stage-f-project-manager-ticket-migration-optional)
+  - [4.8 Remote disposition decision (conditional)](#48-remote-disposition-decision-conditional)
 - [5. Stage gates](#5-stage-gates)
 - [6. Decision matrix — per-artifact outcomes](#6-decision-matrix-per-artifact-outcomes)
 - [7. Handling pre-existing conventions that conflict with template defaults](#7-handling-pre-existing-conventions-that-conflict-with-template-defaults)
@@ -327,6 +328,8 @@ Stage E               software-engineer  Execution, under code-reviewer
                                          on Hard-Rule-#7 rows (auth,
                                          secrets, PII, network endpoints)
 Stage F (optional)    project-manager    Ticket migration
+Remote disposition    release-engineer   Conditional close-out if Stage A
+                                         found a source remote
 ```
 
 `tech-lead` orchestrates transitions, dispatches the named role,
@@ -439,6 +442,36 @@ Contents:
   provenance is not obvious. Input to Stage B.
 - **Suspicious artifacts** — vendored third-party code, generated
   files, binaries, apparent secrets. Input to Stage B.
+- **Identifying-content candidates (binding, issue #81)** — run a
+  regex sweep against the source tree for non-literal identifying
+  classes, not only known customer strings. Output a per-hit and
+  per-line table: path, line, matched class, excerpt, proposed
+  disposition. Aggregate verdicts such as "all 192.168.* hits are
+  examples" are forbidden because they hide bad hits among benign
+  ones. Also write `docs/retrofit/regex-commands.md` with the exact
+  commands or tool configuration used: regex patterns, include/exclude
+  globs, binary-file handling, generated/vendor directory policy, and
+  the date / agent that ran the sweep. Starter classes:
+
+  ```text
+  IPv4 private ranges: 10.x.x.x, 172.16-31.x.x, 192.168.x.x
+  IPv6 literals
+  DDNS hostnames: ddns.net, dyndns.org, no-ip.com, duckdns.org
+  Cloud hostnames: amazonaws.com, azurewebsites.net,
+    googleusercontent.com, cloudfront.net, fly.dev, vercel.app,
+    netlify.app, run.app, scw.cloud, linode.com,
+    digitaloceanspaces.com
+  MAC addresses
+  Email addresses
+  Common token prefixes: AKIA, glpat-, ghp_, github_pat_, xoxb-
+  UUIDs used as service identifiers
+  Personal-name/service-name patterns identified at pre-flight
+  ```
+
+  The regex set is a floor, not a complete secret scanner. Stage B
+  may add project-specific classes; every added class updates both the
+  per-hit table and `regex-commands.md` so Stage E reviewers can re-run
+  the same set.
 - **Convention-conflict register (seed)** — where the source's
   conventions differ from template defaults (see § 7 for the
   handling protocol). Example rows: "source uses `master`, template
@@ -472,6 +505,13 @@ For each listed artifact, `researcher` assigns one of:
 
 `researcher` also produces the `.gitignore` delta covering any
 new local-only paths.
+
+`researcher` consumes the Stage A identifying-content table and
+assigns a disposition to every hit. Any new identifying class found
+during Stage B is appended as a new per-hit row, not summarized in an
+aggregate note. The exact added regex / command is appended to
+`docs/retrofit/regex-commands.md`. Hits that touch auth / secrets /
+PII / network endpoints trigger the Hard-Rule-#7 early fire below.
 
 **Hard-Rule-#7 early fire.** (Binding obligation, per issue #50:
 `researcher` MUST loop in `security-engineer` when a triage row is
@@ -625,6 +665,13 @@ Rules:
   PII, network-exposed endpoints), per § 3 rule 8. Sign-off is
   recorded in `CUSTOMER_NOTES.md`; the reference to the security
   assurance artefact is noted in the commit message.
+- **Identifying-content regex re-run (issue #81).** Before each
+  public-target or private-shared Stage E commit, the implementer
+  re-runs the exact Stage A / B regex set recorded in
+  `docs/retrofit/regex-commands.md` against the staged tree and
+  updates the per-hit table. `security-engineer` and `code-reviewer`
+  independently re-run the same set for rows they review; they do not
+  trust the implementer's aggregate summary.
 - Source-derived content needing edits was edited in
   `<scratch-path>` (Hard Rule § 3.1). Final form lands in the
   commit.
@@ -682,6 +729,32 @@ Stage F preserves traceability: every `T-NNNN` that originated
 in the source has a `source-issue:` or `source-contract:` field
 citing tracker / contract + ID.
 
+### 4.8 Remote disposition decision (conditional)
+
+Runs when pre-flight or Stage A found a source git remote URL.
+Owned by `release-engineer` under `tech-lead`; if no
+`release-engineer` is available, `tech-lead` records the decision and
+routes any git mechanics to the appropriate operator.
+
+Before close-out, `tech-lead` asks the customer one atomic remote
+disposition question with explicit options:
+
+- **Same remote, force-push target `main` over source `main`.**
+  Destructive unless the source ref is archived first. Requires live
+  customer acknowledgement and a pre-retrofit tag or archive branch.
+- **Same remote, push target to a new branch.** Preserves source
+  `main`; target lives on a sibling branch until default-branch swap.
+- **Same remote, archive source branch then push target `main`.**
+  Preserves source under `legacy/main` or equivalent, then promotes
+  target.
+- **New remote.** Target lives in a sibling repository; source becomes
+  read-only archive.
+- **No remote yet.** Target stays local; revisit later.
+
+Record the ruling in `CUSTOMER_NOTES.md`, cite it from
+`docs/retrofit/CLOSURE.md`, and do not declare retrofit close-out
+complete without either a ruling or an explicit customer-deferred note.
+
 ## 5. Stage gates
 
 Each stage has entry (DoR) and exit (DoD). `tech-lead` checks both.
@@ -693,8 +766,9 @@ Each stage has entry (DoR) and exit (DoD). `tech-lead` checks both.
 | B | A DoD met | Every row in ambiguous + suspicious has a triage outcome; `.gitignore` delta prepared; SME inventories updated |
 | C | A + B DoD met | Every artifact has a target destination or a "leave" outcome with rationale; every convention conflict resolved (either migrate-to-template-default or pin-source-via-ADR) |
 | D | C DoD met | CHARTER, STAKEHOLDERS, RISKS, CHANGES, LESSONS populated with citations; first post-retrofit milestone defined |
-| E | C + D DoD met; **`<src-path>` HEAD SHA re-verified against pre-flight record** (mismatch aborts per § 3.2) | All plan rows executed and reviewed; `code-reviewer` sign-off per row; `security-engineer` sign-off on every Hard-Rule-#7 row recorded in `CUSTOMER_NOTES.md`; `OPEN_QUESTIONS.md` reflects carry-overs |
+| E | C + D DoD met; **`<src-path>` HEAD SHA re-verified against pre-flight record** (mismatch aborts per § 3.2) | All plan rows executed and reviewed; identifying-content regex set re-run and per-hit table updated; `code-reviewer` sign-off per row; `security-engineer` sign-off on every Hard-Rule-#7 row recorded in `CUSTOMER_NOTES.md`; `OPEN_QUESTIONS.md` reflects carry-overs |
 | F (if applicable) | E DoD met | Source tickets mapped per § 4.7; `archived-tickets.md` records closed + stale; `docs/tasks/` populated |
+| Remote disposition (if applicable) | E DoD met; source remote URL recorded | Customer ruling recorded; remote action complete or explicitly deferred; `CLOSURE.md` cites disposition |
 
 No stage begins before the previous stage's DoD is met (Hard Rule § 3.5).
 
@@ -928,14 +1002,21 @@ docs/retrofit/
 ├── A-inventory.md            # Stage A output
 ├── B-triage.md               # Stage B output
 ├── C-plan.md                 # Stage C output
+├── regex-commands.md         # durable identifying-content regex set
 ├── left-behind.md            # artifacts not moved, with rationale
 ├── convention-conflicts.md   # § 7 conflict register
 ├── archived-tickets.md       # Stage F closed + stale source tickets
-└── retrofit-summary.md       # written by tech-lead at completion
+└── CLOSURE.md                # close-out summary, including remote disposition
 ```
 
 The directory is committed. It is the retrofit's durable record
 for future audits and for a possible rollback decision.
+
+`CLOSURE.md` must include: final source SHA / drift hash checked at
+Stage E start, identifying-content regex re-run evidence from
+`regex-commands.md`, Stage-gate checklist status, outstanding
+carry-over questions, remote disposition (§ 4.8), rollback pointer,
+and customer sign-off or explicit deferred-close rationale.
 
 ## 12. Rollback plan
 
@@ -975,8 +1056,9 @@ reference**. Mechanism: `<tgt-path>` starts clean (revert all
 Stage E commits); `<src-path>` becomes a read-only reference the
 team consults during green development. Register populations from
 Stage D are kept (charter, risks, lessons — all valuable evidence
-even if the code is not being ported). `docs/retrofit/` gets a
-final entry in `retrofit-summary.md` recording the pivot.
+even if the code is not being ported). `docs/retrofit/CLOSURE.md`
+records the pivot, including remote disposition and regex re-run
+status if any source-derived material reached the target.
 
 **Artifact-survival list (issue #41).** On pivot, these survive:
 `docs/retrofit/preflight.md`, `A-inventory.md`, `B-triage.md`,
@@ -995,9 +1077,10 @@ path:
 
 1. **Write-before-delete (binding).** Before `<tgt-path>` is
    deleted, `tech-lead` finalizes
-   `<tgt-path>/docs/retrofit/retrofit-summary.md` with a "why
+   `<tgt-path>/docs/retrofit/CLOSURE.md` with a "why
    rolled back" section naming the stall signals that fired
-   (§ 12.1) and the stage at which the retrofit stopped.
+   (§ 12.1), the stage at which the retrofit stopped, remote
+   disposition, and identifying-content regex status.
    `project-manager` copies generalizable lessons from the
    Stage D `LESSONS.md` and the retrofit's friction log into a
    standalone file the customer can carry forward — **default
@@ -1095,7 +1178,9 @@ Retrofit is complete when **all** are true:
       STAKEHOLDERS, RISKS, CHANGES, LESSONS, TEAM-CHARTER,
       AI-USE-POLICY).
 - [ ] Stage E moves executed and reviewed (one `code-reviewer`
-      sign-off per row or batch).
+      sign-off per row or batch); identifying-content regex re-runs
+      from `docs/retrofit/regex-commands.md` completed and per-hit
+      table updated.
 - [ ] **Every Hard-Rule-#7 row has `security-engineer` sign-off**
       recorded in `CUSTOMER_NOTES.md` with reference to the
       relevant security assurance artefact (§ 3 rule 8).
@@ -1110,12 +1195,13 @@ Retrofit is complete when **all** are true:
       Milestones` with an exit criterion.
 - [ ] `OPEN_QUESTIONS.md` reflects any remaining customer calls
       the retrofit surfaced.
-- [ ] `tech-lead` writes `docs/retrofit/retrofit-summary.md`
+- [ ] `tech-lead` writes `docs/retrofit/CLOSURE.md`
       summarizing what moved, what was left, what the next
-      milestone is, and how long the retrofit took (for
-      `LESSONS.md` generalization).
+      milestone is, how long the retrofit took (for
+      `LESSONS.md` generalization), identifying-content regex
+      re-run evidence, and the remote disposition decision (§ 4.8).
 - [ ] **`docs/INDEX.md` cross-links to
-      `docs/retrofit/retrofit-summary.md`** so future sessions
+      `docs/retrofit/CLOSURE.md`** so future sessions
       discover the retrofit trail without having to know the
       path.
 - [ ] **`TEMPLATE_VERSION` integrity check passes.** The file

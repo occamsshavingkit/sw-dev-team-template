@@ -6,9 +6,10 @@
 - [Path to v1.0.0-rc3](#path-to-v100-rc3)
   - [Credit-free vs credit-gated](#credit-free-vs-credit-gated)
   - [Final binding step — IEEE 1028 readiness audit](#final-binding-step-ieee-1028-readiness-audit)
-- [Post-rc3](#post-rc3)
-  - [v1.0.0-rc4 (only if rc3 fails sign-off)](#v100-rc4-only-if-rc3-fails-sign-off)
+- [Post-rc4](#post-rc4)
+  - [v1.0.0-rc4](#v100-rc4)
   - [v1.0.0 final](#v100-final)
+  - [v1.1.0 — GitHub Projects coordination interface](#v110-github-projects-coordination-interface)
   - [v2 work](#v2-work)
 - [Cross-release dependencies](#cross-release-dependencies)
 - [Out-of-band items](#out-of-band-items)
@@ -17,7 +18,7 @@
 <!-- /TOC -->
 
 Forward-looking release plan. Authoritative source for what is
-scheduled into the path to v1.0.0-rc3 and beyond.
+scheduled into the path to v1.0.0 final and beyond.
 
 This file is a **living document**, amended whenever a customer
 ruling changes scope. It is not a contract — the `CHANGELOG.md`
@@ -30,10 +31,10 @@ SemVer rules (see `CHANGELOG.md` header for the binding wording):
   permits breaking changes inside MINOR while we are pre-1.0).
 - **PATCH** — non-structural clarifications.
 
-Tag currently shipping: **v1.0.0-rc3** (annotated tag pushed
-to `origin`). GitHub Release object publication waits for
+Tag currently shipping from this worktree: **v1.0.0-rc4**. GitHub
+Release object publication waits for
 v1.0.0 final per the MINOR-only-Releases convention; the rc
-cycle is tag-only. Audit deliverables held upstream-private.
+cycle is tag-only.
 
 ---
 
@@ -108,24 +109,81 @@ repo.
 
 ---
 
-## Post-rc3
+## Post-rc4
 
-### v1.0.0-rc4 (only if rc3 fails sign-off)
+### v1.0.0-rc4
 
-Reserved as the integrated-feedback rc. Cut only if the rc3
-ratification returns specific rows for more work, or if downstream
-use of rc3 surfaces a contract-break before GA. If rc3 ratifies
-clean and downstream use is clean through the rc3 → GA window, the
-project skips rc4 and goes direct to v1.0.0 final.
+Integrated-feedback release candidate. Downstream use of
+`v1.0.0-rc3` surfaced multiple framework gaps in issues #71 through
+#83, including first-session onboarding, post-upgrade Step-0 drift,
+tech-lead specialist-bypass drift, subagent reliability, deliverable-
+shape scoping, upgrade-conflict churn, and retrofit redaction /
+close-out gaps.
+
+The rc4 stabilization queue is owned by `tech-lead`, with issue triage
+and work packages recorded in `docs/v1.0-rc4-stabilization.md`.
+`v1.0.0` final is blocked until every P0 item in that plan is closed
+or explicitly downgraded by customer ruling.
 
 ### v1.0.0 final
 
-Cut after rc3 (and rc4, if needed) has been used downstream long
-enough to demonstrate contract stability. Freezes the binding-rule
+Cut after rc4 has been used downstream long enough to demonstrate
+contract stability. Freezes the binding-rule
 surface: any post-1.0 change to `CLAUDE.md` § Hard rules or the
 canonical-role roster requires an ADR and customer sign-off. The
 v0.y MINOR-as-breaking convention ends; from 1.0.0 onward, MAJOR
 is reserved for actual breaking changes.
+
+### v1.1.0 — GitHub Projects coordination interface
+
+Add a GitHub-native coordination layer so multiple people can run the
+agent set from different machines while staying aligned on one task
+list, Kanban board, and issue-backed work queue.
+
+Planned scope:
+
+- Define a project-board convention for template-driven work:
+  statuses, ownership, priority, milestone/release, blocked state,
+  and agent-role routing fields.
+- Add issue / task templates that map cleanly to the current workflow
+  pipeline: trigger annotation, prior-art / proposal / duel links,
+  acceptance criteria, review owner, and release note impact.
+- Document the operating model for multi-machine agent sessions:
+  one GitHub issue per coherent task, comments as handoff records,
+  labels for specialist routing, and no direct customer escalation
+  except through the active `tech-lead`.
+- Provide a lightweight setup guide, and optionally a script or `gh`
+  command transcript, for creating the GitHub Project, labels, saved
+  views, and default fields.
+- Define sync expectations between in-repo registers
+  (`docs/OPEN_QUESTIONS.md`, `docs/DECISIONS.md`, PMBOK artifacts)
+  and GitHub issues/projects, including which artifact is authoritative
+  for each kind of state.
+- Integrate `docs/model-routing-guidelines.md` into the multi-operator
+  playbook so teams know when agents should use plan mode, raise model
+  tier, or increase reasoning effort across OpenAI / ChatGPT and
+  Claude / Claude Code deployments.
+
+Non-goals for v1.1.0:
+
+- Do not replace `docs/OPEN_QUESTIONS.md`, `CUSTOMER_NOTES.md`, or
+  `docs/DECISIONS.md` as binding project records.
+- Do not weaken the rule that only `tech-lead` talks to the customer.
+- Do not require GitHub Projects for single-operator or offline
+  downstream projects; the interface is additive and opt-in.
+
+Exit criteria:
+
+- A documented GitHub Projects field/status schema exists.
+- At least one issue/task template supports agent-routed work from
+  intake through review.
+- Agent model-routing guidelines are reviewed against current provider
+  docs and mapped to issue labels or fields where useful.
+- A fresh downstream project can follow the setup guide and produce a
+  usable board without hand-editing the template internals.
+- The coordination model has been smoke-tested with at least two
+  concurrent agent operators on separate machines, or explicitly
+  deferred with a narrower single-operator validation note.
 
 ### v2 work
 
@@ -150,13 +208,13 @@ v0.17.0 (local tag; public Release at v0.16.0)
    │
    │  depends on: rc3 checklist all green + IEEE 1028 audit
    ▼
-v1.0.0-rc3 ◄── re-entry checklist signed off, contract frozen
+v1.0.0-rc3 ◄── re-entry checklist signed off, field-use candidate
    │
-   │  depends on: rc3 downstream-clean OR returned-rows worked off
+   │  depends on: issues #71-#83 triaged + P0 fixes integrated
    ▼
-[v1.0.0-rc4 — only if rc3 fails sign-off]
+v1.0.0-rc4
    │
-   │  depends on: rc-track downstream-clean window
+   │  depends on: rc4 downstream-clean window
    ▼
 v1.0.0 (GA)
 ```
@@ -192,3 +250,6 @@ Things that may interrupt the linear plan:
 |---|---|---|
 | 2026-04-23 | Roadmap created after v0.12.0 tag; customer ruled path to v1.0.0-rc3 via v0.13.0 / v0.14.0 / v0.15.0. | `tech-lead` |
 | 2026-04-26 | Rewrite for the rc3 era; v1.0.0-rc3 cut and pushed; audit deliverables held upstream-private per redaction policy. | `tech-writer` + `tech-lead` |
+| 2026-05-03 | Added post-v1.0.0 GitHub Projects coordination interface to the v1.1.0 plan. | `tech-lead` |
+| 2026-05-03 | Added model-routing guideline deliverable to the post-v1.0.0 coordination plan. | `tech-lead` |
+| 2026-05-03 | Made v1.0.0-rc4 mandatory after downstream rc3 issues #71-#83; added stabilization-plan pointer. | `tech-lead` |

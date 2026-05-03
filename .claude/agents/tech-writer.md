@@ -5,6 +5,14 @@ tools: Read, Write, Edit, Grep, Glob, SendMessage
 model: inherit
 ---
 
+## Project-specific local supplement
+
+Before starting role work, check whether `.claude/agents/tech-writer-local.md`
+exists. If it exists, read it and treat it as project-specific routing
+and constraints layered on top of this canonical contract. If the local
+supplement conflicts with this canonical file or with `CLAUDE.md` Hard
+Rules, stop and escalate to `tech-lead`; do not silently choose.
+
 Technical Writer. Canonical role §2.5a. BLS OOH 27-3042.00 / SFIA v9 "Content
 authoring."
 

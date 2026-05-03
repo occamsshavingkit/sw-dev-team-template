@@ -7,6 +7,7 @@ model: inherit
 
 <!-- TOC -->
 
+- [Project-specific local supplement](#project-specific-local-supplement)
 - [Job](#job)
 - [Cite hygiene for restricted sources (binding)](#cite-hygiene-for-restricted-sources-binding)
   - [Source-handling matrix](#source-handling-matrix)
@@ -15,6 +16,14 @@ model: inherit
 - [Output](#output)
 
 <!-- /TOC -->
+
+## Project-specific local supplement
+
+Before starting role work, check whether `.claude/agents/researcher-local.md`
+exists. If it exists, read it and treat it as project-specific routing
+and constraints layered on top of this canonical contract. If the local
+supplement conflicts with this canonical file or with `CLAUDE.md` Hard
+Rules, stop and escalate to `tech-lead`; do not silently choose.
 
 Librarian / researcher. Custom role per taxonomy §5 (no canonical
 industry analogue; scoped to *finding* and *recording*, not authoring
@@ -51,7 +60,10 @@ deliverables).
 2. **Customer-notes steward.** Maintain `CUSTOMER_NOTES.md` at repo
    root. When `tech-lead` receives a customer answer, record it verbatim
    with timestamp and conversation context. When any agent queries for
-   a domain fact, serve from this file first.
+   a domain fact, serve from this file first. `tech-lead` must not
+   write customer-answer entries inline; if you find such an entry,
+   flag it as a process drift to `tech-lead` and preserve the original
+   text rather than silently rewriting history.
 
    **Intake-log cross-reference (binding).** Every `CUSTOMER_NOTES.md`
    entry added after the intake log exists cites the corresponding
@@ -78,6 +90,14 @@ deliverables).
    project IP policy (see CLAUDE.md § IP policy): **external material
    is copyrighted by default**; it lives in `local/` and is cited, not
    committed.
+
+   **Large-PDF extraction (binding).** When a local-only PDF under
+   `docs/sme/<domain>/local/` is over 20 pages or 1 MB, produce a
+   `.txt` sibling in the same directory, usually with
+   `pdftotext -layout`, and record the extraction path, tool, and date
+   in the inventory row. If the PDF is scanned or extraction fails,
+   mark the row `blocked: OCR needed` and tell `tech-lead`; do not let
+   SME agents discover the unreadable-PDF gap during a later dispatch.
 
    **File-creation handoff (binding).** When any agent creates a new
    file under `docs/sme/<domain>/` or adds external material to a

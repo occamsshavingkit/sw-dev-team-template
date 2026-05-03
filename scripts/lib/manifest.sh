@@ -55,8 +55,12 @@ manifest_ship_files() {
     done < "$project_repo/.template-customizations"
   fi
   (cd "$paths_repo" && git ls-files 2>/dev/null) \
-    | grep -vE '^(VERSION|CHANGELOG\.md|CONTRIBUTING\.md|LICENSE|TEMPLATE_VERSION|TEMPLATE_MANIFEST\.lock)$' \
+    | grep -vE '^(VERSION|CHANGELOG\.md|CONTRIBUTING\.md|LICENSE|ROADMAP\.md|AGENTS\.md|TEMPLATE_VERSION|TEMPLATE_MANIFEST\.lock)$' \
     | grep -vE '^(\.github/|dryrun-project/|examples/|migrations/)' \
+    | grep -vE '^\.claude/agents/[^/]+-local\.md$' \
+    | grep -vE '^docs/(audits|v2|proposals)/' \
+    | grep -vE '^docs/v1\.0-rc3-checklist\.md$' \
+    | grep -vE '^docs/pm/process-audit-.*\.md$' \
     | grep -vE '^scripts/smoke-test\.sh$' \
     | while IFS= read -r f; do
         [[ -z "$f" ]] && continue

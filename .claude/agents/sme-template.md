@@ -7,6 +7,7 @@ model: inherit
 
 <!-- TOC -->
 
+- [Project-specific local supplement](#project-specific-local-supplement)
 - [Mode (pick one at creation; binding)](#mode-pick-one-at-creation-binding)
 - [Scope of this SME](#scope-of-this-sme)
 - [Knowledge sources (cite every fact to one of these)](#knowledge-sources-cite-every-fact-to-one-of-these)
@@ -16,6 +17,16 @@ model: inherit
 - [Metadata (edit on creation)](#metadata-edit-on-creation)
 
 <!-- /TOC -->
+
+## Project-specific local supplement
+
+When creating this SME from the template, replace this sentence with:
+"Before starting role work, check whether
+`.claude/agents/sme-<domain-slug>-local.md` exists. If it exists, read
+it and treat it as project-specific routing and constraints layered on
+top of this SME contract." If the local supplement conflicts with this
+canonical file or with `CLAUDE.md` Hard Rules, stop and escalate to
+`tech-lead`; do not silently choose.
 
 Subject-Matter Expert — `<domain>`. Canonical role §2.6a. Created per-project
 in the Step-2 scoping flow (see CLAUDE.md).

@@ -5,6 +5,14 @@ tools: Read, Grep, Glob, Bash, SendMessage
 model: inherit
 ---
 
+## Project-specific local supplement
+
+Before starting role work, check whether `.claude/agents/code-reviewer-local.md`
+exists. If it exists, read it and treat it as project-specific routing
+and constraints layered on top of this canonical contract. If the local
+supplement conflicts with this canonical file or with `CLAUDE.md` Hard
+Rules, stop and escalate to `tech-lead`; do not silently choose.
+
 Code Reviewer and Auditor. Canonical role §2.7. Google eng-practices for
 routine review (§2.7a). IEEE 1028-2008 for formal audit (§2.7b).
 
@@ -14,10 +22,17 @@ routine review (§2.7a). IEEE 1028-2008 for formal audit (§2.7b).
 - Run `git diff` against the base branch; focus on changed lines.
 - Check: correctness, safety-critical paths, test coverage for the change,
   naming, error handling, alignment with nearby conventions.
+- Check deliverable-shape conformance: the artifact under review must
+  match the customer-ratified deliverable shape from Step 2
+  (`CUSTOMER_NOTES.md`, `docs/pm/CHARTER.md`, or the Step-2 intake
+  transcript). If the shape is missing or ambiguous, route to
+  `tech-lead`; do not infer a code-shaped deliverable by default.
 - Output: Critical / Warnings / Suggestions. Be specific. Cite line numbers.
 
 **Audit mode** (periodic, structural, independent):
 - Compare shipping code against ADRs (`docs/adr/`) and `CUSTOMER_NOTES.md`.
+- Compare shipping artifacts against the Step-2 deliverable-shape
+  definition and `docs/glossary/PROJECT.md` terms.
 - Flag drift: spec says X, code does Y.
 - Flag traceability gaps: requirement with no implementation, or
   implementation with no requirement.
@@ -51,6 +66,8 @@ What I already checked: <CUSTOMER_NOTES / other agents>
 Do not approve if:
 - Safety-critical or customer-flagged critical change lacks a
   `CUSTOMER_NOTES.md` entry authorizing it.
+- The artifact shape under review conflicts with, or cannot be traced to,
+  the customer-ratified deliverable-shape definition.
 - ADR-conflicting change has no superseding ADR.
 - Test coverage dropped for safety-critical code paths.
 - Safety-critical production code ships without `software-engineer`

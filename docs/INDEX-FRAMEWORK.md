@@ -20,7 +20,9 @@ Project-authored content lives in
 | `scripts/scaffold.sh` | Scaffolds a new downstream project from this template. Writes the initial `TEMPLATE_MANIFEST.lock` and self-verifies before exit. |
 | `scripts/version-check.sh` | Session-start hook; compares `TEMPLATE_VERSION` against upstream and prints a banner if an upgrade is available. Pre-release tags filtered out for stable-track projects (issue #60). |
 | `scripts/upgrade.sh` | Upgrades a scaffolded project to the latest template version. Respects user-added agents / SMEs; flags customized standard files for review. Subcommands: `--dry-run` (plan-only), `--verify` (offline drift check against `TEMPLATE_MANIFEST.lock`, FW-ADR-0002), `--help`. |
+| `scripts/hooks/customer-notes-guard.py` | Claude Code PreToolUse hook that asks for confirmation before writes to `CUSTOMER_NOTES.md`, reinforcing researcher ownership of customer-answer entries. |
 | `scripts/lib/manifest.sh` | Shared helpers for `TEMPLATE_MANIFEST.lock` (write / verify / ship-files enumeration / SHA256). Sourced by `upgrade.sh` and `scaffold.sh`. Per FW-ADR-0002. |
+| `scripts/lib/first-actions.sh` | Shared FIRST ACTIONS detection helpers for session-start and upgrade warnings when Step-0 issue-feedback opt-in is missing. |
 | `scripts/smoke-test.sh` | End-to-end sanity check on scaffold + version-check + upgrade + manifest verify contracts. Template-maintenance tool; not shipped to downstream projects. |
 | `scripts/agent-health.sh` | Assembles a health-check packet for a named teammate (ground-truth snapshot + fixed prompt). Per `docs/agent-health-contract.md` § 3. |
 | `scripts/respawn.sh` | Stubs a handover-brief file and prints the respawn checklist. Per `docs/agent-health-contract.md` § 4. |
@@ -45,6 +47,8 @@ Project-authored content lives in
 | `docs/ISSUE_FILING.md` | Convention for filing framework gaps against the upstream template repo (includes template-version citation). |
 | `docs/agent-health-contract.md` | **Binding.** Failure modes, detection signals, health-check protocol, and respawn procedure for long-lived named teammates — including the triadic tech-lead self-diagnosis (project-manager / peer / customer backstop). |
 | `docs/handovers/` | Respawn handover briefs (one per respawn, dated). Gitignored after 30 days by convention. |
+| `docs/model-routing-guidelines.md` | Draft post-v1.0.0 guidance for agent model tier, effort, and plan-mode selection across OpenAI / ChatGPT and Claude / Claude Code. |
+| `docs/v1.0-rc4-stabilization.md` | Triage and work-package plan for downstream issues #71-#83 before `v1.0.0` final. |
 
 ## `docs/adr/` (Framework Architecture Decision Records)
 

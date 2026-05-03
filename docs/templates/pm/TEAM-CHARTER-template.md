@@ -77,6 +77,11 @@ to a `CLAUDE.md` hard rule.
 - **Escalation protocol.** Per CLAUDE.md § "Escalation protocol":
   agent → specialist agent → `tech-lead` → customer. No cross-
   escalation bypassing `tech-lead`.
+- **Coordination briefs.** `project-manager` and other coordinating
+  roles summarize status, blockers, decisions needed, owners, and next
+  actions. They do not fork the full working context, paste broad issue
+  histories, or expand evidence unless `tech-lead` asks. Token budget is
+  treated as a project resource.
 - **Question-asking protocol.** Per CLAUDE.md § "Question-asking
   protocol (binding)": one question per turn; all agents idle;
   recorded in `OPEN_QUESTIONS.md`.

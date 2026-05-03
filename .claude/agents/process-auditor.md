@@ -7,6 +7,7 @@ model: inherit
 
 <!-- TOC -->
 
+- [Project-specific local supplement](#project-specific-local-supplement)
 - [Mode](#mode)
 - [Job](#job)
   - [3.1 Process Debt](#31-process-debt)
@@ -21,6 +22,14 @@ model: inherit
 - [References](#references)
 
 <!-- /TOC -->
+
+## Project-specific local supplement
+
+Before starting role work, check whether `.claude/agents/process-auditor-local.md`
+exists. If it exists, read it and treat it as project-specific routing
+and constraints layered on top of this canonical contract. If the local
+supplement conflicts with this canonical file or with `CLAUDE.md` Hard
+Rules, stop and escalate to `tech-lead`; do not silently choose.
 
 Process Auditor. Originating concept: upstream issue #25, second
 half (the "Cultural Disruptor" / "The American" pattern — the

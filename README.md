@@ -4,13 +4,11 @@ A ready-to-use Claude Code project scaffold that turns a single Claude
 session into a 13-role software-development team with a strict escalation
 protocol and a per-project SME pattern.
 
-**Status.** Release-candidate track (currently `v1.0.0-rc3`). The
-seven binding rc-track criteria in `docs/v1.0-rc3-checklist.md` are
-all green; IEEE 1028 readiness audit was held by the upstream
-maintainer with recommendation **SHIP** (audit deliverables held
-upstream-private per redaction policy; not in this repo). The
-public contract becomes stable at `v1.0.0` final; breaking changes
-are still permitted on the rc track if a criterion regresses.
+**Status.** Release-candidate track (currently `v1.0.0-rc4`). rc4 is
+the integrated stabilization candidate after downstream `v1.0.0-rc3`
+use surfaced issues #71 through #83. The public contract becomes stable
+at `v1.0.0` final; breaking changes are still permitted on the rc track
+if downstream use finds a release-blocking contract or safety gap.
 
 ---
 

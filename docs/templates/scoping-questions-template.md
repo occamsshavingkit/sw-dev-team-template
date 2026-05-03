@@ -17,24 +17,30 @@ ask them **one per turn** with all agents idle (see
    installed / tracked.
 1. **Project summary.** What are we building, for whom, on what stack,
    and what counts as "done" for the first milestone?
-2. **Domain SMEs.** Does this project need domain SMEs? Candidate
+2. **Deliverable shape.** What shape is the deliverable: code
+   (library / CLI / service / agent), data (dataset / model / corpus),
+   artefact (document, skill, playbook, prompt, runbook), process
+   (procedure humans or AI follow), or hybrid? Define every customer-
+   domain term used in the answer so `tech-lead` can add it to
+   `docs/glossary/PROJECT.md` before design work starts.
+3. **Domain SMEs.** Does this project need domain SMEs? Candidate
    domains: industry-specific process knowledge, regulatory /
    compliance, legal, accessibility, security, hardware, a specific
    vendor platform or framework, legacy-system archaeology, a specific
    customer site's conventions, localization / i18n, accounting /
    finance rules, anything else.
-3. **Customer as SME.** Are you (the customer) one of the SMEs? If
+4. **Customer as SME.** Are you (the customer) one of the SMEs? If
    yes, which domains?
-4. **External SMEs.** For SME domains you are NOT expert in — do you
+5. **External SMEs.** For SME domains you are NOT expert in — do you
    have external SMEs to consult, or does the team need to recruit /
    substitute? If substitute, say what acceptance criteria the
    substitute must meet.
-5. **Step 3 — agent naming category.** Pick a naming category (e.g.,
+6. **Step 3 — agent naming category.** Pick a naming category (e.g.,
    Muppets, famous singers, historical scientists), a custom name
    list, or keep canonical role names. `tech-lead` proposes
    specific names; `researcher` verifies pronouns. See
    `docs/AGENT_NAMES.md`.
-6. **Step 0 — issue-feedback opt-in** (atomic yes/no). Does this
+7. **Step 0 — issue-feedback opt-in** (atomic yes/no). Does this
    project participate in upstream issue feedback when the team hits
    a gap in the framework? See `docs/ISSUE_FILING.md`.
 

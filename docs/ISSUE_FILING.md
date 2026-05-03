@@ -40,6 +40,13 @@ FIRST ACTIONS. If the project is opt-out, `tech-lead` still keeps a
 local gap log at `docs/pm/LESSONS.md` — it just does not push
 upstream.
 
+Projects that started on an older template version may not have a
+Step-0 record yet. Retroactive opt-in is valid: ask the same Step-0
+question at the next session start, record the customer's answer in
+`CUSTOMER_NOTES.md`, and apply that ruling from that point forward.
+Do not file already-discovered gaps upstream until the answer is on
+record.
+
 ## What to include
 
 **Rule 0 — redact project identity.** Do NOT include the downstream

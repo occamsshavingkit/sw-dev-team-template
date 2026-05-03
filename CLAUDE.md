@@ -206,6 +206,27 @@ are never overwritten and never flagged as conflicts; they appear as
 empty; populate it the first time an upgrade flags a legitimate
 customization you want to keep.
 
+**Volatile shipped files.** Avoid editing template-shipped scripts,
+`.claude/settings.json`, and append-only governance logs in place
+unless the project intentionally accepts the merge cost. Prefer
+project-local wrappers (`scripts/project-*.sh`), project-owned config,
+or append-only entries below existing markers. If an upgrade does
+flag a conflict, `upgrade.sh` prints a per-file heat-map showing the
+upstream delta and local delta since scaffold; use that to decide
+whether to take upstream, preserve local, or merge manually.
+
+**Project-specific agent routing.** Do not edit template-shipped
+`.claude/agents/<role>.md` files just to add project language,
+framework, domain, or tool-routing rules. Instead create
+`.claude/agents/<role>-local.md` beside the canonical role file.
+Every shipped agent contract checks for its local supplement before
+starting role work and treats it as project-specific routing layered
+on top of the canonical contract. Local supplements are project-owned:
+they are not shipped by the template, are excluded from manifests, and
+are preserved across upgrades without `.template-customizations`.
+If a local supplement conflicts with a canonical role contract or with
+Hard Rules, the agent escalates to `tech-lead`.
+
 `--dry-run` prints the plan without writing. Use it before the real
 upgrade on any project where the conflict set is non-trivial.
 
@@ -392,6 +413,14 @@ before `tech-lead` dispatches the first work subagent):
 
 - [ ] Project summary is known and fits in two paragraphs without
   guessing.
+- [ ] Deliverable shape is defined and customer-ratified: code
+  (library / CLI / service / agent), data (dataset / model / corpus),
+  artefact (document, skill, playbook, prompt, runbook), process
+  (procedure humans or AI follow), or hybrid. Every named deliverable
+  has an owner role and target path or repository location.
+- [ ] Customer-domain terms used in the deliverable definition are
+  defined in `docs/glossary/PROJECT.md` before any agent designs
+  against them.
 - [ ] SME domains have been identified and classified (customer is
   SME / external SME available / external recruit needed / deferred).
 - [ ] First milestone and its "done" criteria are defined.
@@ -431,6 +460,9 @@ After the customer answers, `tech-lead`:
   dependency.
 - Records the project charter and the SME plan in `CUSTOMER_NOTES.md` via
   `researcher`.
+- Echoes back the ratified deliverable shape and glossary entries in
+  the project charter or scoping transcript so later `code-reviewer`
+  passes can check output-vs-intent conformance.
 
 Only after Step 2 is complete does `tech-lead` move on to Step 3.
 
@@ -742,6 +774,11 @@ it for a specific item in `CUSTOMER_NOTES.md`.
   Revisit this interpretation if PMI or another publisher issues
   guidance narrowing or broadening the clause.
 
+  A `.txt` extraction produced from a local-only PDF inherits the same
+  IP posture as the source PDF: keep it in the same gitignored
+  `local/` directory, cite it by inventory row + line range, and do not
+  commit raw extracted text.
+
 Every `docs/sme/<domain>/` directory MUST have an `INVENTORY.md` based
 on `docs/sme/INVENTORY-template.md`. `researcher` maintains it.
 
@@ -793,6 +830,15 @@ like "first session of the calendar week" in preference to
    required by Hard Rule #4. The sign-off references the relevant
    security assurance artefact (shape per `docs/templates/security-template.md`,
    grounded in SWEBOK V4 ch. 13 §§4.1–4.6 and ISO/IEC 15026-2:2022).
+8. `tech-lead` orchestrates; it does not author production artifacts
+   directly. Code, scripts, schemas, prose deliverables, requirements,
+   ADRs, release notes, and customer-truth records route to the owning
+   specialist (`software-engineer`, `tech-writer`, `researcher`,
+   `project-manager`, `architect`, etc.). Direct `tech-lead` writes are
+   limited to orchestration artifacts (`OPEN_QUESTIONS.md`,
+   intake-log rows, dispatch/task stubs, Turn Ledger / decision-log
+   entries) and tool-bridge work a specialist cannot perform in its
+   sandbox. When unsure, dispatch.
 
 ## Taxonomy discipline
 

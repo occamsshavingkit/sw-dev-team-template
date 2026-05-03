@@ -16,6 +16,83 @@ filed upstream include that version.
 
 ---
 
+## v1.0.0-rc4 — 2026-05-03
+
+Integrated stabilization candidate after downstream use of
+`v1.0.0-rc3` surfaced release-blocking framework gaps. The rc4 plan is
+tracked in `docs/v1.0-rc4-stabilization.md`; final `v1.0.0` remains
+blocked until every P0 in that plan is closed or explicitly
+downgraded by customer ruling.
+
+### Added
+
+- **FIRST ACTIONS detection (#73, #78).** New
+  `scripts/lib/first-actions.sh` detects missing Step-0
+  issue-feedback opt-in records. `scripts/version-check.sh` now
+  surfaces FIRST ACTIONS on fresh or incomplete projects, and
+  `scripts/upgrade.sh` prints an `ACTION REQUIRED` warning for
+  upgraded projects missing the opt-in record.
+- **`CUSTOMER_NOTES.md` write guard (#77).** Project hook
+  `scripts/hooks/customer-notes-guard.py` asks for explicit approval
+  before `Write` / `Edit` / `MultiEdit` touches `CUSTOMER_NOTES.md`,
+  reminding the operator that customer-answer entries route through
+  `researcher`.
+- **rc4 stabilization plan.** `docs/v1.0-rc4-stabilization.md`
+  classifies post-rc3 issues #71-#83 into P0 / P1 / P2 and groups the
+  work into seven packages.
+- **Agent model-routing draft.** `docs/model-routing-guidelines.md`
+  records draft post-v1.0 guidance for model tier, effort, and plan
+  mode across OpenAI / ChatGPT and Claude / Claude Code deployments.
+
+### Changed
+
+- **Tech-lead routing discipline (#77, #82).** `CLAUDE.md` and
+  `.claude/agents/tech-lead.md` now state that `tech-lead`
+  orchestrates and does not author production artifacts directly,
+  except for narrowly defined orchestration and tool-bridge work.
+- **Subagent liveness and completion checks (#72, #74).** Liveness
+  guidance now treats subagent `SendMessage` as harness-dependent,
+  requires alternate progress reporting when unavailable, adds
+  dispatch-size splitting heuristics, and requires `tech-lead` to
+  verify expected file changes before accepting write-task completion.
+- **Step-2 deliverable-shape gate (#80).** Scoping now asks what shape
+  the deliverable has (code, data, artifact, process, or hybrid),
+  requires project-glossary entries for customer-domain terms in that
+  definition, and adds `code-reviewer` conformance checks against the
+  customer-ratified shape.
+- **Retrofit playbook hardening (#81, #83).** Stage A now requires
+  identifying-content regex sweeps with per-hit tables; Stage E
+  requires implementer and reviewer re-runs; close-out now includes a
+  remote-disposition decision when the source had a git remote.
+- **Large-PDF SME source handling (#76).** `researcher` now owns
+  `.txt` extraction status for large local-only PDFs, and
+  `docs/sme/INVENTORY-template.md` records extraction path / tool /
+  date.
+- **Upgrade conflict diagnostics (#71).** `scripts/upgrade.sh` now
+  prints upstream-vs-local delta shortstats for each customized
+  standard-file conflict, and `CLAUDE.md` documents volatile shipped
+  files and wrapper-preferred customization.
+- **Project-local agent routing (#75).** Every shipped agent contract
+  now checks for `.claude/agents/<role>-local.md` before role work.
+  Local supplements are project-owned, excluded from manifests, and
+  preserved across upgrades, giving projects a place for language /
+  framework / domain routing without forking canonical agents.
+- **Manifest exclusion parity.** `scripts/lib/manifest.sh` now mirrors
+  scaffold / upgrade's template-only exclusions more closely, including
+  rc planning, audit, v2, proposal, and role-local files.
+- **Release stamp.** `VERSION` is now `v1.0.0-rc4`; README and ROADMAP
+  current-release wording point at rc4.
+
+### Verification
+
+- `scripts/smoke-test.sh`: 100 checks passing as of the first rc4
+  implementation pass.
+- `scripts/audit-agent-tools.sh`: clean.
+- `docs/audits/v1.0.0-rc4-review.md`: review pass found no hidden
+  #59 blocker and approved continued rc4 stabilization.
+
+---
+
 ## v1.0.0-rc3 — 2026-04-25
 
 Third release candidate. Closes the C-4 empirical-usage criterion on

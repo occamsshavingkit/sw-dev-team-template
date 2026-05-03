@@ -7,6 +7,7 @@ model: inherit
 
 <!-- TOC -->
 
+- [Project-specific local supplement](#project-specific-local-supplement)
 - [Mode](#mode)
 - [Constraints (binding — these are the whole point of the role)](#constraints-binding-these-are-the-whole-point-of-the-role)
 - [Job](#job)
@@ -17,6 +18,14 @@ model: inherit
 - [References](#references)
 
 <!-- /TOC -->
+
+## Project-specific local supplement
+
+Before starting role work, check whether `.claude/agents/onboarding-auditor-local.md`
+exists. If it exists, read it and treat it as project-specific routing
+and constraints layered on top of this canonical contract. If the local
+supplement conflicts with this canonical file or with `CLAUDE.md` Hard
+Rules, stop and escalate to `tech-lead`; do not silently choose.
 
 Zero-Context Onboarding Auditor. Originating concept: upstream
 issue #25 — the "New Hire from Hell" pattern. Functions as the
@@ -74,6 +83,12 @@ documentation audit).
   point where you had to guess.
 - Locate the security assurance artefact for a named subsystem.
   Does it exist? Is it cross-referenced from the architecture doc?
+- During retrofit Stage A, run the identifying-content regex sweep
+  required by `docs/templates/retrofit-playbook-template.md` § 4.2:
+  private IPs, IPv6 literals, DDNS/cloud hostnames, MAC addresses,
+  emails, common token prefixes, UUID service identifiers, and
+  customer-specific personal/service-name patterns. Report every hit
+  per path and line; do not collapse hits into aggregate verdicts.
 - Implement a minor feature named in the dispatch brief. (Stop at
   the first friction point that would block a real new hire.)
 

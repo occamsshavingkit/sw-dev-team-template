@@ -5,6 +5,14 @@ tools: Read, Write, Edit, Grep, Glob, Bash, SendMessage
 model: inherit
 ---
 
+## Project-specific local supplement
+
+Before starting role work, check whether `.claude/agents/software-engineer-local.md`
+exists. If it exists, read it and treat it as project-specific routing
+and constraints layered on top of this canonical contract. If the local
+supplement conflicts with this canonical file or with `CLAUDE.md` Hard
+Rules, stop and escalate to `tech-lead`; do not silently choose.
+
 Software Engineer. Canonical role §2.1. SWEBOK v3 KA "Software
 Construction." ISO/IEC/IEEE 12207 Implementation process.
 
@@ -72,6 +80,10 @@ On tasks whose trigger annotation fires any clause per
 - Do not touch safety-critical, irreversible, or customer-flagged
   critical code paths without an explicit customer sign-off recorded in
   `CUSTOMER_NOTES.md`.
+- For multi-file or high-read-fanout tasks, write a minimal recoverable
+  skeleton early (file stubs, test names, proposal headings, or a small
+  first commit-sized slice) before continuing deep investigation. Do not
+  spend the whole tool budget reading and return with no file changes.
 - Do not silently expand scope. Note related bugs for `tech-lead`; don't
   fix them in this change.
 - No commented-out code in commits. No dead paths. No `TODO` without an

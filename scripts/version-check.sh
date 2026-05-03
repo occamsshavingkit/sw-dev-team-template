@@ -25,6 +25,12 @@ fi
 project_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 tv="$project_root/TEMPLATE_VERSION"
 
+first_actions_lib="$project_root/scripts/lib/first-actions.sh"
+if [[ -f "$first_actions_lib" ]]; then
+  # shellcheck source=lib/first-actions.sh
+  source "$first_actions_lib"
+fi
+
 # Unzipped-in-place detector (issue #5 part B).
 #
 # Symptoms of an unzipped-but-unscaffolded directory:
@@ -63,6 +69,10 @@ fi
 if [[ ! -f "$tv" ]]; then
   # Not a scaffolded project (or run from the template repo itself). Stay quiet.
   exit 0
+fi
+
+if declare -F first_actions_step0_warning >/dev/null; then
+  first_actions_step0_warning "$project_root" "session"
 fi
 
 local_version="$(head -1 "$tv" 2>/dev/null | tr -d '[:space:]')"
@@ -114,7 +124,8 @@ if [[ -z "$latest_tag" ]]; then
   exit 0
 fi
 
-if [[ "$local_version" == "$latest_tag" ]]; then
+newest_seen="$(printf '%s\n%s\n' "$local_version" "$latest_tag" | sort -V | tail -1)"
+if [[ "$local_version" == "$latest_tag" || "$newest_seen" == "$local_version" ]]; then
   echo "Template up to date: $local_version."
 else
   release_url="$upstream/releases/tag/$latest_tag"

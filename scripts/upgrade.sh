@@ -57,8 +57,8 @@ With no flag, run the full upgrade. The script:
 
 Files listed in .template-customizations are skipped entirely (also
 omitted from the manifest).
-sme-<domain>.md agents and docs/pm/* artefacts are project-owned;
-they are never overwritten.
+sme-<domain>.md agents, .claude/agents/<role>-local.md supplements,
+and docs/pm/* artefacts are project-owned; they are never overwritten.
 
 See docs/INDEX.md for related upgrade contracts (scaffold.sh,
 version-check.sh, migrations/README.md).
@@ -68,6 +68,13 @@ EOF
 # Manifest helpers (FW-ADR-0002, v0.14.0).
 # shellcheck source=lib/manifest.sh
 source "$(dirname "$0")/lib/manifest.sh"
+
+# FIRST ACTIONS helpers (issue #73).
+first_actions_lib="$(dirname "$0")/lib/first-actions.sh"
+if [[ -f "$first_actions_lib" ]]; then
+  # shellcheck source=lib/first-actions.sh
+  source "$first_actions_lib"
+fi
 
 # Upstream URL is overrideable via SWDT_UPSTREAM_URL. Used by
 # scripts/stepwise-smoke.sh to point at a local clone with specific
@@ -89,6 +96,7 @@ tv="$project_root/TEMPLATE_VERSION"
 dry_run=0
 verify_mode=0
 target_version=""
+original_args=("$@")
 while [[ $# -gt 0 ]]; do
   case "$1" in
     "--dry-run")     dry_run=1; shift ;;
@@ -156,7 +164,9 @@ fi
 if [[ "${SWDT_BOOTSTRAPPED:-}" != "1" ]]; then
   upstream_upgrade="$workdir/new/scripts/upgrade.sh"
   upstream_lib="$workdir/new/scripts/lib/manifest.sh"
+  upstream_first_actions="$workdir/new/scripts/lib/first-actions.sh"
   local_lib="$(dirname "$0")/lib/manifest.sh"
+  local_first_actions="$(dirname "$0")/lib/first-actions.sh"
   bootstrap=0
   if [[ -f "$upstream_upgrade" ]] && ! cmp -s "$upstream_upgrade" "$0"; then
     bootstrap=1
@@ -166,8 +176,13 @@ if [[ "${SWDT_BOOTSTRAPPED:-}" != "1" ]]; then
       bootstrap=1
     fi
   fi
+  if [[ -f "$upstream_first_actions" ]]; then
+    if [[ ! -f "$local_first_actions" ]] || ! cmp -s "$upstream_first_actions" "$local_first_actions"; then
+      bootstrap=1
+    fi
+  fi
   if [[ $bootstrap -eq 1 ]]; then
-    echo "Bootstrapping: replacing local scripts/upgrade.sh + scripts/lib/manifest.sh with upstream and re-execing." >&2
+    echo "Bootstrapping: replacing local upgrade helpers with upstream and re-execing." >&2
     # Atomic mv-rename so bash's open fd stays on the original (now-unlinked)
     # inode through the rest of THIS run. The exec below replaces the process.
     if [[ -f "$upstream_upgrade" ]]; then
@@ -179,13 +194,18 @@ if [[ "${SWDT_BOOTSTRAPPED:-}" != "1" ]]; then
       cp "$upstream_lib" "$(dirname "$0")/lib/manifest.sh.tmp.$$"
       mv "$(dirname "$0")/lib/manifest.sh.tmp.$$" "$(dirname "$0")/lib/manifest.sh"
     fi
+    if [[ -f "$upstream_first_actions" ]]; then
+      mkdir -p "$(dirname "$0")/lib"
+      cp "$upstream_first_actions" "$(dirname "$0")/lib/first-actions.sh.tmp.$$"
+      mv "$(dirname "$0")/lib/first-actions.sh.tmp.$$" "$(dirname "$0")/lib/first-actions.sh"
+    fi
     # Reuse the workdir we just cloned — no need to clone twice. Hand the
     # path to the re-execed self via env; child trap takes ownership of
     # cleanup.
     export SWDT_BOOTSTRAPPED=1
     export SWDT_PRESTAGED_WORKDIR="$workdir"
     trap '' EXIT  # don't double-rm; child owns the workdir now
-    exec bash "$0" "$@"
+    exec bash "$0" "${original_args[@]}"
   fi
 fi
 
@@ -194,6 +214,10 @@ if [[ -n "${SWDT_PRESTAGED_WORKDIR:-}" && -d "$SWDT_PRESTAGED_WORKDIR/new" ]]; t
   rm -rf "$workdir"
   workdir="$SWDT_PRESTAGED_WORKDIR"
   trap 'rm -rf "$workdir"' EXIT
+fi
+
+if declare -F first_actions_step0_warning >/dev/null; then
+  first_actions_step0_warning "$project_root" "upgrade"
 fi
 
 new_version="$(cat "$workdir/new/VERSION" | tr -d '[:space:]')"
@@ -298,8 +322,9 @@ fi
 # the maintainer's release-planning artefacts into downstream (regression
 # of F-002 from the v1.0-rc3 onboarding audit).
 ship_files=$(cd "$workdir/new" && git ls-files \
-  | grep -vE '^(VERSION|CHANGELOG\.md|CONTRIBUTING\.md|LICENSE|ROADMAP\.md)$' \
+  | grep -vE '^(VERSION|CHANGELOG\.md|CONTRIBUTING\.md|LICENSE|ROADMAP\.md|AGENTS\.md)$' \
   | grep -vE '^(\.github/|dryrun-project/|examples/|migrations/)' \
+  | grep -vE '^\.claude/agents/[^/]+-local\.md$' \
   | grep -vE '^docs/(audits|v2|proposals)/' \
   | grep -vE '^docs/v1\.0-rc3-checklist\.md$' \
   | grep -vE '^docs/pm/process-audit-.*\.md$' \
@@ -366,6 +391,17 @@ atomic_install() {
   local dst="$2"
   cp "$src" "$dst.tmp.$$"
   mv "$dst.tmp.$$" "$dst"
+}
+
+shortstat_between() {
+  local from="$1"
+  local to="$2"
+
+  if [[ -f "$from" && -f "$to" ]]; then
+    git diff --no-index --shortstat "$from" "$to" 2>/dev/null || true
+  else
+    echo "(baseline unavailable)"
+  fi
 }
 
 added=(); upgraded=(); kept=(); conflicts=(); preserved=()
@@ -500,6 +536,14 @@ if [[ ${#conflicts[@]} -gt 0 ]]; then
   echo "${prefix}⚠  Customized standard files — LEFT ALONE — review and merge manually (${#conflicts[@]}):"
   for f in "${conflicts[@]}"; do
     echo "  ! $f"
+    if [[ $baseline_available -eq 1 && -f "$workdir/old/$f" ]]; then
+      upstream_stat="$(shortstat_between "$workdir/old/$f" "$workdir/new/$f")"
+      local_stat="$(shortstat_between "$workdir/old/$f" "$project_root/$f")"
+      echo "      upstream delta: ${upstream_stat:-0 files changed}"
+      echo "      local delta:    ${local_stat:-0 files changed}"
+    else
+      echo "      delta heat-map unavailable: baseline SHA not reachable"
+    fi
     echo "      diff <(git -C $workdir/new show HEAD:\"$f\") \"$project_root/$f\""
   done
   echo
@@ -510,11 +554,12 @@ fi
 
 # User-added files (not in template's ship_files) are implicitly preserved —
 # they were never touched.
-user_added_agents=$(find "$project_root/.claude/agents" -maxdepth 1 -name 'sme-*.md' \
+user_added_agents=$(find "$project_root/.claude/agents" -maxdepth 1 \
+                    \( -name 'sme-*.md' -o -name '*-local.md' \) \
                     ! -name 'sme-template.md' 2>/dev/null \
                     | sed "s|^$project_root/||" || true)
 if [[ -n "$user_added_agents" ]]; then
-  echo "${prefix}User-added SME agents preserved:"
+  echo "${prefix}User-added agent files preserved:"
   echo "$user_added_agents" | sed 's/^/  · /'
   echo
 fi

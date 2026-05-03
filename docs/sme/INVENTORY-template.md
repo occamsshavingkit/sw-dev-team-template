@@ -67,9 +67,9 @@ Rules:
 **Not committed. Held in `docs/sme/<domain>/local/`.** Every row must
 give a third-party-reproducible citation.
 
-| # | Title | Author / Publisher | Year / version | How to obtain | License / terms | Local filename | Covers | Date added | Last verified accessible |
-|---|---|---|---|---|---|---|---|---|---|
-| 1 | <Title of doc> | <Publisher> | 2024 v1.2 | <URL, or ISBN, or DOI, or standard number, or "request from <vendor contact>"> | <e.g., "© Publisher, no redistribution" / "CC BY-SA 4.0"> | `local/<filename>.pdf` | <tags> | YYYY-MM-DD | YYYY-MM-DD |
+| # | Title | Author / Publisher | Year / version | How to obtain | License / terms | Local filename | Text extraction | Covers | Date added | Last verified accessible |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | <Title of doc> | <Publisher> | 2024 v1.2 | <URL, or ISBN, or DOI, or standard number, or "request from <vendor contact>"> | <e.g., "© Publisher, no redistribution" / "CC BY-SA 4.0"> | `local/<filename>.pdf` | `local/<filename>.txt` via `pdftotext -layout`, YYYY-MM-DD / not needed / blocked | <tags> | YYYY-MM-DD | YYYY-MM-DD |
 
 Rules:
 - **"How to obtain" must be enough for someone else to get the item
@@ -82,6 +82,11 @@ Rules:
   do not silently leave a dead URL.
 - If a license override is recorded in `CUSTOMER_NOTES.md`, reference
   that entry in the "License / terms" cell.
+- For local PDFs over 20 pages or 1 MB, `researcher` creates or
+  refreshes a `.txt` sibling in the same `local/` directory (usually
+  `pdftotext -layout`) and records the extraction status in the
+  "Text extraction" cell. Scanned PDFs that need OCR are marked
+  `blocked: OCR needed` until handled.
 
 ---
 

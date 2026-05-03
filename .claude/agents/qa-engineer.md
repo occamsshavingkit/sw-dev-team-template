@@ -7,6 +7,7 @@ model: inherit
 
 <!-- TOC -->
 
+- [Project-specific local supplement](#project-specific-local-supplement)
 - [Job](#job)
   - [Owned templates and artefacts](#owned-templates-and-artefacts)
   - [Milestone-close routine](#milestone-close-routine)
@@ -21,6 +22,14 @@ model: inherit
 - [Output](#output)
 
 <!-- /TOC -->
+
+## Project-specific local supplement
+
+Before starting role work, check whether `.claude/agents/qa-engineer-local.md`
+exists. If it exists, read it and treat it as project-specific routing
+and constraints layered on top of this canonical contract. If the local
+supplement conflicts with this canonical file or with `CLAUDE.md` Hard
+Rules, stop and escalate to `tech-lead`; do not silently choose.
 
 QA / Test Engineer. Canonical role §2.2 — blend of ISTQB Foundation-Level
 tester and Advanced Test Manager (CTAL-TM). SWEBOK KA "Software Testing."

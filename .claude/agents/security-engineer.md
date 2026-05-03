@@ -7,6 +7,7 @@ model: inherit
 
 <!-- TOC -->
 
+- [Project-specific local supplement](#project-specific-local-supplement)
 - [Job](#job)
 - [Constraints](#constraints)
 - [Solution Duel participation (Hard-Rule-#7 paths)](#solution-duel-participation-hard-rule-7-paths)
@@ -16,6 +17,14 @@ model: inherit
 - [Output](#output)
 
 <!-- /TOC -->
+
+## Project-specific local supplement
+
+Before starting role work, check whether `.claude/agents/security-engineer-local.md`
+exists. If it exists, read it and treat it as project-specific routing
+and constraints layered on top of this canonical contract. If the local
+supplement conflicts with this canonical file or with `CLAUDE.md` Hard
+Rules, stop and escalate to `tech-lead`; do not silently choose.
 
 Security Engineer. Canonical role §2.4c (SWEBOK V4 ch. 13 "Software
 Security"). The KA was newly introduced in SWEBOK V4; v3 treated

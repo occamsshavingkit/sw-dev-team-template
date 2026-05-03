@@ -68,9 +68,11 @@ tar --exclude='./.git' \
     --exclude='./CONTRIBUTING.md' \
     --exclude='./LICENSE' \
     --exclude='./ROADMAP.md' \
+    --exclude='./AGENTS.md' \
     --exclude='./dryrun-project' \
     --exclude='./examples' \
     --exclude='./.github' \
+    --exclude='./.claude/agents/*-local.md' \
     --exclude='./migrations' \
     --exclude='./docs/audits' \
     --exclude='./docs/v2' \
@@ -200,9 +202,10 @@ cat > "$target/.template-customizations" <<'EOF'
 #   - never flagged as conflicts
 #   - reported as "preserved" in the upgrade summary
 #
-# SME agents (.claude/agents/sme-<domain>.md), all of docs/pm/*.md, and
-# any other file the template does not ship are ALREADY preserved by
-# default — they don't need to be listed here.
+# SME agents (.claude/agents/sme-<domain>.md), role-local supplements
+# (.claude/agents/<role>-local.md), all of docs/pm/*.md, and any other
+# file the template does not ship are ALREADY preserved by default —
+# they don't need to be listed here.
 #
 # Blank lines and lines starting with # are ignored.
 
