@@ -16,8 +16,8 @@ File an issue when **any** of the following happens during project work:
 
 - An agent was missing from the routing table that would have been the
   right addressee.
-- A binding rule in `CLAUDE.md` or an agent file produced a worse
-  outcome than breaking the rule would have.
+- A binding rule in `AGENTS.md`, `CLAUDE.md`, or an agent file
+  produced a worse outcome than breaking the rule would have.
 - A template did not cover something that a PMBOK / ISO / IEEE /
   ISTQB / SFIA / SWEBOK standard requires at the relevant process
   point.
@@ -65,8 +65,9 @@ Every issue includes:
    `TEMPLATE_VERSION` file (or the git SHA recorded there). Without
    this, the maintainer cannot tell whether the gap is still current.
 2. **Short title** — what is missing / wrong / unclear.
-3. **Where** — specific file + section (e.g., `CLAUDE.md` § "Step 2"
-   or `.claude/agents/tech-lead.md` § "Routing table").
+3. **Where** — specific file + section (e.g., `AGENTS.md` § "Role
+   Binding", `CLAUDE.md` § "Step 2", or
+   `.claude/agents/tech-lead.md` § "Routing table").
 4. **What happened on the project** — one paragraph. If customer-
    sensitive content has to be redacted, redact but keep the pattern
    intact.

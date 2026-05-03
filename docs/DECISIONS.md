@@ -86,3 +86,14 @@ R-2) can scroll away, but this file survives.
 **Customer visibility:** shown in turn ledger on 2026-05-03
 **Supersedes:** —
 **Notes:** Exact harness-level concatenation remains a future enhancement; rc4 uses explicit self-read convention inside each agent contract.
+
+## D-0006 — 2026-05-03 — Ship Codex and Claude Code dual-harness entrypoints
+
+**Who decided:** customer, implemented by `tech-lead`
+**Options considered:** keep `AGENTS.md` operator-local / duplicate the full Claude contract into `AGENTS.md` / ship a thin Codex adapter over `CLAUDE.md` and `.claude/agents/`
+**Chose:** ship a thin Codex adapter over the existing canonical role contracts
+**Why:** The customer wants downstream projects to run almost seamlessly under both Codex and Claude Code without maintaining two divergent team contracts.
+**Files touched:** `AGENTS.md`, `.gitignore`, `CLAUDE.md`, `.claude/agents/tech-lead.md`, `docs/AGENT_NAMES.md`, `docs/agent-health-contract.md`, `docs/ISSUE_FILING.md`, `scripts/scaffold.sh`, `scripts/lib/manifest.sh`, `scripts/smoke-test.sh`, `scripts/upgrade.sh`, `scripts/repair-in-place.sh`, `README.md`, `CHANGELOG.md`, `docs/INDEX-FRAMEWORK.md`, `docs/versioning.md`
+**Customer visibility:** shown in turn ledger on 2026-05-03
+**Supersedes:** —
+**Notes:** Claude Code keeps using `CLAUDE.md` and the `Agent` tool vocabulary. Codex uses root `AGENTS.md` and its native subagent vocabulary while preserving canonical role names and teammate names where supported.

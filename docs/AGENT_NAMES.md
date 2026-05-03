@@ -168,8 +168,9 @@ confirm pronouns against an authoritative source at commit time.)
 
 ## Using teammate names
 
-`tech-lead` (and any agent that spawns a named teammate) passes the
-teammate name to the Agent tool's `name` parameter, e.g.:
+`tech-lead` passes the teammate name to the harness spawn tool's
+name parameter. In Claude Code that is the `Agent` tool's `name`
+parameter, e.g.:
 
     Agent({
       subagent_type: "architect",
@@ -182,6 +183,9 @@ When the agent-teams experimental feature is on
 `.claude/settings.json`), the teammate then appears on the bottom panel
 of the TUI and is addressable via `SendMessage({to: "Dr. Bunsen
 Honeydew"})`.
+
+In Codex, use the native subagent spawn interface and preserve the same
+canonical role plus teammate name where the harness supports naming.
 
 If no teammate name is assigned, spawn with `name: "<canonical role>"`
 so the panel still shows the role (e.g., `name: "architect"`).

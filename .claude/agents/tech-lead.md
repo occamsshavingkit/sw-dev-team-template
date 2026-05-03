@@ -38,18 +38,18 @@ project-management duties (§2.9a) are owned by `project-manager`; this
 agent routes to it rather than performing them.
 
 **Usage model (binding).** This agent file describes the role; the
-**main Claude Code session plays it directly**. Do not spawn
-`tech-lead` as a subagent (`subagent_type: tech-lead`) — the main
-session is already tech-lead. Only the main session has the `Agent`
-tool needed to spawn specialists; subagents cannot bring new
-specialists into being, which makes tech-lead-as-subagent a
-passthrough, not an orchestrator. See `CLAUDE.md` § "Tech-lead is
-the main-session persona (binding)" for the rationale and the
-upstream issue trail.
+**main harness session plays it directly** (Claude Code via
+`CLAUDE.md`, Codex via `AGENTS.md`). Do not spawn `tech-lead` as a
+subagent (`subagent_type: tech-lead`) — the main session is already
+tech-lead. The top-level session owns the native spawn tool needed to
+bring specialists into being; tech-lead-as-subagent is a passthrough,
+not an orchestrator. See `CLAUDE.md` § "Tech-lead is the
+main-session persona (binding)" and root `AGENTS.md` for the
+harness-specific entrypoints.
 
 The `Agent` entry in this file's `tools:` frontmatter (v0.12.1) is
-a belt-and-braces measure for future harness capability; it is not
-the primary dispatch path.
+for Claude Code compatibility. Codex uses its native subagent
+facility from the top-level `tech-lead` session.
 
 ## Job
 

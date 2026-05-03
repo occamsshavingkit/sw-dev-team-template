@@ -47,9 +47,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 # --- Sanity: must be an unzipped template, not a scaffolded project ----------
-if [[ ! -f CLAUDE.md || ! -d .claude/agents || ! -d docs/templates ]]; then
+if [[ ! -f CLAUDE.md || ! -f AGENTS.md || ! -d .claude/agents || ! -d docs/templates ]]; then
   echo "ERROR: this does not look like an unzipped template." >&2
-  echo "Expected: CLAUDE.md + .claude/agents/ + docs/templates/" >&2
+  echo "Expected: CLAUDE.md + AGENTS.md + .claude/agents/ + docs/templates/" >&2
   exit 1
 fi
 
@@ -217,8 +217,9 @@ cat > README.md <<EOF
 Scaffolded from sw-dev-team-template $template_version
 ($template_sha, $today) via scripts/repair-in-place.sh.
 
-See \`CLAUDE.md\` for the agent workflow and
-\`scripts/upgrade.sh\` for future template upgrades.
+See \`CLAUDE.md\` for the Claude Code entrypoint, \`AGENTS.md\` for
+the Codex entrypoint, and \`scripts/upgrade.sh\` for future template
+upgrades.
 EOF
 
 # git init if not a repo
@@ -231,4 +232,4 @@ echo ""
 echo "Repair complete. Next:"
 echo "  1. Review TEMPLATE_VERSION, README.md, .template-customizations"
 echo "  2. git add -A && git commit -m 'Initial scaffold from template $template_version'"
-echo "  3. Run claude and proceed with FIRST ACTIONS in CLAUDE.md"
+echo "  3. Run claude or codex and proceed with FIRST ACTIONS"

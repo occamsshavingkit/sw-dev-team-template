@@ -322,7 +322,7 @@ fi
 # the maintainer's release-planning artefacts into downstream (regression
 # of F-002 from the v1.0-rc3 onboarding audit).
 ship_files=$(cd "$workdir/new" && git ls-files \
-  | grep -vE '^(VERSION|CHANGELOG\.md|CONTRIBUTING\.md|LICENSE|ROADMAP\.md|AGENTS\.md)$' \
+  | grep -vE '^(VERSION|CHANGELOG\.md|CONTRIBUTING\.md|LICENSE|ROADMAP\.md)$' \
   | grep -vE '^(\.github/|dryrun-project/|examples/|migrations/)' \
   | grep -vE '^\.claude/agents/[^/]+-local\.md$' \
   | grep -vE '^docs/(audits|v2|proposals)/' \

@@ -36,7 +36,12 @@
 
 Multi-agent software-development workflow. Each canonical role from
 `SW_DEV_ROLE_TAXONOMY.md` (SWEBOK v3 / ISO 12207 / IEEE 1028 / ISTQB /
-SFIA v9 / Google SRE / PMBOK) has a dedicated subagent in `.claude/agents/`.
+SFIA v9 / Google SRE / PMBOK) has a dedicated subagent in
+`.claude/agents/`.
+
+This file is the Claude Code entrypoint. Codex sessions use root
+`AGENTS.md`, which is a thin adapter to this same role contract so
+switching between Claude Code and Codex does not change the team model.
 
 ## The human is the customer (and may also be an SME)
 
@@ -635,27 +640,27 @@ queries, verification passes) may stay unnamed.
 
 ## Tech-lead is the main-session persona (binding)
 
-**The main Claude Code session IS `tech-lead`.** Do not spawn
-`tech-lead` as a subagent (`subagent_type: tech-lead`). The main
-session plays the tech-lead role directly — orchestration runs at
-the top level; specialists spawn from there.
+**The main harness session IS `tech-lead`.** In Claude Code this means
+the main Claude Code session; in Codex this means the main Codex
+session described by `AGENTS.md`. Do not spawn `tech-lead` as a
+subagent (`subagent_type: tech-lead`). The main session plays the
+tech-lead role directly — orchestration runs at the top level;
+specialists spawn from there.
 
 Rationale:
 
-- Only the main Claude Code session has the `Agent` tool
-  (agent-spawning). Subagents can only message already-running
-  teammates via `SendMessage`; they cannot bring new specialists
-  into being. This makes tech-lead-as-subagent a passthrough, not
-  an orchestrator.
+- Only the main harness session owns specialist creation: Claude Code
+  exposes this as the `Agent` tool; Codex exposes it through its native
+  subagent facility. Subagents can only message or report back through
+  the surfaces their harness grants; they cannot be the durable
+  orchestrator.
 - The "sole human interface" rule below works cleanly under this
   model: the main session talks to the customer, spawns
   specialists, gets answers back.
 - `.claude/agents/tech-lead.md` still ships with `Agent` declared
-  in its `tools:` line (v0.12.1) as a belt-and-braces measure for
-  the case where a future Claude Code harness allows subagents to
-  spawn further subagents. Until that capability is confirmed in
-  the target harness, the main-session-persona model is the
-  supported path.
+  in its `tools:` line (v0.12.1) for Claude Code compatibility. Codex
+  does not consume that frontmatter directly; root `AGENTS.md` maps
+  the same canonical roles onto Codex's spawn vocabulary.
 
 **Upstream issue #37** (2026-04-24) logged a downstream project
 that hit this wall by spawning `tech-lead` as a subagent. Fix is

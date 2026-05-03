@@ -1,8 +1,8 @@
-# SW-dev Team Template for Claude Code
+# SW-dev Team Template for Claude Code and Codex
 
-A ready-to-use Claude Code project scaffold that turns a single Claude
-session into a 13-role software-development team with a strict escalation
-protocol and a per-project SME pattern.
+A ready-to-use project scaffold that turns a single Claude Code or
+Codex session into a 13-role software-development team with a strict
+escalation protocol and a per-project SME pattern.
 
 **Status.** Release-candidate track (currently `v1.0.0-rc4`). rc4 is
 the integrated stabilization candidate after downstream `v1.0.0-rc3`
@@ -69,8 +69,10 @@ cd ~/code/my-new-project
 claude
 ```
 
-Claude reads `CLAUDE.md` on session start and runs the **FIRST ACTIONS
-flow** (four steps, documented in `CLAUDE.md`):
+Claude Code reads `CLAUDE.md` on session start. Codex reads
+`AGENTS.md`, which adapts the same role contracts and tells the main
+Codex session to act as `tech-lead`. Either way, the session runs the
+**FIRST ACTIONS flow** (four steps, documented in `CLAUDE.md`):
 
 - **Step 0 — Issue-feedback opt-in (asked first).** `tech-lead` asks
   atomically whether you want framework gaps filed upstream as issues.
@@ -229,7 +231,8 @@ contract, including per-version migration scripts under `migrations/`.
 
 | Path | What it is |
 |---|---|
-| `CLAUDE.md` | Project guide; Claude reads this every session. |
+| `CLAUDE.md` | Claude Code entrypoint; defines FIRST ACTIONS, agent roster, and hard rules. |
+| `AGENTS.md` | Codex entrypoint; adapts Codex to the same top-level `tech-lead` and specialist contracts as Claude Code. |
 | `CUSTOMER_NOTES.md` | Append-only log of customer answers, stewarded by `researcher`. |
 | `SW_DEV_ROLE_TAXONOMY.md` | Reference taxonomy (SWEBOK / ISO 12207 / IEEE 1028 / ISTQB / SFIA v9 / Google SRE / PMBOK) that CLAUDE.md cites. |
 | `docs/glossary/ENGINEERING.md` | **Binding** generic software-engineering terminology. All agents use these senses. |

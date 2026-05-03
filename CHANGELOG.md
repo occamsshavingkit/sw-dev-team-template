@@ -26,6 +26,10 @@ downgraded by customer ruling.
 
 ### Added
 
+- **Codex adapter for dual-harness use.** `AGENTS.md` now ships to
+  downstream projects and binds Codex sessions to the same top-level
+  `tech-lead` / specialist contracts that Claude Code uses through
+  `CLAUDE.md` and `.claude/agents/`.
 - **FIRST ACTIONS detection (#73, #78).** New
   `scripts/lib/first-actions.sh` detects missing Step-0
   issue-feedback opt-in records. `scripts/version-check.sh` now
@@ -77,6 +81,10 @@ downgraded by customer ruling.
   Local supplements are project-owned, excluded from manifests, and
   preserved across upgrades, giving projects a place for language /
   framework / domain routing without forking canonical agents.
+- **Harness-neutral tech-lead spawning language.** `CLAUDE.md`,
+  `.claude/agents/tech-lead.md`, and `docs/AGENT_NAMES.md` now
+  distinguish Claude Code's `Agent` vocabulary from Codex's native
+  subagent vocabulary while preserving the same canonical roles.
 - **Manifest exclusion parity.** `scripts/lib/manifest.sh` now mirrors
   scaffold / upgrade's template-only exclusions more closely, including
   rc planning, audit, v2, proposal, and role-local files.
@@ -85,8 +93,8 @@ downgraded by customer ruling.
 
 ### Verification
 
-- `scripts/smoke-test.sh`: 100 checks passing as of the rc4 readiness
-  pass.
+- `scripts/smoke-test.sh`: 102 checks passing as of the rc4 readiness
+  pass after the Codex adapter was added.
 - `scripts/audit-agent-tools.sh`: clean.
 - `docs/audits/v1.0.0-rc4-review.md`: review pass found no hidden
   #59 blocker and approved continued rc4 stabilization.

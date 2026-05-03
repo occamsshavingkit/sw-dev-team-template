@@ -7,9 +7,9 @@
 # Personal-scope settings override (not for commit)
 .claude/settings.local.json
 
-# Codex / local-agent instructions are operator-local. The template
-# ships Claude Code contracts via CLAUDE.md and .claude/agents/.
-AGENTS.md
+# Operator-local Codex overrides belong in AGENTS.local.md. The shipped
+# AGENTS.md is the Codex adapter for the same team contract as CLAUDE.md.
+AGENTS.local.md
 
 # SME local-only material — per IP policy, external/copyrighted material
 # stays out of the repo. Cited in docs/sme/<domain>/INVENTORY.md.

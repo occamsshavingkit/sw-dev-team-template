@@ -71,9 +71,10 @@ from there.
 
 `v1.0.0` is a promise:
 
-- The binding-file list (`CLAUDE.md`, `SW_DEV_ROLE_TAXONOMY.md`,
-  `docs/glossary/*.md`, `docs/agent-health-contract.md`, all
-  templates under `docs/templates/`) will not be renamed,
+- The binding-file list (`AGENTS.md`, `CLAUDE.md`,
+  `SW_DEV_ROLE_TAXONOMY.md`, `docs/glossary/*.md`,
+  `docs/agent-health-contract.md`, all templates under
+  `docs/templates/`) will not be renamed,
   removed, or substantively reshaped without a MAJOR bump.
 - The agent-roster shape — file names under `.claude/agents/`,
   tool grants, escalation contract — is backward-compatible within

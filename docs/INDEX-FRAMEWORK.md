@@ -13,7 +13,8 @@ Project-authored content lives in
 
 | File | Purpose |
 |---|---|
-| `CLAUDE.md` | Project guide; Claude reads this every session. FIRST ACTIONS (skill packs → scoping → naming → issue-feedback opt-in), agent roster, hard rules. |
+| `AGENTS.md` | Codex adapter for the same top-level `tech-lead` and specialist contracts that Claude Code consumes through `CLAUDE.md` and `.claude/agents/`. |
+| `CLAUDE.md` | Claude Code entrypoint. FIRST ACTIONS (skill packs → scoping → naming → issue-feedback opt-in), agent roster, hard rules. |
 | `VERSION` | Current template version (SemVer). Downstream projects stamp `TEMPLATE_VERSION` from this. |
 | `TEMPLATE_MANIFEST.lock` | Per-file SHA256 manifest of shipped files (per FW-ADR-0002, v0.14.0+). Written at scaffold; rewritten after every successful upgrade. Verified by `scripts/upgrade.sh --verify`. Files in `.template-customizations` are omitted. **Scaffolded into downstream projects, not present in the upstream template repo itself.** |
 | `CHANGELOG.md` | Release history. MAJOR / MINOR / PATCH semantics. |

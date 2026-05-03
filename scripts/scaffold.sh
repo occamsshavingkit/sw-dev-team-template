@@ -34,9 +34,9 @@ EOF
 }
 
 # --- Sanity: must run from template repo root --------------------------------
-if [[ ! -f VERSION || ! -f CLAUDE.md || ! -d .claude/agents || ! -d docs/templates ]]; then
+if [[ ! -f VERSION || ! -f CLAUDE.md || ! -f AGENTS.md || ! -d .claude/agents || ! -d docs/templates ]]; then
   echo "ERROR: run this from the template repo root." >&2
-  echo "Expected: VERSION, CLAUDE.md, .claude/agents/, docs/templates/" >&2
+  echo "Expected: VERSION, CLAUDE.md, AGENTS.md, .claude/agents/, docs/templates/" >&2
   exit 1
 fi
 
@@ -68,7 +68,6 @@ tar --exclude='./.git' \
     --exclude='./CONTRIBUTING.md' \
     --exclude='./LICENSE' \
     --exclude='./ROADMAP.md' \
-    --exclude='./AGENTS.md' \
     --exclude='./dryrun-project' \
     --exclude='./examples' \
     --exclude='./.github' \
@@ -245,8 +244,9 @@ Scaffolded from \`sw-dev-team-template\` $template_version
 (commit \`$template_sha\`) on $today.
 
 See \`CLAUDE.md\` for the multi-agent workflow and FIRST ACTIONS,
-\`docs/INDEX.md\` for a table of contents, and \`docs/ISSUE_FILING.md\`
-for how to file framework gaps back upstream.
+\`AGENTS.md\` for the Codex adapter, \`docs/INDEX.md\` for a table of
+contents, and \`docs/ISSUE_FILING.md\` for how to file framework gaps
+back upstream.
 
 Template version is recorded in \`TEMPLATE_VERSION\`.
 EOF
@@ -280,7 +280,7 @@ Scaffolded "$project_name" at: $target
   Template:  $template_version  ($template_sha)
   Stamped:   $today
 
-Next steps (see $target/CLAUDE.md § FIRST ACTIONS):
+Next steps (see $target/CLAUDE.md § FIRST ACTIONS, or $target/AGENTS.md when running Codex):
   1. Step 0 — issue-feedback opt-in (asked first): record yes/no in
      CUSTOMER_NOTES.md before anything else.
   2. Step 1 — install skill packs.

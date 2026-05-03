@@ -196,9 +196,11 @@ the in-memory context window.
 2. **Stop the current teammate:** preferred via
    `SendMessage({to: <name>, …}) …stop…`; fallback, let the
    turn end and the teammate expire.
-3. **Spawn a fresh teammate** with identical `name` and
-   `subagent_type`. The spawn prompt = the handover brief plus
-   the specific task that needs doing next.
+3. **Spawn a fresh teammate** with identical canonical role and
+   teammate `name`. In Claude Code, the canonical role is
+   `subagent_type`; in Codex, use the native equivalent. The spawn
+   prompt = the handover brief plus the specific task that needs
+   doing next.
 4. **Agent-teams panel continuity:** the slot stays; the human
    sees no name change.
 5. **Log the respawn** in `docs/pm/LESSONS.md` (why triggered,
