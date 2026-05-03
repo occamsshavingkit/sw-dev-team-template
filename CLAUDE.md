@@ -8,6 +8,7 @@
 - [Scaffolding a new project](#scaffolding-a-new-project)
 - [Template version check + upgrade](#template-version-check-upgrade)
   - [Per-version migrations](#per-version-migrations)
+- [Framework / project boundary](#framework-project-boundary)
 - [FIRST ACTIONS — EVERY NEW SESSION](#first-actions-every-new-session)
   - [Step 0 — Issue-feedback opt-in (atomic, asked FIRST)](#step-0-issue-feedback-opt-in-atomic-asked-first)
   - [Step 1 — Skill packs](#step-1-skill-packs)
@@ -87,9 +88,10 @@ When any agent has a question it cannot answer from its own context:
 4. Only if no agent can answer, escalate to `tech-lead` with a precisely
    worded question.
 5. `tech-lead` either answers, routes further, or takes the question to
-   the customer. When `tech-lead` gets an answer, it records the verbatim
-   response in `CUSTOMER_NOTES.md` (via `researcher`) and relays to the
-   asking agent.
+   the customer. When `tech-lead` gets an answer, it routes the verbatim
+   response to `researcher`; `researcher` appends the
+   `CUSTOMER_NOTES.md` customer-truth entry and `tech-lead` relays the
+   answer to the asking agent.
 
 The customer's inbox is scarce. Do not flood it. A well-framed question
 batched with others is better than three drip-feed interruptions.
@@ -148,7 +150,9 @@ files (`VERSION`, `CHANGELOG.md`, `CONTRIBUTING.md`, `LICENSE`,
 `dryrun-project/`, `examples/`, `.github/`, `migrations/`,
 `scripts/smoke-test.sh`, `ROADMAP.md`, `docs/audits/`, `docs/v2/`,
 `docs/proposals/`, `docs/v1.0-rc3-checklist.md`,
-`docs/pm/process-audit-*.md`), stamps
+`docs/v1.0-rc4-stabilization.md`,
+`docs/v1.0.0-final-checklist.md`, runtime `docs/pm/` artifacts, and
+role-local `.claude/agents/*-local.md` supplements), stamps
 `TEMPLATE_VERSION` at the project root (SemVer + git SHA + date),
 replaces `README.md` with a project stub, seeds an empty
 `.template-customizations`, and runs `git init -b main` in the
@@ -253,6 +257,41 @@ with idempotency guards handling the rest.
 See `migrations/README.md` for the contract and `migrations/TEMPLATE.sh`
 for the scaffold a new migration starts from.
 
+## Framework / project boundary
+
+Downstream repositories contain two things in one working tree: the
+product being built and the `sw-dev-team-template` framework that helps
+the team build it. Agents and reviewers must keep those layers
+separate.
+
+Use `docs/framework-project-boundary.md` as the practical ownership and
+review guide. In short:
+
+- Framework-managed files (`CLAUDE.md`, `AGENTS.md`, shipped
+  `.claude/agents/*.md`, `scripts/`, `migrations/`, `docs/templates/`,
+  `docs/INDEX-FRAMEWORK.md`, framework ADRs, template versioning docs,
+  rc stabilization docs, final checklist docs, scaffold / upgrade
+  scripts, and manifest files)
+  change only during explicit template-upgrade or framework-maintenance
+  work.
+- Project-owned product files and project-filled registers
+  (`CUSTOMER_NOTES.md`, `docs/OPEN_QUESTIONS.md`, `docs/pm/*.md`,
+  `.claude/agents/*-local.md`, project ADRs, source, tests, config,
+  runbooks) are reviewed with the downstream product work they support.
+- Framework or template issues discovered downstream are filed upstream
+  through `docs/ISSUE_FILING.md`, subject to issue-feedback opt-in,
+  instead of being patched locally unless the customer explicitly
+  authorizes framework-maintenance work for the current task.
+
+Product commits / PRs should exclude framework-managed churn. Template
+upgrade commits / PRs should be separate from product delivery.
+Release/version audits must state whether each artifact is downstream
+product, project-filled template register, or upstream framework before
+writing. Product-only audits do not edit `TEMPLATE_VERSION` or
+framework-managed release files, including template versioning docs,
+rc stabilization docs, final checklists, scaffold / upgrade scripts,
+and manifests; framework gaps found downstream are filed upstream.
+
 ## FIRST ACTIONS — EVERY NEW SESSION
 
 Run these steps in order before starting the user's task.
@@ -283,14 +322,14 @@ This is Step 0 specifically because the **earliest** steps
 sources of feedback. Asking opt-in at the end would miss any
 gap the team hits while running the first steps.
 
-If **yes**: record in `CUSTOMER_NOTES.md` under an "Issue
-feedback opt-in" heading with the date. `tech-lead` follows
-`docs/ISSUE_FILING.md` for every gap it encounters thereafter,
-including gaps in Steps 1–3.
+If **yes**: route the verbatim answer to `researcher`, who appends
+it to `CUSTOMER_NOTES.md` under an "Issue feedback opt-in" heading
+with the date. `tech-lead` follows `docs/ISSUE_FILING.md` for every
+gap it encounters thereafter, including gaps in Steps 1–3.
 
-If **no**: record that too. `tech-lead` still logs gaps locally
-in `docs/pm/LESSONS.md` so the project itself benefits, but does
-not push upstream.
+If **no**: route that verbatim answer to `researcher` too.
+`tech-lead` still logs gaps locally in `docs/pm/LESSONS.md` so the
+project itself benefits, but does not push upstream.
 
 ### Step 1 — Skill packs
 
@@ -380,11 +419,12 @@ question, agents idle**:
 > them — I'll look them up and either install, or open a tracking
 > item in `docs/OPEN_QUESTIONS.md` for something to watch.
 
-Record the answer in `CUSTOMER_NOTES.md` (specialized skills or
-watch-items are customer-domain facts). For each named skill:
-verify the current install command via `researcher` before running;
-for each watch-item, open an `OPEN_QUESTIONS.md` row with answerer
-set to the right specialist agent.
+Route the answer to `researcher` for a verbatim `CUSTOMER_NOTES.md`
+entry (specialized skills or watch-items are customer-domain facts).
+For each named skill: verify the current install command via
+`researcher` before running; for each watch-item, open an
+`OPEN_QUESTIONS.md` row with answerer set to the right specialist
+agent.
 
 ### Step 2 — Project scoping + SME discovery
 
@@ -435,11 +475,12 @@ before `tech-lead` dispatches the first work subagent):
   pinned per Step 3a below, mapping in `docs/AGENT_NAMES.md`, or
   explicit decision to keep canonical names).
 - [ ] **Step 0 (issue-feedback opt-in) has been asked and answered**
-  — yes or no recorded in `CUSTOMER_NOTES.md`. Scoping cannot close
-  with Step 0 still open. (Step 0 runs at session start, before
-  the Step 1 skill menu, so this row is normally already satisfied
-  by the time Step 2 reaches DoD; it remains in the DoD as a
-  backstop against accidentally skipping it.)
+  — yes or no routed to `researcher` and appended to
+  `CUSTOMER_NOTES.md`. Scoping cannot close with Step 0 still open.
+  (Step 0 runs at session start, before the Step 1 skill menu, so
+  this row is normally already satisfied by the time Step 2 reaches
+  DoD; it remains in the DoD as a backstop against accidentally
+  skipping it.)
 - [ ] Project charter is captured in `docs/pm/CHARTER.md` (or the
   template's interim equivalent) by `project-manager` via
   `researcher`.
@@ -638,6 +679,12 @@ agents do not.
 e.g. `name: "architect"`). Short one-shot helpers (quick research
 queries, verification passes) may stay unnamed.
 
+Codex adapter rule: `docs/AGENT_NAMES.md` still governs
+customer-facing teammate names. If Codex exposes only arbitrary worker
+IDs or nicknames, those are internal handles; use the mapped teammate
+name, or the canonical role when unmapped, in customer-facing text and
+durable records.
+
 ## Tech-lead is the main-session persona (binding)
 
 **The main harness session IS `tech-lead`.** In Claude Code this means
@@ -661,6 +708,12 @@ Rationale:
   in its `tools:` line (v0.12.1) for Claude Code compatibility. Codex
   does not consume that frontmatter directly; root `AGENTS.md` maps
   the same canonical roles onto Codex's spawn vocabulary.
+- In Codex, specialist spawning requires per-session customer
+  authorization. If spawning is unavailable, record that limitation and
+  continue as top-level `tech-lead`; if spawning is available but no
+  specialist slot is free, queue the dispatch and wait for a slot unless
+  the customer explicitly authorizes local implementation for that
+  queued item.
 
 **Upstream issue #37** (2026-04-24) logged a downstream project
 that hit this wall by spawning `tech-lead` as a subagent. Fix is
@@ -844,6 +897,24 @@ like "first session of the calendar week" in preference to
    intake-log rows, dispatch/task stubs, Turn Ledger / decision-log
    entries) and tool-bridge work a specialist cannot perform in its
    sandbox. When unsure, dispatch.
+9. Before closing a non-trivial turn, `tech-lead` runs the harness-
+   appropriate pre-close audit: Claude Code hook output where available,
+   or the Codex Pre-Close Checklist in `AGENTS.md`. The audit confirms
+   direct writes stayed within Rule #8, customer-truth stewardship
+   stayed with `researcher`, required specialist work was dispatched or
+   queued, completed specialists were closed after review, and any
+   non-default `reasoning_effort` has a recorded rationale.
+10. In downstream projects, keep product work separate from framework
+   work. Do not edit framework-managed files during a product task
+   unless the customer explicitly authorized template upgrade or
+   framework maintenance for that task. File discovered framework gaps
+   upstream through `docs/ISSUE_FILING.md`; see
+   `docs/framework-project-boundary.md` for path ownership and
+   review / commit splitting. Product-only release audits must classify
+   release/version artifacts before writing and must not edit
+   `TEMPLATE_VERSION`, template versioning docs, rc stabilization docs,
+   final checklists, scaffold / upgrade scripts, manifest files, or
+   other framework-managed files.
 
 ## Taxonomy discipline
 

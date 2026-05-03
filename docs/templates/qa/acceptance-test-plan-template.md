@@ -35,9 +35,9 @@ row is a verifiable statement with a named verifier.
 1. `qa-engineer` demonstrates each criterion against the system.
 2. Customer reviews per-criterion and signs off one-by-one (not
    bundled) in a single session.
-3. `tech-lead` records the verbatim sign-off in `CUSTOMER_NOTES.md`
-   with a new entry heading "<date> — Acceptance sign-off:
-   <milestone>".
+3. `tech-lead` routes the verbatim sign-off to `researcher`;
+   `researcher` appends it to `CUSTOMER_NOTES.md` with a new entry
+   heading "<date> — Acceptance sign-off: <milestone>".
 4. `project-manager` updates `docs/pm/CHARTER.md` §5 milestone
    status and `docs/pm/SCHEDULE.md` variance.
 

@@ -83,12 +83,17 @@ documentation audit).
   point where you had to guess.
 - Locate the security assurance artefact for a named subsystem.
   Does it exist? Is it cross-referenced from the architecture doc?
-- During retrofit Stage A, run the identifying-content regex sweep
-  required by `docs/templates/retrofit-playbook-template.md` § 4.2:
-  private IPs, IPv6 literals, DDNS/cloud hostnames, MAC addresses,
-  emails, common token prefixes, UUID service identifiers, and
-  customer-specific personal/service-name patterns. Report every hit
-  per path and line; do not collapse hits into aggregate verdicts.
+- During retrofit Stage A, run the universal identifying-content
+  regex sweep required by
+  `docs/templates/retrofit-playbook-template.md` § 4.2: private IPs,
+  IPv6 literals, DDNS/cloud hostnames, MAC addresses, emails, common
+  token prefixes, and UUID service identifiers. Do not use
+  customer-specific personal/service-name patterns unless the dispatch
+  explicitly documents a narrow, non-secret, non-tribal exception.
+  Report every hit per path and line; do not collapse hits into
+  aggregate verdicts. Customer-specific pattern sources belong to
+  `researcher` or the relevant `sme-<domain>` during retrofit Stage B,
+  where `CUSTOMER_NOTES.md` and SME inventories are permitted inputs.
 - Implement a minor feature named in the dispatch brief. (Stop at
   the first friction point that would block a real new hire.)
 

@@ -1,0 +1,210 @@
+# Lessons Learned — sw-dev-team-template
+
+PMBOK Closing artifact **captured continuously**, not only at closure.
+Owned by `project-manager`. A running journal plus a synthesis at
+every milestone.
+
+## Journal
+
+### 2026-05-03 — rc validation findings need their own release boundary
+
+**Context.** `v1.0.0-rc4` was tagged as a stabilization candidate after
+issues #71 through #83, but downstream rc4 validation then produced
+issues #84 through #103.
+
+**Event.** Release prep for `v1.0.0-rc5` found stale final-readiness
+language that still treated rc4 validation as the path to final.
+
+**What went well.** The issue range was concrete and mostly clustered
+around release governance, Codex parity, local-supplement clarity, and
+framework / project boundaries.
+
+**What did not.** Final-readiness wording was too tightly coupled to
+the previous rc number, so it needed another pass after the release
+boundary moved.
+
+**Contributing factors.** The rc4 plan was both a historical
+stabilization record and a live final-readiness reference.
+
+**Recommendation.** When downstream validation opens a new contiguous
+rc issue set, update `VERSION`, changelog, roadmap, final checklist,
+versioning policy, and PM change records in one release-boundary pass.
+
+**Category.** release governance / process.
+
+**References.** GitHub issues #84-#103; `CHANGELOG.md`;
+`ROADMAP.md`; `docs/v1.0.0-final-checklist.md`;
+`docs/pm/CHANGES.md` C-6.
+
+### 2026-05-03 — Codex wait status is not completion evidence
+
+**Context.** Codex subagent orchestration can expose multiple completion
+channels, including wait calls, status notifications, and returned
+payloads.
+
+**Event.** Issue #103 reported that specialist completion or status
+reporting can disappear after dispatch.
+
+**What went well.** Existing liveness and queue rules already prohibited
+local `tech-lead` implementation when a specialist slot was unavailable.
+
+**What did not.** The contract did not explicitly name
+`unknown/unreachable`, so an empty `wait_agent` result could be mistaken
+for completion or for permission to absorb specialist work locally.
+
+**Contributing factors.** Harness status channels can diverge, and
+timeout semantics are easy to overread without a state vocabulary.
+
+**Recommendation.** Treat timed-out waits and empty status as
+`unknown/unreachable`; send one bounded status ping; after repeated
+timeouts, close if possible, record the lost report, and re-dispatch the
+same role with the prior prompt and surviving context.
+
+**Category.** process / tooling.
+
+**References.** GitHub issue #103; `AGENTS.md`;
+`docs/agent-health-contract.md`; `.claude/agents/tech-lead.md`;
+`docs/pm/CHANGES.md` C-5.
+
+### 2026-05-03 — Product release audits need artifact-scope first
+
+**Context.** Downstream repositories carry both product release files
+and template release / upgrade files.
+
+**Event.** Issue #102 reported that downstream project audits can drift
+from product release checks into upstream template or release-file edits.
+
+**What went well.** The issue #99 boundary model already provided the
+right split between product, project-filled registers, template upgrade,
+and framework maintenance.
+
+**What did not.** Release/version artifacts had an extra ambiguity:
+`TEMPLATE_VERSION` is project-filled during scaffold / upgrade flows, but
+it is not a product release artifact during ordinary product audits.
+
+**Contributing factors.** Release audits naturally search for version
+and stabilization files, and downstream copies include upstream template
+release docs and scripts.
+
+**Recommendation.** Require release-engineer audits to state artifact
+scope before writing. Product-only audits leave framework release files
+unchanged and file upstream gaps through `docs/ISSUE_FILING.md`.
+
+**Category.** process / quality.
+
+**References.** GitHub issue #102; `docs/framework-project-boundary.md`;
+`.claude/agents/release-engineer.md`; `docs/pm/CHANGES.md` C-4.
+
+### 2026-05-03 — Framework churn must not hide product review scope
+
+**Context.** Downstream repositories carry the sw-dev team framework in
+the same tree as product files.
+
+**Event.** Issue #99 reported that a product review can accidentally
+review dirty framework files, producing findings about the team
+scaffold instead of the downstream product.
+
+**What went well.** The existing index split and issue-filing convention
+already provided pieces of the solution.
+
+**What did not.** There was no single practical boundary model that
+reviewers, agents, and commit authors could apply before inspecting a
+dirty tree.
+
+**Contributing factors.** Template-managed files, project-filled
+registers, and product files are colocated by design, and review tools
+often default to "all uncommitted changes."
+
+**Recommendation.** Classify work as product, project-filled register,
+template upgrade, or framework maintenance before review. Split product
+commits / PRs from template upgrade and framework-maintenance commits.
+File framework gaps upstream rather than patching framework files
+locally during product work.
+
+**Category.** process / quality.
+
+**References.** GitHub issue #99; `docs/framework-project-boundary.md`;
+`docs/ISSUE_FILING.md`; `docs/pm/CHANGES.md` C-3.
+
+### 2026-05-03 — Release-state vocabulary needs one source of truth
+
+**Context.** The rc4 stabilization plan, review record, and roadmap all
+described the release candidate from slightly different angles.
+
+**Event.** Review found that `draft`, `reviewed`, `tagged`, and
+`final-ready` wording could be read as overlapping states.
+
+**What went well.** The ambiguity was found before the rc4 tag and
+before `v1.0.0` final.
+
+**What did not.** The release path did not yet have a durable final
+checklist, so "review approved" could be mistaken for "final ready."
+
+**Contributing factors.** The rc4 review was focused on issue closure
+and smoke evidence, while PM release-governance artifacts had not yet
+been instantiated.
+
+**Recommendation.** Maintain explicit state vocabulary in the roadmap,
+active stabilization plan, and final checklist whenever a release
+candidate is between review and tagging.
+
+**Category.** process / quality.
+
+**References.** `docs/v1.0-rc4-stabilization.md`,
+`docs/audits/v1.0.0-rc4-review.md`,
+`docs/v1.0.0-final-checklist.md`, `docs/pm/CHANGES.md` C-2.
+
+### 2026-05-03 — Durable PM records should exist before release close-out
+
+**Context.** The PM templates existed, but project-local `CHANGES.md`,
+`LESSONS.md`, and `TOKEN_LEDGER.md` had not yet been instantiated.
+
+**Event.** The rc4 governance review required durable evidence records
+for scope change, lessons, and token-budget status.
+
+**What went well.** The templates were adequate and could be copied
+into project-local records with minimal project-specific adaptation.
+
+**What did not.** Absence of the durable records meant release
+governance evidence had to be reconstructed from other docs.
+
+**Contributing factors.** The template treats `TOKEN_LEDGER.md` as
+"create on first use," and earlier release work focused on functional
+smoke evidence over PMBOK record completeness.
+
+**Recommendation.** At the first release-candidate planning milestone,
+instantiate the core PM records even if some rows are explicit
+initial-state entries.
+
+**Category.** process / tooling.
+
+**References.** `docs/pm/CHANGES.md`, `docs/pm/TOKEN_LEDGER.md`,
+`docs/v1.0.0-final-checklist.md` G-10.
+
+## Milestone syntheses
+
+### 2026-05-03 — v1.0.0-rc4 governance pass
+
+- Top 3 things that worked: downstream issue evidence (#71-#83)
+  produced a concrete stabilization queue; specialist review evidence
+  was already captured in `docs/audits/v1.0.0-rc4-review.md`; PM
+  templates were ready to instantiate.
+- Top 3 things to fix: release-state vocabulary needed normalization;
+  final-readiness gates needed an objective checklist; PM durable
+  records needed to exist before final close-out.
+- Changes made to process / templates / roster as a result:
+  `docs/v1.0.0-final-checklist.md` added; rc4 plan / review / roadmap
+  normalized; `docs/pm/CHANGES.md`, `docs/pm/LESSONS.md`, and
+  `docs/pm/TOKEN_LEDGER.md` created. Cross-reference:
+  `docs/pm/CHANGES.md` C-2.
+
+Sustainability review: no direct sustainability impact identified for
+the rc4 governance documentation change.
+
+Agent-health check: not run in this PM documentation pass; next
+milestone-close check should run `scripts/agent-health.sh tech-lead`
+per `.claude/agents/project-manager.md`.
+
+## Final synthesis
+
+Pending `v1.0.0` project closure.

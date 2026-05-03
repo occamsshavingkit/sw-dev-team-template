@@ -27,10 +27,26 @@ File an issue when **any** of the following happens during project work:
   turned out to be the wrong shape for the real data.
 - A skill, plugin, or env var that the template assumes turned out to
   be missing, renamed, or deprecated.
+- A downstream product release audit found that template release files,
+  `TEMPLATE_VERSION`, versioning docs, rc stabilization docs, scaffold /
+  upgrade scripts, or release-engineer routing rules would need a
+  framework fix.
 
 Do **not** file an issue for project-specific content (customer
 answers, product decisions, one-off quirks). Those stay in the
 project's own notes.
+
+Do **not** patch framework-managed files locally during ordinary
+product work just because a gap was found. Use this filing path first,
+subject to opt-in. Local framework edits are reserved for explicit
+template-upgrade or framework-maintenance tasks authorized by the
+customer. See `docs/framework-project-boundary.md` for the path
+ownership model.
+
+For product-only release audits, leave the downstream framework copy
+unchanged. File or queue the upstream issue instead of editing
+`TEMPLATE_VERSION`, template versioning docs, rc stabilization docs,
+scaffold / upgrade scripts, or shipped release instructions locally.
 
 ## Opt-in
 

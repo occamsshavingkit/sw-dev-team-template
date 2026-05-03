@@ -15,10 +15,43 @@
 
 set -u
 
-upstream="https://github.com/occamsshavingkit/sw-dev-team-template"
+semver_sort_tags() {
+  awk '
+    function prerelease_key(pre, ids, n, i, id, key) {
+      if (pre == "") {
+        return "1"
+      }
+      n = split(pre, ids, ".")
+      key = "0"
+      for (i = 1; i <= n; i++) {
+        id = ids[i]
+        if (id ~ /^[0-9]+$/) {
+          key = key ".1.0." sprintf("%010d", length(id)) "." id
+        } else {
+          key = key ".1.1." id
+        }
+      }
+      return key ".0"
+    }
+    /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/ {
+      tag = $0
+      rest = substr(tag, 2)
+      prerelease = ""
+      dash = index(rest, "-")
+      if (dash > 0) {
+        prerelease = substr(rest, dash + 1)
+        rest = substr(rest, 1, dash - 1)
+      }
+      split(rest, parts, ".")
+      printf "%010d.%010d.%010d.%s\t%s\n", parts[1], parts[2], parts[3], prerelease_key(prerelease), tag
+    }
+  ' | LC_ALL=C sort -t "$(printf '\t')" -k1,1 | cut -f2-
+}
+
+upstream="${SWDT_UPSTREAM_URL:-https://github.com/occamsshavingkit/sw-dev-team-template}"
 # Allow token-auth for private upstream without persisting credentials.
-if [[ -n "${GH_TOKEN:-}" ]]; then
-  upstream_auth="https://${GH_TOKEN}@github.com/occamsshavingkit/sw-dev-team-template"
+if [[ -n "${GH_TOKEN:-}" && "$upstream" == https://github.com/* ]]; then
+  upstream_auth="${upstream/https:\/\//https://${GH_TOKEN}@}"
 else
   upstream_auth="$upstream"
 fi
@@ -80,8 +113,8 @@ local_version="$(head -1 "$tv" 2>/dev/null | tr -d '[:space:]')"
 # Short timeout — don't stall the session on flaky network.
 all_tags="$(timeout 5 git ls-remote --tags --refs "$upstream_auth" 2>/dev/null \
              | awk '{print $2}' | sed 's|refs/tags/||' \
-             | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$' \
-             | sort -V)"
+             | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' \
+             | semver_sort_tags)"
 
 if [[ -z "$all_tags" ]]; then
   # Network failed or upstream returned nothing. Don't nag.
@@ -107,7 +140,7 @@ is_local_prerelease=0
 [[ "$local_version" == *-* ]] && is_local_prerelease=1
 
 if [[ $is_local_prerelease -eq 0 ]]; then
-  candidates="$(echo "$all_tags" | grep -vE -- '-[A-Za-z0-9.]+$' || true)"
+  candidates="$(echo "$all_tags" | grep -vE -- '-[0-9A-Za-z.-]+$' || true)"
 else
   candidates="$all_tags"
 fi
@@ -124,7 +157,7 @@ if [[ -z "$latest_tag" ]]; then
   exit 0
 fi
 
-newest_seen="$(printf '%s\n%s\n' "$local_version" "$latest_tag" | sort -V | tail -1)"
+newest_seen="$(printf '%s\n%s\n' "$local_version" "$latest_tag" | semver_sort_tags | tail -1)"
 if [[ "$local_version" == "$latest_tag" || "$newest_seen" == "$local_version" ]]; then
   echo "Template up to date: $local_version."
 else

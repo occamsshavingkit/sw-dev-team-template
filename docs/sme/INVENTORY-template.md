@@ -69,7 +69,7 @@ give a third-party-reproducible citation.
 
 | # | Title | Author / Publisher | Year / version | How to obtain | License / terms | Local filename | Text extraction | Covers | Date added | Last verified accessible |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 1 | <Title of doc> | <Publisher> | 2024 v1.2 | <URL, or ISBN, or DOI, or standard number, or "request from <vendor contact>"> | <e.g., "© Publisher, no redistribution" / "CC BY-SA 4.0"> | `local/<filename>.pdf` | `local/<filename>.txt` via `pdftotext -layout`, YYYY-MM-DD / not needed / blocked | <tags> | YYYY-MM-DD | YYYY-MM-DD |
+| 1 | <Title of doc> | <Publisher> | 2024 v1.2 | <URL, or ISBN, or DOI, or standard number, or "request from <vendor contact>"> | <e.g., "© Publisher, no redistribution" / "CC BY-SA 4.0"> | `local/<filename>.pdf` | `local/<filename>.txt` via `pdftotext -layout`, YYYY-MM-DD / not needed / blocked: OCR needed | <tags> | YYYY-MM-DD | YYYY-MM-DD |
 
 Rules:
 - **"How to obtain" must be enough for someone else to get the item

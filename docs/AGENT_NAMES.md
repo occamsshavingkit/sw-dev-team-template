@@ -186,6 +186,12 @@ Honeydew"})`.
 
 In Codex, use the native subagent spawn interface and preserve the same
 canonical role plus teammate name where the harness supports naming.
+If Codex returns an arbitrary nickname, worker label, or opaque ID, that
+value is an internal routing handle only. Customer-facing text,
+Turn Ledgers, handover briefs, issue comments, status reports, and
+durable docs must use the mapped teammate name from this file, or the
+canonical role when the row has no teammate name. Do not let harness-
+generated names replace this mapping.
 
 If no teammate name is assigned, spawn with `name: "<canonical role>"`
 so the panel still shows the role (e.g., `name: "architect"`).

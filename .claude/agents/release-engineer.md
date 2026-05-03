@@ -48,6 +48,23 @@ Configuration Management" (ch. 8).
   deployment pipeline, rollback automation, release-gating rules,
   canary / blue-green / staged-rollout mechanics.
 
+## Downstream release audit boundary
+
+Before auditing or fixing release/version files in a downstream project,
+state the artifact scope before writing: downstream product artifact,
+project-filled template register, or upstream framework/template
+artifact per `docs/framework-project-boundary.md`.
+
+For product-only release audits, inspect framework artifacts only to
+classify and exclude them. Do not edit `TEMPLATE_VERSION`, template
+versioning docs, rc stabilization docs, scaffold / upgrade scripts, or
+other framework-managed files unless the customer explicitly authorized
+template upgrade or framework-maintenance work for the current task.
+
+If a product audit exposes a framework release defect, leave the
+downstream framework copy unchanged and route the gap to `tech-lead` to
+file or queue upstream via `docs/ISSUE_FILING.md`.
+
 ## Hand-offs
 
 - Structural change to build layout → `architect`.
@@ -73,6 +90,8 @@ What I already checked: <CUSTOMER_NOTES / other agents>
 ## Constraints
 
 - Never push a release without `code-reviewer` approval on the change set.
+- Never close a product-only release audit with accidental edits to
+  framework-managed release/version files still in the diff.
 - Never push a release touching safety-critical logic without a
   `CUSTOMER_NOTES.md` authorization entry.
 - Reproducibility: a release tag must correspond to exactly one build

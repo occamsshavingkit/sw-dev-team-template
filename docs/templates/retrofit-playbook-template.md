@@ -279,7 +279,7 @@ before proceeding — there may be a template gap to file upstream
    routes through Hard Rule #4 before Stage C assigns a decision-
    matrix outcome**, regardless of which outcome (pull as-is,
    rewrite, etc.) would otherwise be picked. `tech-lead` obtains
-   the live approval; `researcher` records it verbatim in
+   the live approval; `researcher` appends it verbatim to
    `CUSTOMER_NOTES.md`.
 8. **Hard Rule #7 still applies — two-fire pattern mirroring
    Hard Rule #4.** Any retrofit row touching authentication,
@@ -443,8 +443,8 @@ Contents:
 - **Suspicious artifacts** — vendored third-party code, generated
   files, binaries, apparent secrets. Input to Stage B.
 - **Identifying-content candidates (binding, issue #81)** — run a
-  regex sweep against the source tree for non-literal identifying
-  classes, not only known customer strings. Output a per-hit and
+  regex sweep against the source tree for universal identifying
+  classes, not customer-specific known strings. Output a per-hit and
   per-line table: path, line, matched class, excerpt, proposed
   disposition. Aggregate verdicts such as "all 192.168.* hits are
   examples" are forbidden because they hide bad hits among benign
@@ -465,13 +465,18 @@ Contents:
   Email addresses
   Common token prefixes: AKIA, glpat-, ghp_, github_pat_, xoxb-
   UUIDs used as service identifiers
-  Personal-name/service-name patterns identified at pre-flight
   ```
 
-  The regex set is a floor, not a complete secret scanner. Stage B
-  may add project-specific classes; every added class updates both the
-  per-hit table and `regex-commands.md` so Stage E reviewers can re-run
-  the same set.
+  The Stage A regex set is a floor, not a complete secret scanner.
+  `onboarding-auditor` is deliberately zero-context and must not be
+  given customer-specific personal, service-name, employer, tenant, or
+  site-code patterns unless `tech-lead` documents a narrow exception
+  in the dispatch brief and the pattern itself is non-secret and
+  non-tribal. The normal source for customer-specific patterns is
+  Stage B: `researcher`, with access to pre-flight notes,
+  `CUSTOMER_NOTES.md`, and SME inventories, may add those classes.
+  Every added class updates both the per-hit table and
+  `regex-commands.md` so Stage E reviewers can re-run the same set.
 - **Convention-conflict register (seed)** — where the source's
   conventions differ from template defaults (see § 7 for the
   handling protocol). Example rows: "source uses `master`, template
@@ -507,11 +512,15 @@ For each listed artifact, `researcher` assigns one of:
 new local-only paths.
 
 `researcher` consumes the Stage A identifying-content table and
-assigns a disposition to every hit. Any new identifying class found
-during Stage B is appended as a new per-hit row, not summarized in an
-aggregate note. The exact added regex / command is appended to
-`docs/retrofit/regex-commands.md`. Hits that touch auth / secrets /
-PII / network endpoints trigger the Hard-Rule-#7 early fire below.
+assigns a disposition to every hit. `researcher` is also the default
+owner for customer-specific identifying classes surfaced by pre-flight,
+`CUSTOMER_NOTES.md`, or SME inventories, because those inputs are out
+of scope for the zero-context `onboarding-auditor`. Any new identifying
+class found during Stage B is appended as a new per-hit row, not
+summarized in an aggregate note. The exact added regex / command is
+appended to `docs/retrofit/regex-commands.md`. Hits that touch auth /
+secrets / PII / network endpoints trigger the Hard-Rule-#7 early fire
+below.
 
 **Hard-Rule-#7 early fire.** (Binding obligation, per issue #50:
 `researcher` MUST loop in `security-engineer` when a triage row is
@@ -733,8 +742,9 @@ citing tracker / contract + ID.
 
 Runs when pre-flight or Stage A found a source git remote URL.
 Owned by `release-engineer` under `tech-lead`; if no
-`release-engineer` is available, `tech-lead` records the decision and
-routes any git mechanics to the appropriate operator.
+`release-engineer` is available, `tech-lead` queues the decision
+record for `researcher` and routes any git mechanics to the
+appropriate operator.
 
 Before close-out, `tech-lead` asks the customer one atomic remote
 disposition question with explicit options:
@@ -751,9 +761,10 @@ disposition question with explicit options:
   read-only archive.
 - **No remote yet.** Target stays local; revisit later.
 
-Record the ruling in `CUSTOMER_NOTES.md`, cite it from
-`docs/retrofit/CLOSURE.md`, and do not declare retrofit close-out
-complete without either a ruling or an explicit customer-deferred note.
+Route the ruling to `researcher` for a verbatim `CUSTOMER_NOTES.md`
+entry, cite it from `docs/retrofit/CLOSURE.md`, and do not declare
+retrofit close-out complete without either a ruling or an explicit
+customer-deferred note.
 
 ## 5. Stage gates
 
@@ -784,8 +795,9 @@ at the latest pre-commit point (to make the gate authoritative).
     assigns a decision-matrix outcome. Applies to rows where
     "safety-critical" emerges from the audit, not only rows
     the customer pre-flagged.
-  - *Binding sign-off:* customer approval recorded verbatim
-    in `CUSTOMER_NOTES.md` before the row's Stage E commit.
+  - *Binding sign-off:* customer approval routed by `tech-lead`
+    and appended verbatim by `researcher` in `CUSTOMER_NOTES.md`
+    before the row's Stage E commit.
 
 - **Hard Rule #7 gate.**
   - *Early fire:* any artifact tagged auth / secrets / PII /
@@ -793,8 +805,9 @@ at the latest pre-commit point (to make the gate authoritative).
     advisory note appended to `B-triage.md` before Stage B
     closes (§ 4.3). Non-binding; Stage C's plan must consume
     the advisory.
-  - *Binding sign-off:* `security-engineer` reviews and signs
-    off in `CUSTOMER_NOTES.md` at Stage E *before*
+  - *Binding sign-off:* `security-engineer` reviews and supplies
+    a sign-off for `researcher` to append in `CUSTOMER_NOTES.md`
+    at Stage E *before*
     `code-reviewer`, alongside the Hard Rule #4 customer
     approval where both apply.
 
@@ -1182,12 +1195,13 @@ Retrofit is complete when **all** are true:
       from `docs/retrofit/regex-commands.md` completed and per-hit
       table updated.
 - [ ] **Every Hard-Rule-#7 row has `security-engineer` sign-off**
-      recorded in `CUSTOMER_NOTES.md` with reference to the
-      relevant security assurance artefact (§ 3 rule 8).
+      supplied to `researcher` and appended in `CUSTOMER_NOTES.md`
+      with reference to the relevant security assurance artefact
+      (§ 3 rule 8).
 - [ ] **Every safety-critical row has live customer approval
-      (Hard Rule #4)** recorded verbatim in `CUSTOMER_NOTES.md`,
-      dated, obtained by `tech-lead` — no cached approval, no
-      agent-only path.
+      (Hard Rule #4)** obtained by `tech-lead`, routed to
+      `researcher`, and appended verbatim in `CUSTOMER_NOTES.md` —
+      dated, no cached approval, no agent-only path.
 - [ ] Stage F (if applicable) complete: source tickets mapped to
       `docs/tasks/` + `docs/OPEN_QUESTIONS.md`;
       `archived-tickets.md` filed.

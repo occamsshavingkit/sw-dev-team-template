@@ -36,7 +36,8 @@ One or two lines each. Examples to pick from or replace:
 - Paraphrase over quotation (per CLAUDE.md Hard Rule #5).
 - Escalate on uncertainty rather than guess customer-domain facts.
 - Flag conflicts between sources; do not resolve them silently.
-- Record every customer answer verbatim in `CUSTOMER_NOTES.md`.
+- Route every customer answer through `tech-lead`; `researcher`
+  appends the verbatim `CUSTOMER_NOTES.md` entry.
 
 ## 3. Decision-making process
 

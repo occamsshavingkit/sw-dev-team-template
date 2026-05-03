@@ -27,10 +27,19 @@ Owned by a single agent (the "assignee"). Routed by `tech-lead`.
 - **ID:** T-NNNN (or tracker URL)
 - **Parent story:** S-NNNN (or "standalone" / "spike")
 - **Type:** Task | Spike | Bug fix | Refactor | Chore
+- **Tier:** tiny | standard | regulated/safety | release
 - **Assignee (agent):** `software-engineer` | `qa-engineer` | `sre` | …
 - **Estimate:** ≤ 2 days of one person's effort, else split.
 - **Trigger:** `<comma-separated clauses, or "none">` (annotated by
   `tech-lead` at dispatch — see DoR).
+- **Boundary:** Product work | Project-filled register | Template
+  upgrade | Framework maintenance (see
+  `docs/framework-project-boundary.md`).
+- **Artifact scope before writing:** <state the concrete product,
+  register, template-upgrade, or framework-maintenance paths in scope;
+  release/version audits also classify downstream product artifact vs
+  project-filled template register vs upstream framework/template
+  artifact>.
 
 ---
 
@@ -79,6 +88,13 @@ If any box is unchecked, the item is not ready.
 
 - [ ] Acceptance criteria written and reviewed by `tech-lead`.
 - [ ] Dependencies listed and either cleared or scheduled.
+- [ ] Boundary classified. If this is product work, framework-managed
+      paths are excluded from the task unless explicitly authorized.
+- [ ] Audit/fix prompt requires the assignee to state artifact scope
+      before writing. For product-only release audits, `TEMPLATE_VERSION`,
+      template versioning docs, rc stabilization docs, scaffold / upgrade
+      scripts, and other framework-managed release files are explicitly
+      out of write scope.
 - [ ] Required `CUSTOMER_NOTES.md` entries exist or are explicitly
       not needed.
 - [ ] Estimate assigned.
@@ -109,7 +125,12 @@ If any box is unchecked, the item is not ready.
 
 ## Definition of Done (DoD)
 
-Team-wide. Applies to every completed task, regardless of type.
+Team-wide. Apply the rows that match the task tier and deliverable
+shape. Tiny documentation or one-line script fixes still need scope,
+owner, relevant verification, and `code-reviewer` before commit; they
+do not inherit release or token-ledger ceremony unless the thresholds
+below apply. Regulated/safety and release tasks always use the
+strictest applicable gates.
 
 - [ ] Code written, compiles / builds clean.
 - [ ] Unit tests written alongside code (not after).
@@ -125,18 +146,30 @@ Team-wide. Applies to every completed task, regardless of type.
 - [ ] Documentation updated by `tech-writer` where user-visible.
 - [ ] No new open defects of severity ≥ <threshold>.
 - [ ] Requirements traceability row updated.
-- [ ] **Token usage recorded.** Aggregate tokens consumed across all
-      agent dispatches for this task, plus each dispatch's prompt
-      (verbatim), appended to `docs/pm/TOKEN_LEDGER.md` by
-      `project-manager`. This feeds the estimation model the PM
-      uses for future task budgeting; a task closed without a
-      ledger row cannot inform future estimates. On first use, copy
+- [ ] **Token usage recorded when estimation value is material.**
+      Required for `standard`, `regulated/safety`, and `release`
+      tier tasks, or any task with three or more agent dispatches,
+      a context-limit retry, or a PM request for calibration. Tiny
+      tasks may record "not logged: below threshold" in this task's
+      execution log instead. When required, aggregate tokens consumed
+      across all agent dispatches for this task, plus each dispatch's
+      prompt (verbatim), are appended to `docs/pm/TOKEN_LEDGER.md`
+      by `project-manager`. On first use, copy
       `docs/templates/pm/TOKEN_LEDGER-template.md` to
       `docs/pm/TOKEN_LEDGER.md`; schema columns are
       `Date | Task ID | Agent | Tokens | Prompt (verbatim, fenced) |
       Notes`.
-- [ ] Change merged to the integration branch and deployable artifact
-      confirmed by `release-engineer`.
+- [ ] Change merged to the integration branch. `release-engineer`
+      confirmation is required for release-tier tasks, deployable
+      artifacts, packaging changes, tags, migrations, and any change
+      whose rollback or distribution path is non-trivial.
+- [ ] Commit / PR split matches the boundary: product work is not mixed
+      with template upgrade or framework maintenance, unless the task
+      records explicit customer authorization for the combined scope.
+- [ ] Product-only audit/fix diff contains no accidental edits to
+      framework-managed files. Any discovered framework gap was filed or
+      queued upstream via `docs/ISSUE_FILING.md` and left unchanged in
+      the downstream copy.
 
 ---
 

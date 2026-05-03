@@ -77,7 +77,9 @@ tar --exclude='./.git' \
     --exclude='./docs/v2' \
     --exclude='./docs/proposals' \
     --exclude='./docs/v1.0-rc3-checklist.md' \
-    --exclude='./docs/pm/process-audit-*.md' \
+    --exclude='./docs/v1.0-rc4-stabilization.md' \
+    --exclude='./docs/v1.0.0-final-checklist.md' \
+    --exclude='./docs/pm' \
     --exclude='./scripts/smoke-test.sh' \
     -cf - . | (cd "$target" && tar -xf -)
 

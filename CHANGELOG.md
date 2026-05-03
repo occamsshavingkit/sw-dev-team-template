@@ -16,6 +16,64 @@ filed upstream include that version.
 
 ---
 
+## v1.0.0-rc5 — 2026-05-03
+
+Release-boundary candidate after downstream validation of
+`v1.0.0-rc4` found that rc4 should not promote directly to final.
+Issues #84 through #103 are treated as the rc5 stabilization set:
+they are mostly release-governance, scaffold / upgrade hygiene,
+Codex-adapter parity, local-supplement clarity, and downstream
+framework-boundary fixes. Final `v1.0.0` now depends on rc5
+validation and the objective gates in
+`docs/v1.0.0-final-checklist.md`.
+
+### Changed
+
+- **Release and upgrade safety (#84, #85, #86).** rc5 preserves
+  `upgrade.sh --dry-run --target` intent through bootstrap, replaces
+  generated claude-mem-only `AGENTS.md` stubs with the shipped Codex
+  adapter, and keeps upstream rc / final planning plus runtime
+  `docs/pm/` evidence out of scaffolded or upgraded downstream
+  projects. `version-check.sh` now uses the same SemVer-aware tag
+  ordering as `upgrade.sh`, so `v1.0.0` is selected ahead of
+  `v1.0.0-rc5` when both exist.
+- **Evidence-backed final gates (#91).** Final readiness now points at
+  objective rc5 gates instead of treating rc4 review wording as final
+  validation. Template-only evidence and downstream validation are
+  separated more clearly in the roadmap, stabilization notes, and final
+  checklist.
+- **Customer-truth and review-gate consistency (#89, #92, #93).**
+  Deliverable-shape checks remain canonical framework policy,
+  FIRST ACTIONS wording routes `CUSTOMER_NOTES.md` entries through
+  `researcher`, and Codex gets an explicit pre-close parity checklist
+  for tech-lead write restrictions.
+- **Codex specialist orchestration (#94, #95, #96, #100, #101, #103).**
+  The Codex adapter now records per-session specialist-dispatch
+  authorization, maps arbitrary harness names back to
+  `docs/AGENT_NAMES.md`, documents reasoning-effort selection,
+  queues specialist work when slots are full, closes completed
+  specialists promptly, and treats missing completion/status as
+  `unknown/unreachable` with bounded recovery.
+- **Local-supplement and retrofit clarity (#87, #88, #97, #98).**
+  The downstream retrofit pattern-sweep contract no longer conflicts
+  with zero-context onboarding review, `tech-lead` local-supplement
+  conflicts no longer self-escalate, and the SME template gives a
+  final local-supplement paragraph instead of ambiguous authoring
+  instructions.
+- **Downstream framework boundary (#99, #102).** Product work, project
+  registers, template upgrades, and framework maintenance now have an
+  explicit path-ownership model, with release audits required to state
+  artifact scope before writing and to route upstream framework gaps
+  through the issue-filing path.
+
+### Verification
+
+- Focused stale-wording scan: explicit rc4 final-gate phrases are gone
+  from the release-prep files after this update.
+- `git diff --check` on the scoped release-prep files: clean.
+
+---
+
 ## v1.0.0-rc4 — 2026-05-03
 
 Integrated stabilization candidate after downstream use of
@@ -89,7 +147,7 @@ downgraded by customer ruling.
   scaffold / upgrade's template-only exclusions more closely, including
   rc planning, audit, v2, proposal, and role-local files.
 - **Release stamp.** `VERSION` is now `v1.0.0-rc4`; README and ROADMAP
-  current-release wording point at rc4.
+  release wording pointed at rc4 for the rc4 cut.
 
 ### Verification
 

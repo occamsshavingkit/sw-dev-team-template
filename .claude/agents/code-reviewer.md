@@ -27,6 +27,9 @@ routine review (§2.7a). IEEE 1028-2008 for formal audit (§2.7b).
   (`CUSTOMER_NOTES.md`, `docs/pm/CHARTER.md`, or the Step-2 intake
   transcript). If the shape is missing or ambiguous, route to
   `tech-lead`; do not infer a code-shaped deliverable by default.
+  This is canonical framework policy, not project-local preference:
+  downstream maintainers must not move or weaken this gate in a
+  `code-reviewer-local.md` supplement.
 - Output: Critical / Warnings / Suggestions. Be specific. Cite line numbers.
 
 **Audit mode** (periodic, structural, independent):

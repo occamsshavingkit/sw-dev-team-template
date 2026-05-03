@@ -41,8 +41,9 @@ Usage: scripts/upgrade.sh [--dry-run | --verify | --target <ver> | --help]
                     in the upstream clone, runs migrations between
                     current TEMPLATE_VERSION and the target, stamps
                     target's tag. Without this flag, upgrade.sh
-                    targets the latest stable upstream tag. (Issue #68,
-                    v0.17.0+.)
+                    targets the latest stable upstream tag for stable
+                    projects, or the latest upstream tag for projects
+                    already on a pre-release track. (Issues #60/#68.)
   --help, -h        Print this help and exit.
 
 With no flag, run the full upgrade. The script:
@@ -75,6 +76,39 @@ if [[ -f "$first_actions_lib" ]]; then
   # shellcheck source=lib/first-actions.sh
   source "$first_actions_lib"
 fi
+
+semver_sort_tags() {
+  awk '
+    function prerelease_key(pre, ids, n, i, id, key) {
+      if (pre == "") {
+        return "1"
+      }
+      n = split(pre, ids, ".")
+      key = "0"
+      for (i = 1; i <= n; i++) {
+        id = ids[i]
+        if (id ~ /^[0-9]+$/) {
+          key = key ".1.0." sprintf("%010d", length(id)) "." id
+        } else {
+          key = key ".1.1." id
+        }
+      }
+      return key ".0"
+    }
+    /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/ {
+      tag = $0
+      rest = substr(tag, 2)
+      prerelease = ""
+      dash = index(rest, "-")
+      if (dash > 0) {
+        prerelease = substr(rest, dash + 1)
+        rest = substr(rest, 1, dash - 1)
+      }
+      split(rest, parts, ".")
+      printf "%010d.%010d.%010d.%s\t%s\n", parts[1], parts[2], parts[3], prerelease_key(prerelease), tag
+    }
+  ' | LC_ALL=C sort -t "$(printf '\t')" -k1,1 | cut -f2-
+}
 
 # Upstream URL is overrideable via SWDT_UPSTREAM_URL. Used by
 # scripts/stepwise-smoke.sh to point at a local clone with specific
@@ -130,29 +164,58 @@ if [[ $verify_mode -eq 1 ]]; then
   exit "$rc"
 fi
 
-workdir="$(mktemp -d)"
-trap 'rm -rf "$workdir"' EXIT
+if [[ -n "${SWDT_PRESTAGED_WORKDIR:-}" && -d "$SWDT_PRESTAGED_WORKDIR/new" ]]; then
+  # Re-execed instance: workdir was pre-staged by the parent. Adopt it
+  # before cloning so dry-run bootstrap stays no-write and no-extra-network.
+  workdir="$SWDT_PRESTAGED_WORKDIR"
+  trap 'rm -rf "$workdir"' EXIT
+else
+  workdir="$(mktemp -d)"
+  trap 'rm -rf "$workdir"' EXIT
+  echo "Cloning upstream..." >&2
+  git clone -q "$upstream_auth" "$workdir/new" 2>/dev/null || {
+    echo "ERROR: clone of $upstream failed. Check network / auth." >&2
+    exit 1
+  }
+fi
 
-echo "Cloning upstream..." >&2
-git clone -q "$upstream_auth" "$workdir/new" 2>/dev/null || {
-  echo "ERROR: clone of $upstream failed. Check network / auth." >&2
-  exit 1
-}
-
-# --- Pin to --target if requested (issue #68) ---------------------------------
-# Check out the requested tag in the upstream clone before any other
-# steps run. Bootstrap, baseline-clone, and sync all see the target
-# state. VERSION inside the clone is the target's VERSION, so
+# --- Select upstream target before bootstrap ----------------------------------
+# Check out the intended upstream tag before any other steps run.
+# Bootstrap, baseline-clone, and sync all see the selected target state.
+# VERSION inside the clone is the selected target's VERSION, so
 # new_version derived below picks up correctly.
 if [[ -n "$target_version" ]]; then
   if ! git -C "$workdir/new" rev-parse --verify --quiet "refs/tags/$target_version" >/dev/null; then
     echo "ERROR: --target $target_version is not a known tag in $upstream." >&2
     echo "  Recent tags (last 10):" >&2
-    git -C "$workdir/new" tag -l 'v*' | sort -V | tail -10 | sed 's/^/    /' >&2
+    git -C "$workdir/new" tag -l 'v*' | semver_sort_tags | tail -10 | sed 's/^/    /' >&2
     exit 2
   fi
   echo "Pinning upgrade to --target $target_version" >&2
   git -C "$workdir/new" checkout -q "$target_version"
+else
+  all_upstream_tags="$(git -C "$workdir/new" tag -l 'v*' 2>/dev/null | semver_sort_tags || true)"
+  if [[ "$local_version" == *-* ]]; then
+    target_candidates="$all_upstream_tags"
+  else
+    target_candidates="$(echo "$all_upstream_tags" | grep -vE -- '-[0-9A-Za-z.-]+$' || true)"
+  fi
+
+  if [[ -z "$target_candidates" ]]; then
+    echo "ERROR: no suitable upstream release tags found in $upstream." >&2
+    if [[ "$local_version" != *-* ]]; then
+      echo "       Stable projects do not default-upgrade to pre-release tags; use --target to opt in." >&2
+    fi
+    exit 2
+  fi
+
+  selected_target="$(echo "$target_candidates" | tail -1)"
+  if [[ "$local_version" == *-* ]]; then
+    echo "Default target: latest upstream tag $selected_target (pre-release track)." >&2
+  else
+    echo "Default target: latest stable upstream tag $selected_target." >&2
+  fi
+  git -C "$workdir/new" checkout -q "$selected_target"
 fi
 
 # --- Self-bootstrap (issue #63 follow-up) ----------------------------------
@@ -182,6 +245,13 @@ if [[ "${SWDT_BOOTSTRAPPED:-}" != "1" ]]; then
     fi
   fi
   if [[ $bootstrap -eq 1 ]]; then
+    if [[ $dry_run -eq 1 ]]; then
+      echo "Bootstrapping: dry-run re-execing upstream upgrade helpers without writing local files." >&2
+      export SWDT_BOOTSTRAPPED=1
+      export SWDT_PRESTAGED_WORKDIR="$workdir"
+      trap '' EXIT  # child owns the workdir now
+      exec bash "$upstream_upgrade" "${original_args[@]}"
+    fi
     echo "Bootstrapping: replacing local upgrade helpers with upstream and re-execing." >&2
     # Atomic mv-rename so bash's open fd stays on the original (now-unlinked)
     # inode through the rest of THIS run. The exec below replaces the process.
@@ -207,13 +277,6 @@ if [[ "${SWDT_BOOTSTRAPPED:-}" != "1" ]]; then
     trap '' EXIT  # don't double-rm; child owns the workdir now
     exec bash "$0" "${original_args[@]}"
   fi
-fi
-
-# Re-execed instance: workdir was pre-staged by the parent.
-if [[ -n "${SWDT_PRESTAGED_WORKDIR:-}" && -d "$SWDT_PRESTAGED_WORKDIR/new" ]]; then
-  rm -rf "$workdir"
-  workdir="$SWDT_PRESTAGED_WORKDIR"
-  trap 'rm -rf "$workdir"' EXIT
 fi
 
 if declare -F first_actions_step0_warning >/dev/null; then
@@ -265,7 +328,7 @@ fi
 # project's current TEMPLATE_VERSION and less-than-or-equal-to the new one,
 # in ascending order. Migrations handle file moves / renames / reshapes that
 # the plain file-sync cannot. Most are no-ops.
-all_tags=$(git -C "$workdir/new" tag -l 'v*' 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$' | sort -V || true)
+all_tags=$(git -C "$workdir/new" tag -l 'v*' 2>/dev/null | semver_sort_tags || true)
 migrations_to_run=()
 past_local=0
 for tag in $all_tags; do
@@ -326,8 +389,8 @@ ship_files=$(cd "$workdir/new" && git ls-files \
   | grep -vE '^(\.github/|dryrun-project/|examples/|migrations/)' \
   | grep -vE '^\.claude/agents/[^/]+-local\.md$' \
   | grep -vE '^docs/(audits|v2|proposals)/' \
-  | grep -vE '^docs/v1\.0-rc3-checklist\.md$' \
-  | grep -vE '^docs/pm/process-audit-.*\.md$' \
+  | grep -vE '^docs/v1\.0-rc3-checklist\.md$|^docs/v1\.0-rc4-stabilization\.md$|^docs/v1\.0\.0-final-checklist\.md$' \
+  | grep -vE '^docs/pm/' \
   | grep -vE '^scripts/smoke-test\.sh$')
 
 # --- Load customization preserve-list ----------------------------------------
@@ -369,6 +432,33 @@ agent_splice_name() {
   [[ -z "$name_line" ]] && return 0
   # Replace upstream's `name: <canonical>` with the project's name line.
   sed -i "s|^name:[[:space:]].*\$|$name_line|" "$installed"
+}
+
+# rc4 introduced a shipped AGENTS.md Codex adapter. Some pre-rc4 projects
+# may already have a generated claude-mem context stub at AGENTS.md with no
+# binding adapter content. Treat that generated stub as absent so upgrade
+# installs the adapter instead of preserving a non-functional local file.
+memory_only_agents_stub() {
+  local path="$1"
+  [[ -f "$path" ]] || return 1
+  grep -q '<claude-mem-context>' "$path" || return 1
+  grep -q '</claude-mem-context>' "$path" || return 1
+  ! grep -q 'main Codex session plays `tech-lead` directly' "$path" || return 1
+  ! grep -q '^## Role Binding' "$path" || return 1
+}
+
+install_agents_adapter_over_memory_stub() {
+  local src="$1"
+  local dst="$2"
+  local tmp="$dst.tmp.$$"
+  awk '
+    /^<claude-mem-context>$/ { skip=1; next }
+    /^<\/claude-mem-context>$/ { skip=0; next }
+    skip == 0 { print }
+  ' "$src" > "$tmp"
+  printf '\n\n' >> "$tmp"
+  sed -n '/^<claude-mem-context>$/,/^<\/claude-mem-context>$/p' "$dst" >> "$tmp"
+  mv "$tmp" "$dst"
 }
 
 # Atomic in-place replacement helper (issue #63).
@@ -413,6 +503,14 @@ for f in $ship_files; do
   # Honor .template-customizations: skip preserved paths entirely.
   if [[ -n "${preserve_list[$f]:-}" ]]; then
     preserved+=("$f")
+    continue
+  fi
+
+  if [[ "$f" == "AGENTS.md" ]] && memory_only_agents_stub "$proj_path"; then
+    upgraded+=("$f")
+    if [[ $dry_run -eq 0 ]]; then
+      install_agents_adapter_over_memory_stub "$new_path" "$proj_path"
+    fi
     continue
   fi
 

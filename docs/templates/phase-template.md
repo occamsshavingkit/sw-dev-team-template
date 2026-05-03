@@ -68,7 +68,7 @@ destination, and a verification activity.
 
 | Deliverable | Owner (agent) | Destination | Verified by |
 |---|---|---|---|
-| Requirements doc v1 | `tech-lead`/`researcher` | `docs/requirements.md` | customer review |
+| Requirements doc v1 | `researcher` + `architect` | `docs/requirements.md` | customer review via `tech-lead` |
 | Arch doc + ADRs | `architect` | `docs/architecture.md`, `docs/adr/` | `code-reviewer` audit |
 | Implementation slice | `software-engineer` | <repo path> | `qa-engineer` tests + `code-reviewer` |
 | Test plan + results | `qa-engineer` | `docs/tests/` | `code-reviewer` |

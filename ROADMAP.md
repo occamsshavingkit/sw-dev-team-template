@@ -6,8 +6,9 @@
 - [Path to v1.0.0-rc3](#path-to-v100-rc3)
   - [Credit-free vs credit-gated](#credit-free-vs-credit-gated)
   - [Final binding step — IEEE 1028 readiness audit](#final-binding-step-ieee-1028-readiness-audit)
-- [Post-rc4](#post-rc4)
+- [Post-rc4 / rc5](#post-rc4--rc5)
   - [v1.0.0-rc4](#v100-rc4)
+  - [v1.0.0-rc5](#v100-rc5)
   - [v1.0.0 final](#v100-final)
   - [v1.1.0 — GitHub Projects coordination interface](#v110-github-projects-coordination-interface)
   - [v2 work](#v2-work)
@@ -31,10 +32,25 @@ SemVer rules (see `CHANGELOG.md` header for the binding wording):
   permits breaking changes inside MINOR while we are pre-1.0).
 - **PATCH** — non-structural clarifications.
 
-Tag currently shipping from this worktree: **v1.0.0-rc4**. GitHub
+Tag currently shipping from this worktree: **v1.0.0-rc5**. GitHub
 Release object publication waits for
 v1.0.0 final per the MINOR-only-Releases convention; the rc
 cycle is tag-only.
+
+Release-state vocabulary for the active rc5-to-final path:
+
+- `draft` — plan is still being shaped and has not completed
+  specialist review.
+- `release-prep` — release files are being updated for the rc tag, but
+  the candidate has not completed final review or tagging.
+- `review-complete` — in-tree rc5 work has passed recorded review and
+  smoke evidence, but the release candidate is not tagged.
+- `tagged` — the annotated `v1.0.0-rc5` git tag exists on the reviewed
+  commit.
+- `final-ready` — every gate in `docs/v1.0.0-final-checklist.md` is
+  green.
+
+Current state: **release-prep / not tagged / not final-ready**.
 
 ---
 
@@ -109,7 +125,7 @@ repo.
 
 ---
 
-## Post-rc4
+## Post-rc4 / rc5
 
 ### v1.0.0-rc4
 
@@ -125,14 +141,45 @@ and work packages recorded in `docs/v1.0-rc4-stabilization.md`.
 `v1.0.0` final is blocked until every P0 item in that plan is closed
 or explicitly downgraded by customer ruling.
 
+Current rc4 state is `tagged`: the in-tree candidate has a recorded
+review pass and the annotated tag exists. It is not `final-ready`;
+downstream rc4 validation opened issues #84 through #103, so final now
+goes through rc5.
+
+### v1.0.0-rc5
+
+Release-boundary candidate for issues #84 through #103. This rc folds
+post-rc4 downstream feedback into one validation target: upgrade
+bootstrap safety, Codex adapter parity, local-supplement conflict
+handling, evidence-backed final gates, framework / project boundary
+rules, release-audit scoping, specialist queue / closure discipline,
+and missing Codex completion/status recovery.
+
+Current rc5 state is `release-prep`: the worktree is being prepared for
+an annotated `v1.0.0-rc5` tag. `v1.0.0` final is blocked until rc5 is
+tagged, downstream validation completes, and every gate in
+`docs/v1.0.0-final-checklist.md` is green or has an explicit
+customer-approved exception.
+
 ### v1.0.0 final
 
-Cut after rc4 has been used downstream long enough to demonstrate
-contract stability. Freezes the binding-rule
-surface: any post-1.0 change to `CLAUDE.md` § Hard rules or the
-canonical-role roster requires an ADR and customer sign-off. The
-v0.y MINOR-as-breaking convention ends; from 1.0.0 onward, MAJOR
-is reserved for actual breaking changes.
+Cut only after every objective gate in
+`docs/v1.0.0-final-checklist.md` is green or has an explicit
+customer-approved exception. This includes the downstream clean-window
+/ sample gate, zero final-blocking issues, smoke and upgrade evidence,
+release / review sign-offs, customer ratification, GitHub Release
+object steps, and rollback / upgrade notes. Final freezes the
+binding-rule surface: any post-1.0 change to `CLAUDE.md` § Hard rules
+or the canonical-role roster requires an ADR and customer sign-off. The
+v0.y MINOR-as-breaking convention ends; from 1.0.0 onward, MAJOR is
+reserved for actual breaking changes.
+
+Objective final-readiness gates live in
+`docs/v1.0.0-final-checklist.md`. At minimum, final needs a downstream
+clean-window/sample, zero final-blocking issues, smoke and upgrade
+evidence, release-engineer and code-reviewer sign-offs, customer
+ratification, GitHub Release object creation steps, and rollback /
+upgrade notes.
 
 ### v1.1.0 — GitHub Projects coordination interface
 
@@ -214,7 +261,11 @@ v1.0.0-rc3 ◄── re-entry checklist signed off, field-use candidate
    ▼
 v1.0.0-rc4
    │
-   │  depends on: rc4 downstream-clean window
+   │  depends on: issues #84-#103 triaged + release-boundary fixes integrated
+   ▼
+v1.0.0-rc5
+   │
+   │  depends on: rc5 downstream-clean window
    ▼
 v1.0.0 (GA)
 ```
@@ -253,3 +304,5 @@ Things that may interrupt the linear plan:
 | 2026-05-03 | Added post-v1.0.0 GitHub Projects coordination interface to the v1.1.0 plan. | `tech-lead` |
 | 2026-05-03 | Added model-routing guideline deliverable to the post-v1.0.0 coordination plan. | `tech-lead` |
 | 2026-05-03 | Made v1.0.0-rc4 mandatory after downstream rc3 issues #71-#83; added stabilization-plan pointer. | `tech-lead` |
+| 2026-05-03 | Normalized rc4 release-state vocabulary and linked final readiness gates. | `project-manager` |
+| 2026-05-03 | Made v1.0.0-rc5 mandatory after downstream rc4 issues #84-#103; final now depends on rc5 validation. | `release-engineer` |

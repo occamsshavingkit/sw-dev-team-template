@@ -86,6 +86,16 @@ where they asked (chat log turn if findable, or the
 One sentence. What the respawned teammate should do first. Not
 a strategy — an action.
 
+Also state the active work boundary: Product work, Project-filled
+register, Template upgrade, or Framework maintenance. If the next
+action is product work, name any dirty framework-managed paths that
+must be left alone or split into a separate review per
+`docs/framework-project-boundary.md`. For release/version work, state
+whether each touched artifact is downstream product, project-filled
+template register, or upstream framework/template before writing;
+product-only audits must leave `TEMPLATE_VERSION` and framework-managed
+release files unchanged.
+
 ## 9. First-turn customer message (tech-lead respawn only)
 
 *Required when the respawned agent is `tech-lead`; omit for any

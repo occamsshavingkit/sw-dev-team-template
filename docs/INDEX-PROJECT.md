@@ -9,6 +9,11 @@ templates, framework ADRs), see
 [`INDEX-FRAMEWORK.md`](INDEX-FRAMEWORK.md). It updates with every
 upgrade and you don't need to maintain it.
 
+For path ownership and review splitting in a downstream repository,
+see [`framework-project-boundary.md`](framework-project-boundary.md).
+Use that boundary before asking review tools to inspect product work
+when template-upgrade files are also dirty.
+
 Add sections below as the project grows. Common ones:
 
 ## `docs/adr/` (project-authored ADRs)

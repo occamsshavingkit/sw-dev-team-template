@@ -3,12 +3,11 @@
 # Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
 #
 #
-# scripts/stepwise-smoke.sh — stepwise upgrade smoke for the
-# v1.0.0-rc3 re-entry checklist (criterion C-7).
+# scripts/stepwise-smoke.sh — stepwise upgrade smoke for release tracks.
 #
 # Scaffolds a synthetic project, hand-stamps it to a starting tag
-# (default v0.10.0), then walks every published tag from there to
-# the current upstream HEAD running `scripts/upgrade.sh` against a
+# (default depends on track), then walks every published tag selected
+# by that track running `scripts/upgrade.sh` against a
 # **local clone with that tag checked out** at each hop. Verifies:
 #   - upgrade.sh exits 0 at every hop
 #   - upgrade.sh --verify exits 0 after each hop
@@ -21,16 +20,18 @@
 # Run from the template repo root.
 #
 # Usage:
-#   scripts/stepwise-smoke.sh                  # v0.10.0 → HEAD
-#   scripts/stepwise-smoke.sh --start v0.12.0  # start later
-#   scripts/stepwise-smoke.sh --keep           # keep tmp dirs
+#   scripts/stepwise-smoke.sh                    # stable: v0.14.4 → latest stable
+#   scripts/stepwise-smoke.sh --track rc         # rc: v1.0.0-rc3 → latest rc/final
+#   scripts/stepwise-smoke.sh --start v0.12.0    # stable, start later
+#   scripts/stepwise-smoke.sh --track rc --start v1.0.0-rc3
+#   scripts/stepwise-smoke.sh --keep             # keep tmp dirs
 #
 # Cost: clones the repo once locally, then per-tag checkouts (no
 # network beyond the initial clone). Acceptable for periodic CI.
 
 set -euo pipefail
 
-# Default start: v0.14.4 — the first version with the bootstrap
+# Stable-track default start: v0.14.4 — the first version with the bootstrap
 # fix (issue #63 / v0.14.3 atomic_install + v0.14.4 self-bootstrap).
 # Pre-v0.14.4 hops cannot be made cleanly stepwise because the
 # in-place cp pattern in v0.13.0–v0.14.2 mutates the running
@@ -42,18 +43,75 @@ set -euo pipefail
 # Override with --start <tag> to test pre-v0.14.4 hops (expected
 # to fail at the first cp-mutating hop; documents the historical
 # regression boundary, not a live bug).
-start_tag="v0.14.4"
+start_tag=""
+track="stable"
 keep=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --start) start_tag="$2"; shift 2 ;;
-    --keep)  keep=1; shift ;;
+    --start)
+      if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
+        echo "ERROR: --start requires a tag argument" >&2
+        exit 2
+      fi
+      start_tag="$2"; shift 2 ;;
+    --track)
+      if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
+        echo "ERROR: --track requires stable or rc" >&2
+        exit 2
+      fi
+      track="$2"; shift 2 ;;
+    --keep) keep=1; shift ;;
     --help|-h)
       sed -n '2,/^$/p' "$0" | sed 's/^# \?//'
       exit 0 ;;
     *) echo "ERROR: unknown flag: $1" >&2; exit 2 ;;
   esac
 done
+
+case "$track" in
+  stable|rc) ;;
+  *) echo "ERROR: --track must be stable or rc" >&2; exit 2 ;;
+esac
+
+semver_sort_tags() {
+  awk '
+    function prerelease_key(pre, ids, n, i, id, key) {
+      if (pre == "") {
+        return "1"
+      }
+      n = split(pre, ids, ".")
+      key = "0"
+      for (i = 1; i <= n; i++) {
+        id = ids[i]
+        if (id ~ /^[0-9]+$/) {
+          key = key ".1.0." sprintf("%010d", length(id)) "." id
+        } else {
+          key = key ".1.1." id
+        }
+      }
+      return key ".0"
+    }
+    /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/ {
+      tag = $0
+      rest = substr(tag, 2)
+      prerelease = ""
+      dash = index(rest, "-")
+      if (dash > 0) {
+        prerelease = substr(rest, dash + 1)
+        rest = substr(rest, 1, dash - 1)
+      }
+      split(rest, parts, ".")
+      printf "%010d.%010d.%010d.%s\t%s\n", parts[1], parts[2], parts[3], prerelease_key(prerelease), tag
+    }
+  ' | LC_ALL=C sort -t "$(printf '\t')" -k1,1 | cut -f2-
+}
+
+if [[ -z "$start_tag" ]]; then
+  case "$track" in
+    stable) start_tag="v0.14.4" ;;
+    rc)     start_tag="v1.0.0-rc3" ;;
+  esac
+fi
 
 if [[ ! -f VERSION || ! -x scripts/scaffold.sh ]]; then
   echo "ERROR: run this from the template repo root." >&2
@@ -68,18 +126,25 @@ target="$tmp/acme"
 clone="$tmp/clone"
 log="$tmp/stepwise.log"
 
-echo "stepwise-smoke: $start_tag → HEAD" | tee "$log"
+echo "stepwise-smoke: $track track, starting at $start_tag" | tee "$log"
 echo "  workdir: $tmp" | tee -a "$log"
 
 # Clone upstream once locally. Each hop checks out a different tag
 # and runs upgrade.sh against this clone via SWDT_UPSTREAM_URL.
 git clone -q "$repo_root" "$clone"
 
-# Tag list, sorted by SemVer, starting at $start_tag. Pre-release
-# tags (anything with a `-suffix`) are filtered out: stable-track
-# projects don't upgrade to pre-releases per the v0.14.3 #60 fix
-# in version-check.sh, and upgrade.sh's tag picker mirrors that.
-all_tags="$(git -C "$clone" tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V)"
+# Tag list, sorted by SemVer, starting at $start_tag. Stable track filters
+# out pre-release tags: stable projects don't upgrade to pre-releases by
+# default. rc track includes pre-releases so hops such as rc3 -> rc4 are
+# exercised.
+case "$track" in
+  stable)
+    all_tags="$(git -C "$clone" tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | semver_sort_tags)"
+    ;;
+  rc)
+    all_tags="$(git -C "$clone" tag -l 'v*' | semver_sort_tags)"
+    ;;
+esac
 
 declare -a hop_tags=()
 seen_start=0
@@ -143,8 +208,16 @@ pin_clone_to_tag() {
   git -C "$clone" checkout -q main
   git -C "$clone" reset -q --hard "$boundary"
   local newer
-  newer="$(git -C "$clone" tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V \
-           | sed -n "/^${boundary}\$/,\$p" | tail -n +2)"
+  case "$track" in
+    stable)
+      newer="$(git -C "$clone" tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | semver_sort_tags \
+               | sed -n "/^${boundary}\$/,\$p" | tail -n +2)"
+      ;;
+    rc)
+      newer="$(git -C "$clone" tag -l 'v*' | semver_sort_tags \
+               | sed -n "/^${boundary}\$/,\$p" | tail -n +2)"
+      ;;
+  esac
   masked_tags=()
   masked_shas=()
   for nt in $newer; do

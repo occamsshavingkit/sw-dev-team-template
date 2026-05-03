@@ -32,6 +32,39 @@ if [[ ! -f VERSION || ! -x scripts/scaffold.sh ]]; then
   exit 1
 fi
 
+semver_sort_tags() {
+  awk '
+    function prerelease_key(pre, ids, n, i, id, key) {
+      if (pre == "") {
+        return "1"
+      }
+      n = split(pre, ids, ".")
+      key = "0"
+      for (i = 1; i <= n; i++) {
+        id = ids[i]
+        if (id ~ /^[0-9]+$/) {
+          key = key ".1.0." sprintf("%010d", length(id)) "." id
+        } else {
+          key = key ".1.1." id
+        }
+      }
+      return key ".0"
+    }
+    /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/ {
+      tag = $0
+      rest = substr(tag, 2)
+      prerelease = ""
+      dash = index(rest, "-")
+      if (dash > 0) {
+        prerelease = substr(rest, dash + 1)
+        rest = substr(rest, 1, dash - 1)
+      }
+      split(rest, parts, ".")
+      printf "%010d.%010d.%010d.%s\t%s\n", parts[1], parts[2], parts[3], prerelease_key(prerelease), tag
+    }
+  ' | LC_ALL=C sort -t "$(printf '\t')" -k1,1 | cut -f2-
+}
+
 repo_root="$(pwd)"
 tmp="$(mktemp -d -t sw-dev-smoke-XXXXXX)"
 trap 'if [[ $keep -eq 0 ]]; then rm -rf "$tmp"; else echo "(kept $tmp for inspection)" >&2; fi' EXIT
@@ -51,6 +84,83 @@ check() {
     fail=$((fail + 1))
   fi
 }
+
+check_semver_sorter() {
+  local label="$1"
+  local script="$2"
+  local sorter="$tmp/$label-semver-sorter.sh"
+  local expected="$tmp/$label-semver-expected.txt"
+  local actual="$tmp/$label-semver-actual.txt"
+
+  {
+    sed -n '/^semver_sort_tags()/,/^}/p' "$script"
+    cat <<'EOF'
+printf '%s\n' \
+  v1.0.0-rc.10 \
+  v1.0.0-alpha.1 \
+  v1.0.0-beta.11 \
+  v1.0.0 \
+  v1.0.0-alpha \
+  v1.0.0-beta \
+  v1.0.0-rc.1 \
+  v1.0.0-alpha.beta \
+  v1.0.0-beta.2 \
+  | semver_sort_tags
+EOF
+  } > "$sorter"
+
+  printf '%s\n' \
+    v1.0.0-alpha \
+    v1.0.0-alpha.1 \
+    v1.0.0-alpha.beta \
+    v1.0.0-beta \
+    v1.0.0-beta.2 \
+    v1.0.0-beta.11 \
+    v1.0.0-rc.1 \
+    v1.0.0-rc.10 \
+    v1.0.0 > "$expected"
+
+  bash "$sorter" > "$actual"
+  if cmp -s "$expected" "$actual"; then
+    echo "  PASS: $label SemVer dotted prerelease ordering"
+    pass=$((pass + 1))
+  else
+    echo "  FAIL: $label SemVer dotted prerelease ordering" >&2
+    echo "        expected:" >&2
+    sed 's/^/          /' "$expected" >&2
+    echo "        got:" >&2
+    sed 's/^/          /' "$actual" >&2
+    fail=$((fail + 1))
+  fi
+}
+
+echo "-- semver sorting --"
+printf '%s\n' \
+  v1.0.0-rc.10 \
+  v1.0.0-alpha.1 \
+  v1.0.0-beta.11 \
+  v1.0.0 \
+  v1.0.0-alpha \
+  v1.0.0-beta \
+  v1.0.0-rc.1 \
+  v1.0.0-alpha.beta \
+  v1.0.0-beta.2 \
+  | semver_sort_tags > "$tmp/smoke-semver-actual.txt"
+printf '%s\n' \
+  v1.0.0-alpha \
+  v1.0.0-alpha.1 \
+  v1.0.0-alpha.beta \
+  v1.0.0-beta \
+  v1.0.0-beta.2 \
+  v1.0.0-beta.11 \
+  v1.0.0-rc.1 \
+  v1.0.0-rc.10 \
+  v1.0.0 > "$tmp/smoke-semver-expected.txt"
+check "smoke-test SemVer dotted prerelease ordering" \
+  cmp -s "$tmp/smoke-semver-expected.txt" "$tmp/smoke-semver-actual.txt"
+check_semver_sorter "upgrade" "$repo_root/scripts/upgrade.sh"
+check_semver_sorter "version-check" "$repo_root/scripts/version-check.sh"
+check_semver_sorter "stepwise-smoke" "$repo_root/scripts/stepwise-smoke.sh"
 
 echo "-- scaffold --"
 ./scripts/scaffold.sh "$target" "Acme Smoke Test" >/dev/null
@@ -87,6 +197,9 @@ check ".github not carried"           test ! -d "$target/.github"
 check "dryrun-project not carried"    test ! -d "$target/dryrun-project"
 check "examples/ not carried"         test ! -d "$target/examples"
 check "migrations not carried"        test ! -d "$target/migrations"
+check "docs/pm runtime artifacts not carried"  test ! -d "$target/docs/pm"
+check "rc4 stabilization plan not carried"     test ! -f "$target/docs/v1.0-rc4-stabilization.md"
+check "final checklist not carried"            test ! -f "$target/docs/v1.0.0-final-checklist.md"
 check "scripts/smoke-test.sh not carried (template tool)"  test ! -f "$target/scripts/smoke-test.sh"
 
 echo "-- content-shape --"
@@ -119,6 +232,9 @@ check "manifest ship-files includes AGENTS.md"            bash -c "grep -q '^AGE
 check "manifest ship-files excludes docs/audits/"         bash -c "! grep -q '^docs/audits/' '$manifest_ship_list'"
 check "manifest ship-files excludes docs/v2/"             bash -c "! grep -q '^docs/v2/' '$manifest_ship_list'"
 check "manifest ship-files excludes docs/proposals/"      bash -c "! grep -q '^docs/proposals/' '$manifest_ship_list'"
+check "manifest ship-files excludes docs/pm/"             bash -c "! grep -q '^docs/pm/' '$manifest_ship_list'"
+check "manifest ship-files excludes rc4 stabilization"    bash -c "! grep -q '^docs/v1\\.0-rc4-stabilization\\.md$' '$manifest_ship_list'"
+check "manifest ship-files excludes final checklist"      bash -c "! grep -q '^docs/v1\\.0\\.0-final-checklist\\.md$' '$manifest_ship_list'"
 check "manifest ship-files excludes role-local agents"    bash -c "! grep -q '^\\.claude/agents/.*-local\\.md\$' '$manifest_ship_list'"
 
 # v0.14.1 regression: manifest must NOT include project-added files.
@@ -282,6 +398,8 @@ fi
 
 echo "-- upgrade bootstrap args and FIRST ACTIONS warning --"
 bootstrap_upstream="$tmp/bootstrap-upstream"
+stable_fixture_version="v0.17.0"
+final_fixture_version="v1.0.0"
 mkdir -p "$bootstrap_upstream"
 tar --exclude='./.git' -cf - . | (cd "$bootstrap_upstream" && tar -xf -)
 (
@@ -289,10 +407,41 @@ tar --exclude='./.git' -cf - . | (cd "$bootstrap_upstream" && tar -xf -)
   git init -q
   git config user.email smoke@example.invalid
   git config user.name "Smoke Test"
+  printf '%s\n' "$stable_fixture_version" > VERSION
   git add .
-  git commit -q -m "bootstrap upstream"
+  git commit -q -m "stable fixture"
+  git tag "$stable_fixture_version"
+  printf '%s\n' "$expected_version" > VERSION
+  git add VERSION
+  git commit -q -m "rc fixture"
   git tag "$expected_version"
+  printf '%s\n' "$final_fixture_version" > VERSION
+  mkdir -p migrations
+  cat > migrations/v1.0.0.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+mkdir -p docs/glossary
+printf 'final migration ran\n' > docs/glossary/FINAL-MIGRATION-SMOKE.md
+EOF
+  chmod +x migrations/v1.0.0.sh
+  git add VERSION migrations/v1.0.0.sh
+  git commit -q -m "final fixture"
+  git tag "$final_fixture_version"
 )
+
+vc_rc_final_output="$(
+  cd "$target"
+  SWDT_UPSTREAM_URL="$bootstrap_upstream" ./scripts/version-check.sh 2>&1 || true
+)"
+if echo "$vc_rc_final_output" | grep -q "Template upgrade available: $expected_version .* $final_fixture_version"; then
+  echo "  PASS: version-check orders final above rc for same base version"
+  pass=$((pass + 1))
+else
+  echo "  FAIL: version-check did not pick final over rc for same base version"
+  echo "        got: $vc_rc_final_output"
+  fail=$((fail + 1))
+fi
+
 bootstrap_target="$tmp/bootstrap-target"
 ./scripts/scaffold.sh "$bootstrap_target" "Bootstrap Args Smoke" >/dev/null
 printf 'v0.1.0\nunknown\n2026-01-01\n' > "$bootstrap_target/TEMPLATE_VERSION"
@@ -308,28 +457,41 @@ check "bootstrap re-exec preserves --target" \
   bash -c "grep -q 'Pinning upgrade to --target $expected_version' '$tmp/bootstrap-dry-run.log'"
 check "bootstrap dry-run leaves TEMPLATE_VERSION unchanged" \
   bash -c "[ '$bootstrap_post_version' = 'v0.1.0' ]"
+check "bootstrap dry-run leaves helper drift in place" \
+  bash -c "grep -q 'force bootstrap drift' '$bootstrap_target/scripts/lib/first-actions.sh'"
 check "upgrade surfaces FIRST ACTIONS warning when Step 0 missing" \
   bash -c "grep -q 'ACTION REQUIRED: FIRST ACTIONS Step 0 is not recorded' '$tmp/bootstrap-dry-run.log'"
 
-echo "-- upgrade (simulate older stamp, run upgrade to HEAD) --"
+echo "-- upgrade (simulate older stamp, run stable default upgrade) --"
 # Simulate an older project by stamping TEMPLATE_VERSION back to v0.1.0, then
 # run upgrade.sh. Verifies:
 #   - upgrade completes cleanly
 #   - template-only files (LICENSE, smoke-test.sh, CHANGELOG.md, VERSION,
 #     CONTRIBUTING.md, migrations/, .github/) are NOT present after upgrade
-#   - TEMPLATE_VERSION is stamped to current VERSION
+#   - stable-track default chooses the final tag, not the rc tag
 #   - migrations ran (we can detect the v0.1.0 glossary migration fired by
 #     presence of docs/glossary/ENGINEERING.md — already there from scaffold
 #     so we don't add an extra check)
 if [[ -d "$bootstrap_upstream/.git" ]]; then
   printf 'v0.1.0\nunknown\n2026-01-01\n' > "$target/TEMPLATE_VERSION"
+  cat > "$target/AGENTS.md" <<'EOF'
+<claude-mem-context>
+# Memory Context
+
+# [acme] recent context, 2026-01-01 12:00am UTC
+
+Generated-only downstream memory.
+</claude-mem-context>
+EOF
+  stable_upgrade_rc=0
   (
     cd "$target"
     SWDT_UPSTREAM_URL="$bootstrap_upstream" ./scripts/upgrade.sh
-  ) > "$tmp/upgrade.log" 2>&1 || {
-    echo "  FAIL: upgrade.sh exited non-zero (see $tmp/upgrade.log)"
-    fail=$((fail + 1))
-  }
+  ) > "$tmp/upgrade-stable.log" 2>&1 || stable_upgrade_rc=$?
+  check "stable-track default upgrade exits 0" \
+    bash -c "[ $stable_upgrade_rc -eq 0 ]"
+  check "stable-track default chooses latest stable final tag" \
+    bash -c "grep -q 'Default target: latest stable upstream tag $final_fixture_version' '$tmp/upgrade-stable.log'"
 
   # Assert template-only files absent after upgrade
   check "no LICENSE after upgrade"                test ! -f "$target/LICENSE"
@@ -341,11 +503,20 @@ if [[ -d "$bootstrap_upstream/.git" ]]; then
   check "no migrations/ after upgrade"            test ! -d "$target/migrations"
   check "no examples/ after upgrade"              test ! -d "$target/examples"
   check "no .github/ after upgrade"               test ! -d "$target/.github"
+  check "no docs/pm runtime artifacts after upgrade"  test ! -d "$target/docs/pm"
+  check "no rc4 stabilization plan after upgrade"     test ! -f "$target/docs/v1.0-rc4-stabilization.md"
+  check "no final checklist after upgrade"            test ! -f "$target/docs/v1.0.0-final-checklist.md"
+  check "memory-only AGENTS.md stub replaced by adapter" \
+    bash -c "grep -q 'main Codex session plays \`tech-lead\` directly' '$target/AGENTS.md'"
+  check "memory-only AGENTS.md memory context preserved" \
+    bash -c "grep -q 'Generated-only downstream memory' '$target/AGENTS.md'"
 
-  # TEMPLATE_VERSION stamped to current
+  # Stable default should stamp the latest final tag, not the rc tag.
   post_version="$(head -1 "$target/TEMPLATE_VERSION" | tr -d '[:space:]')"
-  check "TEMPLATE_VERSION matches current VERSION after upgrade ($expected_version)" \
-    bash -c "[ '$post_version' = '$expected_version' ]"
+  check "stable default stamps latest final tag ($final_fixture_version)" \
+    bash -c "[ '$post_version' = '$final_fixture_version' ]"
+  check "stable default does not silently promote to rc ($expected_version)" \
+    bash -c "[ '$post_version' != '$expected_version' ]"
 
   # FW-ADR-0002 / v0.14.2: TEMPLATE_MANIFEST.lock should exist + verify clean
   # immediately after a single upgrade run, no manual regen needed.
@@ -354,6 +525,41 @@ if [[ -d "$bootstrap_upstream/.git" ]]; then
   post_verify_rc=$(run_capture "$tmp/post-upgrade-verify.log" \
                    bash -c "cd '$target' && bash '$repo_root/scripts/upgrade.sh' --verify")
   check "upgrade.sh --verify clean after one upgrade run"   bash -c "[ $post_verify_rc -eq 0 ]"
+
+  echo "-- upgrade --target rc opt-in --"
+  target_rc_opt_in="$tmp/target-rc-opt-in"
+  ./scripts/scaffold.sh "$target_rc_opt_in" "RC Opt-In Smoke" >/dev/null
+  printf '%s\nunknown\n2026-01-01\n' "$stable_fixture_version" > "$target_rc_opt_in/TEMPLATE_VERSION"
+  rc_upgrade_rc=0
+  (
+    cd "$target_rc_opt_in"
+    SWDT_UPSTREAM_URL="$bootstrap_upstream" ./scripts/upgrade.sh --target "$expected_version"
+  ) > "$tmp/upgrade-rc-target.log" 2>&1 || rc_upgrade_rc=$?
+  check "explicit --target rc upgrade exits 0" \
+    bash -c "[ $rc_upgrade_rc -eq 0 ]"
+  check "explicit --target rc log pins rc tag" \
+    bash -c "grep -q 'Pinning upgrade to --target $expected_version' '$tmp/upgrade-rc-target.log'"
+  rc_post_version="$(head -1 "$target_rc_opt_in/TEMPLATE_VERSION" | tr -d '[:space:]')"
+  check "explicit --target rc stamps current rc ($expected_version)" \
+    bash -c "[ '$rc_post_version' = '$expected_version' ]"
+
+  echo "-- upgrade rc-track default to final --"
+  target_rc_track="$tmp/target-rc-track"
+  ./scripts/scaffold.sh "$target_rc_track" "RC Track Smoke" >/dev/null
+  rc_track_upgrade_rc=0
+  (
+    cd "$target_rc_track"
+    SWDT_UPSTREAM_URL="$bootstrap_upstream" ./scripts/upgrade.sh
+  ) > "$tmp/upgrade-rc-track.log" 2>&1 || rc_track_upgrade_rc=$?
+  check "rc-track default upgrade exits 0" \
+    bash -c "[ $rc_track_upgrade_rc -eq 0 ]"
+  check "rc-track default chooses final over rc" \
+    bash -c "grep -q 'Default target: latest upstream tag $final_fixture_version (pre-release track).' '$tmp/upgrade-rc-track.log'"
+  rc_track_post_version="$(head -1 "$target_rc_track/TEMPLATE_VERSION" | tr -d '[:space:]')"
+  check "rc-track default stamps final tag ($final_fixture_version)" \
+    bash -c "[ '$rc_track_post_version' = '$final_fixture_version' ]"
+  check "rc-track final migration ran" \
+    test -f "$target_rc_track/docs/glossary/FINAL-MIGRATION-SMOKE.md"
 
   # v0.14.3 / issue #63: atomic_install via tmp+mv must not leave
   # stale .tmp.* files after upgrade.

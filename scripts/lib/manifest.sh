@@ -59,8 +59,8 @@ manifest_ship_files() {
     | grep -vE '^(\.github/|dryrun-project/|examples/|migrations/)' \
     | grep -vE '^\.claude/agents/[^/]+-local\.md$' \
     | grep -vE '^docs/(audits|v2|proposals)/' \
-    | grep -vE '^docs/v1\.0-rc3-checklist\.md$' \
-    | grep -vE '^docs/pm/process-audit-.*\.md$' \
+    | grep -vE '^docs/v1\.0-rc3-checklist\.md$|^docs/v1\.0-rc4-stabilization\.md$|^docs/v1\.0\.0-final-checklist\.md$' \
+    | grep -vE '^docs/pm/' \
     | grep -vE '^scripts/smoke-test\.sh$' \
     | while IFS= read -r f; do
         [[ -z "$f" ]] && continue

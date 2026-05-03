@@ -47,9 +47,9 @@ Project-authored content lives in
 | `docs/OPEN_QUESTIONS.md` | Register of open questions with ID / answerer / status / resolution. Stewarded by `researcher`. |
 | `docs/ISSUE_FILING.md` | Convention for filing framework gaps against the upstream template repo (includes template-version citation). |
 | `docs/agent-health-contract.md` | **Binding.** Failure modes, detection signals, health-check protocol, and respawn procedure for long-lived named teammates — including the triadic tech-lead self-diagnosis (project-manager / peer / customer backstop). |
+| `docs/framework-project-boundary.md` | Practical downstream separation model: framework-managed paths, project-owned product paths, project-filled registers, and review / commit split guidance. |
 | `docs/handovers/` | Respawn handover briefs (one per respawn, dated). Gitignored after 30 days by convention. |
 | `docs/model-routing-guidelines.md` | Draft post-v1.0.0 guidance for agent model tier, effort, and plan-mode selection across OpenAI / ChatGPT and Claude / Claude Code. |
-| `docs/v1.0-rc4-stabilization.md` | Triage and work-package plan for downstream issues #71-#83 before `v1.0.0` final. |
 
 ## `docs/adr/` (Framework Architecture Decision Records)
 
@@ -80,18 +80,6 @@ FW-ADR-0006). Numbering is sequential within each namespace.
 |---|---|
 | `docs/glossary/ENGINEERING.md` | **Binding.** Generic software-engineering terminology. |
 | `docs/glossary/PROJECT.md` | **Binding.** Project-specific terms (customer-domain, vendor, site, codenames). |
-
-## `docs/pm/` (owned by `project-manager`, created per project)
-
-| File | Purpose |
-|---|---|
-| `docs/pm/CHARTER.md` | Project charter (PMBOK Initiating). |
-| `docs/pm/STAKEHOLDERS.md` | Stakeholder register + engagement plan. |
-| `docs/pm/SCHEDULE.md` | Schedule baseline + milestone list. |
-| `docs/pm/COST.md` | Cost / effort baseline + variance. |
-| `docs/pm/RISKS.md` | Risk register. |
-| `docs/pm/CHANGES.md` | Change log. |
-| `docs/pm/LESSONS.md` | Lessons learned / retrospective (continuous). |
 
 ## `docs/sme/` (per domain)
 

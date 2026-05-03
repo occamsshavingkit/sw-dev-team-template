@@ -64,8 +64,10 @@ health check.** Red result = respawn.
 
 When signal 11 fires, `tech-lead` runs this procedure:
 
-1. `SendMessage({to: <name>, …"are you alive? respond with one
-   line within 60 seconds."})` — a cheap ping, not a fresh ask.
+1. Send a liveness ping to the named teammate, for example
+   `SendMessage` with recipient `<name>` and body `are you alive?
+   respond with one line within 60 seconds.` This is a cheap ping,
+   not a fresh ask.
 2. If the agent responds within 60 s → record the ping outcome,
    extend the window once, continue.
 3. If no response → grade the agent Red immediately and proceed
@@ -80,6 +82,72 @@ Liveness windows are **floors on patience**, not ceilings on
 runtime — a genuinely long-running subagent that still emits
 intermediate tool output (file writes, status messages) resets
 the window on every emission.
+
+### Slot queue and closure protocol (Codex-compatible)
+
+Some Codex harnesses expose a limited number of specialist slots. Treat
+"spawning unavailable" and "no slot is free" as different states:
+
+- **Spawning unavailable:** continue as top-level `tech-lead`, record
+  the limitation, and do not claim specialist work occurred.
+- **No free slot:** queue the specialist brief with canonical role,
+  teammate name, write scope, trigger clauses, liveness window, and
+  required `reasoning_effort`. Do not implement the queued work locally
+  unless the customer explicitly grants an exception for that item.
+
+When a specialist returns, `tech-lead` reviews the result, verifies any
+file changes, records acceptance or retry, and closes the completed
+agent promptly. Then dispatch the next queued wave whose inputs are
+ready and whose write scope does not overlap with active work. The
+Turn Ledger records completed agents closed and queued waves launched.
+
+### Codex completion/status recovery (binding)
+
+Codex adapter sessions use this state vocabulary for every specialist:
+
+- **Queued:** brief is recorded but no slot has started it.
+- **Running:** specialist was dispatched and has not returned durable
+  results.
+- **Completed:** specialist returned reviewable findings, verified file
+  changes, or an explicit completed notification with enough content to
+  inspect.
+- **Failed:** specialist returned an error, invalid result, role drift,
+  or a future-tense / zero-output completion claim.
+- **Closed:** `tech-lead` reviewed the result or failure, recorded the
+  outcome, and released the slot where the harness permits.
+- **Unknown/unreachable:** waits, status calls, or transcript access
+  time out or return empty / contradictory status.
+
+`wait_agent` timeout, empty status, or an absent return payload is
+**not** completion and is **not** permission for `tech-lead` to do the
+specialist work locally. Preserve the issue #100 invariant: a silent
+worker leaves specialist work pending, failed, or unknown; it does not
+convert the task into top-level implementation.
+
+When a Codex specialist is `unknown/unreachable`, run a direct
+status-check ping before respawn if the harness permits. The ping asks
+for exactly one of:
+
+- completed findings or changed-file summary;
+- stuck-state summary with blocker and last completed step;
+- not-started / still-queued confirmation.
+
+The ping must set a bounded response window, normally 60 seconds. After
+N timed-out waits or status pings (default N = 2 unless the dispatch
+brief set a lower limit), `tech-lead` closes the silent / unknown agent
+if possible, records the lost report in the Turn Ledger or
+`docs/pm/LESSONS.md`, and re-dispatches the same canonical role with
+the prior prompt plus any surviving durable context. If close is not
+available, record the harness limitation and re-dispatch only if a slot
+is free; otherwise leave the brief queued.
+
+Completion channels can diverge: a harness may emit a completed
+notification while `wait_agent` returns empty, or vice versa. Reconcile
+conservatively. Accept work only after durable returned content,
+verified file changes, or an explicit completed notification that
+contains enough findings to review. If channels conflict, classify the
+agent as `unknown/unreachable` or `failed` until durable evidence
+exists.
 
 ### Heartbeat convention (binding for long-running agents)
 
@@ -96,8 +164,10 @@ Accepted heartbeat forms (any one resets the liveness window):
 
 - A file write to a durable artifact (e.g., appending a section
   to the audit / report / template the agent is producing).
-- A `TaskUpdate` status message naming the current step.
-- A `SendMessage` to `tech-lead` with a one-line progress note
+- A harness status message naming the current step, such as
+  `TaskUpdate` where available.
+- A `SendMessage` to `tech-lead`, where available, with a one-line
+  progress note
   ("still working on §3; ETA another 10 min").
 
 The dispatching `tech-lead` should include an explicit heartbeat
@@ -194,8 +264,8 @@ the in-memory context window.
    `docs/templates/handover-template.md`. Every claim cites a
    file + line.
 2. **Stop the current teammate:** preferred via
-   `SendMessage({to: <name>, …}) …stop…`; fallback, let the
-   turn end and the teammate expire.
+   a `SendMessage` stop request to `<name>` where available;
+   fallback, let the turn end and the teammate expire.
 3. **Spawn a fresh teammate** with identical canonical role and
    teammate `name`. In Claude Code, the canonical role is
    `subagent_type`; in Codex, use the native equivalent. The spawn

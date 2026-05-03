@@ -20,11 +20,10 @@ model: inherit
 
 ## Project-specific local supplement
 
-When creating this SME from the template, replace this sentence with:
-"Before starting role work, check whether
+Before starting role work, check whether
 `.claude/agents/sme-<domain-slug>-local.md` exists. If it exists, read
 it and treat it as project-specific routing and constraints layered on
-top of this SME contract." If the local supplement conflicts with this
+top of this SME contract. If the local supplement conflicts with this
 canonical file or with `CLAUDE.md` Hard Rules, stop and escalate to
 `tech-lead`; do not silently choose.
 

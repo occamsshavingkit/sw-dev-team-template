@@ -65,6 +65,26 @@ values. Current GPT-5.5 / GPT-5.4 family docs list `none`, `low`,
 `medium`, `high`, and `xhigh`. Treat Claude `max` as OpenAI `xhigh`
 plus an explicit prompt asking for a deeper review pass.
 
+### Codex `reasoning_effort` policy
+
+In Codex, set `reasoning_effort` from the task class, not from personal
+preference:
+
+| Task class | Default `reasoning_effort` |
+|---|---|
+| Mechanical lookup, formatting, deterministic extraction | `low` |
+| Routine docs, PM updates, narrow non-code edits | `medium` |
+| Coding, QA, release, synthesis, non-trivial review | `high` |
+| Architecture, security, code review, safety/privacy/API/data-model work, conflicting-specialist arbitration | `xhigh` |
+
+Using the table default needs no special note. Any non-default effort
+requires a one-line rationale in the dispatch brief, Turn Ledger, or
+handover, e.g. "lowered to `medium` because this is a reversible
+single-file wording edit" or "raised to `xhigh` because the change
+affects auth and release gating." Do not lower effort for safety,
+security, privacy, public API, data-model, or customer-authorization
+work without customer-visible rationale.
+
 ## Plan mode
 
 Run plan mode before execution when the work has one or more of these

@@ -130,7 +130,7 @@ layer added later.
 
 ## Output: Process Audit Report
 
-Write to `docs/pm/PROCESS_AUDIT-<YYYY-MM-DD>.md`.
+Write to `docs/pm/process-audit-<YYYY-MM-DD>.md`.
 
 ```
 # Process Audit — <YYYY-MM-DD>

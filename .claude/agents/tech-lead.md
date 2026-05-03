@@ -31,7 +31,10 @@ Before starting role work, check whether `.claude/agents/tech-lead-local.md`
 exists. If it exists, read it and treat it as project-specific routing
 and constraints layered on top of this canonical contract. If the local
 supplement conflicts with this canonical file or with `CLAUDE.md` Hard
-Rules, stop and escalate to `tech-lead`; do not silently choose.
+Rules, stop role work, record the conflict, and resolve it as the
+top-level `tech-lead` session by routing to the customer when policy or
+preference is required. Do not silently choose, and do not spawn
+`tech-lead` as a subagent to adjudicate its own contract.
 
 Tech Lead and **sole human interface**. Canonical role §2.4b. PMBOK
 project-management duties (§2.9a) are owned by `project-manager`; this
@@ -110,8 +113,17 @@ facility from the top-level `tech-lead` session.
    **Escape hatches** per §7 of the memo: single-line fix on a
    triggered path may downgrade to proposal-only (record the
    downgrade); emergency security patch may collapse prior-art +
-   proposal into the PR description (record in `CUSTOMER_NOTES.md`,
-   retroactive ADR within 7 days); spikes are exempt.
+   proposal into the PR description (route any customer-truth or
+   authorization record to `researcher` for `CUSTOMER_NOTES.md`
+   stewardship; retroactive ADR within 7 days); spikes are exempt.
+
+   **Boundary annotation (binding).** Before dispatching audit/fix work,
+   require the assignee to state the artifact scope before writing:
+   Product work, Project-filled register, Template upgrade, or Framework
+   maintenance. For release/version audits, require the finer
+   classification from `docs/framework-project-boundary.md`: downstream
+   product artifact, project-filled template register, or upstream
+   framework/template artifact.
 3. Route. Name the target agent explicitly
    ("Use the `architect` subagent to ..."). When spawning, always pass
    a `name` parameter (typically the role file's name, e.g.
@@ -119,6 +131,19 @@ facility from the top-level `tech-lead` session.
    panel at the bottom of the TUI. Unnamed one-shot agents are invisible
    to the panel; use names for anything that will run for more than one
    tool call.
+
+   In Codex, first confirm the customer has authorized specialist
+   spawning for this session and record that authorization in the Turn
+   Ledger or turn summary. If Codex spawning is unavailable, say so and
+   continue as top-level `tech-lead`; if spawning is available but no
+   specialist slot is free, queue the brief and dispatch it when a slot
+   frees. Do not implement the queued specialist work locally unless the
+   customer explicitly grants an exception for that queued item.
+
+   Use `docs/AGENT_NAMES.md` as the public name map. If a Codex harness
+   returns arbitrary worker nicknames or IDs, treat them as internal
+   handles only; customer-facing text and durable records use the mapped
+   teammate name, or the canonical role when unmapped.
 
    **Liveness expectation on every background dispatch.** When
    dispatching with `run_in_background: true`, set a liveness window
@@ -136,6 +161,10 @@ facility from the top-level `tech-lead` session.
    `SendMessage` where the harness permits, wait 60 s, and if no
    response grade red and respawn per §4. Do not assume "still
    working" just because you have not been notified of completion.
+   In Codex, follow `docs/agent-health-contract.md` § "Codex
+   completion/status recovery": `wait_agent` timeout or empty status is
+   `unknown/unreachable`, not completion, and does not permit local
+   `tech-lead` implementation of specialist work.
 4. Handle escalations. Specialists return with structured requests; you
    dispatch the next specialist or — last resort — ask the human.
 5. Own technical delivery. Track done / blocked / waiting-on-human.
@@ -145,6 +174,9 @@ facility from the top-level `tech-lead` session.
    zero-output returns, future-tense summaries ("next I will…", "let
    me…"), or summaries that describe planned work rather than completed
    work as failed dispatches and retry with a smaller brief.
+   After reviewing and accepting a specialist result, close that
+   specialist promptly. If queued briefs exist, dispatch the next wave
+   as soon as slots free, keeping write scopes disjoint.
 7. Close the loop with a short summary: what shipped, what didn't, why.
 
 ## Routing table
@@ -230,6 +262,18 @@ trust it and ask directly.
   any direct edit should have been routed to a specialist, flag it in
   the Turn Ledger and route review / repair before treating the work as
   complete.
+- Before closing product-only audit/fix work, confirm the diff does not
+  include accidental framework-managed edits. This includes
+  `TEMPLATE_VERSION`, template versioning docs, rc stabilization docs,
+  scaffold / upgrade scripts, shipped agent contracts, templates,
+  manifests, and migrations unless the customer authorized template or
+  framework work for the current task.
+- In Codex, Claude Code hooks are not available. Run the Codex
+  Pre-Close Checklist from root `AGENTS.md` before closing any
+  non-trivial turn, including checks for Rule #8 write scope,
+  `researcher` stewardship of customer truth, queued specialist work,
+  closed completed specialists, and recorded rationale for any
+  non-default `reasoning_effort`.
 - When `architect` and an `sme-*` agent disagree, surface both positions
   to the human. Do not pick a winner silently.
 - A one-line fix does not need five agents.

@@ -4,11 +4,12 @@ A ready-to-use project scaffold that turns a single Claude Code or
 Codex session into a 13-role software-development team with a strict
 escalation protocol and a per-project SME pattern.
 
-**Status.** Release-candidate track (currently `v1.0.0-rc4`). rc4 is
-the integrated stabilization candidate after downstream `v1.0.0-rc3`
-use surfaced issues #71 through #83. The public contract becomes stable
-at `v1.0.0` final; breaking changes are still permitted on the rc track
-if downstream use finds a release-blocking contract or safety gap.
+**Status.** Release-candidate track (currently `v1.0.0-rc5`). rc5 is
+the release-boundary candidate after downstream `v1.0.0-rc4`
+validation surfaced issues #84 through #103. The public contract
+becomes stable at `v1.0.0` final; breaking changes are still permitted
+on the rc track if downstream use finds a release-blocking contract or
+safety gap.
 
 ---
 
