@@ -16,6 +16,52 @@ filed upstream include that version.
 
 ---
 
+## v1.0.0-rc6 — 2026-05-04
+
+Focused release-governance candidate after the rc5 follow-up fixes for
+issues #84, #104, and #105. This rc does not move `v1.0.0` to final;
+it narrows the remaining release boundary, records the immutable rc3
+history correctly, and carries forward the objective final gates in
+`docs/v1.0.0-final-checklist.md`.
+
+### Changed
+
+- **Upgrade-bootstrap history and mitigation (#84).** `v1.0.0-rc3`
+  remains immutable; rc6 does not rewrite that tag or pretend the old
+  bootstrap defect was fixed in place. The current/future mitigation is
+  the live `upgrade.sh` bootstrap behavior that preserves
+  `--dry-run --target` intent, plus the documented one-time workaround
+  for already-affected rc3-era downstream trees: inspect any
+  unexpectedly upgraded worktree diff, keep or commit only after
+  review, or restore from VCS, then use current rc6
+  `scripts/upgrade.sh --dry-run` from a clean branch/worktree for
+  future previews, with focused smoke evidence for both paths.
+- **Codex dispatch policy binding (#104).** The Codex adapter and
+  canonical `tech-lead` contract now bind dispatches to
+  `docs/model-routing-guidelines.md` for role tier and
+  `reasoning_effort`, and to `docs/agent-health-contract.md` for slot
+  state, queueing, completion, and liveness vocabulary.
+- **Post-copy manifest verification (#105).** Smoke coverage now checks
+  that an upgraded downstream `AGENTS.md` file matches the final
+  `TEMPLATE_MANIFEST.lock` hash after post-copy replacement, so
+  immediate `upgrade.sh --verify` runs do not fail on stale manifest
+  content.
+- **Linked-worktree manifest helper (#105).** `scripts/lib/manifest.sh`
+  now accepts linked worktrees, and smoke coverage exercises that path
+  so the manifest verification flow is covered end to end.
+- **Release-state refresh.** Release docs now treat rc6 as the current
+  candidate while keeping final status explicitly `not final-ready`
+  until every checklist gate is green or has a customer-approved
+  exception.
+
+### Verification
+
+- Targeted release-doc scan confirms rc6 is the active candidate and
+  final remains blocked on `docs/v1.0.0-final-checklist.md`.
+- Focused issue scan confirms the rc6 notes name #84, #104, and #105
+  and preserve the rc3 immutable-history statement.
+- `git diff --check` on the scoped release-governance files: clean.
+
 ## v1.0.0-rc5 — 2026-05-03
 
 Release-boundary candidate after downstream validation of

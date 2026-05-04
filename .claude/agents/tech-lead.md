@@ -140,6 +140,11 @@ facility from the top-level `tech-lead` session.
    frees. Do not implement the queued specialist work locally unless the
    customer explicitly grants an exception for that queued item.
 
+   Before each Codex dispatch, read `docs/model-routing-guidelines.md`
+   for the role tier and `reasoning_effort`, and
+   `docs/agent-health-contract.md` for slot queue, completion-state,
+   and liveness vocabulary; do not infer these from memory.
+
    Use `docs/AGENT_NAMES.md` as the public name map. If a Codex harness
    returns arbitrary worker nicknames or IDs, treat them as internal
    handles only; customer-facing text and durable records use the mapped
@@ -164,7 +169,9 @@ facility from the top-level `tech-lead` session.
    In Codex, follow `docs/agent-health-contract.md` § "Codex
    completion/status recovery": `wait_agent` timeout or empty status is
    `unknown/unreachable`, not completion, and does not permit local
-   `tech-lead` implementation of specialist work.
+   `tech-lead` implementation of specialist work. Record the observed
+   slot state using the contract vocabulary (`queued`, `running`,
+   `completed`, `failed`, `closed`, or `unknown/unreachable`).
 4. Handle escalations. Specialists return with structured requests; you
    dispatch the next specialist or — last resort — ask the human.
 5. Own technical delivery. Track done / blocked / waiting-on-human.

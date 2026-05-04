@@ -6,9 +6,10 @@
 - [Path to v1.0.0-rc3](#path-to-v100-rc3)
   - [Credit-free vs credit-gated](#credit-free-vs-credit-gated)
   - [Final binding step — IEEE 1028 readiness audit](#final-binding-step-ieee-1028-readiness-audit)
-- [Post-rc4 / rc5](#post-rc4--rc5)
+- [Post-rc4 / rc6](#post-rc4--rc6)
   - [v1.0.0-rc4](#v100-rc4)
   - [v1.0.0-rc5](#v100-rc5)
+  - [v1.0.0-rc6](#v100-rc6)
   - [v1.0.0 final](#v100-final)
   - [v1.1.0 — GitHub Projects coordination interface](#v110-github-projects-coordination-interface)
   - [v2 work](#v2-work)
@@ -32,20 +33,21 @@ SemVer rules (see `CHANGELOG.md` header for the binding wording):
   permits breaking changes inside MINOR while we are pre-1.0).
 - **PATCH** — non-structural clarifications.
 
-Tag currently shipping from this worktree: **v1.0.0-rc5**. GitHub
-Release object publication waits for
-v1.0.0 final per the MINOR-only-Releases convention; the rc
-cycle is tag-only.
+Version currently staged in this worktree: **v1.0.0-rc6**. The latest
+annotated rc tag remains `v1.0.0-rc5` until the rc6 candidate is
+reviewed and tagged. GitHub Release object publication waits for
+v1.0.0 final per the MINOR-only-Releases convention; the rc cycle is
+tag-only.
 
-Release-state vocabulary for the active rc5-to-final path:
+Release-state vocabulary for the active rc6-to-final path:
 
 - `draft` — plan is still being shaped and has not completed
   specialist review.
 - `release-prep` — release files are being updated for the rc tag, but
   the candidate has not completed final review or tagging.
-- `review-complete` — in-tree rc5 work has passed recorded review and
+- `review-complete` — in-tree rc6 work has passed recorded review and
   smoke evidence, but the release candidate is not tagged.
-- `tagged` — the annotated `v1.0.0-rc5` git tag exists on the reviewed
+- `tagged` — the annotated `v1.0.0-rc6` git tag exists on the reviewed
   commit.
 - `final-ready` — every gate in `docs/v1.0.0-final-checklist.md` is
   green.
@@ -125,7 +127,7 @@ repo.
 
 ---
 
-## Post-rc4 / rc5
+## Post-rc4 / rc6
 
 ### v1.0.0-rc4
 
@@ -155,8 +157,23 @@ handling, evidence-backed final gates, framework / project boundary
 rules, release-audit scoping, specialist queue / closure discipline,
 and missing Codex completion/status recovery.
 
-Current rc5 state is `release-prep`: the worktree is being prepared for
-an annotated `v1.0.0-rc5` tag. `v1.0.0` final is blocked until rc5 is
+Current rc5 state is `tagged`: the annotated `v1.0.0-rc5` tag exists,
+but rc5 did not close the whole final boundary. Follow-up fixes for
+#104 and #105, plus the required immutable-history wording for #84,
+moved the release path to rc6 instead of promoting rc5 directly to
+final.
+
+### v1.0.0-rc6
+
+Focused release-governance candidate for issues #84, #104, and #105.
+This rc lands the remaining Codex dispatch-policy binding, post-copy
+manifest verification evidence, and the release-history correction that
+keeps `v1.0.0-rc3` immutable. rc6 mitigation for #84 is current/future
+script behavior plus documented workaround/evidence for already-affected
+rc3-era downstream trees; it is not a retroactive rc3 rewrite.
+
+Current rc6 state is `release-prep`: the worktree is being prepared for
+an annotated `v1.0.0-rc6` tag. `v1.0.0` final is blocked until rc6 is
 tagged, downstream validation completes, and every gate in
 `docs/v1.0.0-final-checklist.md` is green or has an explicit
 customer-approved exception.
@@ -265,7 +282,11 @@ v1.0.0-rc4
    ▼
 v1.0.0-rc5
    │
-   │  depends on: rc5 downstream-clean window
+   │  depends on: #84 / #104 / #105 follow-up fixes integrated
+   ▼
+v1.0.0-rc6
+   │
+   │  depends on: rc6 downstream-clean window
    ▼
 v1.0.0 (GA)
 ```
@@ -306,3 +327,4 @@ Things that may interrupt the linear plan:
 | 2026-05-03 | Made v1.0.0-rc4 mandatory after downstream rc3 issues #71-#83; added stabilization-plan pointer. | `tech-lead` |
 | 2026-05-03 | Normalized rc4 release-state vocabulary and linked final readiness gates. | `project-manager` |
 | 2026-05-03 | Made v1.0.0-rc5 mandatory after downstream rc4 issues #84-#103; final now depends on rc5 validation. | `release-engineer` |
+| 2026-05-04 | Made v1.0.0-rc6 the active release-governance candidate for #84, #104, and #105; final remains blocked on rc6 validation and the checklist gates. | `release-engineer` |

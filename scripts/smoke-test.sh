@@ -236,6 +236,21 @@ check "manifest ship-files excludes docs/pm/"             bash -c "! grep -q '^d
 check "manifest ship-files excludes rc4 stabilization"    bash -c "! grep -q '^docs/v1\\.0-rc4-stabilization\\.md$' '$manifest_ship_list'"
 check "manifest ship-files excludes final checklist"      bash -c "! grep -q '^docs/v1\\.0\\.0-final-checklist\\.md$' '$manifest_ship_list'"
 check "manifest ship-files excludes role-local agents"    bash -c "! grep -q '^\\.claude/agents/.*-local\\.md\$' '$manifest_ship_list'"
+manifest_worktree="$tmp/manifest-linked-worktree"
+(
+  cleanup_manifest_worktree() {
+    git -C "$repo_root" worktree remove --force "$manifest_worktree" >/dev/null 2>&1 || true
+  }
+
+  trap cleanup_manifest_worktree EXIT
+  git -C "$repo_root" worktree add --detach "$manifest_worktree" HEAD >/dev/null
+  bash -c "
+    source '$repo_root/scripts/lib/manifest.sh'
+    manifest_ship_files '$manifest_worktree' > '$tmp/manifest-worktree-ship-files.txt'
+  "
+)
+check "manifest ship-files accepts linked worktree path"  test -s "$tmp/manifest-worktree-ship-files.txt"
+check "linked worktree ship-files includes AGENTS.md"     bash -c "grep -q '^AGENTS\\.md\$' '$tmp/manifest-worktree-ship-files.txt'"
 
 # v0.14.1 regression: manifest must NOT include project-added files.
 # Add a project-owned file (mimics sme-*, docs/pm/*, an operator
@@ -326,6 +341,15 @@ run_capture() {
   local _rc=0
   "$@" > "$_logfile" 2>&1 || _rc=$?
   echo "$_rc"
+}
+
+manifest_sha_for_path() {
+  local manifest="$1"
+  local path="$2"
+  awk -v path="$path" '
+    $1 ~ /^#/ { next }
+    $2 == path { print $1; exit }
+  ' "$manifest"
 }
 
 # upgrade.sh --verify on a freshly scaffolded project should be clean (exit 0).
@@ -461,6 +485,45 @@ check "bootstrap dry-run leaves helper drift in place" \
   bash -c "grep -q 'force bootstrap drift' '$bootstrap_target/scripts/lib/first-actions.sh'"
 check "upgrade surfaces FIRST ACTIONS warning when Step 0 missing" \
   bash -c "grep -q 'ACTION REQUIRED: FIRST ACTIONS Step 0 is not recorded' '$tmp/bootstrap-dry-run.log'"
+
+echo "-- upgrade manifest post-copy hashes --"
+issue105_upstream="$tmp/issue105-upstream"
+issue105_target="$tmp/issue105-target"
+mkdir -p "$issue105_upstream"
+(
+  cd "$issue105_upstream"
+  git -C "$repo_root" archive v1.0.0-rc3 | tar -xf -
+  git init -q
+  git config user.email smoke@example.invalid
+  git config user.name "Smoke Test"
+  git add .
+  git commit -q -m "rc3 fixture"
+  git tag v1.0.0-rc3
+)
+# Exercise the current candidate tree even before the maintainer creates
+# the real prerelease tag in repo_root.
+find "$issue105_upstream" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+tar --exclude='./.git' -cf - . | (cd "$issue105_upstream" && tar -xf -)
+(
+  cd "$issue105_upstream"
+  git add -A
+  git commit -q -m "candidate fixture"
+  git tag "$expected_version"
+  git checkout -q v1.0.0-rc3
+  ./scripts/scaffold.sh "$issue105_target" "Issue 105 Smoke" >/dev/null
+)
+issue105_upgrade_rc=$(run_capture "$tmp/issue105-upgrade.log" \
+                      bash -c "cd '$issue105_target' && SWDT_UPSTREAM_URL='$issue105_upstream' ./scripts/upgrade.sh --target '$expected_version'")
+issue105_verify_rc=$(run_capture "$tmp/issue105-verify.log" \
+                     bash -c "cd '$issue105_target' && ./scripts/upgrade.sh --verify")
+issue105_manifest_sha="$(manifest_sha_for_path "$issue105_target/TEMPLATE_MANIFEST.lock" AGENTS.md)"
+issue105_actual_sha="$(sha256sum "$issue105_target/AGENTS.md" | awk '{print $1}')"
+check "rc3 -> $expected_version upgrade exits 0" \
+  bash -c "[ $issue105_upgrade_rc -eq 0 ]"
+check "rc3 -> $expected_version verify passes immediately after upgrade" \
+  bash -c "[ $issue105_verify_rc -eq 0 ]"
+check "manifest records final post-copy AGENTS.md hash" \
+  bash -c "[ '$issue105_manifest_sha' = '$issue105_actual_sha' ]"
 
 echo "-- upgrade (simulate older stamp, run stable default upgrade) --"
 # Simulate an older project by stamping TEMPLATE_VERSION back to v0.1.0, then

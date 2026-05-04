@@ -51,6 +51,12 @@ after the customer authorizes multi-agent work for the current session.
 Record the authorization in the turn summary or Turn Ledger. A prior
 session's approval does not carry forward.
 
+Before any Codex dispatch, read `docs/model-routing-guidelines.md`
+for the role tier and `reasoning_effort`, and `docs/agent-health-contract.md`
+for slot state, queueing, completion, and liveness vocabulary; record
+the selected effort and slot-health state in the turn summary or Turn
+Ledger.
+
 If spawning is unavailable, continue as a single top-level
 `tech-lead` session, record "Codex spawning unavailable" in the turn
 summary, and do not claim specialist work occurred. If spawning exists
@@ -145,5 +151,5 @@ closing any non-trivial turn:
    accidental framework-managed file edits, including release/version
    files called out in `docs/framework-project-boundary.md`.
 6. Record spawning limits, queued work, non-default
-   `reasoning_effort`, and direct-write exceptions in the turn summary
-   or Turn Ledger.
+   `reasoning_effort`, slot-health state, and direct-write exceptions
+   in the turn summary or Turn Ledger.

@@ -38,7 +38,7 @@
 manifest_ship_files() {
   local paths_repo="$1"
   local project_repo="${2:-}"
-  if [[ ! -d "$paths_repo/.git" ]]; then
+  if ! git -C "$paths_repo" rev-parse --show-toplevel >/dev/null 2>&1; then
     echo "ERROR: manifest_ship_files: '$paths_repo' is not a git repository." >&2
     echo "  Use a clone of the upstream template (or the template repo itself)." >&2
     echo "  Project trees are not a valid path source — they may contain" >&2

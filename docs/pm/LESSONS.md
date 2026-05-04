@@ -6,6 +6,40 @@ every milestone.
 
 ## Journal
 
+### 2026-05-04 — Do not repair historical rc tags in place
+
+**Context.** Post-rc5 release prep still had three final-boundary
+items: issue #84 on upgrade-bootstrap history, issue #104 on Codex
+dispatch-policy binding, and issue #105 on post-copy manifest
+verification.
+
+**Event.** The release docs needed another rc step, but issue #84 could
+not be "fixed" by rewriting `v1.0.0-rc3` because public rc tags are
+immutable historical records.
+
+**What went well.** The current script behavior and smoke coverage gave
+enough evidence to frame rc6 as a focused release-governance candidate
+instead of a broad re-triage.
+
+**What did not.** rc5 wording left too much room to read the #84
+bootstrap mitigation as if it repaired rc3 in place instead of
+documenting the current/future behavior and the one-time workaround for
+already-affected trees.
+
+**Contributing factors.** Release notes, roadmap state, and upgrade
+evidence all needed to distinguish historical tag immutability from the
+live upgrade contract.
+
+**Recommendation.** When a late rc follow-up mixes historical release
+history with current script behavior, cut a narrow new rc and document
+the immutable old tag plus the supported workaround/evidence path.
+
+**Category.** release governance / versioning.
+
+**References.** GitHub issues #84, #104, #105; `CHANGELOG.md`;
+`ROADMAP.md`; `docs/v1.0.0-final-checklist.md`; `docs/pm/CHANGES.md` C-7;
+`scripts/lib/manifest.sh`.
+
 ### 2026-05-03 — rc validation findings need their own release boundary
 
 **Context.** `v1.0.0-rc4` was tagged as a stabilization candidate after

@@ -29,6 +29,7 @@ approval.
 | C-4 | 2026-05-03 | `release-engineer` / `code-reviewer` for issue #102 | Require downstream release audits to classify release/version artifact ownership before writing and to route framework release gaps upstream. | Scope / quality / process | Tightens product-only release audit gates; no product code impact. | Customer task authorization | Approved | 2026-05-03 | Extends issue #99 boundary model for release/version files. |
 | C-5 | 2026-05-03 | `architect` / Codex adapter for issue #103 | Add Codex specialist completion/status recovery guidance for timed-out waits, empty status, and divergent completion channels. | Quality / process | Prevents silent or unreachable specialists from being mistaken for completed work or from collapsing specialist tasks into local `tech-lead` implementation. | Customer task authorization | Approved | 2026-05-03 | Recorded in `AGENTS.md`, `.claude/agents/tech-lead.md`, and `docs/agent-health-contract.md`. |
 | C-6 | 2026-05-03 | `release-engineer` | Add mandatory `v1.0.0-rc5` release-boundary candidate for issues #84-#103 instead of promoting rc4 directly to final. | Scope / schedule / quality | Adds one release-candidate validation step; aligns final readiness with post-rc4 downstream evidence. | Customer task authorization | Approved | 2026-05-03 | Recorded in `CHANGELOG.md`, `ROADMAP.md`, `docs/v1.0-rc4-stabilization.md`, `docs/v1.0.0-final-checklist.md`, and `docs/versioning.md`. |
+| C-7 | 2026-05-04 | `release-engineer` | Add mandatory `v1.0.0-rc6` release-governance candidate for issues #84, #104, and #105 instead of promoting rc5 directly to final. | Scope / schedule / quality | Adds one focused rc step so dispatch-policy binding, manifest post-copy verification, and the immutable rc3 workaround boundary are captured before GA. | Customer task authorization | Approved | 2026-05-04 | Final remains blocked until rc6 validation and all checklist gates pass. |
 
 ## Cross-references
 
@@ -49,3 +50,7 @@ requirements doc section, architecture ADR, etc.
 - C-6: `VERSION`; `CHANGELOG.md`; `ROADMAP.md`;
   `docs/v1.0-rc4-stabilization.md`;
   `docs/v1.0.0-final-checklist.md`; `docs/versioning.md`.
+- C-7: `VERSION`; `CHANGELOG.md`; `ROADMAP.md`;
+  `AGENTS.md`; `.claude/agents/tech-lead.md`; `scripts/lib/manifest.sh`;
+  `scripts/smoke-test.sh`; `docs/v1.0.0-final-checklist.md`;
+  `docs/pm/LESSONS.md`; `docs/versioning.md`.
