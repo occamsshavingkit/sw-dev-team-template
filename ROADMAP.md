@@ -6,10 +6,11 @@
 - [Path to v1.0.0-rc3](#path-to-v100-rc3)
   - [Credit-free vs credit-gated](#credit-free-vs-credit-gated)
   - [Final binding step — IEEE 1028 readiness audit](#final-binding-step-ieee-1028-readiness-audit)
-- [Post-rc4 / rc6](#post-rc4--rc6)
+- [Post-rc4 / rc7](#post-rc4--rc7)
   - [v1.0.0-rc4](#v100-rc4)
   - [v1.0.0-rc5](#v100-rc5)
   - [v1.0.0-rc6](#v100-rc6)
+  - [v1.0.0-rc7](#v100-rc7)
   - [v1.0.0 final](#v100-final)
   - [v1.1.0 — GitHub Projects coordination interface](#v110-github-projects-coordination-interface)
   - [v2 work](#v2-work)
@@ -33,26 +34,27 @@ SemVer rules (see `CHANGELOG.md` header for the binding wording):
   permits breaking changes inside MINOR while we are pre-1.0).
 - **PATCH** — non-structural clarifications.
 
-Version currently staged in this worktree: **v1.0.0-rc6**. The
+Version currently staged in this worktree: **v1.0.0-rc7**. The
 annotated `v1.0.0-rc6` tag is pushed and dereferences to
 `dc2df300d77145ef4d2fe5d30033570bc64127a1`; GitHub Release object
 publication waits for v1.0.0 final per the MINOR-only-Releases
-convention, and the rc cycle is tag-only.
+convention, and the rc cycle is tag-only. `v1.0.0-rc7` is in candidate
+tag-prep and is not tagged yet.
 
-Release-state vocabulary for the active rc6-to-final path:
+Release-state vocabulary for the active rc7-to-final path:
 
 - `draft` — plan is still being shaped and has not completed
   specialist review.
 - `release-prep` — release files are being updated for the rc tag, but
   the candidate has not completed final review or tagging.
-- `review-complete` — in-tree rc6 work has passed recorded review and
+- `review-complete` — in-tree rc7 work has passed recorded review and
   smoke evidence, but the release candidate is not tagged.
-- `tagged` — the annotated `v1.0.0-rc6` git tag exists on the reviewed
+- `tagged` — the annotated `v1.0.0-rc7` git tag exists on the reviewed
   commit.
 - `final-ready` — every gate in `docs/v1.0.0-final-checklist.md` is
   green.
 
-Current state: **tagged / not final-ready**.
+Current state: **rc7 release-prep / not tagged / not final-ready**.
 
 ---
 
@@ -127,7 +129,7 @@ repo.
 
 ---
 
-## Post-rc4 / rc6
+## Post-rc4 / rc7
 
 ### v1.0.0-rc4
 
@@ -174,9 +176,21 @@ rc3-era downstream trees; it is not a retroactive rc3 rewrite.
 
 Current rc6 state is `tagged`: the annotated `v1.0.0-rc6` tag exists
 on reviewed commit `dc2df300d77145ef4d2fe5d30033570bc64127a1`.
-`v1.0.0` final is blocked until downstream validation completes, and
-every gate in `docs/v1.0.0-final-checklist.md` is green or has an
-explicit customer-approved exception.
+`v1.0.0` final is blocked until rc7 is cut, downstream validation
+completes, and every gate in `docs/v1.0.0-final-checklist.md` is green
+or has an explicit customer-approved exception.
+
+### v1.0.0-rc7
+
+Release-candidate tag-prep boundary for issue #116 concise specialist
+briefs, the no-full-context-fork rule, and cross-harness validation. The
+template claims Claude Code / Codex parity, so final cannot rely on
+evidence from only one AI; rc7 must record overlapping release-relevant
+validation from both Claude Code and Codex, or an explicit
+customer-approved exception for any unavailable harness capability.
+
+Current rc7 state is `release-prep`: it is the in-tree candidate for
+tag preparation, but it is not tagged and is not final-ready.
 
 ### v1.0.0 final
 
@@ -184,19 +198,20 @@ Cut only after every objective gate in
 `docs/v1.0.0-final-checklist.md` is green or has an explicit
 customer-approved exception. This includes the downstream clean-window
 / sample gate, zero final-blocking issues, smoke and upgrade evidence,
-release / review sign-offs, customer ratification, GitHub Release
-object steps, and rollback / upgrade notes. Final freezes the
-binding-rule surface: any post-1.0 change to `CLAUDE.md` § Hard rules
-or the canonical-role roster requires an ADR and customer sign-off. The
-v0.y MINOR-as-breaking convention ends; from 1.0.0 onward, MAJOR is
-reserved for actual breaking changes.
+Claude Code / Codex parity evidence, release / review sign-offs,
+customer ratification, GitHub Release object steps, and rollback /
+upgrade notes. Final freezes the binding-rule surface: any post-1.0
+change to `CLAUDE.md` § Hard rules or the canonical-role roster
+requires an ADR and customer sign-off. The v0.y MINOR-as-breaking
+convention ends; from 1.0.0 onward, MAJOR is reserved for actual
+breaking changes.
 
 Objective final-readiness gates live in
 `docs/v1.0.0-final-checklist.md`. At minimum, final needs a downstream
 clean-window/sample, zero final-blocking issues, smoke and upgrade
-evidence, release-engineer and code-reviewer sign-offs, customer
-ratification, GitHub Release object creation steps, and rollback /
-upgrade notes.
+evidence, cross-harness parity evidence, release-engineer and
+code-reviewer sign-offs, customer ratification, GitHub Release object
+creation steps, and rollback / upgrade notes.
 
 ### v1.1.0 — GitHub Projects coordination interface
 
@@ -286,7 +301,12 @@ v1.0.0-rc5
    ▼
 v1.0.0-rc6
    │
-   │  depends on: rc6 downstream-clean window
+   │  depends on: issue #116 concise specialist-brief/no-full-context-fork rule
+   │              + Claude Code / Codex validation evidence
+   ▼
+v1.0.0-rc7
+   │
+   │  depends on: rc7 downstream-clean window + final checklist gates
    ▼
 v1.0.0 (GA)
 ```
@@ -328,3 +348,4 @@ Things that may interrupt the linear plan:
 | 2026-05-03 | Normalized rc4 release-state vocabulary and linked final readiness gates. | `project-manager` |
 | 2026-05-03 | Made v1.0.0-rc5 mandatory after downstream rc4 issues #84-#103; final now depends on rc5 validation. | `release-engineer` |
 | 2026-05-04 | Tagged and pushed v1.0.0-rc6 for #84, #104, and #105; final remains blocked on downstream validation and the checklist gates. | `release-engineer` |
+| 2026-05-04 | Prepared v1.0.0-rc7 candidate/tag-prep files for issue #116 concise specialist-brief/no-full-context-fork scope and Claude Code / Codex parity evidence; no tag yet. | `release-engineer` |

@@ -413,14 +413,18 @@ names leak into artifacts and the customer has to catch them.
 
 ## Prompt concision when dispatching
 
-Every dispatch brief must communicate a **necessary and sufficient**
-amount of information — enough for the specialist to succeed on the
-first try, and no more. Specifically:
+Every specialist dispatch brief, whether sent through Claude Code
+`Agent` or Codex `spawn_agent`, must communicate a **necessary and
+sufficient** amount of information — enough for the specialist to
+succeed on the first try, and no more. Specifically:
 
 - State the goal in one sentence.
 - Name the deliverable shape and target path.
 - Cite any files the specialist must read first; do not paste their
   content unless the brief depends on specific lines.
+- Do not fork the full top-level conversation, broad repo state, or
+  unrelated context into a specialist; keep the brief role/task-specific
+  and preserve the top-level context budget.
 - Include the portion of `docs/AGENT_NAMES.md` the specialist needs,
   per R-3 above.
 - Cap the brief at roughly one screen; if it needs more, either the

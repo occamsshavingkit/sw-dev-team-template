@@ -16,6 +16,42 @@ filed upstream include that version.
 
 ---
 
+## v1.0.0-rc7 — 2026-05-04
+
+Release-candidate tag-prep for issue #116. This candidate carries the
+cross-harness rule that specialist dispatch briefs must stay concise,
+role/task-specific, and limited to the context needed for that
+assignment; neither Claude Code `Agent` nor Codex `spawn_agent` briefs
+should fork the full top-level conversation, broad repo state, or
+unrelated project context.
+
+rc7 is the release boundary for that no-full-context-fork rule and for
+the final parity evidence it requires. The rc7 tag has not been created,
+`v1.0.0` is not final-ready, and Claude Code validation evidence is
+still pending; final evidence must include both Claude Code and Codex
+validation where release-relevant harness capabilities overlap, or a
+customer-approved exception for an unavailable capability.
+
+### Changed
+
+- **Concise specialist-brief rule (#116).** Release docs now treat
+  concise, role/task-specific specialist dispatches as part of the
+  cross-harness release boundary for Claude Code and Codex.
+- **rc7 candidate state.** Version and release-planning files now
+  prepare `v1.0.0-rc7` as the current in-tree candidate without
+  claiming an annotated tag, final readiness, or Claude Code evidence.
+- **Final evidence gates.** The final checklist keeps rc7 smoke,
+  upgrade, review, release sign-off, PM closure, and Claude Code /
+  Codex parity evidence pending until recorded from the rc7 candidate.
+
+### Verification
+
+- Required before tagging: Claude Code and Codex validation of the
+  issue #116 concise-specialist-brief / no-full-context-fork rule where
+  release-relevant harness capabilities overlap.
+- Current candidate state: no `v1.0.0-rc7` tag yet; Claude Code
+  validation evidence not yet recorded.
+
 ## v1.0.0-rc6 — 2026-05-04
 
 Focused release-governance candidate after the rc5 follow-up fixes for
@@ -23,6 +59,13 @@ issues #84, #104, and #105. This rc does not move `v1.0.0` to final;
 it narrows the remaining release boundary, records the immutable rc3
 history correctly, and carries forward the objective final gates in
 `docs/v1.0.0-final-checklist.md`.
+
+Post-rc6 planning now moves `v1.0.0-rc7` into the release path before
+final. The rc7 boundary must cover issue #116, the concise
+specialist-brief / no-full-context-fork rule, and must include Claude
+Code and Codex validation evidence where release-relevant harness
+capabilities overlap; one-AI evidence is not sufficient for final
+parity claims.
 
 ### Changed
 
@@ -33,7 +76,7 @@ history correctly, and carries forward the objective final gates in
   `--dry-run --target` intent, plus the documented one-time workaround
   for already-affected rc3-era downstream trees: inspect any
   unexpectedly upgraded worktree diff, keep or commit only after
-  review, or restore from VCS, then use current rc6
+  review, or restore from VCS, then use the current supported
   `scripts/upgrade.sh --dry-run` from a clean branch/worktree for
   future previews, with focused smoke evidence for both paths.
 - **Codex dispatch policy binding (#104).** The Codex adapter and
@@ -50,14 +93,15 @@ history correctly, and carries forward the objective final gates in
   now accepts linked worktrees, and smoke coverage exercises that path
   so the manifest verification flow is covered end to end.
 - **Release-state refresh.** Release docs now treat rc6 as the current
-  candidate while keeping final status explicitly `not final-ready`
-  until every checklist gate is green or has a customer-approved
-  exception.
+  tagged candidate, move the next boundary to rc7 candidate tag-prep,
+  and keep final status explicitly `not final-ready` until every
+  checklist gate is green or has a customer-approved exception.
 
 ### Verification
 
-- Targeted release-doc scan confirms rc6 is the active candidate and
-  final remains blocked on `docs/v1.0.0-final-checklist.md`.
+- Targeted release-doc scan confirms rc6 is tagged, rc7 is the next
+  candidate boundary, and final remains blocked on
+  `docs/v1.0.0-final-checklist.md`.
 - Focused issue scan confirms the rc6 notes name #84, #104, and #105
   and preserve the rc3 immutable-history statement.
 - `git diff --check` on the scoped release-governance files: clean.

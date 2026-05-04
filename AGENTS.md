@@ -57,6 +57,14 @@ for slot state, queueing, completion, and liveness vocabulary; record
 the selected effort and slot-health state in the turn summary or Turn
 Ledger.
 
+Specialist dispatch briefs, whether sent through Claude Code `Agent` or
+Codex `spawn_agent`, must be concise, role/task-specific, and limited to
+the context needed for that specialist's assignment. Do not fork or paste
+the full top-level conversation, broad repo state, or unrelated project
+context into a specialist; cite required files or sections for the
+specialist to read instead, so the top-level session preserves its own
+context budget.
+
 If spawning is unavailable, continue as a single top-level
 `tech-lead` session, record "Codex spawning unavailable" in the turn
 summary, and do not claim specialist work occurred. If spawning exists
