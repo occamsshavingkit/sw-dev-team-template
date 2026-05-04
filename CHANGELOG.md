@@ -51,8 +51,8 @@ a customer-approved exception for an unavailable capability.
   the intake-log `turn:` cross-reference expected by the researcher and
   QA contracts.
 - **rc7 candidate state.** Version and release-planning files now
-  prepare `v1.0.0-rc7` as the current in-tree candidate without
-  claiming an annotated tag, final readiness, or Claude Code evidence.
+  prepare `v1.0.0-rc7` as the current candidate without claiming final
+  readiness or Claude Code evidence.
 - **Final evidence gates.** The final checklist keeps rc7 smoke,
   upgrade, review, release sign-off, PM closure, issue #106-#116
   disposition, and Claude Code / Codex parity evidence pending until

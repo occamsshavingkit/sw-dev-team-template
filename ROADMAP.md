@@ -34,9 +34,9 @@ SemVer rules (see `CHANGELOG.md` header for the binding wording):
   permits breaking changes inside MINOR while we are pre-1.0).
 - **PATCH** — non-structural clarifications.
 
-Version currently staged in this worktree: **v1.0.0-rc7**. The
-annotated `v1.0.0-rc7` tag marks the current release candidate; GitHub
-Release object publication waits for v1.0.0 final per the
+Version currently staged in this worktree: **v1.0.0-rc7**. This is the
+current release-candidate version; GitHub Release object publication
+waits for v1.0.0 final per the
 MINOR-only-Releases convention, and the rc cycle is tag-only.
 
 Release-state vocabulary for the active rc7-to-final path:
@@ -52,7 +52,7 @@ Release-state vocabulary for the active rc7-to-final path:
 - `final-ready` — every gate in `docs/v1.0.0-final-checklist.md` is
   green.
 
-Current state: **rc7 tagged / not final-ready**.
+Current state: **rc7 candidate / not final-ready**.
 
 ---
 
@@ -187,9 +187,9 @@ final readiness must record overlapping release-relevant
 validation from both Claude Code and Codex, or an explicit
 customer-approved exception for any unavailable harness capability.
 
-Current rc7 state is `tagged`: it is the current release candidate, but
-it is not final-ready. Branch evidence on 2026-05-04 passed full smoke
-plus published rc/stable stepwise-smoke validation; downstream-clean and
+Current rc7 state: it is the current release-candidate version, but it
+is not final-ready. Branch evidence on 2026-05-04 passed full smoke plus
+published rc/stable stepwise-smoke validation; downstream-clean and
 cross-harness evidence remain pending in `docs/v1.0.0-final-checklist.md`.
 
 ### v1.0.0 final
