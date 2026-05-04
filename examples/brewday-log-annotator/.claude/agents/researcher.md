@@ -57,11 +57,16 @@ deliverables).
 ## CUSTOMER_NOTES.md format
 
 ```
-## YYYY-MM-DD — <topic>
-Customer said: "<verbatim>"
-Context: <what was being discussed>
-Asked by: <agent name via tech-lead>
-Implications: <optional, only if customer stated them>
+## YYYY-MM-DD — <short topic> (turn: <docs/intake-log.md turn id, or "pre-intake">)
+
+**Question (from <agent>, relayed by tech-lead):**
+> <verbatim question>
+
+**Customer answer (verbatim):**
+> <verbatim response>
+
+**Context / implications:**
+- <only what the customer stated, or direct process context>
 ```
 
 ## Output
