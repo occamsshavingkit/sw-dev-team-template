@@ -6,6 +6,29 @@ every milestone.
 
 ## Journal
 
+### 2026-05-04 — G-9 needs explicit release-note evidence
+
+**Context.** The final checklist needed a durable proof point for rollback
+and upgrade guidance.
+
+**Event.** `docs/v1.0.0-release-notes.md` was added and now covers the
+upgrade path, rollback targets, rc3 workaround boundary, local agent
+supplements, release-audit scope, and GitHub Release handling.
+
+**What went well.** The checklist gate can now point at one concrete
+artifact instead of implied release intent.
+
+**What did not.** Other final gates are still open, so the checklist as a
+whole remains not final-ready.
+
+**Recommendation.** Keep release-note evidence as a first-class PM record
+whenever a final gate depends on operator guidance rather than test output.
+
+**Category.** release governance / PM control.
+
+**References.** `docs/v1.0.0-final-checklist.md`; `docs/v1.0.0-release-notes.md`;
+`docs/pm/CHANGES.md` C-9.
+
 ### 2026-05-04 — Do not repair historical rc tags in place
 
 **Context.** Post-rc5 release prep still had three final-boundary
@@ -39,6 +62,35 @@ the immutable old tag plus the supported workaround/evidence path.
 **References.** GitHub issues #84, #104, #105; `CHANGELOG.md`;
 `ROADMAP.md`; `docs/v1.0.0-final-checklist.md`; `docs/pm/CHANGES.md` C-7;
 `scripts/lib/manifest.sh`.
+
+### 2026-05-04 — rc6 closes the blocker queue, not final promotion
+
+**Context.** `v1.0.0-rc6` was pushed with the final blocker set
+reduced to the remaining release-governance evidence.
+
+**Event.** Issue #79 and issues #84-#105 were closed or downgraded, the
+staged-candidate smoke passed 134/134, and the code-reviewer approved
+the final staged diff.
+
+**What went well.** The objective gates now separate release evidence
+from downstream sample evidence and customer ratification.
+
+**What did not.** Final promotion is still blocked because no downstream
+clean-window sample has been recorded and final customer ratification
+has not happened.
+
+**Contributing factors.** The rc6 pass resolved the blocker queue, but
+G-1, G-4, G-6, G-7, and G-8 intentionally depend on evidence that is not
+yet present in the project record.
+
+**Recommendation.** Keep the final checklist evidence-driven: mark only
+the gates with direct proof as green, and leave downstream sample and
+release-object gates pending until the records exist.
+
+**Category.** release governance / PM control.
+
+**References.** GitHub issues #79, #84-#105; `docs/v1.0.0-final-checklist.md`;
+`docs/pm/CHANGES.md` C-8.
 
 ### 2026-05-03 — rc validation findings need their own release boundary
 
@@ -241,4 +293,6 @@ per `.claude/agents/project-manager.md`.
 
 ## Final synthesis
 
-Pending `v1.0.0` project closure.
+`v1.0.0` remains pending. rc6 cleared the final blocker queue, but the
+downstream clean-window sample, customer ratification, and GitHub Release
+object are still open.

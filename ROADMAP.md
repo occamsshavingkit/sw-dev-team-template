@@ -33,11 +33,11 @@ SemVer rules (see `CHANGELOG.md` header for the binding wording):
   permits breaking changes inside MINOR while we are pre-1.0).
 - **PATCH** — non-structural clarifications.
 
-Version currently staged in this worktree: **v1.0.0-rc6**. The latest
-annotated rc tag remains `v1.0.0-rc5` until the rc6 candidate is
-reviewed and tagged. GitHub Release object publication waits for
-v1.0.0 final per the MINOR-only-Releases convention; the rc cycle is
-tag-only.
+Version currently staged in this worktree: **v1.0.0-rc6**. The
+annotated `v1.0.0-rc6` tag is pushed and dereferences to
+`dc2df300d77145ef4d2fe5d30033570bc64127a1`; GitHub Release object
+publication waits for v1.0.0 final per the MINOR-only-Releases
+convention, and the rc cycle is tag-only.
 
 Release-state vocabulary for the active rc6-to-final path:
 
@@ -52,7 +52,7 @@ Release-state vocabulary for the active rc6-to-final path:
 - `final-ready` — every gate in `docs/v1.0.0-final-checklist.md` is
   green.
 
-Current state: **release-prep / not tagged / not final-ready**.
+Current state: **tagged / not final-ready**.
 
 ---
 
@@ -172,11 +172,11 @@ keeps `v1.0.0-rc3` immutable. rc6 mitigation for #84 is current/future
 script behavior plus documented workaround/evidence for already-affected
 rc3-era downstream trees; it is not a retroactive rc3 rewrite.
 
-Current rc6 state is `release-prep`: the worktree is being prepared for
-an annotated `v1.0.0-rc6` tag. `v1.0.0` final is blocked until rc6 is
-tagged, downstream validation completes, and every gate in
-`docs/v1.0.0-final-checklist.md` is green or has an explicit
-customer-approved exception.
+Current rc6 state is `tagged`: the annotated `v1.0.0-rc6` tag exists
+on reviewed commit `dc2df300d77145ef4d2fe5d30033570bc64127a1`.
+`v1.0.0` final is blocked until downstream validation completes, and
+every gate in `docs/v1.0.0-final-checklist.md` is green or has an
+explicit customer-approved exception.
 
 ### v1.0.0 final
 
@@ -327,4 +327,4 @@ Things that may interrupt the linear plan:
 | 2026-05-03 | Made v1.0.0-rc4 mandatory after downstream rc3 issues #71-#83; added stabilization-plan pointer. | `tech-lead` |
 | 2026-05-03 | Normalized rc4 release-state vocabulary and linked final readiness gates. | `project-manager` |
 | 2026-05-03 | Made v1.0.0-rc5 mandatory after downstream rc4 issues #84-#103; final now depends on rc5 validation. | `release-engineer` |
-| 2026-05-04 | Made v1.0.0-rc6 the active release-governance candidate for #84, #104, and #105; final remains blocked on rc6 validation and the checklist gates. | `release-engineer` |
+| 2026-05-04 | Tagged and pushed v1.0.0-rc6 for #84, #104, and #105; final remains blocked on downstream validation and the checklist gates. | `release-engineer` |

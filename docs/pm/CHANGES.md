@@ -30,6 +30,8 @@ approval.
 | C-5 | 2026-05-03 | `architect` / Codex adapter for issue #103 | Add Codex specialist completion/status recovery guidance for timed-out waits, empty status, and divergent completion channels. | Quality / process | Prevents silent or unreachable specialists from being mistaken for completed work or from collapsing specialist tasks into local `tech-lead` implementation. | Customer task authorization | Approved | 2026-05-03 | Recorded in `AGENTS.md`, `.claude/agents/tech-lead.md`, and `docs/agent-health-contract.md`. |
 | C-6 | 2026-05-03 | `release-engineer` | Add mandatory `v1.0.0-rc5` release-boundary candidate for issues #84-#103 instead of promoting rc4 directly to final. | Scope / schedule / quality | Adds one release-candidate validation step; aligns final readiness with post-rc4 downstream evidence. | Customer task authorization | Approved | 2026-05-03 | Recorded in `CHANGELOG.md`, `ROADMAP.md`, `docs/v1.0-rc4-stabilization.md`, `docs/v1.0.0-final-checklist.md`, and `docs/versioning.md`. |
 | C-7 | 2026-05-04 | `release-engineer` | Add mandatory `v1.0.0-rc6` release-governance candidate for issues #84, #104, and #105 instead of promoting rc5 directly to final. | Scope / schedule / quality | Adds one focused rc step so dispatch-policy binding, manifest post-copy verification, and the immutable rc3 workaround boundary are captured before GA. | Customer task authorization | Approved | 2026-05-04 | Final remains blocked until rc6 validation and all checklist gates pass. |
+| C-8 | 2026-05-04 | `project-manager` | Record rc6 final-readiness evidence update: #79 and #84-#105 are closed/downgraded, staged-candidate smoke passed 134/134, and code-reviewer approved the final staged diff. | Quality / release governance | No scope or schedule change; updates the baselined final-readiness evidence and keeps downstream sample / customer ratification / GitHub Release work pending. | `project-manager` within PM artifact scope | Approved | 2026-05-04 | Supports `docs/v1.0.0-final-checklist.md` gates G-2, G-3, G-5, and G-10; rc6 commit `dc2df300d77145ef4d2fe5d30033570bc64127a1` / tag `v1.0.0-rc6` is the evidence point; G-1, G-4, G-6, G-7, and G-8 remain pending. |
+| C-9 | 2026-05-04 | `project-manager` | Record G-9 rollback / upgrade-note completion after the release notes landed. | Quality / release governance | No scope or schedule change; marks G-9 green and anchors the checklist to the published release notes. | `project-manager` within PM artifact scope | Approved | 2026-05-04 | Supports `docs/v1.0.0-final-checklist.md` G-9 with `docs/v1.0.0-release-notes.md`; G-1, G-4, G-6, G-7, and G-8 remain pending so the overall state stays not final-ready. |
 
 ## Cross-references
 
@@ -54,3 +56,6 @@ requirements doc section, architecture ADR, etc.
   `AGENTS.md`; `.claude/agents/tech-lead.md`; `scripts/lib/manifest.sh`;
   `scripts/smoke-test.sh`; `docs/v1.0.0-final-checklist.md`;
   `docs/pm/LESSONS.md`; `docs/versioning.md`.
+- C-8: `docs/v1.0.0-final-checklist.md`; `docs/pm/LESSONS.md`.
+- C-9: `docs/v1.0.0-final-checklist.md`; `docs/v1.0.0-release-notes.md`;
+  `docs/pm/LESSONS.md`.
