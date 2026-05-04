@@ -18,7 +18,7 @@ filed upstream include that version.
 
 ## v1.0.0-rc7 — 2026-05-04
 
-Release-candidate tag-prep for issue #116. This candidate carries the
+Release candidate for issue #116. This candidate carries the
 cross-harness rule that specialist dispatch briefs must stay concise,
 role/task-specific, and limited to the context needed for that
 assignment; neither Claude Code `Agent` nor Codex `spawn_agent` briefs
@@ -75,10 +75,11 @@ customer-approved exception for an unavailable capability.
     rc hops (`v1.0.0-rc4` -> `v1.0.0-rc6`).
   - `bash scripts/stepwise-smoke.sh` passed 4/4 stable hops
     (`v0.15.0` -> `v0.17.0`).
-- Current candidate state: no `v1.0.0-rc7` tag yet; Claude Code
-  validation evidence not yet recorded; issue #106 is closed by
-  documented limitation because rc4's immutable `upgrade.sh --dry-run`
-  helper-write behavior cannot be fixed retroactively by rc7 code.
+- Current candidate state: `v1.0.0-rc7` is not final-ready; Claude Code
+  validation evidence is still pending for the final gate; issue #106 is
+  closed by documented limitation because rc4's immutable
+  `upgrade.sh --dry-run` helper-write behavior cannot be fixed
+  retroactively by rc7 code.
 
 ## v1.0.0-rc6 — 2026-05-04
 
@@ -121,9 +122,9 @@ parity claims.
   now accepts linked worktrees, and smoke coverage exercises that path
   so the manifest verification flow is covered end to end.
 - **Release-state refresh.** Release docs now treat rc6 as the current
-  tagged candidate, move the next boundary to rc7 candidate tag-prep,
-  and keep final status explicitly `not final-ready` until every
-  checklist gate is green or has a customer-approved exception.
+  tagged candidate, move the next boundary to rc7, and keep final status
+  explicitly `not final-ready` until every checklist gate is green or has
+  a customer-approved exception.
 
 ### Verification
 

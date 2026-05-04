@@ -35,11 +35,9 @@ SemVer rules (see `CHANGELOG.md` header for the binding wording):
 - **PATCH** — non-structural clarifications.
 
 Version currently staged in this worktree: **v1.0.0-rc7**. The
-annotated `v1.0.0-rc6` tag is pushed and dereferences to
-`dc2df300d77145ef4d2fe5d30033570bc64127a1`; GitHub Release object
-publication waits for v1.0.0 final per the MINOR-only-Releases
-convention, and the rc cycle is tag-only. `v1.0.0-rc7` is in candidate
-tag-prep and is not tagged yet.
+annotated `v1.0.0-rc7` tag marks the current release candidate; GitHub
+Release object publication waits for v1.0.0 final per the
+MINOR-only-Releases convention, and the rc cycle is tag-only.
 
 Release-state vocabulary for the active rc7-to-final path:
 
@@ -48,13 +46,13 @@ Release-state vocabulary for the active rc7-to-final path:
 - `release-prep` — release files are being updated for the rc tag, but
   the candidate has not completed final review or tagging.
 - `review-complete` — in-tree rc7 work has passed recorded review and
-  smoke evidence, but the release candidate is not tagged.
+  smoke evidence, but the release candidate is not yet tagged.
 - `tagged` — the annotated `v1.0.0-rc7` git tag exists on the reviewed
   commit.
 - `final-ready` — every gate in `docs/v1.0.0-final-checklist.md` is
   green.
 
-Current state: **rc7 release-prep / not tagged / not final-ready**.
+Current state: **rc7 tagged / not final-ready**.
 
 ---
 
@@ -182,18 +180,17 @@ or has an explicit customer-approved exception.
 
 ### v1.0.0-rc7
 
-Release-candidate tag-prep boundary for issue #116 concise specialist
-briefs and the no-full-context-fork rule. The template claims Claude
-Code / Codex parity, so `v1.0.0` final cannot rely on evidence from only
-one AI; final readiness must record overlapping release-relevant
+Release-candidate boundary for issue #116 concise specialist briefs and
+the no-full-context-fork rule. The template claims Claude Code / Codex
+parity, so `v1.0.0` final cannot rely on evidence from only one AI;
+final readiness must record overlapping release-relevant
 validation from both Claude Code and Codex, or an explicit
 customer-approved exception for any unavailable harness capability.
 
-Current rc7 state is `release-prep`: it is the in-tree candidate for
-tag preparation, but it is not tagged and is not final-ready. Branch
-evidence on 2026-05-04 passed full smoke plus published rc/stable
-stepwise-smoke validation; downstream-clean and cross-harness evidence
-remain pending in `docs/v1.0.0-final-checklist.md`.
+Current rc7 state is `tagged`: it is the current release candidate, but
+it is not final-ready. Branch evidence on 2026-05-04 passed full smoke
+plus published rc/stable stepwise-smoke validation; downstream-clean and
+cross-harness evidence remain pending in `docs/v1.0.0-final-checklist.md`.
 
 ### v1.0.0 final
 
@@ -351,4 +348,4 @@ Things that may interrupt the linear plan:
 | 2026-05-03 | Normalized rc4 release-state vocabulary and linked final readiness gates. | `project-manager` |
 | 2026-05-03 | Made v1.0.0-rc5 mandatory after downstream rc4 issues #84-#103; final now depends on rc5 validation. | `release-engineer` |
 | 2026-05-04 | Tagged and pushed v1.0.0-rc6 for #84, #104, and #105; final remains blocked on downstream validation and the checklist gates. | `release-engineer` |
-| 2026-05-04 | Prepared v1.0.0-rc7 candidate/tag-prep files for issue #116 concise specialist-brief/no-full-context-fork scope and Claude Code / Codex parity evidence; no tag yet. | `release-engineer` |
+| 2026-05-04 | Tagged v1.0.0-rc7 candidate for issue #116 concise specialist-brief/no-full-context-fork scope; Claude Code / Codex parity evidence remains a final gate. | `release-engineer` |
