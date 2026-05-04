@@ -16,7 +16,7 @@ acceptance criteria, and rulings relayed by `tech-lead`. Maintained by
 **Entry template:**
 
 ```
-## YYYY-MM-DD — <short topic>
+## YYYY-MM-DD — <short topic> (turn: <docs/intake-log.md turn id, or "pre-intake">)
 
 **Question (from <agent>, relayed by tech-lead):**
 > <verbatim question>

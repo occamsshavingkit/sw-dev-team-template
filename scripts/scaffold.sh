@@ -129,7 +129,7 @@ Maintained by `researcher`.
 **Entry template:**
 
 ```
-## YYYY-MM-DD — <short topic>
+## YYYY-MM-DD — <short topic> (turn: <docs/intake-log.md turn id, or "pre-intake">)
 
 **Question (from <agent>, relayed by tech-lead):**
 > <verbatim question>
@@ -283,8 +283,8 @@ Scaffolded "$project_name" at: $target
   Stamped:   $today
 
 Next steps (see $target/CLAUDE.md § FIRST ACTIONS, or $target/AGENTS.md when running Codex):
-  1. Step 0 — issue-feedback opt-in (asked first): record yes/no in
-     CUSTOMER_NOTES.md before anything else.
+  1. Step 0 — issue-feedback opt-in (asked first): route yes/no to
+     researcher for CUSTOMER_NOTES.md before anything else.
   2. Step 1 — install skill packs.
   3. Step 2 — scoping: seed docs/OPEN_QUESTIONS.md from
      docs/templates/scoping-questions-template.md, then ask one

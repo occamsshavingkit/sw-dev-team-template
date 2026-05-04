@@ -132,6 +132,14 @@ echo "  workdir: $tmp" | tee -a "$log"
 # Clone upstream once locally. Each hop checks out a different tag
 # and runs upgrade.sh against this clone via SWDT_UPSTREAM_URL.
 git clone -q "$repo_root" "$clone"
+clone_branch="$(git -C "$clone" symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
+if [[ -z "$clone_branch" ]]; then
+  clone_branch="$(git -C "$clone" branch --format='%(refname:short)' | grep -v '^(HEAD detached' | head -1)"
+fi
+if [[ -z "$clone_branch" ]]; then
+  echo "FAIL: unable to determine clone branch for per-hop pinning" | tee -a "$log"
+  exit 1
+fi
 
 # Tag list, sorted by SemVer, starting at $start_tag. Stable track filters
 # out pre-release tags: stable projects don't upgrade to pre-releases by
@@ -187,12 +195,12 @@ export GIT_CONFIG_VALUE_0="https://github.com/occamsshavingkit/sw-dev-team-templ
 
 # Per-hop upstream pinning. upgrade.sh in older versions has no
 # --target flag; it reads VERSION from upstream's default-branch
-# HEAD and walks tags up to "latest". `git clone $clone` copies
-# `main` (not the detached HEAD), so `git checkout $tag` in $clone
-# alone is invisible to upgrade.sh. We pin each hop two ways:
+# HEAD and walks tags up to "latest". `git clone $clone` copies the
+# clone's checked-out branch, so `git checkout $tag` in $clone alone
+# is invisible to upgrade.sh. We pin each hop two ways:
 #
-# 1. Reset $clone/main to $tag's commit (so upstream's VERSION is
-#    $tag's VERSION).
+# 1. Reset $clone's checked-out branch to $tag's commit (so upstream's
+#    VERSION is $tag's VERSION).
 # 2. Delete tags strictly newer than $tag (so the "latest tag"
 #    walker stops at $tag).
 #
@@ -200,12 +208,12 @@ export GIT_CONFIG_VALUE_0="https://github.com/occamsshavingkit/sw-dev-team-templ
 # forward. If anything aborts mid-hop, the EXIT trap restores.
 declare -a masked_tags=()
 declare -a masked_shas=()
-saved_main_sha=""
+saved_branch_sha=""
 
 pin_clone_to_tag() {
   local boundary="$1"
-  saved_main_sha="$(git -C "$clone" rev-parse refs/heads/main)"
-  git -C "$clone" checkout -q main
+  saved_branch_sha="$(git -C "$clone" rev-parse "refs/heads/$clone_branch")"
+  git -C "$clone" checkout -q "$clone_branch"
   git -C "$clone" reset -q --hard "$boundary"
   local newer
   case "$track" in
@@ -233,10 +241,10 @@ unpin_clone() {
   done
   masked_tags=()
   masked_shas=()
-  if [[ -n "$saved_main_sha" ]]; then
-    git -C "$clone" checkout -q main 2>/dev/null || true
-    git -C "$clone" reset -q --hard "$saved_main_sha" 2>/dev/null || true
-    saved_main_sha=""
+  if [[ -n "$saved_branch_sha" ]]; then
+    git -C "$clone" checkout -q "$clone_branch" 2>/dev/null || true
+    git -C "$clone" reset -q --hard "$saved_branch_sha" 2>/dev/null || true
+    saved_branch_sha=""
   fi
 }
 

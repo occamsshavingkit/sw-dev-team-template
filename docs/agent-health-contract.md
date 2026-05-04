@@ -88,8 +88,11 @@ the window on every emission.
 Some Codex harnesses expose a limited number of specialist slots. Treat
 "spawning unavailable" and "no slot is free" as different states:
 
-- **Spawning unavailable:** continue as top-level `tech-lead`, record
-  the limitation, and do not claim specialist work occurred.
+- **Spawning unavailable:** continue only with orchestration or
+  non-specialist work, record the limitation, and do not claim specialist
+  work occurred. If the customer required agents, or the task needs
+  specialist-owned work, stop and ask before proceeding; do not perform
+  specialist work locally without a customer-approved one-item exception.
 - **No free slot:** queue the specialist brief with canonical role,
   teammate name, write scope, trigger clauses, liveness window, and
   required `reasoning_effort`. Do not implement the queued work locally

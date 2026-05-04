@@ -208,6 +208,7 @@ check "AGENTS.md binds Codex tech-lead"                    bash -c "grep -q 'mai
 check "OPEN_QUESTIONS.md is empty register (no Q-0001 row)"  bash -c "! grep -q 'Q-0001' '$target/docs/OPEN_QUESTIONS.md'"
 check "AGENT_NAMES.md has empty mapping table"               bash -c "grep -q '| \`tech-lead\` *|' '$target/docs/AGENT_NAMES.md'"
 check "TEMPLATE_VERSION first line is a SemVer"              bash -c "head -1 '$target/TEMPLATE_VERSION' | grep -qE '^v[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$'"
+check "CUSTOMER_NOTES template includes intake turn field"   bash -c "grep -q 'turn: <docs/intake-log.md turn id' '$target/CUSTOMER_NOTES.md'"
 
 # Template version stamp should match our current VERSION
 expected_version="$(cat VERSION | tr -d '[:space:]')"
@@ -285,6 +286,8 @@ check "first-actions helper reports missing Step 0 on fresh scaffold" \
   bash -c "source '$target/scripts/lib/first-actions.sh' && ! first_actions_step0_recorded '$target'"
 check "first-actions warning names Step 0 when missing" \
   bash -c "source '$target/scripts/lib/first-actions.sh' && first_actions_step0_warning '$target' session | grep -q 'Step 0 issue-feedback opt-in'"
+check "first-actions warning routes notes through researcher" \
+  bash -c "source '$target/scripts/lib/first-actions.sh' && first_actions_step0_warning '$target' session | grep -q 'Route the answer to researcher'"
 vc_first_actions="$(
   cd "$target"
   ./scripts/version-check.sh 2>&1 || true

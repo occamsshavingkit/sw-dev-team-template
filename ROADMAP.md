@@ -190,7 +190,10 @@ validation from both Claude Code and Codex, or an explicit
 customer-approved exception for any unavailable harness capability.
 
 Current rc7 state is `release-prep`: it is the in-tree candidate for
-tag preparation, but it is not tagged and is not final-ready.
+tag preparation, but it is not tagged and is not final-ready. Branch
+evidence on 2026-05-04 passed full smoke plus published rc/stable
+stepwise-smoke validation; downstream-clean and cross-harness evidence
+remain pending in `docs/v1.0.0-final-checklist.md`.
 
 ### v1.0.0 final
 

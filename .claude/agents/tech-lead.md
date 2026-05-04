@@ -132,13 +132,16 @@ facility from the top-level `tech-lead` session.
    to the panel; use names for anything that will run for more than one
    tool call.
 
-   In Codex, first confirm the customer has authorized specialist
-   spawning for this session and record that authorization in the Turn
-   Ledger or turn summary. If Codex spawning is unavailable, say so and
-   continue as top-level `tech-lead`; if spawning is available but no
-   specialist slot is free, queue the brief and dispatch it when a slot
-   frees. Do not implement the queued specialist work locally unless the
-   customer explicitly grants an exception for that queued item.
+   In Codex, ask one atomic current-session specialist-spawning
+   authorization question at session start, unless the customer has
+   already explicitly authorized or required agents in the current
+   session. Record the authorization in the Turn Ledger or turn summary.
+   If Codex spawning is unavailable, continue only with orchestration or
+   non-specialist work; if the customer required agents or the task needs
+   specialist-owned work, stop and ask before proceeding. If spawning is
+   available but no specialist slot is free, queue the brief and dispatch
+   it when a slot frees. Do not implement specialist work locally unless
+   the customer explicitly grants an exception for that item.
 
    Before each Codex dispatch, read `docs/model-routing-guidelines.md`
    for the role tier and `reasoning_effort`, and

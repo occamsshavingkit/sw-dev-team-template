@@ -34,6 +34,7 @@ approval.
 | C-9 | 2026-05-04 | `project-manager` | Record G-9 rollback / upgrade-note completion after the release notes landed. | Quality / release governance | No scope or schedule change; records prior G-9 release-note evidence and anchors the old checklist state to the published release notes. | `project-manager` within PM artifact scope | Approved | 2026-05-04 | Records the old G-9 release-note evidence in `docs/v1.0.0-final-checklist.md` with `docs/v1.0.0-release-notes.md`; current rc7 readiness remains blocked by pending gates, including G-11 parity evidence. |
 | C-10 | 2026-05-04 | `project-manager` | Add final Claude Code / Codex parity evidence gate for `v1.0.0` release governance. | Quality / release governance | Tightens final readiness: one-AI evidence cannot release final while the template claims Claude Code / Codex parity. | Customer task authorization | Approved | 2026-05-04 | Supports `docs/v1.0.0-final-checklist.md` G-11; final evidence must include both Claude Code and Codex validation where harness capabilities overlap, with exception only for unavailable harness capability plus customer-approved residual risk. |
 | C-11 | 2026-05-04 | `release-engineer` | Prepare in-tree `v1.0.0-rc7` candidate files for issue #116 concise specialist briefs and the no-full-context-fork rule. | Scope / schedule / quality | Moves rc7 from draft planning to candidate tag-prep without creating a tag or claiming final readiness; Claude Code validation evidence remains pending. | Customer task authorization | Approved | 2026-05-04 | Updates `VERSION`, `CHANGELOG.md`, `README.md`, `ROADMAP.md`, and `docs/v1.0.0-final-checklist.md`; no `v1.0.0-rc7` tag exists yet. |
+| C-12 | 2026-05-04 | `release-engineer` | Record rc7 branch evidence, fix `scripts/stepwise-smoke.sh` so release-prep branches can run stepwise validation before merge/tag, tighten Codex dispatch gates for issues #95 and #114, and clear residual closed-issue gaps for #16/#77. | Quality / release governance | Improves rc7 evidence quality and closes adapter/customer-notes contract gaps; does not tag rc7 or change final-ready state. | Customer task authorization | Approved | 2026-05-04 | `scripts/smoke-test.sh` passed 136/136; `scripts/stepwise-smoke.sh --track rc` passed 3/3 published rc hops; `scripts/stepwise-smoke.sh` passed 4/4 stable hops. G-3 is green; G-4 remains pending downstream-clean and cross-harness evidence. Issue #106 remains open because rc4 dry-run helper writes are in immutable historical code and require explicit disposition. |
 
 ## Cross-references
 
@@ -63,4 +64,11 @@ requirements doc section, architecture ADR, etc.
   `docs/pm/LESSONS.md`.
 - C-10: `docs/v1.0.0-final-checklist.md`.
 - C-11: `VERSION`; `CHANGELOG.md`; `README.md`; `ROADMAP.md`;
+  `AGENTS.md`; `.claude/agents/tech-lead.md`;
   `docs/v1.0.0-final-checklist.md`.
+- C-12: `AGENTS.md`; `.claude/agents/tech-lead.md`;
+  `docs/agent-health-contract.md`; `CUSTOMER_NOTES.md`;
+  `scripts/scaffold.sh`;
+  `scripts/lib/first-actions.sh`; `scripts/smoke-test.sh`;
+  `scripts/stepwise-smoke.sh`; `CHANGELOG.md`;
+  `docs/v1.0.0-final-checklist.md`; `docs/v1.0.0-release-notes.md`.

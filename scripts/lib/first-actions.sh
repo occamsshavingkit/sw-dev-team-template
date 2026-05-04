@@ -33,8 +33,9 @@ agents or filing framework gaps upstream:
 
   "Do you want this project to file framework-gap issues upstream?"
 
-Record the customer's answer in CUSTOMER_NOTES.md under "Issue feedback
-opt-in". Retroactive opt-in is valid for upgraded projects.
+Route the customer's answer to researcher for CUSTOMER_NOTES.md recording
+under "Issue feedback opt-in". Retroactive opt-in is valid for upgraded
+projects.
 ====================================================================
 EOF
       ;;
@@ -47,7 +48,8 @@ Before dispatching agents or starting project work, tech-lead should ask:
 
   "Do you want this project to file framework-gap issues upstream?"
 
-Record the answer in CUSTOMER_NOTES.md under "Issue feedback opt-in".
+Route the answer to researcher for CUSTOMER_NOTES.md recording under
+"Issue feedback opt-in".
 Type "run first actions" or "start" to begin the Step 0 → Step 3 flow.
 ====================================================================
 EOF

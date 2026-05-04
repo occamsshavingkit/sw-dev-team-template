@@ -45,11 +45,17 @@ maintenance in another.
 
 ## Specialist Dispatch In Codex
 
+At every new Codex session, after reading the binding project
+instructions, ask one atomic question to confirm whether the customer
+authorizes native specialist spawning for this session. If the customer
+has already explicitly authorized or required agents in the current
+session, record that statement as the authorization instead of re-asking.
+A prior session's approval does not carry forward.
+
 When the active Codex harness exposes subagent spawning, `tech-lead`
 may dispatch specialists with Codex's native subagent facility only
-after the customer authorizes multi-agent work for the current session.
-Record the authorization in the turn summary or Turn Ledger. A prior
-session's approval does not carry forward.
+after that current-session authorization is recorded in the turn summary
+or Turn Ledger.
 
 Before any Codex dispatch, read `docs/model-routing-guidelines.md`
 for the role tier and `reasoning_effort`, and `docs/agent-health-contract.md`
@@ -65,13 +71,16 @@ context into a specialist; cite required files or sections for the
 specialist to read instead, so the top-level session preserves its own
 context budget.
 
-If spawning is unavailable, continue as a single top-level
-`tech-lead` session, record "Codex spawning unavailable" in the turn
-summary, and do not claim specialist work occurred. If spawning exists
-but no slot is free, record "Codex specialist slot unavailable",
-queue the specialist brief, and wait for a slot; do not implement the
-queued specialist's work locally unless the customer explicitly grants
-an exception for that item.
+If spawning is unavailable, continue only with orchestration or other
+non-specialist work, record "Codex spawning unavailable" in the turn
+summary, and do not claim specialist work occurred. If the customer has
+required agents, or the current task needs specialist-owned work, stop
+and ask before proceeding; do not perform specialist work locally unless
+the customer explicitly grants a one-item exception. If spawning exists
+but no slot is free, record "Codex specialist slot unavailable", queue
+the specialist brief, and wait for a slot; do not implement the queued
+specialist's work locally unless the customer explicitly grants an
+exception for that item.
 
 Map the canonical role files to Codex agent prompts:
 
@@ -136,10 +145,11 @@ and `name`. In Codex, use the equivalent native subagent API exposed by
 the harness. Preserve the role name and, where supported, the teammate
 name from `docs/AGENT_NAMES.md`.
 
-If the Codex harness does not expose spawning, continue as a single
-top-level `tech-lead` session and record the limitation in the turn
-summary. Do not pretend a specialist completed work that was never
-dispatched.
+If the Codex harness does not expose spawning, continue only with
+orchestration or non-specialist work and record the limitation in the
+turn summary. If the customer required agents, or the task needs
+specialist-owned work, stop and ask before proceeding. Do not pretend a
+specialist completed work that was never dispatched.
 
 ## Codex Pre-Close Checklist
 

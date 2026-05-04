@@ -37,20 +37,47 @@ customer-approved exception for an unavailable capability.
 - **Concise specialist-brief rule (#116).** Release docs now treat
   concise, role/task-specific specialist dispatches as part of the
   cross-harness release boundary for Claude Code and Codex.
+- **Codex dispatch authorization (#95).** The Codex adapter now makes
+  current-session specialist-spawning authorization a session-start
+  atomic gate unless the customer has already authorized or required
+  agents in that same session.
+- **Required-agent fallback (#114).** If Codex spawning is unavailable
+  and the customer required agents, or the task needs specialist-owned
+  work, `tech-lead` must stop and ask instead of performing specialist
+  work locally; the same rule is now mirrored in the agent-health slot
+  contract.
+- **Customer-notes stewardship residuals (#16, #77).** FIRST ACTIONS
+  helper warnings now route Step 0 note recording through `researcher`,
+  and the root/scaffolded `CUSTOMER_NOTES.md` entry template includes
+  the intake-log `turn:` cross-reference expected by the researcher and
+  QA contracts.
 - **rc7 candidate state.** Version and release-planning files now
   prepare `v1.0.0-rc7` as the current in-tree candidate without
   claiming an annotated tag, final readiness, or Claude Code evidence.
 - **Final evidence gates.** The final checklist keeps rc7 smoke,
-  upgrade, review, release sign-off, PM closure, and Claude Code /
-  Codex parity evidence pending until recorded from the rc7 candidate.
+  upgrade, review, release sign-off, PM closure, issue #106-#116
+  disposition, and Claude Code / Codex parity evidence pending until
+  recorded from the rc7 candidate.
+- **Stepwise smoke branch support.** `scripts/stepwise-smoke.sh` now
+  pins the clone's checked-out branch instead of assuming a local
+  `main` branch, so release-prep branches can run stepwise evidence
+  before they are merged.
 
 ### Verification
 
 - Required before tagging: Claude Code and Codex validation of the
   issue #116 concise-specialist-brief / no-full-context-fork rule where
   release-relevant harness capabilities overlap.
+- Branch evidence recorded 2026-05-04:
+  - `bash scripts/smoke-test.sh` passed 136/136.
+  - `bash scripts/stepwise-smoke.sh --track rc` passed 3/3 published
+    rc hops (`v1.0.0-rc4` -> `v1.0.0-rc6`).
+  - `bash scripts/stepwise-smoke.sh` passed 4/4 stable hops
+    (`v0.15.0` -> `v0.17.0`).
 - Current candidate state: no `v1.0.0-rc7` tag yet; Claude Code
-  validation evidence not yet recorded.
+  validation evidence not yet recorded; issue #106 remains open because
+  rc4's immutable `upgrade.sh --dry-run` helper-write behavior cannot
+  be fixed retroactively by rc7 code.
 
 ## v1.0.0-rc6 — 2026-05-04
 
