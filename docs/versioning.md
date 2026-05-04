@@ -11,11 +11,12 @@ in this document (MAJOR / MINOR / PATCH, pre-release tags, `0.y.z`
 initial-development rules, and pre-release ordering) are as defined
 there.
 
-## Current track: `v1.0.0-rc6`
+## Current track: `v1.0.0-rc7`
 
-As of 2026-05-04, the template is on the `v1.0.0-rc6` release-candidate
-track. `v1.0.0-rc6` is the focused release-governance candidate after
-rc5 follow-up fixes for issues #84, #104, and #105.
+As of 2026-05-04, the template is on the `v1.0.0-rc7` release-candidate
+track. `v1.0.0-rc7` is the cross-harness agent-orchestration candidate
+after rc6 release-governance fixes and issue #116 concise-brief /
+no-full-context-fork follow-up.
 
 Issue #84 does not rewrite `v1.0.0-rc3` in place. Public rc tags are
 immutable; rc3 cannot be changed in place. The supported mitigation is
@@ -23,7 +24,7 @@ the current/future bootstrap behavior in `scripts/upgrade.sh`, plus the
 documented one-time workaround for already-affected rc3-era downstream
 trees: if a `--dry-run` unexpectedly performed the upgrade, inspect the
 worktree diff, keep and commit only after review or restore the worktree
-from VCS, then use the current rc6 `scripts/upgrade.sh --dry-run` from a
+from VCS, then use the current rc7 `scripts/upgrade.sh --dry-run` from a
 clean branch/worktree for future previews.
 
 Release candidates are not final stability promises. They are tagged
@@ -51,7 +52,9 @@ That period is now historical, not the current release track:
 - `v0.10.0` through `v0.17.0` remain valid historical stable tags.
 - The `v1.0.0-rc3`, `v1.0.0-rc4`, and `v1.0.0-rc5` tags mark
   re-entry to the `v1.0.0` candidate track.
-- `v1.0.0-rc6` is the current candidate staged for that same track.
+- `v1.0.0-rc6` was cut on 2026-05-04 as the focused
+  release-governance candidate for issues #84, #104, and #105.
+- `v1.0.0-rc7` is the current candidate staged for that same track.
 
 Documentation or issue bodies that cite older tags remain valid
 point-in-time references and are not edited retroactively.
@@ -69,7 +72,7 @@ point-in-time references and are not edited retroactively.
   default when running `scripts/upgrade.sh`.
 - Stable-track downstream projects do **not** move to an rc by default.
   They can opt in explicitly with `scripts/upgrade.sh --target
-  v1.0.0-rc6`.
+  v1.0.0-rc7`.
 
 `v1.0.0` final means:
 
@@ -84,7 +87,7 @@ point-in-time references and are not edited retroactively.
 ## Tag and GitHub Release policy
 
 Every public release, including rc tags, uses an **annotated git tag**
-named exactly like `VERSION`, for example `v1.0.0-rc6`.
+named exactly like `VERSION`, for example `v1.0.0-rc7`.
 
 GitHub Release objects are created only for stable/final releases. For
 this cycle, the first GitHub Release object is `v1.0.0` final. Do not
