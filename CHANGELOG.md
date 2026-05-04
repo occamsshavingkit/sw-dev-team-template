@@ -25,12 +25,11 @@ assignment; neither Claude Code `Agent` nor Codex `spawn_agent` briefs
 should fork the full top-level conversation, broad repo state, or
 unrelated project context.
 
-rc7 is the release boundary for that no-full-context-fork rule and for
-the final parity evidence it requires. The rc7 tag has not been created,
-`v1.0.0` is not final-ready, and Claude Code validation evidence is
-still pending; final evidence must include both Claude Code and Codex
-validation where release-relevant harness capabilities overlap, or a
-customer-approved exception for an unavailable capability.
+rc7 is the release boundary for that no-full-context-fork rule. It is
+not `v1.0.0` final-ready: Claude Code validation evidence is still
+pending for final, and final evidence must include both Claude Code and
+Codex validation where release-relevant harness capabilities overlap, or
+a customer-approved exception for an unavailable capability.
 
 ### Changed
 
