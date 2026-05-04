@@ -75,9 +75,9 @@ customer-approved exception for an unavailable capability.
   - `bash scripts/stepwise-smoke.sh` passed 4/4 stable hops
     (`v0.15.0` -> `v0.17.0`).
 - Current candidate state: no `v1.0.0-rc7` tag yet; Claude Code
-  validation evidence not yet recorded; issue #106 remains open because
-  rc4's immutable `upgrade.sh --dry-run` helper-write behavior cannot
-  be fixed retroactively by rc7 code.
+  validation evidence not yet recorded; issue #106 is closed by
+  documented limitation because rc4's immutable `upgrade.sh --dry-run`
+  helper-write behavior cannot be fixed retroactively by rc7 code.
 
 ## v1.0.0-rc6 — 2026-05-04
 
