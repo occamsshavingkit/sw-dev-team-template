@@ -65,9 +65,10 @@ customer-approved exception for an unavailable capability.
 
 ### Verification
 
-- Required before tagging: Claude Code and Codex validation of the
-  issue #116 concise-specialist-brief / no-full-context-fork rule where
-  release-relevant harness capabilities overlap.
+- Required before `v1.0.0` final: Claude Code and Codex validation of
+  the issue #116 concise-specialist-brief / no-full-context-fork rule
+  where release-relevant harness capabilities overlap. rc7 is the
+  candidate that carries this rule forward for downstream validation.
 - Branch evidence recorded 2026-05-04:
   - `bash scripts/smoke-test.sh` passed 136/136.
   - `bash scripts/stepwise-smoke.sh --track rc` passed 3/3 published

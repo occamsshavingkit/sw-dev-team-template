@@ -183,9 +183,9 @@ or has an explicit customer-approved exception.
 ### v1.0.0-rc7
 
 Release-candidate tag-prep boundary for issue #116 concise specialist
-briefs, the no-full-context-fork rule, and cross-harness validation. The
-template claims Claude Code / Codex parity, so final cannot rely on
-evidence from only one AI; rc7 must record overlapping release-relevant
+briefs and the no-full-context-fork rule. The template claims Claude
+Code / Codex parity, so `v1.0.0` final cannot rely on evidence from only
+one AI; final readiness must record overlapping release-relevant
 validation from both Claude Code and Codex, or an explicit
 customer-approved exception for any unavailable harness capability.
 
