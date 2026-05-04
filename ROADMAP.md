@@ -302,7 +302,6 @@ v1.0.0-rc5
 v1.0.0-rc6
    │
    │  depends on: issue #116 concise specialist-brief/no-full-context-fork rule
-   │              + Claude Code / Codex validation evidence
    ▼
 v1.0.0-rc7
    │
@@ -348,4 +347,4 @@ Things that may interrupt the linear plan:
 | 2026-05-03 | Normalized rc4 release-state vocabulary and linked final readiness gates. | `project-manager` |
 | 2026-05-03 | Made v1.0.0-rc5 mandatory after downstream rc4 issues #84-#103; final now depends on rc5 validation. | `release-engineer` |
 | 2026-05-04 | Tagged and pushed v1.0.0-rc6 for #84, #104, and #105; final remains blocked on downstream validation and the checklist gates. | `release-engineer` |
-| 2026-05-04 | Tagged v1.0.0-rc7 candidate for issue #116 concise specialist-brief/no-full-context-fork scope; Claude Code / Codex parity evidence remains a final gate. | `release-engineer` |
+| 2026-05-04 | Prepared v1.0.0-rc7 candidate for issue #116 concise specialist-brief/no-full-context-fork scope; Claude Code / Codex parity evidence remains a final gate. | `release-engineer` |
