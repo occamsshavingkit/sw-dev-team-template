@@ -30,12 +30,25 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/upgrade.sh [--dry-run | --verify | --target <ver> | --help]
+Usage: scripts/upgrade.sh [--dry-run | --verify | --resolve | --target <ver> |
+                          --self-test-semver | --help]
 
   --dry-run         Print the upgrade plan; change nothing.
-  --verify          Verify project files match TEMPLATE_MANIFEST.lock.
-                    No network. Exit codes: 0 clean, 1 drift, 2 missing
-                    manifest, 3 corrupt manifest. (FW-ADR-0002, v0.14.0+)
+  --verify          Verify project files match TEMPLATE_MANIFEST.lock,
+                    AND that no entries in .template-conflicts.json are
+                    still classified "conflict" (issue #107).
+                    No network. Exit codes: 0 clean, 1 drift / unresolved
+                    conflicts, 2 missing manifest, 3 corrupt manifest.
+                    (FW-ADR-0002, v0.14.0+; conflict tracking added
+                    after issue #107.)
+  --resolve         Re-check entries in .template-conflicts.json and
+                    drop those whose project SHA shows a real merge
+                    happened (or that took upstream wholesale).
+                    local_only_kept and accepted_local entries are
+                    pruned automatically. No network. (Issue #107.)
+  --self-test-semver
+                    Run the SemVer-sort regression guard for issue #108
+                    and exit. No project state needed.
   --target <ver>    Pin the upgrade to a specific upstream tag (e.g.
                     v0.14.4). Validates the tag exists, checks it out
                     in the upstream clone, runs migrations between
@@ -70,45 +83,17 @@ EOF
 # shellcheck source=lib/manifest.sh
 source "$(dirname "$0")/lib/manifest.sh"
 
+# SemVer tag sort lives in scripts/lib/semver.sh — shared with
+# scripts/stepwise-smoke.sh. Single source of truth (issue #108).
+# shellcheck source=lib/semver.sh
+source "$(dirname "$0")/lib/semver.sh"
+
 # FIRST ACTIONS helpers (issue #73).
 first_actions_lib="$(dirname "$0")/lib/first-actions.sh"
 if [[ -f "$first_actions_lib" ]]; then
   # shellcheck source=lib/first-actions.sh
   source "$first_actions_lib"
 fi
-
-semver_sort_tags() {
-  awk '
-    function prerelease_key(pre, ids, n, i, id, key) {
-      if (pre == "") {
-        return "1"
-      }
-      n = split(pre, ids, ".")
-      key = "0"
-      for (i = 1; i <= n; i++) {
-        id = ids[i]
-        if (id ~ /^[0-9]+$/) {
-          key = key ".1.0." sprintf("%010d", length(id)) "." id
-        } else {
-          key = key ".1.1." id
-        }
-      }
-      return key ".0"
-    }
-    /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/ {
-      tag = $0
-      rest = substr(tag, 2)
-      prerelease = ""
-      dash = index(rest, "-")
-      if (dash > 0) {
-        prerelease = substr(rest, dash + 1)
-        rest = substr(rest, 1, dash - 1)
-      }
-      split(rest, parts, ".")
-      printf "%010d.%010d.%010d.%s\t%s\n", parts[1], parts[2], parts[3], prerelease_key(prerelease), tag
-    }
-  ' | LC_ALL=C sort -t "$(printf '\t')" -k1,1 | cut -f2-
-}
 
 # Upstream URL is overrideable via SWDT_UPSTREAM_URL. Used by
 # scripts/stepwise-smoke.sh to point at a local clone with specific
@@ -129,6 +114,7 @@ tv="$project_root/TEMPLATE_VERSION"
 # --target per issue #68.
 dry_run=0
 verify_mode=0
+resolve_mode=0
 target_version=""
 original_args=("$@")
 while [[ $# -gt 0 ]]; do
@@ -143,6 +129,12 @@ while [[ $# -gt 0 ]]; do
       fi
       target_version="$2"
       shift 2 ;;
+    "--self-test-semver")
+      # Issue #108 regression guard. Pure function test, no project
+      # state needed. Exits before TEMPLATE_VERSION check.
+      semver_sort_tags_self_test
+      exit $? ;;
+    "--resolve")     resolve_mode=1; shift ;;
     "--help"|"-h")   usage; exit 0 ;;
     *)               echo "ERROR: unknown flag: $1" >&2; echo >&2; usage >&2; exit 2 ;;
   esac
@@ -157,11 +149,117 @@ local_version="$(head -1 "$tv" | tr -d '[:space:]')"
 local_sha="$(sed -n '2p' "$tv" | tr -d '[:space:]')"
 
 # Verify mode short-circuits before clone — no network needed.
-# (FW-ADR-0002.)
+# (FW-ADR-0002.) Issue #107: also report unresolved conflicts from
+# .template-conflicts.json. Manifest integrity drift takes precedence;
+# unresolved conflicts surface separately when the manifest is clean.
 if [[ $verify_mode -eq 1 ]]; then
   rc=0
   manifest_verify "$project_root" "$project_root/TEMPLATE_MANIFEST.lock" || rc=$?
+  conflicts_path="$project_root/.template-conflicts.json"
+  if [[ -f "$conflicts_path" ]]; then
+    # Count unresolved entries (classified == "conflict"). Cheap grep
+    # — the JSON is generated with one entry per line, no nested
+    # structure, so a substring match is unambiguous.
+    unresolved=$(grep -c '"classified": "conflict"' "$conflicts_path" || true)
+    if [[ "$unresolved" -gt 0 ]]; then
+      if [[ $rc -eq 0 ]]; then
+        echo "Unresolved conflicts: $unresolved; merge them and run scripts/upgrade.sh --resolve to clear." >&2
+        rc=1
+      else
+        echo "Also: $unresolved unresolved conflict(s) tracked in .template-conflicts.json." >&2
+      fi
+    fi
+  fi
   exit "$rc"
+fi
+
+# --resolve mode: re-check entries in .template-conflicts.json and
+# remove those whose project SHA now differs from BOTH baseline and
+# upstream (indicating a real hand-merge). Files in local_only_kept /
+# accepted_local are never blockers and are pruned automatically.
+# Issue #107.
+if [[ $resolve_mode -eq 1 ]]; then
+  conflicts_path="$project_root/.template-conflicts.json"
+  if [[ ! -f "$conflicts_path" ]]; then
+    echo "No .template-conflicts.json present — nothing to resolve." >&2
+    exit 0
+  fi
+  # LOCKSTEP: the sed extractors below depend on the fixed printf
+  # shape produced by emit_entry() in the writer (one entry per line,
+  # quoted-string fields in fixed order). Do not change the shape on
+  # one side without updating the other.
+  #
+  # Schema 1 only. If we add fields to entries in a future schema,
+  # --resolve must preserve unrecognized fields on re-emit; the
+  # current re-emit fixes the field set to {path, classified,
+  # baseline_sha, upstream_sha, project_sha} and would silently drop
+  # anything else. Bump the schema number and gate accordingly.
+  tmp_out="$conflicts_path.tmp.$$"
+  removed=0
+  kept_unresolved=0
+  {
+    printf '{\n'
+    printf '  "schema": 1,\n'
+    printf '  "generated": "%s",\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    tv_now="$(head -1 "$tv" | tr -d '[:space:]')"
+    printf '  "template_version": "%s",\n' "$tv_now"
+    printf '  "entries": [\n'
+    first=1
+    while IFS= read -r entry_line; do
+      [[ "$entry_line" =~ ^\ +\{\"path\" ]] || continue
+      # Extract fields. Format is fixed by emit_entry above.
+      e_path=$(echo "$entry_line" | sed -n 's/.*"path": "\([^"]*\)".*/\1/p')
+      e_class=$(echo "$entry_line" | sed -n 's/.*"classified": "\([^"]*\)".*/\1/p')
+      e_baseline=$(echo "$entry_line" | sed -n 's/.*"baseline_sha": "\([^"]*\)".*/\1/p')
+      e_upstream=$(echo "$entry_line" | sed -n 's/.*"upstream_sha": "\([^"]*\)".*/\1/p')
+      [[ -z "$e_path" ]] && continue
+
+      # Auto-prune classes that were never blockers.
+      if [[ "$e_class" != "conflict" ]]; then
+        removed=$((removed + 1))
+        continue
+      fi
+
+      # Recompute current project SHA.
+      proj_now=""
+      [[ -f "$project_root/$e_path" ]] && proj_now="$(manifest_file_sha "$project_root/$e_path")"
+
+      # Resolution heuristic per #107: project SHA differs from both
+      # baseline and upstream → real merge happened, drop entry.
+      # Project SHA matches upstream (took upstream side) → drop.
+      # Project SHA matches baseline OR file missing → still
+      # unresolved.
+      resolved=0
+      if [[ -n "$proj_now" ]]; then
+        if [[ "$proj_now" == "$e_upstream" ]]; then
+          resolved=1
+        elif [[ -n "$e_baseline" && "$proj_now" != "$e_baseline" && "$proj_now" != "$e_upstream" ]]; then
+          resolved=1
+        fi
+      fi
+
+      if [[ $resolved -eq 1 ]]; then
+        removed=$((removed + 1))
+        continue
+      fi
+
+      [[ $first -eq 0 ]] && printf ',\n'
+      first=0
+      # Re-emit the entry verbatim, but with refreshed project_sha.
+      printf '    {"path": "%s", "classified": "conflict", "baseline_sha": "%s", "upstream_sha": "%s", "project_sha": "%s"}' \
+        "$e_path" "$e_baseline" "$e_upstream" "$proj_now"
+      kept_unresolved=$((kept_unresolved + 1))
+    done < "$conflicts_path"
+    printf '\n  ]\n}\n'
+  } > "$tmp_out"
+  mv "$tmp_out" "$conflicts_path"
+  if [[ $kept_unresolved -eq 0 ]]; then
+    rm -f "$conflicts_path"
+    echo "Resolved $removed entr$([[ $removed -eq 1 ]] && echo 'y' || echo 'ies'); .template-conflicts.json removed."
+  else
+    echo "Cleared $removed entr$([[ $removed -eq 1 ]] && echo 'y' || echo 'ies'); $kept_unresolved still unresolved."
+  fi
+  exit 0
 fi
 
 if [[ -n "${SWDT_PRESTAGED_WORKDIR:-}" && -d "$SWDT_PRESTAGED_WORKDIR/new" ]]; then
@@ -495,6 +593,13 @@ shortstat_between() {
 }
 
 added=(); upgraded=(); kept=(); conflicts=(); local_only_kept=(); accepted_local=(); preserved=()
+# Issue #110: pre-existing collisions — files that the project had
+# locally BEFORE upstream started shipping them. Identified by:
+# baseline-tree did NOT contain the file, project tree DOES, upstream
+# DOES, and content differs. Surfaced as an ACTION REQUIRED line so
+# the user can either accept-upstream (rm + rerun) or pin local
+# (add to .template-customizations).
+preexisting_collisions=()
 
 # Pre-load manifest SHAs for issue #109 stretch: a previous upgrade may
 # have accepted a merged state that differs from the scaffold-baseline
@@ -627,6 +732,26 @@ for f in $ship_files; do
         local_only_kept+=("$f")
       else
         conflicts+=("$f")
+        # Issue #110: pre-existing collision — file present in project
+        # AND upstream but absent from baseline. Means upstream began
+        # shipping a file the project already had. The user must
+        # decide: take upstream (rm the local then rerun) or pin local
+        # (add to .template-customizations).
+        #
+        # Gap (intentional): when baseline_available == 0 the same
+        # situation is silently lumped into plain conflicts[]. We
+        # cannot prove upstream just-introduced the file without the
+        # scaffold-baseline tree. Affects very old projects whose
+        # scaffold SHA is unreachable. Mitigation: the conflicts[]
+        # report still surfaces the file with diff guidance; users
+        # whose baseline is unreachable already see the "baseline
+        # unavailable" note in the conflicts block. Promoting these
+        # to preexisting_collisions[] would require scanning
+        # ALL upstream history to find when the file was introduced,
+        # which is out of scope for this fix.
+        if [[ $baseline_available -eq 1 && ! -f "$workdir/old/$f" ]]; then
+          preexisting_collisions+=("$f")
+        fi
       fi
       kept+=("$f")
     fi
@@ -641,6 +766,52 @@ $new_version
 $new_sha
 $(date -u +%Y-%m-%d)
 EOF
+
+  # Issue #107: persist conflict metadata to .template-conflicts.json
+  # BEFORE the manifest is rewritten. --verify reads this file and
+  # surfaces unresolved conflicts even when the manifest verifies
+  # clean (because manifest SHAs reflect the post-upgrade project
+  # state, not the desired post-merge state).
+  conflicts_path="$project_root/.template-conflicts.json"
+  if [[ ${#conflicts[@]} -gt 0 || ${#local_only_kept[@]} -gt 0 || ${#accepted_local[@]} -gt 0 ]]; then
+    {
+      printf '{\n'
+      printf '  "schema": 1,\n'
+      printf '  "generated": "%s",\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      printf '  "template_version": "%s",\n' "$new_version"
+      printf '  "entries": [\n'
+      first=1
+      # LOCKSTEP: this writer's printf shape is the contract that the
+      # --resolve sed extractors (above) read against. Format must
+      # stay in lockstep — do not introduce a second writer or change
+      # the printf shape without updating the sed extractors. One
+      # entry per line, no nested structure, fields in fixed order.
+      emit_entry() {
+        local path="$1" classified="$2"
+        local baseline_sha="" upstream_sha="" project_sha=""
+        if [[ $baseline_available -eq 1 && -f "$workdir/old/$path" ]]; then
+          baseline_sha="$(manifest_file_sha "$workdir/old/$path")"
+        fi
+        if [[ -f "$workdir/new/$path" ]]; then
+          upstream_sha="$(manifest_file_sha "$workdir/new/$path")"
+        fi
+        if [[ -f "$project_root/$path" ]]; then
+          project_sha="$(manifest_file_sha "$project_root/$path")"
+        fi
+        [[ $first -eq 0 ]] && printf ',\n'
+        first=0
+        printf '    {"path": "%s", "classified": "%s", "baseline_sha": "%s", "upstream_sha": "%s", "project_sha": "%s"}' \
+          "$path" "$classified" "$baseline_sha" "$upstream_sha" "$project_sha"
+      }
+      for f in "${conflicts[@]:-}"; do [[ -n "$f" ]] && emit_entry "$f" "conflict"; done
+      for f in "${local_only_kept[@]:-}"; do [[ -n "$f" ]] && emit_entry "$f" "local_only_kept"; done
+      for f in "${accepted_local[@]:-}"; do [[ -n "$f" ]] && emit_entry "$f" "accepted_local"; done
+      printf '\n  ]\n}\n'
+    } > "$conflicts_path"
+  else
+    # No tracked entries — remove any stale file from a prior upgrade.
+    rm -f "$conflicts_path"
+  fi
 
   # Rewrite the per-file manifest to reflect the post-upgrade state.
   # FW-ADR-0002. Paths come from the upstream clone (authoritative
@@ -710,6 +881,20 @@ if [[ ${#conflicts[@]} -gt 0 ]]; then
   echo
 fi
 
+if [[ ${#preexisting_collisions[@]} -gt 0 ]]; then
+  echo "${prefix}ACTION REQUIRED: pre-existing collision(s) detected (${#preexisting_collisions[@]}):"
+  for f in "${preexisting_collisions[@]}"; do
+    echo "  ! $f — local file pre-dates upstream's introduction of this path."
+  done
+  echo "  Resolution options (per upstream issue #110):"
+  echo "    (1) Take upstream: review upstream's version, remove the local file,"
+  echo "        and re-run scripts/upgrade.sh to install upstream."
+  echo "    (2) Keep local:    add the path to .template-customizations to pin it."
+  echo "    (3) Merge:         hand-merge upstream content into the local file,"
+  echo "        then re-run scripts/upgrade.sh --resolve to clear the conflict."
+  echo
+fi
+
 if [[ ${#local_only_kept[@]} -gt 0 ]]; then
   echo "${prefix}Local customizations kept — upstream unchanged (${#local_only_kept[@]}):"
   for f in "${local_only_kept[@]}"; do echo "  = $f"; done
@@ -744,6 +929,9 @@ if [[ $dry_run -eq 0 ]]; then
   echo "Done. TEMPLATE_VERSION now $new_version / $new_sha."
   if [[ ${#conflicts[@]} -gt 0 ]]; then
     echo "Resolve the ${#conflicts[@]} conflict(s) above, then commit."
+    echo "Unresolved conflicts persisted to .template-conflicts.json;"
+    echo "  --verify will track them until resolved (issue #107)."
+    echo "  After hand-merging, run scripts/upgrade.sh --resolve to clear."
   elif [[ ${#local_only_kept[@]} -gt 0 || ${#accepted_local[@]} -gt 0 ]]; then
     echo "Manifest verifies clean; remaining listed files are local customizations, not upgrade blockers."
   fi

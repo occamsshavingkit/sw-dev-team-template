@@ -73,38 +73,10 @@ case "$track" in
   *) echo "ERROR: --track must be stable or rc" >&2; exit 2 ;;
 esac
 
-semver_sort_tags() {
-  awk '
-    function prerelease_key(pre, ids, n, i, id, key) {
-      if (pre == "") {
-        return "1"
-      }
-      n = split(pre, ids, ".")
-      key = "0"
-      for (i = 1; i <= n; i++) {
-        id = ids[i]
-        if (id ~ /^[0-9]+$/) {
-          key = key ".1.0." sprintf("%010d", length(id)) "." id
-        } else {
-          key = key ".1.1." id
-        }
-      }
-      return key ".0"
-    }
-    /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/ {
-      tag = $0
-      rest = substr(tag, 2)
-      prerelease = ""
-      dash = index(rest, "-")
-      if (dash > 0) {
-        prerelease = substr(rest, dash + 1)
-        rest = substr(rest, 1, dash - 1)
-      }
-      split(rest, parts, ".")
-      printf "%010d.%010d.%010d.%s\t%s\n", parts[1], parts[2], parts[3], prerelease_key(prerelease), tag
-    }
-  ' | LC_ALL=C sort -t "$(printf '\t')" -k1,1 | cut -f2-
-}
+# SemVer tag sort lives in scripts/lib/semver.sh — shared with
+# scripts/upgrade.sh. Single source of truth (issue #108).
+# shellcheck source=lib/semver.sh
+source "$(dirname "$0")/lib/semver.sh"
 
 if [[ -z "$start_tag" ]]; then
   case "$track" in
