@@ -16,6 +16,58 @@ filed upstream include that version.
 
 ---
 
+## v1.0.0-rc8 — 2026-05-06
+
+Release candidate carrying upgrade-flow correctness fixes, hook
+robustness, Codex-adapter dispatch hardening, and a CLAUDE.md size
+cull. No binding-contract reversals against rc7. Per the project
+release policy, rc8 is tagged but its PATCH-level CHANGELOG notes
+fold into the next MINOR release.
+
+### Fixed
+
+- **Upgrade conflict tracking (#107, #108, #110).** `upgrade.sh` now
+  tracks unresolved conflicts as a distinct state, fixes rc-tag sort
+  order so prereleases compare correctly, and surfaces `AGENTS.md`
+  collisions explicitly instead of silently overwriting.
+- **Local-only customizations vs. true conflicts (#109, #112).**
+  `upgrade.sh` separates files the project has permanently customized
+  (listed in `.template-customizations`) from files that genuinely
+  diverge from upstream, so the conflict report is no longer polluted
+  by intentional local changes.
+- **Hook noise on customer-notes reads (#111).** The customer-notes
+  guard hook no longer prompts on read-only `Read` operations against
+  `CUSTOMER_NOTES.md`; it only intervenes on write paths.
+- **Hook matchers (#119).** Hook matcher patterns in
+  `.claude/settings.json` corrected so the intended tools are actually
+  guarded.
+
+### Docs
+
+- **CLAUDE.md size cull (#120).** Sections extracted to dedicated
+  files under `docs/` (FIRST_ACTIONS, TEMPLATE_UPGRADE, MEMORY_POLICY,
+  IP_POLICY, framework-project-boundary, sme/CONTRACT) so the
+  Claude Code entrypoint fits under the 40k-character threshold.
+  Reorganization-only; no contract change. Ships as v1.1.0 in the
+  next MINOR cycle.
+- **Step 1 skill-pack menu refresh (#113, #118).** Trail of Bits
+  skill IDs updated to current upstream IDs; claude-mem `AGENTS.md`
+  drift documented with workaround pointer to
+  `.template-customizations`.
+- **Codex-adapter dispatch discipline (#114, #115, #116, #121).**
+  Dispatch discipline made binding in `tech-lead.md` and root
+  `AGENTS.md`; brief-shape rules tightened so Codex `spawn_agent`
+  briefs don't fork the full top-level conversation.
+
+### Verification
+
+- `bash scripts/upgrade.sh --self-test-semver` passes.
+- Worktree clean against the rc8 commit set (untracked audit
+  drafts under `docs/audits/` and `docs/proposals/` are unrelated
+  in-flight work and do not ride rc8).
+
+---
+
 ## v1.0.0-rc7 — 2026-05-04
 
 Release candidate for issue #116. This candidate carries the
