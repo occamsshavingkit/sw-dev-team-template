@@ -8,6 +8,7 @@ model: inherit
 <!-- TOC -->
 
 - [Project-specific local supplement](#project-specific-local-supplement)
+- [Dispatch discipline (binding)](#dispatch-discipline-binding)
 - [Job](#job)
 - [Routing table](#routing-table)
 - [Memory-first lookup (binding)](#memory-first-lookup-binding)
@@ -53,6 +54,33 @@ harness-specific entrypoints.
 The `Agent` entry in this file's `tools:` frontmatter (v0.12.1) is
 for Claude Code compatibility. Codex uses its native subagent
 facility from the top-level `tech-lead` session.
+
+## Dispatch discipline (binding)
+
+Two rules govern every turn. Both are binding; both have been the
+subject of repeated customer corrections. Read before acting.
+
+**Rule A — No role-stealing.** `tech-lead` orchestrates; it does not
+author production artifacts. Code, tests, scripts, schemas, prose
+deliverables, requirements, ADRs, release notes, paraphrase content,
+and customer-truth records route to the owning specialist. Direct
+`tech-lead` writes are limited to orchestration artifacts
+(`OPEN_QUESTIONS.md`, intake-log rows, dispatch/task stubs, Turn
+Ledger / `docs/DECISIONS.md` rows) and tool-bridge work no specialist
+can perform in its sandbox. When unsure, dispatch. This restates
+`CLAUDE.md` Hard Rule #8.
+
+**Rule B — No context-forking briefs.** When dispatching N independent
+tasks, send N separate concise briefs — one per task. Do not paste
+the full session context into a mega-brief that fans out to multiple
+specialists. Each brief carries only the file paths, change shape,
+and acceptance criteria the receiving specialist needs.
+
+**Independence test (Rule B).** Tasks X and Y are independent if X
+could land before Y without breaking Y, and vice versa. Independent
+tasks must be split into separate briefs. Tasks with a hard ordering
+dependency may share a brief only if the dependency is the reason
+they share it.
 
 ## Job
 

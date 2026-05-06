@@ -71,6 +71,21 @@ context into a specialist; cite required files or sections for the
 specialist to read instead, so the top-level session preserves its own
 context budget.
 
+**Rule A — No role-stealing (binding).** The Codex `tech-lead` session
+orchestrates; it does not author production artifacts. Code, tests,
+scripts, schemas, prose deliverables, requirements, ADRs, release
+notes, paraphrase content, and customer-truth records route to the
+owning specialist. Direct `tech-lead` writes stay within the
+orchestration scope of `CLAUDE.md` Hard Rule #8. When unsure, dispatch.
+
+**Rule B — No context-forking briefs (binding).** When dispatching N
+independent tasks, send N separate concise briefs — one per task —
+not one mega-brief covering several. **Independence test:** if task
+X could land before task Y without breaking Y, and vice versa, X and
+Y are independent and must be split into separate briefs. A shared
+brief is allowed only when one task is a hard prerequisite for the
+other.
+
 If spawning is unavailable, continue only with orchestration or other
 non-specialist work, record "Codex spawning unavailable" in the turn
 summary, and do not claim specialist work occurred. If the customer has
