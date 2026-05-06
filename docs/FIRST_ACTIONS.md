@@ -71,8 +71,9 @@ Skill packs to consider installing. Which should I help install?
                                           want individually.
         /plugin marketplace add trailofbits/skills
         # then pick plugins — common picks:
-        /plugin install semgrep@trailofbits
-        /plugin install codeql@trailofbits
+        /plugin install semgrep-rule-creator@trailofbits
+        /plugin install semgrep-rule-variant-creator@trailofbits
+        /plugin install static-analysis@trailofbits
         /plugin install constant-time-analysis@trailofbits
         /plugin install trailmark@trailofbits
 
@@ -94,6 +95,15 @@ Skill packs to consider installing. Which should I help install?
         /plugin marketplace add thedotmack/claude-mem
         /plugin install claude-mem@thedotmack
 
+       **Known caveat (issue #113):** claude-mem currently appends a
+       `<claude-mem-context>` block to `AGENTS.md` on each session.
+       `AGENTS.md` is now a framework-shipped file (Codex adapter) and
+       the appended block creates manifest drift on every template
+       upgrade. Workaround until upstream adds a redirect knob: add
+       `AGENTS.md` to `.template-customizations` after first install.
+       The next `scripts/upgrade.sh` will preserve your local version.
+       Track upstream feature request: TBD-FR-link.
+
        Note on orchestration frameworks (ruflo / ex-claude-flow,
        CrewAI, AutoGen, MetaGPT, etc.): NOT on this menu by design.
        They ship their own agent roster, router, and escalation
@@ -114,7 +124,7 @@ Rules:
   install candidates — offer them only as "already present, skip."
 - If a repo URL 404s, `web_search` the name, confirm substitute with user,
   do not silently pick one.
-- Sources verified 2026-04-21; repos move.
+- Sources verified 2026-05-06; repos move.
 
 After the user picks from the catalog, ask **one atomic follow-up
 question, agents idle**:
