@@ -15,6 +15,20 @@ Before starting substantive work, read:
 2. `.claude/agents/tech-lead.md`
 3. Any project-local `.claude/agents/tech-lead-local.md`, if present
 
+Recommended follow-on reads after `CLAUDE.md` when the situation
+matches:
+
+- `docs/FIRST_ACTIONS.md` — Step 0–3a session-1 setup flow.
+- `docs/MEMORY_POLICY.md` — memory layer + orchestration-framework
+  stance.
+- `docs/TEMPLATE_UPGRADE.md` — scaffold + upgrade + per-version
+  migrations.
+- `docs/IP_POLICY.md` — copyright, restricted-source clauses, AI-
+  training scope.
+- `docs/sme/CONTRACT.md` — SME modes, creation, researcher
+  interaction.
+- `docs/framework-project-boundary.md` — downstream path ownership.
+
 Treat `CLAUDE.md` and `.claude/agents/*.md` as the shared team
 contract. Claude Code reads them natively; Codex uses this `AGENTS.md`
 as the adapter into the same contract.
@@ -30,6 +44,8 @@ model.
 Default rule: product tasks do not edit framework-managed files such as
 `CLAUDE.md`, this `AGENTS.md`, shipped `.claude/agents/*.md`,
 `scripts/`, `migrations/`, `docs/templates/`, `docs/INDEX-FRAMEWORK.md`,
+`docs/FIRST_ACTIONS.md`, `docs/TEMPLATE_UPGRADE.md`,
+`docs/MEMORY_POLICY.md`, `docs/IP_POLICY.md`,
 framework ADRs, template versioning docs, rc stabilization docs,
 scaffold / upgrade scripts, or manifest files. Product-only release
 audits also do not edit `TEMPLATE_VERSION`; that file changes only

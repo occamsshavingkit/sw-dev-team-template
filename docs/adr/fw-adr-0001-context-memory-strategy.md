@@ -118,8 +118,9 @@ verification against the current repo is required before acting
 on a recalled fact.
 
 - **Sketch:** One plugin install; four small template edits
-  (CLAUDE.md § Escalation protocol, CLAUDE.md new "Memory and
-  orchestration tooling" section, `tech-lead.md` binding
+  (CLAUDE.md § Escalation protocol, `docs/MEMORY_POLICY.md`
+  (formerly the CLAUDE.md "Memory and orchestration tooling"
+  section), `tech-lead.md` binding
   memory-first lookup, `researcher.md` binding memory-first
   prior-art scans). No roster change, no routing change, no
   hook-chain restructuring.

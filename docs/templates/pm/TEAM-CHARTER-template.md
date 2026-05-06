@@ -83,9 +83,9 @@ to a `CLAUDE.md` hard rule.
   actions. They do not fork the full working context, paste broad issue
   histories, or expand evidence unless `tech-lead` asks. Token budget is
   treated as a project resource.
-- **Question-asking protocol.** Per CLAUDE.md § "Question-asking
-  protocol (binding)": one question per turn; all agents idle;
-  recorded in `OPEN_QUESTIONS.md`.
+- **Question-asking protocol.** Per `docs/FIRST_ACTIONS.md` § "Step 2
+  / Question-asking protocol (binding)": one question per turn; all
+  agents idle; recorded in `OPEN_QUESTIONS.md`.
 - **Channels / registers:**
   - `docs/OPEN_QUESTIONS.md` — open questions awaiting answer.
   - `CUSTOMER_NOTES.md` — verbatim customer answers.

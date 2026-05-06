@@ -14,7 +14,7 @@ Project-authored content lives in
 | File | Purpose |
 |---|---|
 | `AGENTS.md` | Codex adapter for the same top-level `tech-lead` and specialist contracts that Claude Code consumes through `CLAUDE.md` and `.claude/agents/`. |
-| `CLAUDE.md` | Claude Code entrypoint. FIRST ACTIONS (skill packs → scoping → naming → issue-feedback opt-in), agent roster, hard rules. |
+| `CLAUDE.md` | Claude Code entrypoint. Customer model, escalation protocol, agent roster, routing defaults, binding references, time-based cadences, hard rules, taxonomy discipline. Pointers out to `docs/FIRST_ACTIONS.md`, `docs/TEMPLATE_UPGRADE.md`, `docs/MEMORY_POLICY.md`, `docs/IP_POLICY.md`, `docs/framework-project-boundary.md`, `docs/sme/CONTRACT.md`. |
 | `VERSION` | Current template version (SemVer). Downstream projects stamp `TEMPLATE_VERSION` from this. |
 | `TEMPLATE_MANIFEST.lock` | Per-file SHA256 manifest of shipped files (per FW-ADR-0002, v0.14.0+). Written at scaffold; rewritten after every successful upgrade. Verified by `scripts/upgrade.sh --verify`. Files in `.template-customizations` are omitted. **Scaffolded into downstream projects, not present in the upstream template repo itself.** |
 | `CHANGELOG.md` | Release history. MAJOR / MINOR / PATCH semantics. |
@@ -44,8 +44,12 @@ Project-authored content lives in
 |---|---|
 | `docs/INDEX.md` | This file. |
 | `docs/AGENT_NAMES.md` | Canonical role → teammate name → pronouns mapping; rules for picking names and respecting pronouns. |
+| `docs/FIRST_ACTIONS.md` | Session-1 setup flow (Steps 0–3a): issue-feedback opt-in, skill packs, scoping + SME discovery, agent naming. Extracted from `CLAUDE.md` per issue #120. |
+| `docs/IP_POLICY.md` | Non-negotiable IP / copyright posture: external-material default, restricted-source clauses, AI-training narrow interpretation. Extracted from `CLAUDE.md` per issue #120. |
+| `docs/MEMORY_POLICY.md` | Memory-layer + orchestration-framework stance (claude-mem default; orchestration frameworks require a superseding ADR). Extracted from `CLAUDE.md` per issue #120. |
 | `docs/OPEN_QUESTIONS.md` | Register of open questions with ID / answerer / status / resolution. Stewarded by `researcher`. |
 | `docs/ISSUE_FILING.md` | Convention for filing framework gaps against the upstream template repo (includes template-version citation). |
+| `docs/TEMPLATE_UPGRADE.md` | Scaffold + template version check + upgrade strategy + per-version migrations. Extracted from `CLAUDE.md` per issue #120. |
 | `docs/agent-health-contract.md` | **Binding.** Failure modes, detection signals, health-check protocol, and respawn procedure for long-lived named teammates — including the triadic tech-lead self-diagnosis (project-manager / peer / customer backstop). |
 | `docs/framework-project-boundary.md` | Practical downstream separation model: framework-managed paths, project-owned product paths, project-filled registers, and review / commit split guidance. |
 | `docs/handovers/` | Respawn handover briefs (one per respawn, dated). Gitignored after 30 days by convention. |

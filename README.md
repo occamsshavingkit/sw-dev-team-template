@@ -264,7 +264,7 @@ contract, including per-version migration scripts under `migrations/`.
 Anything not created within the project is assumed copyrighted unless
 the customer overrides that in `CUSTOMER_NOTES.md`. Copyrighted items
 stay in `docs/sme/<domain>/local/` and are cited in the domain's
-`INVENTORY.md`. See CLAUDE.md § IP policy.
+`INVENTORY.md`. See `docs/IP_POLICY.md`.
 
 ## Agent roster
 

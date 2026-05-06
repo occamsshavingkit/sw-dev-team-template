@@ -100,8 +100,16 @@ the mode — the underlying question should route back through
 
 ## 4. Creating an SME agent
 
-See `CLAUDE.md` § "Creating an SME agent" for the procedure. In
-short:
+When Step 2 identifies a domain SME that should be cached as an agent,
+`tech-lead` creates a new agent by copying
+`.claude/agents/sme-template.md` to `.claude/agents/sme-<domain>.md`
+(e.g., `sme-brewing.md`, `sme-s7-plc.md`) and filling in the frontmatter
++ body for that domain. The file name, `name:` field, and routing
+entries across the roster must all match. Once created, `researcher`
+seeds `docs/sme/<domain>/INVENTORY.md` from `docs/sme/INVENTORY-template.md`
+so external-material tracking is in place from day one.
+
+Procedure summary:
 
 1. `tech-lead` confirms with the customer that the domain warrants
    an SME and which mode fits.
@@ -147,7 +155,6 @@ Binding rules:
 
 ## 8. Cross-references
 
-- `CLAUDE.md` § "SME scope: what is and is not an SME (binding)"
 - `.claude/agents/sme-template.md` § "Mode (pick one at creation;
   binding)"
 - `.claude/agents/researcher.md` § "Source discipline" and § "SME

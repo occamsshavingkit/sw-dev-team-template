@@ -8,7 +8,7 @@ tree as three layers with different owners and review paths.
 
 | Layer | Owner | Typical paths | Default handling |
 |---|---|---|---|
-| Framework-managed / template-upgrade files | Upstream `sw-dev-team-template` | `CLAUDE.md`, `AGENTS.md`, shipped `.claude/agents/*.md`, `scripts/`, `migrations/`, `docs/templates/`, `docs/INDEX-FRAMEWORK.md`, `docs/adr/fw-adr-*.md`, template versioning docs, rc stabilization docs, scaffold / upgrade scripts, `TEMPLATE_MANIFEST.lock` | Change only during an explicit template upgrade or framework-maintenance task. Otherwise file an upstream issue. |
+| Framework-managed / template-upgrade files | Upstream `sw-dev-team-template` | `CLAUDE.md`, `AGENTS.md`, shipped `.claude/agents/*.md`, `scripts/`, `migrations/`, `docs/templates/`, `docs/INDEX-FRAMEWORK.md`, `docs/adr/fw-adr-*.md`, template versioning docs, rc stabilization docs, final checklist docs, scaffold / upgrade scripts, `TEMPLATE_MANIFEST.lock` | Change only during an explicit template upgrade or framework-maintenance task. Otherwise file an upstream issue. |
 | Project-filled registers | Downstream project, by named steward | `CUSTOMER_NOTES.md`, `docs/OPEN_QUESTIONS.md`, `docs/AGENT_NAMES.md`, `docs/pm/*.md`, `docs/glossary/PROJECT.md`, `.claude/agents/*-local.md`, `.template-customizations`, `TEMPLATE_VERSION` | Edit through the owning role and keep with the project work that changed the facts. |
 | Project-owned product files | Downstream project | Product source, tests, build config, deployment config, `README.md`, product requirements, project ADRs `docs/adr/[0-9][0-9][0-9][0-9]-*.md`, `docs/INDEX-PROJECT.md`, domain docs, runbooks | Normal product work. Review without framework churn. |
 
@@ -37,9 +37,10 @@ downstream project, classify each release / version artifact as one of:
 
 Product-only release audits may inspect framework artifacts only to
 avoid mixing scopes. They must not edit `TEMPLATE_VERSION`, template
-versioning docs, rc stabilization docs, scaffold / upgrade scripts, or
-other framework-managed files unless the customer explicitly asks for
-template upgrade or framework-maintenance work in the current task.
+versioning docs, rc stabilization docs, final checklist docs,
+scaffold / upgrade scripts, or other framework-managed files unless the
+customer explicitly asks for template upgrade or framework-maintenance
+work in the current task.
 
 If a product-only release audit finds a framework defect, leave the
 downstream copy unchanged and file or queue an upstream issue through

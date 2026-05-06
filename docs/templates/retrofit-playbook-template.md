@@ -911,7 +911,7 @@ rationale for audit.
 
 ## 8. IP triage protocol
 
-Governed by `CLAUDE.md` § IP policy. Retrofit-specific notes:
+Governed by `docs/IP_POLICY.md`. Retrofit-specific notes:
 
 - **Default is external.** Any artifact without clear project-
   authored provenance is treated as external until proven
@@ -1234,9 +1234,9 @@ Retrofit is complete when **all** are true:
 
 ## 15. Related artifacts
 
-- `CLAUDE.md` § Scaffolding a new project — scaffold.sh, the
-  precondition.
-- `CLAUDE.md` § IP policy — governing rules for § 8.
+- `docs/TEMPLATE_UPGRADE.md` § Scaffolding a new project — scaffold.sh,
+  the precondition.
+- `docs/IP_POLICY.md` — governing rules for § 8.
 - `CLAUDE.md` § Hard rules — bindings referenced by § 3.6, § 3.7,
   § 7.3.
 - `ROADMAP.md` — v0.13.0 roll-up referencing this playbook.

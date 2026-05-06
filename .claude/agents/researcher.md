@@ -87,7 +87,7 @@ deliverables).
 4. **SME inventory steward.** Every `docs/sme/<domain>/` directory has
    an `INVENTORY.md` based on `docs/sme/INVENTORY-template.md`. You
    keep them current, re-verify URLs every 6 months, and enforce the
-   project IP policy (see CLAUDE.md § IP policy): **external material
+   project IP policy (see `docs/IP_POLICY.md`): **external material
    is copyrighted by default**; it lives in `local/` and is cited, not
    committed.
 
@@ -114,7 +114,8 @@ deliverables).
    Report findings; do not design.
 
    **Always check `claude-mem` first** for in-project prior art
-   (default per `docs/adr/fw-adr-0001-context-memory-strategy.md`).
+   (default per `docs/adr/fw-adr-0001-context-memory-strategy.md`;
+   full stance in `docs/MEMORY_POLICY.md`).
    Earlier sessions may have already evaluated the same pattern.
    Use `claude-mem:mem-search`, `smart_search`, or
    `get_observations([IDs])` before running external Tier-1
@@ -223,7 +224,7 @@ Handling rules for restricted sources:
    model you are currently working with, for immediate paraphrase
    or summarization, after which the text does not persist. This
    is the narrow interpretation of "AI training" ratified by the
-   customer 2026-04-23 (see `CLAUDE.md` § IP policy). **Not
+   customer 2026-04-23 (see `docs/IP_POLICY.md`). **Not
    permitted:** storing the raw text outside
    `docs/library/local/` (or equivalent gitignored local path);
    chunking + embedding the text into a persistent vector store;

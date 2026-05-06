@@ -69,7 +69,7 @@ Inbound rules: AI must not be fed training-prohibited sources in a
 training, fine-tuning, or persistent-embedding capacity. Transient
 in-context reading (paraphrase-and-cite within a single session, no
 persistent storage) is permitted under the narrow interpretation
-ratified in `CLAUDE.md` § IP policy (customer ruling 2026-04-23).
+ratified in `docs/IP_POLICY.md` (customer ruling 2026-04-23).
 The motivating example is PMBOK 8 itself (LIB-0001) which carries
 an explicit "NO AI TRAINING" clause on its copyright page. If your
 project has stricter restrictions than the default narrow
@@ -108,7 +108,7 @@ with a row per material change.
   Management (library row LIB-0001, pp. 237–244).
 - PMBOK 8 Guide, copyright page (LIB-0001, p. iv) — "NO AI TRAINING"
   clause.
-- CLAUDE.md § IP policy — restricted-source handling rule.
+- `docs/IP_POLICY.md` — restricted-source handling rule.
 - SWEBOK V4 ch. 14 — Professional Practice (library row LIB-0002) if
   professional-ethics binding is referenced.
 - Project-specific: `CUSTOMER_NOTES.md` for any customer overrides.

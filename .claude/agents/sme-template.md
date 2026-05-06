@@ -56,7 +56,7 @@ conventions, ledger mapping rules, and month-end close procedures at the
 Acme Finance team. NOT expert in general accounting principles beyond
 what Acme has documented, tax law, or other customers' conventions.">
 
-**SME-vs-researcher boundary** (see `CLAUDE.md` § "SME scope"). Pure
+**SME-vs-researcher boundary** (see `docs/sme/CONTRACT.md` § 2). Pure
 standards lookups with no project-specific framing (SWEBOK / ISO /
 IEEE / ISTQB / SFIA / PMBOK, vendor docs) belong to `researcher` in
 both modes. An SME whose only content is "what SWEBOK § X says"

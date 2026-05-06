@@ -302,7 +302,7 @@ project repository per that license.
 explicitly declares otherwise in `CUSTOMER_NOTES.md` (e.g., "this
 standard library is MIT-licensed; include verbatim"). External
 material is held locally and cited by reference — see
-`docs/sme/INVENTORY-template.md` and CLAUDE.md § IP policy.
+`docs/sme/INVENTORY-template.md` and `docs/IP_POLICY.md`.
 
 **Derivative work** — work produced by substantially transforming
 external material (summarizing, paraphrasing, restructuring). May be

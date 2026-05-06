@@ -101,7 +101,7 @@ Columns:
 - **Resolution** — verbatim answer (if from customer, mirror into `CUSTOMER_NOTES.md`) + date.
 
 Ask the customer **one question per turn**, only when all agents are idle.
-See `.claude/agents/tech-lead.md` Job #1 and `CLAUDE.md` Step 2.
+See `.claude/agents/tech-lead.md` Job #1 and `docs/FIRST_ACTIONS.md` Step 2.
 
 At project start, `tech-lead` copies seed questions from
 `docs/templates/scoping-questions-template.md` into the table below.
@@ -144,13 +144,13 @@ Maintained by `researcher`.
 ---
 
 <!-- Entries begin below this line. First entry will typically be the
-     Step-2 project charter + SME plan from the CLAUDE.md first-action flow. -->
+     Step-2 project charter + SME plan from the docs/FIRST_ACTIONS.md flow. -->
 EOF
 
 cat > "$target/docs/AGENT_NAMES.md" <<EOF
 # Agent Names — $project_name
 
-Category: *(to be chosen at Step 3 of CLAUDE.md FIRST ACTIONS)*.
+Category: *(to be chosen at Step 3 of docs/FIRST_ACTIONS.md)*.
 
 Conventions (pronoun rule, pronoun-verification procedure,
 gender-representation rule, personality-match rule, usage) are
@@ -282,7 +282,7 @@ Scaffolded "$project_name" at: $target
   Template:  $template_version  ($template_sha)
   Stamped:   $today
 
-Next steps (see $target/CLAUDE.md § FIRST ACTIONS, or $target/AGENTS.md when running Codex):
+Next steps (see $target/docs/FIRST_ACTIONS.md, or $target/AGENTS.md when running Codex):
   1. Step 0 — issue-feedback opt-in (asked first): route yes/no to
      researcher for CUSTOMER_NOTES.md before anything else.
   2. Step 1 — install skill packs.
