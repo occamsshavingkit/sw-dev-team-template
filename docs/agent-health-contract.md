@@ -104,6 +104,20 @@ agent promptly. Then dispatch the next queued wave whose inputs are
 ready and whose write scope does not overlap with active work. The
 Turn Ledger records completed agents closed and queued waves launched.
 
+**Closure is routine (binding).** Closing completed, failed, or
+no-longer-needed specialists is routine slot hygiene and does NOT
+require additional customer authorization — that authorization was
+granted upstream for the dispatch. Customer auth gates DISPATCH, not
+CLOSE. Do not close a still-running specialist unless it has failed
+liveness checks (§ 2 signal 11 + Liveness protocol), the customer
+redirects the work, or the work is no longer needed.
+
+**Spawn authorization is not transferable (binding).** Customer
+authorization to spawn specialists belongs to the top-level `tech-lead`
+session. Specialists receiving a brief do not inherit spawning rights;
+they return escalations to `tech-lead`, which owns the native spawn
+surface.
+
 ### Codex completion/status recovery (binding)
 
 Codex adapter sessions use this state vocabulary for every specialist:

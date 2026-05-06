@@ -25,27 +25,17 @@
           }
         ]
       },
-            {
-                "matcher": "MultiEdit",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "python3 ./scripts/hooks/customer-notes-guard.py",
-                        "timeout": 5
-                    }
-                ]
-            },
-            {
-                "matcher": "Bash",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "python3 ./scripts/hooks/customer-notes-guard.py",
-                        "timeout": 5
-                    }
-                ]
-            }
-        ],
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ./scripts/hooks/customer-notes-guard.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [

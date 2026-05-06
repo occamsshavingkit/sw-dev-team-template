@@ -113,6 +113,41 @@ the specialist brief, and wait for a slot; do not implement the queued
 specialist's work locally unless the customer explicitly grants an
 exception for that item.
 
+**Rule C — No top-level fallback when agents are required (binding).**
+When the customer has authorized or required agents for the current
+scope, `tech-lead` orchestrates only. If spawning is unavailable, no
+slot is free, or the requested specialist cannot be dispatched,
+`tech-lead` STOPS AND ASKS rather than performing the specialist's work
+locally. Any exception requires explicit customer authorization for the
+specific item; prior or scope-wide authorization does not generalize.
+
+**Rule D — Spawn authorization is not transferable (binding).**
+Customer authorization to spawn specialists is granted to the top-level
+`tech-lead` session only. A specialist receiving a brief from
+`tech-lead` does not inherit spawning rights. Specialists return
+requests and escalations to `tech-lead`; only `tech-lead` owns the
+native spawn surface. Dispatch briefs MUST NOT contain phrasing such as
+"customer authorized spawning" without qualification — that wording is
+misreadable as transferable. Preferred brief preface (template, not
+mandatory verbatim):
+
+> Top-level tech-lead dispatched you. Do not spawn, delegate, or
+> contact the customer; return findings, blockers, and escalation
+> requests to tech-lead.
+
+**Rule E — Closing completed specialists is routine (binding).**
+Closing completed, failed, or no-longer-needed specialists is routine
+slot hygiene. It does NOT require additional customer authorization —
+that authorization was granted upstream for the dispatch. Customer auth
+gates DISPATCH, not CLOSE. Do not close a still-running specialist
+unless it has failed liveness checks per `docs/agent-health-contract.md`,
+the customer redirects the work, or the work is no longer needed.
+
+**Turn-summary requirement (binding).** Each turn that involved
+specialist-scoped work states one of: `specialists dispatched`,
+`specialist unavailable: stopped`, or `customer exception granted`
+(naming the specific item).
+
 Map the canonical role files to Codex agent prompts:
 
 - `architect` -> `.claude/agents/architect.md`
@@ -186,7 +221,19 @@ specialist completed work that was never dispatched.
 
 Codex does not consume Claude Code hooks, so hook-backed safeguards in
 `.claude/settings.json` must be mirrored as an explicit checklist before
-closing any non-trivial turn:
+closing any non-trivial turn.
+
+Matcher-vocabulary note: the `PreToolUse` matchers in
+`.claude/settings.json` (`Write`, `Edit`, `Bash`) are verified
+compatible with both harnesses. Per Codex hooks docs
+(developers.openai.com/codex/hooks) and Codex PR #18391, Codex maps
+`apply_patch` onto `Edit` / `Write` aliases and `exec_command` onto
+`Bash` for hook compatibility. `MultiEdit` is intentionally absent —
+Codex has no equivalent, and `apply_patch` already covers multi-file
+edits. The `customer-notes-guard.py` hook is harness-agnostic
+(inspects `tool_input.file_path` / `path` / `command`), so the same
+config serves both runtimes; if Codex ever ships a separate hook
+config, mirror these matchers exactly.
 
 1. Inspect `git diff --stat` and the relevant diffs.
 2. Confirm every direct `tech-lead` edit is within the allowed

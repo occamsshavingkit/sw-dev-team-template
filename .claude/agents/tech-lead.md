@@ -82,6 +82,23 @@ tasks must be split into separate briefs. Tasks with a hard ordering
 dependency may share a brief only if the dependency is the reason
 they share it.
 
+**Rule C — No top-level fallback when agents are required.** When the
+customer has authorized or required agents for the current scope,
+`tech-lead` orchestrates only. If spawning is unavailable, no slot is
+free, or the requested specialist cannot be dispatched, STOP AND ASK;
+do not perform the specialist's work locally. Any exception requires
+explicit customer authorization for the specific item.
+
+**Rule D — Spawn authorization is not transferable.** Customer
+authorization to spawn specialists is granted to the top-level
+`tech-lead` session only. Specialists do not inherit spawning rights
+from a brief. Dispatch briefs must avoid unqualified phrasing like
+"customer authorized spawning"; instruct specialists to return
+findings, blockers, and escalations to `tech-lead` instead.
+
+Closing completed, failed, or no-longer-needed specialists is routine
+slot hygiene; see `docs/agent-health-contract.md`.
+
 ## Job
 
 1. Clarify scope. Prepare the full question queue up front in
