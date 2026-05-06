@@ -494,7 +494,29 @@ shortstat_between() {
   fi
 }
 
-added=(); upgraded=(); kept=(); conflicts=(); preserved=()
+added=(); upgraded=(); kept=(); conflicts=(); local_only_kept=(); accepted_local=(); preserved=()
+
+# Pre-load manifest SHAs for issue #109 stretch: a previous upgrade may
+# have accepted a merged state that differs from the scaffold-baseline
+# old_path. Without consulting the manifest, that file lands in
+# conflicts[] every rerun even when the manifest accepted the merge.
+# Format per scripts/lib/manifest.sh manifest_write: exactly two spaces
+# between SHA and path (`<sha>  <path>`), enforced at write time. The
+# length-64 SHA check below skips malformed lines defensively; the
+# parser stays inline (rather than calling a manifest_lib helper) to
+# avoid pulling the verifier's strict-error semantics into the upgrade
+# classification path.
+declare -A manifest_sha=()
+manifest_path_pre="$project_root/TEMPLATE_MANIFEST.lock"
+if [[ -f "$manifest_path_pre" ]]; then
+  while IFS= read -r m_line; do
+    [[ -z "$m_line" || "${m_line:0:1}" == "#" ]] && continue
+    m_sha="${m_line%%  *}"
+    m_path="${m_line#*  }"
+    [[ ${#m_sha} -eq 64 && -n "$m_path" ]] || continue
+    manifest_sha["$m_path"]="$m_sha"
+  done < "$manifest_path_pre"
+fi
 
 for f in $ship_files; do
   new_path="$workdir/new/$f"
@@ -568,8 +590,46 @@ for f in $ship_files; do
   if files_match "$new_path" "$proj_path"; then
     : # Project already matches new upstream (modulo agent name) — coincidence, no action.
   else
-    conflicts+=("$f")
-    kept+=("$f")
+    # Issue #109 stretch: if the manifest recorded this file's SHA at a
+    # prior accepted-merge state and the project file still matches that
+    # SHA (and the manifest SHA differs from upstream-new SHA), this is
+    # an accepted local merge — not a fresh conflict.
+    #
+    # Silent-equality case (manifest_sha == new_sha_f): the manifest's
+    # recorded SHA matches the upstream we're upgrading to, but the
+    # project file diverges from both. That means the project drifted
+    # AFTER the last manifest write (manual edit, partial revert, etc.).
+    # We deliberately do NOT short-circuit to accepted_local[] here;
+    # bucketing falls through to baseline-derived classification
+    # (local_only_kept[] vs conflicts[]) below, which is correct — the
+    # manifest isn't telling us anything new.
+    accepted_via_manifest=0
+    if [[ -n "${manifest_sha[$f]:-}" ]]; then
+      proj_sha="$(manifest_file_sha "$proj_path")"
+      new_sha_f="$(manifest_file_sha "$new_path")"
+      if [[ "$proj_sha" == "${manifest_sha[$f]}" && "${manifest_sha[$f]}" != "$new_sha_f" ]]; then
+        accepted_local+=("$f")
+        accepted_via_manifest=1
+      fi
+    fi
+    if [[ $accepted_via_manifest -eq 0 ]]; then
+      # Issue #112: distinguish "local-only customization (upstream
+      # unchanged)" from "true conflict (both sides changed)". Only
+      # the latter blocks the upgrade.
+      #
+      # Baseline-unavailable note: when $baseline_available -eq 0, the
+      # local_only_kept[] branch is unreachable by design — we cannot
+      # prove upstream is unchanged without the scaffold-baseline tree,
+      # so the conservative classifier sends the file to conflicts[].
+      # That matches the "no baseline" comment a few lines up.
+      if [[ $baseline_available -eq 1 && -f "$workdir/old/$f" ]] \
+         && cmp -s "$workdir/old/$f" "$workdir/new/$f"; then
+        local_only_kept+=("$f")
+      else
+        conflicts+=("$f")
+      fi
+      kept+=("$f")
+    fi
   fi
 done
 
@@ -631,7 +691,7 @@ if [[ ${#upgraded[@]} -gt 0 ]]; then
 fi
 
 if [[ ${#conflicts[@]} -gt 0 ]]; then
-  echo "${prefix}⚠  Customized standard files — LEFT ALONE — review and merge manually (${#conflicts[@]}):"
+  echo "${prefix}⚠  Conflicts — local AND upstream both changed (review and merge manually) (${#conflicts[@]}):"
   for f in "${conflicts[@]}"; do
     echo "  ! $f"
     if [[ $baseline_available -eq 1 && -f "$workdir/old/$f" ]]; then
@@ -647,6 +707,18 @@ if [[ ${#conflicts[@]} -gt 0 ]]; then
   echo
   echo "  For each conflict, diff the upstream version against your customized"
   echo "  version and decide: keep yours, take upstream, or merge."
+  echo
+fi
+
+if [[ ${#local_only_kept[@]} -gt 0 ]]; then
+  echo "${prefix}Local customizations kept — upstream unchanged (${#local_only_kept[@]}):"
+  for f in "${local_only_kept[@]}"; do echo "  = $f"; done
+  echo
+fi
+
+if [[ ${#accepted_local[@]} -gt 0 ]]; then
+  echo "${prefix}Accepted local merges (recorded in manifest) (${#accepted_local[@]}):"
+  for f in "${accepted_local[@]}"; do echo "  ✓ $f"; done
   echo
 fi
 
@@ -672,6 +744,8 @@ if [[ $dry_run -eq 0 ]]; then
   echo "Done. TEMPLATE_VERSION now $new_version / $new_sha."
   if [[ ${#conflicts[@]} -gt 0 ]]; then
     echo "Resolve the ${#conflicts[@]} conflict(s) above, then commit."
+  elif [[ ${#local_only_kept[@]} -gt 0 || ${#accepted_local[@]} -gt 0 ]]; then
+    echo "Manifest verifies clean; remaining listed files are local customizations, not upgrade blockers."
   fi
 else
   echo "(No changes written — this was a dry run.)"
