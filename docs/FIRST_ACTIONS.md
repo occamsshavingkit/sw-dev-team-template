@@ -102,7 +102,8 @@ Skill packs to consider installing. Which should I help install?
        upgrade. Workaround until upstream adds a redirect knob: add
        `AGENTS.md` to `.template-customizations` after first install.
        The next `scripts/upgrade.sh` will preserve your local version.
-       Track upstream feature request: TBD-FR-link.
+       Track upstream feature request:
+       https://github.com/thedotmack/claude-mem/issues/2333
 
        Note on orchestration frameworks (ruflo / ex-claude-flow,
        CrewAI, AutoGen, MetaGPT, etc.): NOT on this menu by design.
