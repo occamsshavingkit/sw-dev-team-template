@@ -11,12 +11,12 @@ in this document (MAJOR / MINOR / PATCH, pre-release tags, `0.y.z`
 initial-development rules, and pre-release ordering) are as defined
 there.
 
-## Current track: `v1.0.0-rc7`
+## Current track: `v1.0.0-rc8`
 
-As of 2026-05-04, the template is on the `v1.0.0-rc7` release-candidate
-track. `v1.0.0-rc7` is the cross-harness agent-orchestration candidate
-after rc6 release-governance fixes and issue #116 concise-brief /
-no-full-context-fork follow-up.
+As of 2026-05-06, the template is on the `v1.0.0-rc8` release-candidate
+track. `v1.0.0-rc8` is the cross-harness agent-orchestration candidate
+after rc7 role-binding, context-forking, and FIRST ACTIONS extraction
+follow-up.
 
 Issue #84 does not rewrite `v1.0.0-rc3` in place. Public rc tags are
 immutable; rc3 cannot be changed in place. The supported mitigation is
@@ -24,7 +24,7 @@ the current/future bootstrap behavior in `scripts/upgrade.sh`, plus the
 documented one-time workaround for already-affected rc3-era downstream
 trees: if a `--dry-run` unexpectedly performed the upgrade, inspect the
 worktree diff, keep and commit only after review or restore the worktree
-from VCS, then use the current rc7 `scripts/upgrade.sh --dry-run` from a
+from VCS, then use the current rc8 `scripts/upgrade.sh --dry-run` from a
 clean branch/worktree for future previews.
 
 Release candidates are not final stability promises. They are tagged
@@ -54,7 +54,9 @@ That period is now historical, not the current release track:
   re-entry to the `v1.0.0` candidate track.
 - `v1.0.0-rc6` was cut on 2026-05-04 as the focused
   release-governance candidate for issues #84, #104, and #105.
-- `v1.0.0-rc7` is the current candidate staged for that same track.
+- `v1.0.0-rc7` was cut on 2026-05-04 for cross-harness
+  agent-orchestration fixes.
+- `v1.0.0-rc8` is the current candidate staged for that same track.
 
 Documentation or issue bodies that cite older tags remain valid
 point-in-time references and are not edited retroactively.
@@ -72,7 +74,7 @@ point-in-time references and are not edited retroactively.
   default when running `scripts/upgrade.sh`.
 - Stable-track downstream projects do **not** move to an rc by default.
   They can opt in explicitly with `scripts/upgrade.sh --target
-  v1.0.0-rc7`.
+  v1.0.0-rc8`.
 
 `v1.0.0` final means:
 

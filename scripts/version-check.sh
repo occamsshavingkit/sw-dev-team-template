@@ -60,7 +60,8 @@ tv="$project_root/TEMPLATE_VERSION"
 
 first_actions_lib="$project_root/scripts/lib/first-actions.sh"
 if [[ -f "$first_actions_lib" ]]; then
-  # shellcheck source=lib/first-actions.sh
+  # shellcheck source=scripts/lib/first-actions.sh
+  # shellcheck disable=SC1091
   source "$first_actions_lib"
 fi
 

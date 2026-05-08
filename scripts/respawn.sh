@@ -61,10 +61,11 @@ last_commit="$(git -C "$project_root" log -1 --format='%h %s' 2>/dev/null || ech
 
 # --- Write the brief ---------------------------------------------------------
 {
-  cat "$project_root/docs/templates/handover-template.md" | sed \
+  sed \
     -e "s|\`<teammate-name>\`|\`$name\`|g" \
     -e "s|YYYY-MM-DD HH:MM|$(date -u +'%Y-%m-%d %H:%M UTC')|g" \
-    -e "s|signal numbers from.*section 2.*|$reason|g"
+    -e "s|signal numbers from.*section 2.*|$reason|g" \
+    "$project_root/docs/templates/handover-template.md"
 
   cat <<EOF
 

@@ -83,7 +83,21 @@ on the project schedule, not an afterthought appended at the end.
 Test-specific risks (environment unavailability, data-refresh
 delays, team capacity); flow into `docs/pm/RISKS.md`.
 
-## 13. References
+## 13. Per-run evidence directories
+
+For evidence written on a system-under-test, appliance, or test bench,
+use one timestamp position:
+
+    <axis>-<YYYYMMDDTHHMMSSZ>-evidence/
+
+Each per-run directory contains `MANIFEST.md` or `MANIFEST.json` with:
+run ID, UTC start timestamp, writer identity, system-under-test or test
+bench identifier, and the generated evidence files.
+
+Runbooks and closeout checks query the manifest contents. They do not
+decide whether evidence exists by matching a directory-name pattern.
+
+## 14. References
 
 - ISTQB Foundation Level Syllabus (current edition).
 - IEEE 829:2008 / ISO/IEC/IEEE 29119 series (software testing).

@@ -36,6 +36,7 @@ charter_milestone="(no docs/pm/CHARTER.md)"
 if [[ -f "$project_root/docs/pm/CHARTER.md" ]]; then
   charter_milestone="$(grep -A 20 '## 5. Summary milestones' "$project_root/docs/pm/CHARTER.md" 2>/dev/null | head -10 || true)"
 fi
+charter_milestone_indented="  ${charter_milestone//$'\n'/$'\n'  }"
 
 open_q_count="(no docs/OPEN_QUESTIONS.md)"
 if [[ -f "$project_root/docs/OPEN_QUESTIONS.md" ]]; then
@@ -90,7 +91,7 @@ Open question count (docs/OPEN_QUESTIONS.md, status=open):
   $open_q_count
 
 Charter milestone summary (docs/pm/CHARTER.md §5):
-$(echo "$charter_milestone" | sed 's/^/  /')
+$charter_milestone_indented
 
 Last git commit:
   $last_commit

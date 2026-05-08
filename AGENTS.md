@@ -1,7 +1,9 @@
 # Codex Agent Instructions
 
 This project is a multi-agent software-development template that must
-run under both Codex and Claude Code.
+run under both Codex and Claude Code. If a harness cannot satisfy a
+binding instruction, record the incompatibility, stop the affected work,
+and escalate instead of silently weakening the rule.
 
 ## Role Binding
 
@@ -80,12 +82,15 @@ the selected effort and slot-health state in the turn summary or Turn
 Ledger.
 
 Specialist dispatch briefs, whether sent through Claude Code `Agent` or
-Codex `spawn_agent`, must be concise, role/task-specific, and limited to
-the context needed for that specialist's assignment. Do not fork or paste
-the full top-level conversation, broad repo state, or unrelated project
-context into a specialist; cite required files or sections for the
-specialist to read instead, so the top-level session preserves its own
-context budget.
+Codex `spawn_agent`, are limited to concise, role/task-specific context
+needed for that specialist's assignment. Do not fork or paste the full
+top-level conversation, broad repo state, or unrelated project context
+into a specialist; cite required files or sections for the specialist to
+read instead, so the top-level session preserves its own context budget.
+Exception: include only the minimum extra context needed to preserve
+binding customer constraints, safety limits, or exact excerpt under
+review; if broader context is required, stop and ask `tech-lead` to
+narrow the brief.
 
 **Rule A — No role-stealing (binding).** The Codex `tech-lead` session
 orchestrates; it does not author production artifacts. Code, tests,
@@ -98,9 +103,9 @@ orchestration scope of `CLAUDE.md` Hard Rule #8. When unsure, dispatch.
 independent tasks, send N separate concise briefs — one per task —
 not one mega-brief covering several. **Independence test:** if task
 X could land before task Y without breaking Y, and vice versa, X and
-Y are independent and must be split into separate briefs. A shared
-brief is allowed only when one task is a hard prerequisite for the
-other.
+Y are independent; split them into separate briefs. A shared brief is
+allowed only when one task is a hard prerequisite for the other; record
+that prerequisite in the brief.
 
 If spawning is unavailable, continue only with orchestration or other
 non-specialist work, record "Codex spawning unavailable" in the turn
@@ -126,14 +131,24 @@ Customer authorization to spawn specialists is granted to the top-level
 `tech-lead` session only. A specialist receiving a brief from
 `tech-lead` does not inherit spawning rights. Specialists return
 requests and escalations to `tech-lead`; only `tech-lead` owns the
-native spawn surface. Dispatch briefs MUST NOT contain phrasing such as
-"customer authorized spawning" without qualification — that wording is
-misreadable as transferable. Preferred brief preface (template, not
+native spawn surface. In dispatch briefs, avoid phrasing such as
+"customer authorized spawning" unless it is explicitly qualified as
+top-level-only authorization; unqualified wording is misreadable as
+transferable. Preferred Codex specialist brief preface (template, not
 mandatory verbatim):
 
-> Top-level tech-lead dispatched you. Do not spawn, delegate, or
-> contact the customer; return findings, blockers, and escalation
-> requests to tech-lead.
+> Top-level tech-lead dispatched you. You have already been spawned
+> successfully; do not report spawning unavailable. Do not spawn,
+> delegate, or contact the customer; return findings, blockers, and
+> escalation requests to tech-lead.
+
+If a successfully spawned specialist claims that native spawning is
+unavailable, but the top-level session has a live agent id or durable
+completed payload, classify the result as `failed` role drift and
+re-dispatch with a smaller prompt plus the standard preamble above.
+Exception: exact customer authorization text may be quoted only in the
+top-level Turn Ledger or a customer-truth record routed to `researcher`;
+specialist briefs still use the non-transferable preface.
 
 **Rule E — Closing completed specialists is routine (binding).**
 Closing completed, failed, or no-longer-needed specialists is routine
@@ -215,22 +230,24 @@ If the Codex harness does not expose spawning, continue only with
 orchestration or non-specialist work and record the limitation in the
 turn summary. If the customer required agents, or the task needs
 specialist-owned work, stop and ask before proceeding. Do not pretend a
-specialist completed work that was never dispatched.
+specialist completed work that was never dispatched; record
+`specialist unavailable: stopped` and escalate to `tech-lead`.
 
 ## Codex Pre-Close Checklist
 
-Codex does not consume Claude Code hooks, so hook-backed safeguards in
-`.claude/settings.json` must be mirrored as an explicit checklist before
-closing any non-trivial turn.
+Codex does not consume Claude Code hooks, so mirror hook-backed
+safeguards in `.claude/settings.json` as an explicit checklist before
+closing any non-trivial turn. If the checklist cannot be completed,
+record the failed item and stop closure until `tech-lead` resolves it.
 
 Matcher-vocabulary note: the `PreToolUse` matchers in
 `.claude/settings.json` (`Write`, `Edit`, `Bash`) are verified
 compatible with both harnesses. Per Codex hooks docs
 (developers.openai.com/codex/hooks) and Codex PR #18391, Codex maps
 `apply_patch` onto `Edit` / `Write` aliases and `exec_command` onto
-`Bash` for hook compatibility. `MultiEdit` is intentionally absent —
-Codex has no equivalent, and `apply_patch` already covers multi-file
-edits. The `customer-notes-guard.py` hook is harness-agnostic
+`Bash` for hook compatibility. Claude Code also has `MultiEdit`
+covered in `.claude/settings.json`; Codex has no `MultiEdit`
+equivalent. The `customer-notes-guard.py` hook is harness-agnostic
 (inspects `tool_input.file_path` / `path` / `command`), so the same
 config serves both runtimes; if Codex ever ships a separate hook
 config, mirror these matchers exactly.

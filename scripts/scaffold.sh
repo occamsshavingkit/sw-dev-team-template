@@ -56,7 +56,7 @@ fi
 
 mkdir -p "$target"
 
-template_version="$(cat VERSION | tr -d '[:space:]')"
+template_version="$(tr -d '[:space:]' < VERSION)"
 template_sha="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
 today="$(date -u +%Y-%m-%d)"
 
@@ -181,11 +181,7 @@ tool's \`name\` parameter so teammates appear on the agent-teams panel.
 EOF
 
 # --- Stamp TEMPLATE_VERSION --------------------------------------------------
-cat > "$target/TEMPLATE_VERSION" <<EOF
-$template_version
-$template_sha
-$today
-EOF
+printf '%s\n%s\n%s\n' "$template_version" "$template_sha" "$today" > "$target/TEMPLATE_VERSION"
 
 # --- Seed .template-customizations with canonical stub-fills ----------------
 # Issue #65: stub-fill files diverge from their empty-template upstream
@@ -259,7 +255,8 @@ EOF
 # Self-verify immediately after write — fail-fast on a corrupt scaffold.
 # Paths come from the template source (this repo, $repo_root); SHAs from
 # the freshly-scaffolded $target. v0.14.1 split.
-# shellcheck source=lib/manifest.sh
+# shellcheck source=scripts/lib/manifest.sh
+# shellcheck disable=SC1091
 source "$(dirname "$0")/lib/manifest.sh"
 manifest_write "$repo_root" "$target" "$target/TEMPLATE_MANIFEST.lock"
 if ! manifest_verify "$target" "$target/TEMPLATE_MANIFEST.lock" >/dev/null; then

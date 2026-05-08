@@ -46,6 +46,21 @@ and a follow-up task in `docs/tasks/`.
 Daily status during test cycle; summary at milestone close;
 dashboard link for live view.
 
+Evidence for each run lives under:
+`docs/test-evidence/system/<YYYYMMDDThhmmssZ>-<run-id>/`.
+The timestamp is first and is the UTC run start time.
+
+Each evidence directory contains `MANIFEST.md` with:
+
+| Field | Required content |
+|---|---|
+| Run ID | Stable run identifier used in reports and defects. |
+| Start timestamp | UTC timestamp matching the directory prefix. |
+| Writer identity | Person or agent that wrote the evidence. |
+
+Runbooks and closeout checks verify `MANIFEST.md`. Do not rely only
+on directory-name patterns.
+
 ## 8. References
 
 - ISTQB Foundation Level Syllabus.

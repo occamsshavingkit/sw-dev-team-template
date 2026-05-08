@@ -49,7 +49,8 @@ fi
 # v0.14.0 ships scripts/lib/manifest.sh; pre-v0.14.0 projects don't
 # have it locally yet, so we source from the upgrade-time clone of
 # upstream.
-# shellcheck source=../scripts/lib/manifest.sh
+# shellcheck source=scripts/lib/manifest.sh
+# shellcheck disable=SC1091
 source "$WORKDIR_NEW/scripts/lib/manifest.sh"
 
 # Collect baseline SHAs if WORKDIR_OLD is available.

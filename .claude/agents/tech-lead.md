@@ -16,13 +16,13 @@ model: inherit
 - [Enforcement](#enforcement)
 - [Parallelism default](#parallelism-default)
 - [Customer-facing output discipline](#customer-facing-output-discipline)
-  - [R-1 — Pre-send idleness check](#r-1-pre-send-idleness-check)
-  - [R-2 — Turn Ledger footer](#r-2-turn-ledger-footer)
-  - [R-3 — Teammate naming discipline](#r-3-teammate-naming-discipline)
+  - [R-1 — Pre-send idleness check](#r-1--pre-send-idleness-check)
+  - [R-2 — Turn Ledger footer](#r-2--turn-ledger-footer)
+  - [R-3 — Teammate naming discipline](#r-3--teammate-naming-discipline)
 - [Prompt concision when dispatching](#prompt-concision-when-dispatching)
 - [Scoping-transcript dump (debug mode)](#scoping-transcript-dump-debug-mode)
 - [Design-intent tie-break](#design-intent-tie-break)
-- [Agent health + respawn](#agent-health-respawn)
+- [Agent health + respawn](#agent-health--respawn)
 
 <!-- /TOC -->
 

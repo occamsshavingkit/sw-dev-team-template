@@ -9,7 +9,7 @@ model: inherit
 
 - [Project-specific local supplement](#project-specific-local-supplement)
 - [Mode](#mode)
-- [Constraints (binding — these are the whole point of the role)](#constraints-binding-these-are-the-whole-point-of-the-role)
+- [Constraints (binding — these are the whole point of the role)](#constraints-binding--these-are-the-whole-point-of-the-role)
 - [Job](#job)
   - [Typical dispatch tasks (pick one per run)](#typical-dispatch-tasks-pick-one-per-run)
 - [Output: Friction Report shape](#output-friction-report-shape)

@@ -79,19 +79,50 @@ version-check.sh, migrations/README.md).
 EOF
 }
 
+# Older bootstrap scripts may copy only this script plus manifest.sh,
+# then re-exec us with SWDT_PRESTAGED_WORKDIR. Recover required libs
+# before the first source so the new bootstrap can take over.
+script_dir="$(dirname "$0")"
+ensure_prestaged_required_libs() {
+  local prestaged_lib_dir
+  local lib_name
+  local upstream_lib
+  local local_lib
+
+  if [[ -z "${SWDT_PRESTAGED_WORKDIR:-}" ]]; then
+    return 0
+  fi
+  prestaged_lib_dir="$SWDT_PRESTAGED_WORKDIR/new/scripts/lib"
+  if [[ ! -d "$prestaged_lib_dir" ]]; then
+    return 0
+  fi
+
+  mkdir -p "$script_dir/lib"
+  for lib_name in manifest.sh semver.sh; do
+    upstream_lib="$prestaged_lib_dir/$lib_name"
+    local_lib="$script_dir/lib/$lib_name"
+    if [[ ! -f "$local_lib" && -f "$upstream_lib" ]]; then
+      cp "$upstream_lib" "$local_lib.tmp.$$"
+      mv "$local_lib.tmp.$$" "$local_lib"
+    fi
+  done
+}
+ensure_prestaged_required_libs
+
 # Manifest helpers (FW-ADR-0002, v0.14.0).
-# shellcheck source=lib/manifest.sh
-source "$(dirname "$0")/lib/manifest.sh"
+# shellcheck source=scripts/lib/manifest.sh
+source "$script_dir/lib/manifest.sh"
 
 # SemVer tag sort lives in scripts/lib/semver.sh — shared with
 # scripts/stepwise-smoke.sh. Single source of truth (issue #108).
-# shellcheck source=lib/semver.sh
-source "$(dirname "$0")/lib/semver.sh"
+# shellcheck source=scripts/lib/semver.sh
+source "$script_dir/lib/semver.sh"
 
 # FIRST ACTIONS helpers (issue #73).
-first_actions_lib="$(dirname "$0")/lib/first-actions.sh"
+first_actions_lib="$script_dir/lib/first-actions.sh"
 if [[ -f "$first_actions_lib" ]]; then
-  # shellcheck source=lib/first-actions.sh
+  # shellcheck source=scripts/lib/first-actions.sh
+  # shellcheck disable=SC1091
   source "$first_actions_lib"
 fi
 
@@ -174,9 +205,11 @@ if [[ $verify_mode -eq 1 ]]; then
 fi
 
 # --resolve mode: re-check entries in .template-conflicts.json and
-# remove those whose project SHA now differs from BOTH baseline and
-# upstream (indicating a real hand-merge). Files in local_only_kept /
-# accepted_local are never blockers and are pruned automatically.
+# remove those whose project SHA changed after the conflict was
+# recorded and now either matches upstream or differs from BOTH
+# baseline and upstream (indicating a real hand-merge). Files in
+# local_only_kept / accepted_local are never blockers and are pruned
+# automatically.
 # Issue #107.
 if [[ $resolve_mode -eq 1 ]]; then
   conflicts_path="$project_root/.template-conflicts.json"
@@ -212,6 +245,7 @@ if [[ $resolve_mode -eq 1 ]]; then
       e_class=$(echo "$entry_line" | sed -n 's/.*"classified": "\([^"]*\)".*/\1/p')
       e_baseline=$(echo "$entry_line" | sed -n 's/.*"baseline_sha": "\([^"]*\)".*/\1/p')
       e_upstream=$(echo "$entry_line" | sed -n 's/.*"upstream_sha": "\([^"]*\)".*/\1/p')
+      e_project=$(echo "$entry_line" | sed -n 's/.*"project_sha": "\([^"]*\)".*/\1/p')
       [[ -z "$e_path" ]] && continue
 
       # Auto-prune classes that were never blockers.
@@ -224,13 +258,16 @@ if [[ $resolve_mode -eq 1 ]]; then
       proj_now=""
       [[ -f "$project_root/$e_path" ]] && proj_now="$(manifest_file_sha "$project_root/$e_path")"
 
-      # Resolution heuristic per #107: project SHA differs from both
-      # baseline and upstream → real merge happened, drop entry.
-      # Project SHA matches upstream (took upstream side) → drop.
-      # Project SHA matches baseline OR file missing → still
-      # unresolved.
+      # Resolution heuristic per #107: project SHA must first differ
+      # from the recorded conflict snapshot. Without that post-conflict
+      # action, a pre-existing local customization that already differs
+      # from baseline and upstream is still unresolved.
       resolved=0
-      if [[ -n "$proj_now" ]]; then
+      if [[ -n "$proj_now" && "$proj_now" != "$e_project" ]]; then
+        # Project SHA matches upstream (took upstream side) → drop.
+        # Project SHA differs from both baseline and upstream → real
+        # hand-merge happened, drop entry. Project SHA matches baseline
+        # OR file missing → still unresolved.
         if [[ "$proj_now" == "$e_upstream" ]]; then
           resolved=1
         elif [[ -n "$e_baseline" && "$proj_now" != "$e_baseline" && "$proj_now" != "$e_upstream" ]]; then
@@ -324,23 +361,20 @@ fi
 # upgrade with atomic_install + correct manifest semantics.
 if [[ "${SWDT_BOOTSTRAPPED:-}" != "1" ]]; then
   upstream_upgrade="$workdir/new/scripts/upgrade.sh"
-  upstream_lib="$workdir/new/scripts/lib/manifest.sh"
-  upstream_first_actions="$workdir/new/scripts/lib/first-actions.sh"
-  local_lib="$(dirname "$0")/lib/manifest.sh"
-  local_first_actions="$(dirname "$0")/lib/first-actions.sh"
+  upstream_lib_dir="$workdir/new/scripts/lib"
+  local_lib_dir="$(dirname "$0")/lib"
   bootstrap=0
   if [[ -f "$upstream_upgrade" ]] && ! cmp -s "$upstream_upgrade" "$0"; then
     bootstrap=1
   fi
-  if [[ -f "$upstream_lib" ]]; then
-    if [[ ! -f "$local_lib" ]] || ! cmp -s "$upstream_lib" "$local_lib"; then
-      bootstrap=1
-    fi
-  fi
-  if [[ -f "$upstream_first_actions" ]]; then
-    if [[ ! -f "$local_first_actions" ]] || ! cmp -s "$upstream_first_actions" "$local_first_actions"; then
-      bootstrap=1
-    fi
+  if [[ -d "$upstream_lib_dir" ]]; then
+    while IFS= read -r upstream_lib; do
+      local_lib="$local_lib_dir/$(basename "$upstream_lib")"
+      if [[ ! -f "$local_lib" ]] || ! cmp -s "$upstream_lib" "$local_lib"; then
+        bootstrap=1
+        break
+      fi
+    done < <(find "$upstream_lib_dir" -maxdepth 1 -type f -name '*.sh' | sort)
   fi
   if [[ $bootstrap -eq 1 ]]; then
     if [[ $dry_run -eq 1 ]]; then
@@ -357,15 +391,13 @@ if [[ "${SWDT_BOOTSTRAPPED:-}" != "1" ]]; then
       cp "$upstream_upgrade" "$0.tmp.$$"
       mv "$0.tmp.$$" "$0"
     fi
-    if [[ -f "$upstream_lib" ]]; then
-      mkdir -p "$(dirname "$0")/lib"
-      cp "$upstream_lib" "$(dirname "$0")/lib/manifest.sh.tmp.$$"
-      mv "$(dirname "$0")/lib/manifest.sh.tmp.$$" "$(dirname "$0")/lib/manifest.sh"
-    fi
-    if [[ -f "$upstream_first_actions" ]]; then
-      mkdir -p "$(dirname "$0")/lib"
-      cp "$upstream_first_actions" "$(dirname "$0")/lib/first-actions.sh.tmp.$$"
-      mv "$(dirname "$0")/lib/first-actions.sh.tmp.$$" "$(dirname "$0")/lib/first-actions.sh"
+    if [[ -d "$upstream_lib_dir" ]]; then
+      mkdir -p "$local_lib_dir"
+      while IFS= read -r upstream_lib; do
+        lib_name="$(basename "$upstream_lib")"
+        cp "$upstream_lib" "$local_lib_dir/$lib_name.tmp.$$"
+        mv "$local_lib_dir/$lib_name.tmp.$$" "$local_lib_dir/$lib_name"
+      done < <(find "$upstream_lib_dir" -maxdepth 1 -type f -name '*.sh' | sort)
     fi
     # Reuse the workdir we just cloned — no need to clone twice. Hand the
     # path to the re-execed self via env; child trap takes ownership of
@@ -381,7 +413,7 @@ if declare -F first_actions_step0_warning >/dev/null; then
   first_actions_step0_warning "$project_root" "upgrade"
 fi
 
-new_version="$(cat "$workdir/new/VERSION" | tr -d '[:space:]')"
+new_version="$(tr -d '[:space:]' < "$workdir/new/VERSION")"
 new_sha="$(git -C "$workdir/new" rev-parse HEAD)"
 
 if [[ "$local_version" == "$new_version" ]]; then
@@ -393,8 +425,28 @@ if [[ "$local_version" == "$new_version" ]]; then
   manifest_path="$project_root/TEMPLATE_MANIFEST.lock"
   if [[ -f "$manifest_path" ]] \
      && manifest_verify "$project_root" "$manifest_path" >/dev/null 2>&1; then
-    echo "Template already at $local_version — files match manifest, nothing to do." >&2
-    exit 0
+    expected_paths="$workdir/expected-manifest-paths.txt"
+    actual_paths="$workdir/actual-manifest-paths.txt"
+    manifest_ship_files "$workdir/new" "$project_root" > "$expected_paths"
+    awk '
+      /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+      {
+        sep = index($0, "  ")
+        if (sep > 0) {
+          print substr($0, sep + 2)
+        }
+      }
+    ' "$manifest_path" | sort > "$actual_paths"
+    if cmp -s "$expected_paths" "$actual_paths"; then
+      echo "Template already at $local_version — files match manifest, nothing to do." >&2
+      exit 0
+    fi
+    echo "WARN: stamp says $local_version and manifest hashes verify, but manifest path set differs from upstream." >&2
+    if comm -23 "$expected_paths" "$actual_paths" | grep -q .; then
+      echo "       Manifest is missing upstream shipped paths; falling through to sync/regenerate. (#129)" >&2
+    else
+      echo "       Manifest has path-set drift; falling through to sync/regenerate. (#129)" >&2
+    fi
   fi
   if [[ ! -f "$manifest_path" ]]; then
     echo "WARN: stamp says $local_version but TEMPLATE_MANIFEST.lock is missing." >&2
@@ -541,7 +593,7 @@ memory_only_agents_stub() {
   [[ -f "$path" ]] || return 1
   grep -q '<claude-mem-context>' "$path" || return 1
   grep -q '</claude-mem-context>' "$path" || return 1
-  ! grep -q 'main Codex session plays `tech-lead` directly' "$path" || return 1
+  ! grep -q "main Codex session plays \`tech-lead\` directly" "$path" || return 1
   ! grep -q '^## Role Binding' "$path" || return 1
 }
 
@@ -915,7 +967,9 @@ user_added_agents=$(find "$project_root/.claude/agents" -maxdepth 1 \
                     | sed "s|^$project_root/||" || true)
 if [[ -n "$user_added_agents" ]]; then
   echo "${prefix}User-added agent files preserved:"
-  echo "$user_added_agents" | sed 's/^/  · /'
+  while IFS= read -r f; do
+    echo "  · $f"
+  done <<< "$user_added_agents"
   echo
 fi
 

@@ -88,6 +88,30 @@ Rules:
   "Text extraction" cell. Scanned PDFs that need OCR are marked
   `blocked: OCR needed` until handled.
 
+### Slug vs row ID
+
+The on-disk filename slug is opaque storage. The inventory row ID is
+the citation handle.
+
+They may diverge. Do not rename a fetched file only to make its slug
+match an inventory row ID.
+
+If a fetched filename's slug or prefix collides with an existing row ID
+for a different source, keep the fetched filename, assign the next free
+row ID in the inventory sequence, and record the exact path in the
+"Local filename" cell.
+
+### Conventions
+
+Copy this into a per-domain inventory after the first slug / row-ID
+divergence:
+
+> On-disk filenames under `local/` are opaque storage names.
+> Inventory row IDs are the citation handles used by committed notes.
+> A row ID and a filename slug may differ.
+> On slug collision, keep the fetched filename, assign the next free row
+> ID, and record the exact local path in the row.
+
 ---
 
 ## Topic tag vocabulary (domain-specific)
