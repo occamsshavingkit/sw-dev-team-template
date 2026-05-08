@@ -85,6 +85,14 @@ check() {
   fi
 }
 
+settings_contains_literal_path() {
+  local settings_file="$1/.claude/settings.json"
+  local expected_path="$2"
+  local legacy_path="$3"
+
+  ! grep -Fq "$legacy_path" "$settings_file" && grep -Fq "$expected_path" "$settings_file"
+}
+
 check_semver_sorter() {
   local label="$1"
   local script="$2"
@@ -331,9 +339,9 @@ check "settings guard covers Claude MultiEdit" \
 customer_notes_guard_path="\${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py"
 version_check_path="\${CLAUDE_PROJECT_DIR}/scripts/version-check.sh"
 check "settings guard commands use CLAUDE_PROJECT_DIR" \
-  bash -c 'settings_file="$1/.claude/settings.json"; expected_path="$2"; ! grep -Fq "python3 ./scripts/hooks/customer-notes-guard.py" "$settings_file" && grep -Fq "$expected_path" "$settings_file"' _ "$target" "$customer_notes_guard_path"
+  settings_contains_literal_path "$target" "$customer_notes_guard_path" "python3 ./scripts/hooks/customer-notes-guard.py"
 check "settings SessionStart version-check uses CLAUDE_PROJECT_DIR" \
-  bash -c 'settings_file="$1/.claude/settings.json"; expected_path="$2"; ! grep -Fq "./scripts/version-check.sh" "$settings_file" && grep -Fq "$expected_path" "$settings_file"' _ "$target" "$version_check_path"
+  settings_contains_literal_path "$target" "$version_check_path" "./scripts/version-check.sh"
 guard_customer_output="$(
   printf '%s\n' '{"tool_name":"Write","tool_input":{"file_path":"CUSTOMER_NOTES.md","content":"x"}}' \
     | python3 "$target/scripts/hooks/customer-notes-guard.py"
