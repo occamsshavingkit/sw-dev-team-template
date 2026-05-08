@@ -110,12 +110,12 @@ ensure_prestaged_required_libs() {
 ensure_prestaged_required_libs
 
 # Manifest helpers (FW-ADR-0002, v0.14.0).
-# shellcheck source=lib/manifest.sh
+# shellcheck source=scripts/lib/manifest.sh
 source "$script_dir/lib/manifest.sh"
 
 # SemVer tag sort lives in scripts/lib/semver.sh — shared with
 # scripts/stepwise-smoke.sh. Single source of truth (issue #108).
-# shellcheck source=lib/semver.sh
+# shellcheck source=scripts/lib/semver.sh
 source "$script_dir/lib/semver.sh"
 
 # FIRST ACTIONS helpers (issue #73).

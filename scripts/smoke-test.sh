@@ -328,10 +328,12 @@ check "first-actions warning stays quiet after Step 0" \
 echo "-- hook guards --"
 check "settings guard covers Claude MultiEdit" \
   bash -c "grep -q '\"matcher\": \"MultiEdit\"' '$target/.claude/settings.json'"
+customer_notes_guard_path="\${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py"
+version_check_path="\${CLAUDE_PROJECT_DIR}/scripts/version-check.sh"
 check "settings guard commands use CLAUDE_PROJECT_DIR" \
-  bash -c 'settings_file="$1/.claude/settings.json"; ! grep -Fq "python3 ./scripts/hooks/customer-notes-guard.py" "$settings_file" && grep -Fq '\''${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py'\'' "$settings_file"' _ "$target"
+  bash -c 'settings_file="$1/.claude/settings.json"; expected_path="$2"; ! grep -Fq "python3 ./scripts/hooks/customer-notes-guard.py" "$settings_file" && grep -Fq "$expected_path" "$settings_file"' _ "$target" "$customer_notes_guard_path"
 check "settings SessionStart version-check uses CLAUDE_PROJECT_DIR" \
-  bash -c 'settings_file="$1/.claude/settings.json"; ! grep -Fq "./scripts/version-check.sh" "$settings_file" && grep -Fq '\''${CLAUDE_PROJECT_DIR}/scripts/version-check.sh'\'' "$settings_file"' _ "$target"
+  bash -c 'settings_file="$1/.claude/settings.json"; expected_path="$2"; ! grep -Fq "./scripts/version-check.sh" "$settings_file" && grep -Fq "$expected_path" "$settings_file"' _ "$target" "$version_check_path"
 guard_customer_output="$(
   printf '%s\n' '{"tool_name":"Write","tool_input":{"file_path":"CUSTOMER_NOTES.md","content":"x"}}' \
     | python3 "$target/scripts/hooks/customer-notes-guard.py"
