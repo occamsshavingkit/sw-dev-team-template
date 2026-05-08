@@ -219,11 +219,11 @@ by `architect` with `project-manager` on the cost / schedule side.
 
 ## Binding references
 
-All agents and all human contributors MUST use these references.
-Disagreement is resolved by amending the referenced file, not by
-diverging in practice. If a required reference is missing, unreadable, or
-in conflict with customer-truth records, stop the affected work and
-escalate through `tech-lead`.
+Use these references for all agent and human contributor work. Resolve
+disagreement by amending the referenced file, not by diverging in
+practice. If a required reference is missing, unreadable, or in conflict
+with customer-truth records, stop the affected work and escalate through
+`tech-lead`.
 
 - **`docs/glossary/ENGINEERING.md`** — binding software-engineering
   terminology (generic). Precedes any agent's own reading of an
@@ -293,8 +293,8 @@ like "first session of the calendar week" in preference to
    `tech-lead`, no cached approval, no agent-only path.
 5. Prefer paraphrase over quotation from standards docs (SWEBOK, IEEE,
    ISO). Copyright + drift risk.
-6. Before escalating to `tech-lead`, an agent must first check
-   `CUSTOMER_NOTES.md` and consider whether another agent is the right
+6. Before escalating to `tech-lead`, first check `CUSTOMER_NOTES.md`
+   and consider whether another agent is the right
    addressee. If `CUSTOMER_NOTES.md` is absent, unreadable, or itself
    the subject of the escalation, state that condition in the escalation.
    Do not guess customer-domain facts, but also do not flood the
@@ -327,11 +327,11 @@ like "first session of the calendar week" in preference to
    framework maintenance for that task. File discovered framework gaps
    upstream through `docs/ISSUE_FILING.md`; see
    `docs/framework-project-boundary.md` for path ownership and
-   review / commit splitting. Product-only release audits must classify
-   release/version artifacts before writing and must not edit
-   `TEMPLATE_VERSION`, template versioning docs, rc stabilization docs,
-   final checklists, scaffold / upgrade scripts, manifest files, or
-   other framework-managed files unless the customer explicitly
+   review / commit splitting. For product-only release audits, classify
+   release/version artifacts before writing; leave `TEMPLATE_VERSION`,
+   template versioning docs, rc stabilization docs, final checklists,
+   scaffold / upgrade scripts, manifest files, and other
+   framework-managed files unedited unless the customer explicitly
    authorized template-upgrade or framework-maintenance work for that
    task.
 

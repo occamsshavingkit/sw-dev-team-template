@@ -82,15 +82,15 @@ the selected effort and slot-health state in the turn summary or Turn
 Ledger.
 
 Specialist dispatch briefs, whether sent through Claude Code `Agent` or
-Codex `spawn_agent`, must be concise, role/task-specific, and limited to
-the context needed for that specialist's assignment. Do not fork or paste
-the full top-level conversation, broad repo state, or unrelated project
-context into a specialist; cite required files or sections for the
-specialist to read instead, so the top-level session preserves its own
-context budget. Exception: include only the minimum extra context needed
-to preserve binding customer constraints, safety limits, or exact
-excerpt under review; if broader context is required, stop and ask
-`tech-lead` to narrow the brief.
+Codex `spawn_agent`, are limited to concise, role/task-specific context
+needed for that specialist's assignment. Do not fork or paste the full
+top-level conversation, broad repo state, or unrelated project context
+into a specialist; cite required files or sections for the specialist to
+read instead, so the top-level session preserves its own context budget.
+Exception: include only the minimum extra context needed to preserve
+binding customer constraints, safety limits, or exact excerpt under
+review; if broader context is required, stop and ask `tech-lead` to
+narrow the brief.
 
 **Rule A — No role-stealing (binding).** The Codex `tech-lead` session
 orchestrates; it does not author production artifacts. Code, tests,
@@ -103,9 +103,9 @@ orchestration scope of `CLAUDE.md` Hard Rule #8. When unsure, dispatch.
 independent tasks, send N separate concise briefs — one per task —
 not one mega-brief covering several. **Independence test:** if task
 X could land before task Y without breaking Y, and vice versa, X and
-Y are independent and must be split into separate briefs. A shared
-brief is allowed only when one task is a hard prerequisite for the
-other; record that prerequisite in the brief.
+Y are independent; split them into separate briefs. A shared brief is
+allowed only when one task is a hard prerequisite for the other; record
+that prerequisite in the brief.
 
 If spawning is unavailable, continue only with orchestration or other
 non-specialist work, record "Codex spawning unavailable" in the turn
@@ -131,10 +131,11 @@ Customer authorization to spawn specialists is granted to the top-level
 `tech-lead` session only. A specialist receiving a brief from
 `tech-lead` does not inherit spawning rights. Specialists return
 requests and escalations to `tech-lead`; only `tech-lead` owns the
-native spawn surface. Dispatch briefs MUST NOT contain phrasing such as
-"customer authorized spawning" without qualification — that wording is
-misreadable as transferable. Preferred Codex specialist brief preface
-(template, not mandatory verbatim):
+native spawn surface. In dispatch briefs, avoid phrasing such as
+"customer authorized spawning" unless it is explicitly qualified as
+top-level-only authorization; unqualified wording is misreadable as
+transferable. Preferred Codex specialist brief preface (template, not
+mandatory verbatim):
 
 > Top-level tech-lead dispatched you. You have already been spawned
 > successfully; do not report spawning unavailable. Do not spawn,
@@ -234,8 +235,8 @@ specialist completed work that was never dispatched; record
 
 ## Codex Pre-Close Checklist
 
-Codex does not consume Claude Code hooks, so hook-backed safeguards in
-`.claude/settings.json` must be mirrored as an explicit checklist before
+Codex does not consume Claude Code hooks, so mirror hook-backed
+safeguards in `.claude/settings.json` as an explicit checklist before
 closing any non-trivial turn. If the checklist cannot be completed,
 record the failed item and stop closure until `tech-lead` resolves it.
 
