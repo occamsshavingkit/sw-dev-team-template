@@ -201,11 +201,7 @@ decision here and leave the table unfilled.
 EOF
 
 # Stamp TEMPLATE_VERSION
-cat > TEMPLATE_VERSION <<EOF
-$template_version
-$template_sha
-$today
-EOF
+printf '%s\n%s\n%s\n' "$template_version" "$template_sha" "$today" > TEMPLATE_VERSION
 
 # Seed .template-customizations
 touch .template-customizations

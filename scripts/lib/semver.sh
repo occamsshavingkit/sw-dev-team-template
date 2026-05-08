@@ -90,5 +90,5 @@ semver_sort_tags_self_test() {
     echo "actual:"; printf '%s\n' "$actual" | sed 's/^/  /'
     rc=1
   fi
-  return $rc
+  return "$rc"
 }

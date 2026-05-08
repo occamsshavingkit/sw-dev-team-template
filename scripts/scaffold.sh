@@ -181,11 +181,7 @@ tool's \`name\` parameter so teammates appear on the agent-teams panel.
 EOF
 
 # --- Stamp TEMPLATE_VERSION --------------------------------------------------
-cat > "$target/TEMPLATE_VERSION" <<EOF
-$template_version
-$template_sha
-$today
-EOF
+printf '%s\n%s\n%s\n' "$template_version" "$template_sha" "$today" > "$target/TEMPLATE_VERSION"
 
 # --- Seed .template-customizations with canonical stub-fills ----------------
 # Issue #65: stub-fill files diverge from their empty-template upstream
