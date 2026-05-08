@@ -1,7 +1,9 @@
 # Codex Agent Instructions
 
 This project is a multi-agent software-development template that must
-run under both Codex and Claude Code.
+run under both Codex and Claude Code. If a harness cannot satisfy a
+binding instruction, record the incompatibility, stop the affected work,
+and escalate instead of silently weakening the rule.
 
 ## Role Binding
 
@@ -85,7 +87,9 @@ the context needed for that specialist's assignment. Do not fork or paste
 the full top-level conversation, broad repo state, or unrelated project
 context into a specialist; cite required files or sections for the
 specialist to read instead, so the top-level session preserves its own
-context budget.
+context budget. Exception: include only the minimum extra context needed
+to preserve binding customer constraints, safety limits, or exact
+quoted text the specialist must inspect.
 
 **Rule A — No role-stealing (binding).** The Codex `tech-lead` session
 orchestrates; it does not author production artifacts. Code, tests,
@@ -100,7 +104,7 @@ not one mega-brief covering several. **Independence test:** if task
 X could land before task Y without breaking Y, and vice versa, X and
 Y are independent and must be split into separate briefs. A shared
 brief is allowed only when one task is a hard prerequisite for the
-other.
+other; record that prerequisite in the brief.
 
 If spawning is unavailable, continue only with orchestration or other
 non-specialist work, record "Codex spawning unavailable" in the turn
@@ -140,6 +144,9 @@ If a successfully spawned specialist claims that native spawning is
 unavailable, but the top-level session has a live agent id or durable
 completed payload, classify the result as `failed` role drift and
 re-dispatch with a smaller prompt plus the standard preamble above.
+Exception: exact customer authorization text may be quoted only in the
+top-level Turn Ledger or a customer-truth record routed to `researcher`;
+specialist briefs still use the non-transferable preface.
 
 **Rule E — Closing completed specialists is routine (binding).**
 Closing completed, failed, or no-longer-needed specialists is routine
@@ -221,13 +228,15 @@ If the Codex harness does not expose spawning, continue only with
 orchestration or non-specialist work and record the limitation in the
 turn summary. If the customer required agents, or the task needs
 specialist-owned work, stop and ask before proceeding. Do not pretend a
-specialist completed work that was never dispatched.
+specialist completed work that was never dispatched; record a blocker
+instead.
 
 ## Codex Pre-Close Checklist
 
 Codex does not consume Claude Code hooks, so hook-backed safeguards in
 `.claude/settings.json` must be mirrored as an explicit checklist before
-closing any non-trivial turn.
+closing any non-trivial turn. If the checklist cannot be completed,
+record the failed item and stop closure until `tech-lead` resolves it.
 
 Matcher-vocabulary note: the `PreToolUse` matchers in
 `.claude/settings.json` (`Write`, `Edit`, `Bash`) are verified

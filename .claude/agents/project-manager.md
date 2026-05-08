@@ -13,7 +13,7 @@ model: inherit
 - [Interfaces](#interfaces)
 - [Escalation](#escalation)
 - [Enforcement](#enforcement)
-- [Tech-lead health audits + respawn (binding)](#tech-lead-health-audits-respawn-binding)
+- [Tech-lead health audits + respawn (binding)](#tech-lead-health-audits--respawn-binding)
 
 <!-- /TOC -->
 

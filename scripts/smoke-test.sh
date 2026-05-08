@@ -228,7 +228,7 @@ check "TEMPLATE_VERSION first line is a SemVer"              bash -c "head -1 '$
 check "CUSTOMER_NOTES template includes intake turn field"   bash -c "grep -q 'turn: <docs/intake-log.md turn id' '$target/CUSTOMER_NOTES.md'"
 
 # Template version stamp should match our current VERSION
-expected_version="$(cat VERSION | tr -d '[:space:]')"
+expected_version="$(tr -d '[:space:]' < VERSION)"
 actual_version="$(head -1 "$target/TEMPLATE_VERSION" | tr -d '[:space:]')"
 check "TEMPLATE_VERSION matches current VERSION ($expected_version)" \
   bash -c "[ '$actual_version' = '$expected_version' ]"
@@ -256,6 +256,7 @@ check "manifest ship-files excludes final checklist"      bash -c "! grep -q '^d
 check "manifest ship-files excludes role-local agents"    bash -c "! grep -q '^\\.claude/agents/.*-local\\.md\$' '$manifest_ship_list'"
 manifest_worktree="$tmp/manifest-linked-worktree"
 (
+  # shellcheck disable=SC2317
   cleanup_manifest_worktree() {
     git -C "$repo_root" worktree remove --force "$manifest_worktree" >/dev/null 2>&1 || true
   }

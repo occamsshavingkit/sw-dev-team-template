@@ -221,7 +221,9 @@ by `architect` with `project-manager` on the cost / schedule side.
 
 All agents and all human contributors MUST use these references.
 Disagreement is resolved by amending the referenced file, not by
-diverging in practice.
+diverging in practice. If a required reference is missing, unreadable, or
+in conflict with customer-truth records, stop the affected work and
+escalate through `tech-lead`.
 
 - **`docs/glossary/ENGINEERING.md`** — binding software-engineering
   terminology (generic). Precedes any agent's own reading of an
@@ -293,8 +295,10 @@ like "first session of the calendar week" in preference to
    ISO). Copyright + drift risk.
 6. Before escalating to `tech-lead`, an agent must first check
    `CUSTOMER_NOTES.md` and consider whether another agent is the right
-   addressee. Do not guess customer-domain facts, but also do not flood
-   the escalation channel with questions another agent can answer.
+   addressee. If `CUSTOMER_NOTES.md` is absent, unreadable, or itself
+   the subject of the escalation, state that condition in the escalation.
+   Do not guess customer-domain facts, but also do not flood the
+   escalation channel with questions another agent can answer.
 7. No release touching authentication, authorization, secrets, PII, or
    network-exposed endpoints ships without `security-engineer` sign-off
    recorded in `CUSTOMER_NOTES.md` alongside the customer approval
@@ -327,7 +331,9 @@ like "first session of the calendar week" in preference to
    release/version artifacts before writing and must not edit
    `TEMPLATE_VERSION`, template versioning docs, rc stabilization docs,
    final checklists, scaffold / upgrade scripts, manifest files, or
-   other framework-managed files.
+   other framework-managed files unless the customer explicitly
+   authorized template-upgrade or framework-maintenance work for that
+   task.
 
 ## Taxonomy discipline
 

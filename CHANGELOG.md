@@ -1,5 +1,7 @@
 # Changelog
 
+<!-- markdownlint-disable MD024 -->
+
 Versioning: **SemVer** on the template artifact — `MAJOR.MINOR.PATCH`.
 
 - **MAJOR** — breaking change to the template contract (renamed or

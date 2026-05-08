@@ -28,7 +28,8 @@ set -euo pipefail
 : "${PROJECT_ROOT:?PROJECT_ROOT is required}"
 : "${WORKDIR_NEW:?WORKDIR_NEW is required}"
 
-# shellcheck source=../scripts/lib/manifest.sh
+# shellcheck source=scripts/lib/manifest.sh
+# shellcheck disable=SC1091
 source "$WORKDIR_NEW/scripts/lib/manifest.sh"
 
 # --- (#67) Rename framework ADRs that exist as `NNNN-*.md` to `fw-adr-NNNN-*.md`
@@ -72,8 +73,6 @@ fi
 
 old_index="$PROJECT_ROOT/docs/INDEX.md"
 project_index="$PROJECT_ROOT/docs/INDEX-PROJECT.md"
-framework_index="$PROJECT_ROOT/docs/INDEX-FRAMEWORK.md"
-
 if [[ -f "$old_index" && ! -f "$project_index" ]]; then
   # If the existing INDEX.md is byte-identical to the previous
   # framework INDEX (we can compare against WORKDIR_OLD if available),

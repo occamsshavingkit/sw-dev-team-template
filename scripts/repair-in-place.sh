@@ -66,7 +66,7 @@ if [[ ! -f VERSION ]]; then
   exit 1
 fi
 
-template_version="$(cat VERSION | tr -d '[:space:]')"
+template_version="$(tr -d '[:space:]' < VERSION)"
 template_sha="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
 today="$(date -u +%Y-%m-%d)"
 

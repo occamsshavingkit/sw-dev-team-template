@@ -2,10 +2,10 @@
 
 <!-- TOC -->
 
-- [What shipped in v0.13.0 → v0.17.0](#what-shipped-in-v0130-v0170)
-- [Path to v1.0.0-rc3](#path-to-v100-rc3)
+- [What shipped in v0.13.0 → v0.17.0](#what-shipped-in-v0130--v0170)
+- [v1.0.0-rc3 — shipped 2026-04-26](#v100-rc3--shipped-2026-04-26)
   - [Credit-free vs credit-gated](#credit-free-vs-credit-gated)
-  - [Final binding step — IEEE 1028 readiness audit](#final-binding-step-ieee-1028-readiness-audit)
+  - [Audit + sign-off — held upstream-private](#audit--sign-off--held-upstream-private)
 - [Post-rc4 / rc8](#post-rc4--rc8)
   - [v1.0.0-rc4](#v100-rc4)
   - [v1.0.0-rc5](#v100-rc5)
@@ -13,7 +13,7 @@
   - [v1.0.0-rc7](#v100-rc7)
   - [v1.0.0-rc8](#v100-rc8)
   - [v1.0.0 final](#v100-final)
-  - [v1.1.0 — GitHub Projects coordination interface](#v110-github-projects-coordination-interface)
+  - [v1.1.0 — GitHub Projects coordination interface](#v110--github-projects-coordination-interface)
   - [v2 work](#v2-work)
 - [Cross-release dependencies](#cross-release-dependencies)
 - [Out-of-band items](#out-of-band-items)

@@ -121,7 +121,8 @@ source "$script_dir/lib/semver.sh"
 # FIRST ACTIONS helpers (issue #73).
 first_actions_lib="$script_dir/lib/first-actions.sh"
 if [[ -f "$first_actions_lib" ]]; then
-  # shellcheck source=lib/first-actions.sh
+  # shellcheck source=scripts/lib/first-actions.sh
+  # shellcheck disable=SC1091
   source "$first_actions_lib"
 fi
 
@@ -412,7 +413,7 @@ if declare -F first_actions_step0_warning >/dev/null; then
   first_actions_step0_warning "$project_root" "upgrade"
 fi
 
-new_version="$(cat "$workdir/new/VERSION" | tr -d '[:space:]')"
+new_version="$(tr -d '[:space:]' < "$workdir/new/VERSION")"
 new_sha="$(git -C "$workdir/new" rev-parse HEAD)"
 
 if [[ "$local_version" == "$new_version" ]]; then
@@ -592,7 +593,7 @@ memory_only_agents_stub() {
   [[ -f "$path" ]] || return 1
   grep -q '<claude-mem-context>' "$path" || return 1
   grep -q '</claude-mem-context>' "$path" || return 1
-  ! grep -q 'main Codex session plays `tech-lead` directly' "$path" || return 1
+  ! grep -q "main Codex session plays \`tech-lead\` directly" "$path" || return 1
   ! grep -q '^## Role Binding' "$path" || return 1
 }
 
@@ -966,7 +967,7 @@ user_added_agents=$(find "$project_root/.claude/agents" -maxdepth 1 \
                     | sed "s|^$project_root/||" || true)
 if [[ -n "$user_added_agents" ]]; then
   echo "${prefix}User-added agent files preserved:"
-  echo "$user_added_agents" | sed 's/^/  · /'
+  sed 's/^/  · /' <<< "$user_added_agents"
   echo
 fi
 

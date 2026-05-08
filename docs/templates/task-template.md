@@ -9,7 +9,7 @@
 - [Definition of Ready (DoR)](#definition-of-ready-dor)
 - [Definition of Done (DoD)](#definition-of-done-dod)
 - [Dependencies and risks](#dependencies-and-risks)
-- [Change / execution log](#change-execution-log)
+- [Change / execution log](#change--execution-log)
 
 <!-- /TOC -->
 

@@ -90,7 +90,7 @@ Open question count (docs/OPEN_QUESTIONS.md, status=open):
   $open_q_count
 
 Charter milestone summary (docs/pm/CHARTER.md §5):
-$(echo "$charter_milestone" | sed 's/^/  /')
+$(sed 's/^/  /' <<< "$charter_milestone")
 
 Last git commit:
   $last_commit

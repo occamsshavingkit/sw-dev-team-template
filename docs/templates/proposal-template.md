@@ -11,7 +11,7 @@
 - [7. Open questions](#7-open-questions)
 - [8. Duel](#8-duel)
   - [8.1 Findings (`qa-engineer`)](#81-findings-qa-engineer)
-  - [8.2 Rebuttals / revisions (`software-engineer`)](#82-rebuttals-revisions-software-engineer)
+  - [8.2 Rebuttals / revisions (`software-engineer`)](#82-rebuttals--revisions-software-engineer)
   - [8.3 Status](#83-status)
 - [9. Post-close](#9-post-close)
 
