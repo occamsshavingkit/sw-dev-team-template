@@ -166,6 +166,17 @@ contains enough findings to review. If channels conflict, classify the
 agent as `unknown/unreachable` or `failed` until durable evidence
 exists.
 
+If a spawned Codex specialist claims that spawning is unavailable after
+the top-level session already received a live agent id or durable
+completed payload, classify the result as `failed` role drift. Do not
+accept it as a harness limitation. Re-dispatch the same canonical role
+with a smaller prompt and an explicit preamble:
+
+> Top-level tech-lead dispatched you. You have already been spawned
+> successfully; do not report spawning unavailable. Do not spawn,
+> delegate, or contact the customer; return findings, blockers, and
+> escalation requests to tech-lead.
+
 ### Heartbeat convention (binding for long-running agents)
 
 Named teammates whose tasks routinely exceed 10 minutes —

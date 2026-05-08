@@ -4,9 +4,10 @@ A ready-to-use project scaffold that turns a single Claude Code or
 Codex session into a 13-role software-development team with a strict
 escalation protocol and a per-project SME pattern.
 
-**Status.** Release-candidate track (`v1.0.0-rc7`). rc7 carries the
-issue #116 concise-specialist-brief / no-full-context-fork rule for
-downstream validation, but it is not final-ready. The public contract
+**Status.** Release-candidate track (`v1.0.0-rc8`). rc8 carries the
+cross-harness agent-orchestration candidate after rc7 role-binding,
+context-forking, and FIRST ACTIONS extraction follow-up, but it is not
+final-ready. The public contract
 becomes stable at `v1.0.0` final; breaking changes are still permitted
 on the rc track if downstream use finds a release-blocking contract or
 safety gap.

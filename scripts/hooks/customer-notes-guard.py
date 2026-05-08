@@ -25,8 +25,8 @@ import sys
 # into the file, an in-place edit flag (`sed -i`, `gawk -i inplace`,
 # `perl -i`, `ruby -i`), an obvious mutation command (`mv`, `cp` with
 # the file as destination, `rm`, `truncate`), or an interpreter
-# `-c` invocation that names the file (ambiguous; err on the side of
-# asking).
+# inline/stdin invocation that names the file (ambiguous; err on the
+# side of asking).
 #
 # Read-only commands (`grep`, `rg`, `sed -n`, `head`, `tail`, `cat`,
 # `less`, `more`, `view`, `wc`, `diff`, `cmp`, plain `awk` without
@@ -74,9 +74,15 @@ def _command_writes_customer_notes(command: str) -> bool:
     if re.search(r"\b(mv|cp|rm|truncate|install)\b[^|;&]*CUSTOMER_NOTES\.md", command):
         return True
 
-    # Interpreter -c with the file mentioned — could read or write;
-    # ask to be safe.
-    if re.search(r"\b(python|python3|perl|ruby|bash|sh)\b[^|;&]*-c\b", command):
+    interpreter = r"(?:python|python3|node|ruby|perl|bash|sh|php|lua|Rscript)"
+
+    # Interpreter -c or stdin/heredoc with the file mentioned — could
+    # read or write; ask to be safe.
+    if re.search(rf"\b{interpreter}\b[^|;&]*-c\b", command):
+        return True
+    if re.search(rf"\b{interpreter}\b[^|;&]*(?:\s-\s*)?<<[-~]?\s*['\"]?\w+", command):
+        return True
+    if re.search(rf"\|[^|;&]*\b{interpreter}\b[^|;&]*(?:\s-\b|$)", command):
         return True
 
     return False

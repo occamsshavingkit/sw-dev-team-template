@@ -49,6 +49,21 @@ stack, profiler integration. Ties to `sre`'s monitoring setup.
 Per-run report with baseline comparison; trend dashboard; SLO-
 impact analysis feeding `sre`'s error-budget review.
 
+Evidence for each run lives under:
+`docs/test-evidence/performance/<YYYYMMDDThhmmssZ>-<run-id>/`.
+The timestamp is first and is the UTC run start time.
+
+Each evidence directory contains `MANIFEST.md` with:
+
+| Field | Required content |
+|---|---|
+| Run ID | Stable run identifier used in reports and defects. |
+| Start timestamp | UTC timestamp matching the directory prefix. |
+| Writer identity | Person or agent that wrote the evidence. |
+
+Runbooks and closeout checks verify `MANIFEST.md`. Do not rely only
+on directory-name patterns.
+
 ## 8. Defect flow
 
 Regression beyond a stated threshold → incident posture; trace to

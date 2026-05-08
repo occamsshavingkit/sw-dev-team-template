@@ -91,9 +91,18 @@ check_semver_sorter() {
   local sorter="$tmp/$label-semver-sorter.sh"
   local expected="$tmp/$label-semver-expected.txt"
   local actual="$tmp/$label-semver-actual.txt"
+  local script_dir
+  script_dir="$(dirname "$script")"
 
   {
-    sed -n '/^semver_sort_tags()/,/^}/p' "$script"
+    if sed -n '/^semver_sort_tags()/,/^}/p' "$script" | grep -q '^semver_sort_tags()'; then
+      sed -n '/^semver_sort_tags()/,/^}/p' "$script"
+    elif [[ -f "$script_dir/lib/semver.sh" ]]; then
+      printf 'source %q\n' "$script_dir/lib/semver.sh"
+    else
+      printf 'echo "semver_sort_tags unavailable for %s" >&2\n' "$script"
+      printf 'exit 127\n'
+    fi
     cat <<'EOF'
 printf '%s\n' \
   v1.0.0-rc.10 \
@@ -317,6 +326,12 @@ check "first-actions warning stays quiet after Step 0" \
   bash -c "source '$target/scripts/lib/first-actions.sh' && [ -z \"\$(first_actions_step0_warning '$target' session)\" ]"
 
 echo "-- hook guards --"
+check "settings guard covers Claude MultiEdit" \
+  bash -c "grep -q '\"matcher\": \"MultiEdit\"' '$target/.claude/settings.json'"
+check "settings guard commands use CLAUDE_PROJECT_DIR" \
+  bash -c 'settings_file="$1/.claude/settings.json"; ! grep -Fq "python3 ./scripts/hooks/customer-notes-guard.py" "$settings_file" && grep -Fq '\''${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py'\'' "$settings_file"' _ "$target"
+check "settings SessionStart version-check uses CLAUDE_PROJECT_DIR" \
+  bash -c 'settings_file="$1/.claude/settings.json"; ! grep -Fq "./scripts/version-check.sh" "$settings_file" && grep -Fq '\''${CLAUDE_PROJECT_DIR}/scripts/version-check.sh'\'' "$settings_file"' _ "$target"
 guard_customer_output="$(
   printf '%s\n' '{"tool_name":"Write","tool_input":{"file_path":"CUSTOMER_NOTES.md","content":"x"}}' \
     | python3 "$target/scripts/hooks/customer-notes-guard.py"
@@ -335,6 +350,18 @@ guard_bash_output="$(
 )"
 check "CUSTOMER_NOTES guard asks on Bash notes command" \
   bash -c "echo '$guard_bash_output' | grep -q 'permissionDecision.*ask'"
+guard_bash_stdin_output="$(
+  printf '%s\n' '{"tool_name":"Bash","tool_input":{"command":"python3 - <<'\''PY'\''\nfrom pathlib import Path\nPath('\''CUSTOMER_NOTES.md'\'').write_text('\''x'\'')\nPY"}}' \
+    | python3 "$target/scripts/hooks/customer-notes-guard.py"
+)"
+check "CUSTOMER_NOTES guard asks on interpreter stdin notes command" \
+  bash -c "echo '$guard_bash_stdin_output' | grep -q 'permissionDecision.*ask'"
+guard_bash_read_output="$(
+  printf '%s\n' '{"tool_name":"Bash","tool_input":{"command":"cat CUSTOMER_NOTES.md"}}' \
+    | python3 "$target/scripts/hooks/customer-notes-guard.py"
+)"
+check "CUSTOMER_NOTES guard stays quiet on Bash notes read" \
+  bash -c "[ -z '$guard_bash_read_output' ]"
 
 # Helper: run a command capturing its exit code without tripping set -e.
 # The expected nonzero exits (drift=1, missing=2, corrupt=3, bogus=2)
@@ -354,6 +381,23 @@ manifest_sha_for_path() {
     $2 == path { print $1; exit }
   ' "$manifest"
 }
+
+current_claude_sha="$(sha256sum "$target/CLAUDE.md" | awk '{print $1}')"
+cat > "$target/.template-conflicts.json" <<EOF
+{
+  "schema": 1,
+  "generated": "2026-01-01T00:00:00Z",
+  "template_version": "$expected_version",
+  "entries": [
+    {"path": "CLAUDE.md", "classified": "conflict", "baseline_sha": "0000000000000000000000000000000000000000000000000000000000000000", "upstream_sha": "1111111111111111111111111111111111111111111111111111111111111111", "project_sha": "$current_claude_sha"}
+  ]
+}
+EOF
+resolve_unchanged_rc=$(run_capture "$tmp/resolve-unchanged.log" \
+                       bash -c "cd '$target' && bash '$repo_root/scripts/upgrade.sh' --resolve")
+check "upgrade.sh --resolve keeps untouched conflict entry" \
+  bash -c "[ $resolve_unchanged_rc -eq 0 ] && grep -q '1 still unresolved' '$tmp/resolve-unchanged.log' && test -f '$target/.template-conflicts.json'"
+rm -f "$target/.template-conflicts.json"
 
 # upgrade.sh --verify on a freshly scaffolded project should be clean (exit 0).
 verify_rc=$(run_capture "$tmp/verify-clean.log" \
@@ -527,6 +571,20 @@ check "rc3 -> $expected_version verify passes immediately after upgrade" \
   bash -c "[ $issue105_verify_rc -eq 0 ]"
 check "manifest records final post-copy AGENTS.md hash" \
   bash -c "[ '$issue105_manifest_sha' = '$issue105_actual_sha' ]"
+check "real bootstrap copies semver lib before re-exec" \
+  test -f "$issue105_target/scripts/lib/semver.sh"
+
+issue129_target="$tmp/issue129-target"
+./scripts/scaffold.sh "$issue129_target" "Issue 129 Smoke" >/dev/null
+printf '%s\nunknown\n2026-01-01\n' "$expected_version" > "$issue129_target/TEMPLATE_VERSION"
+grep -v 'scripts/lib/semver\.sh$' "$issue129_target/TEMPLATE_MANIFEST.lock" > "$issue129_target/TEMPLATE_MANIFEST.lock.tmp"
+mv "$issue129_target/TEMPLATE_MANIFEST.lock.tmp" "$issue129_target/TEMPLATE_MANIFEST.lock"
+issue129_upgrade_rc=$(run_capture "$tmp/issue129-upgrade.log" \
+                      bash -c "cd '$issue129_target' && SWDT_UPSTREAM_URL='$issue105_upstream' ./scripts/upgrade.sh --target '$expected_version'")
+check "same-version upgrade falls through on manifest path omissions" \
+  bash -c "[ $issue129_upgrade_rc -eq 0 ] && grep -q 'missing upstream shipped paths' '$tmp/issue129-upgrade.log'"
+check "same-version upgrade regenerates omitted manifest path" \
+  bash -c "grep -q ' scripts/lib/semver\\.sh$' '$issue129_target/TEMPLATE_MANIFEST.lock'"
 
 echo "-- upgrade (simulate older stamp, run stable default upgrade) --"
 # Simulate an older project by stamping TEMPLATE_VERSION back to v0.1.0, then

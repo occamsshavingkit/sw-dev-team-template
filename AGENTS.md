@@ -128,12 +128,18 @@ Customer authorization to spawn specialists is granted to the top-level
 requests and escalations to `tech-lead`; only `tech-lead` owns the
 native spawn surface. Dispatch briefs MUST NOT contain phrasing such as
 "customer authorized spawning" without qualification — that wording is
-misreadable as transferable. Preferred brief preface (template, not
-mandatory verbatim):
+misreadable as transferable. Preferred Codex specialist brief preface
+(template, not mandatory verbatim):
 
-> Top-level tech-lead dispatched you. Do not spawn, delegate, or
-> contact the customer; return findings, blockers, and escalation
-> requests to tech-lead.
+> Top-level tech-lead dispatched you. You have already been spawned
+> successfully; do not report spawning unavailable. Do not spawn,
+> delegate, or contact the customer; return findings, blockers, and
+> escalation requests to tech-lead.
+
+If a successfully spawned specialist claims that native spawning is
+unavailable, but the top-level session has a live agent id or durable
+completed payload, classify the result as `failed` role drift and
+re-dispatch with a smaller prompt plus the standard preamble above.
 
 **Rule E — Closing completed specialists is routine (binding).**
 Closing completed, failed, or no-longer-needed specialists is routine
@@ -228,9 +234,9 @@ Matcher-vocabulary note: the `PreToolUse` matchers in
 compatible with both harnesses. Per Codex hooks docs
 (developers.openai.com/codex/hooks) and Codex PR #18391, Codex maps
 `apply_patch` onto `Edit` / `Write` aliases and `exec_command` onto
-`Bash` for hook compatibility. `MultiEdit` is intentionally absent —
-Codex has no equivalent, and `apply_patch` already covers multi-file
-edits. The `customer-notes-guard.py` hook is harness-agnostic
+`Bash` for hook compatibility. Claude Code also has `MultiEdit`
+covered in `.claude/settings.json`; Codex has no `MultiEdit`
+equivalent. The `customer-notes-guard.py` hook is harness-agnostic
 (inspects `tool_input.file_path` / `path` / `command`), so the same
 config serves both runtimes; if Codex ever ships a separate hook
 config, mirror these matchers exactly.

@@ -10,7 +10,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ./scripts/hooks/customer-notes-guard.py",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py\"",
             "timeout": 5
           }
         ]
@@ -20,7 +20,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ./scripts/hooks/customer-notes-guard.py",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py\"",
             "timeout": 5
           }
         ]
@@ -30,7 +40,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ./scripts/hooks/customer-notes-guard.py",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py\"",
             "timeout": 5
           }
         ]
@@ -41,7 +51,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -x ./scripts/version-check.sh ] && ./scripts/version-check.sh 2>&1 || true",
+            "command": "[ -x \"${CLAUDE_PROJECT_DIR}/scripts/version-check.sh\" ] && \"${CLAUDE_PROJECT_DIR}/scripts/version-check.sh\" 2>&1 || true",
             "timeout": 10,
             "statusMessage": "Checking template version..."
           }

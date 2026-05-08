@@ -6,11 +6,12 @@
 - [Path to v1.0.0-rc3](#path-to-v100-rc3)
   - [Credit-free vs credit-gated](#credit-free-vs-credit-gated)
   - [Final binding step — IEEE 1028 readiness audit](#final-binding-step-ieee-1028-readiness-audit)
-- [Post-rc4 / rc7](#post-rc4--rc7)
+- [Post-rc4 / rc8](#post-rc4--rc8)
   - [v1.0.0-rc4](#v100-rc4)
   - [v1.0.0-rc5](#v100-rc5)
   - [v1.0.0-rc6](#v100-rc6)
   - [v1.0.0-rc7](#v100-rc7)
+  - [v1.0.0-rc8](#v100-rc8)
   - [v1.0.0 final](#v100-final)
   - [v1.1.0 — GitHub Projects coordination interface](#v110-github-projects-coordination-interface)
   - [v2 work](#v2-work)
@@ -34,25 +35,25 @@ SemVer rules (see `CHANGELOG.md` header for the binding wording):
   permits breaking changes inside MINOR while we are pre-1.0).
 - **PATCH** — non-structural clarifications.
 
-Version currently staged in this worktree: **v1.0.0-rc7**. This is the
+Version currently staged in this worktree: **v1.0.0-rc8**. This is the
 current release-candidate version; GitHub Release object publication
 waits for v1.0.0 final per the
 MINOR-only-Releases convention, and the rc cycle is tag-only.
 
-Release-state vocabulary for the active rc7-to-final path:
+Release-state vocabulary for the active rc8-to-final path:
 
 - `draft` — plan is still being shaped and has not completed
   specialist review.
 - `release-prep` — release files are being updated for the rc tag, but
   the candidate has not completed final review or tagging.
-- `review-complete` — in-tree rc7 work has passed recorded review and
+- `review-complete` — in-tree rc8 work has passed recorded review and
   smoke evidence, but the release candidate is not yet tagged.
-- `tagged` — the annotated `v1.0.0-rc7` git tag exists on the reviewed
+- `tagged` — the annotated `v1.0.0-rc8` git tag exists on the reviewed
   commit.
 - `final-ready` — every gate in `docs/v1.0.0-final-checklist.md` is
   green.
 
-Current state: **rc7 candidate / not final-ready**.
+Current state: **rc8 candidate / not final-ready**.
 
 ---
 
@@ -127,7 +128,7 @@ repo.
 
 ---
 
-## Post-rc4 / rc7
+## Post-rc4 / rc8
 
 ### v1.0.0-rc4
 
@@ -174,9 +175,10 @@ rc3-era downstream trees; it is not a retroactive rc3 rewrite.
 
 Current rc6 state is `tagged`: the annotated `v1.0.0-rc6` tag exists
 on reviewed commit `dc2df300d77145ef4d2fe5d30033570bc64127a1`.
-`v1.0.0` final is blocked until rc7 is cut, downstream validation
-completes, and every gate in `docs/v1.0.0-final-checklist.md` is green
-or has an explicit customer-approved exception.
+At rc6 cut time, `v1.0.0` final was blocked until the rc7 scope was
+cut, downstream validation completed, and every gate in
+`docs/v1.0.0-final-checklist.md` was green or had an explicit
+customer-approved exception.
 
 ### v1.0.0-rc7
 
@@ -187,10 +189,22 @@ final readiness must record overlapping release-relevant
 validation from both Claude Code and Codex, or an explicit
 customer-approved exception for any unavailable harness capability.
 
-Current rc7 state: it is the current release-candidate version, but it
-is not final-ready. Branch evidence on 2026-05-04 passed full smoke plus
+rc7 state at cut time: it was the active release-candidate version, but
+it was not final-ready. Branch evidence on 2026-05-04 passed full smoke plus
 published rc/stable stepwise-smoke validation; downstream-clean and
 cross-harness evidence remain pending in `docs/v1.0.0-final-checklist.md`.
+
+### v1.0.0-rc8
+
+Current release-candidate boundary for upgrade-flow correctness, hook
+robustness, Codex-adapter dispatch hardening, and the CLAUDE.md size
+cull. rc8 does not reverse the rc7 binding contract; it carries the
+remaining release-track fixes recorded in `CHANGELOG.md`.
+
+Current rc8 state is `rc8 candidate / not final-ready`. `v1.0.0` final
+depends on completing the active rc8 review/tag state and every gate in
+`docs/v1.0.0-final-checklist.md`, including downstream-clean and
+cross-harness evidence, or explicit customer-approved exceptions.
 
 ### v1.0.0 final
 
@@ -305,7 +319,11 @@ v1.0.0-rc6
    ▼
 v1.0.0-rc7
    │
-   │  depends on: rc7 downstream-clean window + final checklist gates
+   │  depends on: upgrade-flow, hook, Codex-adapter, and CLAUDE.md size-cull fixes
+   ▼
+v1.0.0-rc8
+   │
+   │  depends on: rc8 review/tag state + final checklist gates
    ▼
 v1.0.0 (GA)
 ```
@@ -348,3 +366,4 @@ Things that may interrupt the linear plan:
 | 2026-05-03 | Made v1.0.0-rc5 mandatory after downstream rc4 issues #84-#103; final now depends on rc5 validation. | `release-engineer` |
 | 2026-05-04 | Tagged and pushed v1.0.0-rc6 for #84, #104, and #105; final remains blocked on downstream validation and the checklist gates. | `release-engineer` |
 | 2026-05-04 | Prepared v1.0.0-rc7 candidate for issue #116 concise specialist-brief/no-full-context-fork scope; Claude Code / Codex parity evidence remains a final gate. | `release-engineer` |
+| 2026-05-06 | Added v1.0.0-rc8 release-state boundary for upgrade-flow, hook, Codex-adapter, and CLAUDE.md size-cull fixes; final now depends on the rc8/final-checklist state. | `tech-writer` |

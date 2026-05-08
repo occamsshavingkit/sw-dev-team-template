@@ -82,7 +82,7 @@ Every issue includes:
    this, the maintainer cannot tell whether the gap is still current.
 2. **Short title** — what is missing / wrong / unclear.
 3. **Where** — specific file + section (e.g., `AGENTS.md` § "Role
-   Binding", `CLAUDE.md` § "Step 2", or
+   Binding", `docs/FIRST_ACTIONS.md` § "Step 2", or
    `.claude/agents/tech-lead.md` § "Routing table").
 4. **What happened on the project** — one paragraph. If customer-
    sensitive content has to be redacted, redact but keep the pattern
