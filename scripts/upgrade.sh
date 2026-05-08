@@ -967,7 +967,9 @@ user_added_agents=$(find "$project_root/.claude/agents" -maxdepth 1 \
                     | sed "s|^$project_root/||" || true)
 if [[ -n "$user_added_agents" ]]; then
   echo "${prefix}User-added agent files preserved:"
-  sed 's/^/  · /' <<< "$user_added_agents"
+  while IFS= read -r f; do
+    echo "  · $f"
+  done <<< "$user_added_agents"
   echo
 fi
 

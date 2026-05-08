@@ -89,7 +89,8 @@ context into a specialist; cite required files or sections for the
 specialist to read instead, so the top-level session preserves its own
 context budget. Exception: include only the minimum extra context needed
 to preserve binding customer constraints, safety limits, or exact
-quoted text the specialist must inspect.
+excerpt under review; if broader context is required, stop and ask
+`tech-lead` to narrow the brief.
 
 **Rule A — No role-stealing (binding).** The Codex `tech-lead` session
 orchestrates; it does not author production artifacts. Code, tests,
@@ -228,8 +229,8 @@ If the Codex harness does not expose spawning, continue only with
 orchestration or non-specialist work and record the limitation in the
 turn summary. If the customer required agents, or the task needs
 specialist-owned work, stop and ask before proceeding. Do not pretend a
-specialist completed work that was never dispatched; record a blocker
-instead.
+specialist completed work that was never dispatched; record
+`specialist unavailable: stopped` and escalate to `tech-lead`.
 
 ## Codex Pre-Close Checklist
 
