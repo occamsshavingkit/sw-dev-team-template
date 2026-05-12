@@ -18,11 +18,33 @@ Owned by a single agent (the "assignee"). Routed by `tech-lead`.
 - **Estimate:** ≤ 2 days of one person's effort, else split.
 - **Trigger:** `<comma-separated clauses, or "none">` (annotated by
   `tech-lead` at dispatch — see DoR).
-- **Token budget (estimate):** small (≤ 10k) | medium (≤ 30k) |
-  large (≤ 100k) | XL (> 100k, must justify). Set by `tech-lead` at
-  dispatch. See `tech-lead.md` § "Token economy".
-- **Token actual:** filled at close by the assignee. Flag at DoD if
-  > 2× budget — triggers a renegotiation note in the change log.
+- **Token budget (estimate):** tiny | small | medium | large | XL. Set
+  by `tech-lead` at dispatch. See `tech-lead.md` § "Token economy".
+- **Just-in-time file list:** `<focused paths the assignee must load
+  first before expanding context>`.
+- **Token actual:** filled at close by the assignee as a measured token
+  count, an actual budget band, or an explicit not-captured reason. Flag
+  at DoD if > 2× budget — triggers a renegotiation note in the change
+  log.
+
+---
+
+## Token Budget
+
+Use the smallest defensible band. Reviewers compare the selected band,
+the JIT file list, and the task statement before work starts.
+
+| Band | Intended use | Review expectation |
+|---|---|---|
+| tiny | One narrow lookup, confirmation, or wording-only change with one or two first-read files. | Should be directly dispatchable; challenge if the task needs broad context or multiple roles. |
+| small | Single-file or tightly scoped work with a short just-in-time file list. | Should fit one specialist without background reading; challenge vague file lists. |
+| medium | Moderate task with several related files or one clear cross-reference chain. | Should still have bounded first reads; reviewer checks that expansion points are explicit. |
+| large | Complex task with many related files, review evidence, or multi-step verification. | Should justify why it is not split; reviewer checks that scope and closure evidence remain bounded. |
+| XL | Oversized or high-context task expected to strain one dispatch. | Must be split before work starts or explicitly accepted as oversized in review. |
+
+XL is a split candidate by default. If it remains XL, record the
+explicit oversized acceptance in the task or review notes before
+dispatch.
 
 ---
 
@@ -74,9 +96,13 @@ If any box is unchecked, the item is not ready.
 - [ ] Required `CUSTOMER_NOTES.md` entries exist or are explicitly
       not needed.
 - [ ] Estimate assigned.
-- [ ] **Token budget assigned** (small/medium/large/XL) and the file
-      list the assignee may load is named in the task spec
-      (JIT context loading per `tech-lead.md` § "Token economy").
+- [ ] **Token budget assigned** (tiny/small/medium/large/XL) and the
+      focused just-in-time file list the assignee must load before any
+      context expansion is named in the task spec (JIT context loading
+      per `tech-lead.md` § "Token economy").
+- [ ] **XL split-or-accept reviewed.** If the token budget is XL, the
+      task is split or the reviewer explicitly accepts it as oversized
+      before dispatch.
 - [ ] For safety-critical or customer-flagged critical paths: customer
       sign-off referenced.
 - [ ] **Workflow-pipeline trigger annotated.** `tech-lead` has
@@ -120,17 +146,19 @@ Team-wide. Applies to every completed task, regardless of type.
 - [ ] Documentation updated by `tech-writer` where user-visible.
 - [ ] No new open defects of severity ≥ <threshold>.
 - [ ] Requirements traceability row updated.
-- [ ] **Token actual recorded** in Identification. If > 2× budget, a
-      one-line note appears in the Change/execution log.
+- [ ] **Token budget, just-in-time file list, and token actual recorded**
+      in Identification for future estimation use. Token actual uses a
+      measured token count, actual budget band, or explicit not-captured
+      reason. If actual > 2× budget, a one-line note appears in the
+      Change/execution log.
 - [ ] **Token usage recorded.** Aggregate tokens consumed across all
-      agent dispatches for this task, plus each dispatch's prompt
-      (verbatim), appended to `docs/pm/TOKEN_LEDGER.md` by
-      `project-manager`. This feeds the estimation model the PM
-      uses for future task budgeting; a task closed without a
-      ledger row cannot inform future estimates. On first use, copy
+      agent dispatches for this task, with prompt hash and prompt class
+      rather than full prompt text, appended to `docs/pm/TOKEN_LEDGER.md`
+      by `project-manager`. Archive full prompts only when needed per
+      `docs/pm/token-ledger/prompts/README.md`. On first use, copy
       `docs/templates/pm/TOKEN_LEDGER-template.md` to
-      `docs/pm/TOKEN_LEDGER.md`; schema columns are
-      `Date | Task ID | Agent | Tokens | Prompt (verbatim, fenced) |
+      `docs/pm/TOKEN_LEDGER.md`; schema columns are `Date | Task ID |
+      Agent | Prompt hash | Prompt class | Token budget | Token actual |
       Notes`.
 - [ ] Change merged to the integration branch and deployable artifact
       confirmed by `release-engineer`.

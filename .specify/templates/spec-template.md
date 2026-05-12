@@ -90,6 +90,18 @@
 - **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
 - **FR-005**: System MUST [behavior, e.g., "log all security events"]
 
+### Constitution Alignment *(mandatory)*
+
+- **CA-001**: Source authority MUST be classified for affected artifacts as
+  canonical, generated, or ephemeral.
+- **CA-002**: Customer-owned requirements MUST cite a recorded customer answer,
+  a documented assumption, or one queued atomic question.
+- **CA-003**: Framework-managed file edits MUST be marked as framework work and
+  require explicit authorization unless this feature is a template-maintenance
+  task.
+- **CA-004**: Cross-AI or generated-output changes MUST preserve existing role
+  authority and identify canonical inputs.
+
 *Example of marking unclear requirements:*
 
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]

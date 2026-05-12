@@ -1,50 +1,162 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+Version change: placeholder template -> 1.0.0
+Modified principles: placeholder principles -> I. Role-Bound Delegation and Sole Customer Interface; II. Token and Context Economy; III. Canonical Source Authority; IV. Atomic Customer Questions and Intake Traceability; V. Quality Gates Before Commit; VI. Framework and Project Boundary Safety; VII. Harness Adapters, Not Parallel Authority
+Added sections: Operational Constraints; Development Workflow and Review Gates
+Removed sections: Placeholder Section 2; Placeholder Section 3
+Templates requiring updates: updated .specify/templates/plan-template.md; updated .specify/templates/spec-template.md; updated .specify/templates/tasks-template.md; updated .specify/templates/checklist-template.md; no .specify/templates/commands/*.md files found
+Follow-up TODOs: TODO(RATIFICATION_DATE): Original ratification date is not recorded in the existing template.
+-->
+
+# SW-dev Team Template Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Role-Bound Delegation and Sole Customer Interface
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+The main session acts as `tech-lead` and is the only interface to the
+customer. Specialist-owned work MUST be routed to the canonical owning role,
+not authored by `tech-lead`, except for orchestration records and explicit
+tool-bridge exceptions. Specialists MUST return findings, blockers, and
+escalation requests to `tech-lead`; they MUST NOT contact the customer or
+spawn other specialists.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+Rationale: one customer interface prevents contradictory answers, preserves
+role accountability, and keeps specialist work auditable.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### II. Token and Context Economy
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+Every recurring runtime instruction, live register, prompt, adapter, and
+template addition MUST justify its context cost. Live working surfaces MUST
+remain short and current; history belongs in archives, evidence files, or
+generated summaries that point back to canonical sources. Work that reduces
+recurring context load has priority over feature expansion when both compete
+for the same delivery capacity.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Rationale: this template's effectiveness depends on preserving scarce model
+context for current decisions rather than stale process text.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### III. Canonical Source Authority
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Every artifact MUST be classified in practice as canonical, generated, or
+ephemeral. Canonical artifacts are human-maintained sources of truth;
+generated artifacts are reproducible outputs from canonical inputs; ephemeral
+artifacts are temporary work products until explicitly promoted. Manual mirrors
+are prohibited: if two artifacts need the same content, one MUST generate,
+link to, or supersede the other.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+Rationale: source authority discipline prevents documentation drift, adapter
+drift, and generated artifact edits that silently become policy.
+
+### IV. Atomic Customer Questions and Intake Traceability
+
+Customer-facing questions MUST be customer-owned, atomic, and asked only when
+tools and specialists needed for that turn are idle. The final customer-facing
+line MUST contain the single question when a question is asked. Internal
+question queues MAY batch multiple items, but customer-facing messages MUST NOT
+bundle independent decision axes. Customer answers and customer-truth records
+MUST be routed to `researcher` for verbatim capture in the designated intake or
+customer-notes artifact.
+
+Rationale: atomic intake protects the customer's attention and creates a
+traceable record for future agents.
+
+### V. Quality Gates Before Commit
+
+No commit is valid without the appropriate specialist review for the changed
+artifact type. Code changes require implementation verification and
+`code-reviewer` review before commit. Security-sensitive, safety-critical,
+irreversible, network-exposed, authentication, authorization, secrets, or PII
+changes require the additional approvals defined in the runtime guidance.
+Non-code documentation and template changes require alignment checks against
+the constitution and affected downstream templates before completion.
+
+Rationale: pre-commit gates catch role violations, stale docs, and missing
+verification before they enter project history.
+
+### VI. Framework and Project Boundary Safety
+
+Framework-managed files and downstream product files MUST be classified before
+broad edits, review, staging, or commit. Product tasks MUST NOT edit
+framework-managed files unless the customer explicitly authorizes template
+upgrade or framework maintenance for that task. Framework gaps discovered
+during product work MUST be filed or routed upstream instead of patched
+opportunistically in the product change.
+
+Rationale: separating framework evolution from product delivery prevents
+accidental template drift and unsafe mixed-scope releases.
+
+### VII. Harness Adapters, Not Parallel Authority
+
+Claude Code, Codex, OpenCode, Gemini, OpenAI, memory systems, and markdown
+compilers MUST adapt to the existing role model. They MUST NOT introduce a
+competing role roster, escalation chain, source-of-truth hierarchy, or customer
+interface. Cross-harness files MUST remain thin adapters or generated artifacts
+unless explicitly promoted to canonical status.
+
+Rationale: cross-AI support is safe only when the team contract remains one
+contract with harness-specific adapters.
+
+## Operational Constraints
+
+The binding runtime contract is the combination of `CLAUDE.md`, `AGENTS.md`,
+the canonical `.claude/agents/*.md` role files, and any documented local role
+supplements. These files govern role ownership, escalation, customer interface,
+review gates, and harness-specific behavior.
+
+The project MUST preserve the distinction between canonical, generated, and
+ephemeral artifacts when adding adapters, compact runtime prompts, memory
+summaries, logs, or compiled markdown. Generated artifacts MUST identify their
+canonical inputs or be reproducible by documented tooling before they are used
+as operational guidance.
+
+Downstream scaffolds and upgrades MUST preserve the framework/project boundary
+model. Release and review work MUST keep framework maintenance, template
+upgrades, and product changes split unless an explicit approval records the
+reason for combining them.
+
+## Development Workflow and Review Gates
+
+Feature planning MUST include a Constitution Check that verifies role routing,
+context cost, source authority, atomic intake, quality gates, boundary safety,
+and adapter discipline. Any violation MUST be recorded with a specific reason
+and simpler alternative considered before implementation proceeds.
+
+Specifications MUST capture customer-owned requirements as testable statements
+with traceable origin or assumption status. If a requirement depends on a
+customer answer that is not recorded yet, the work MUST queue one atomic
+question instead of guessing.
+
+Task plans MUST group work into independently reviewable increments with clear
+owners, file paths, verification steps, and review gates. Tasks that touch
+generated or framework-managed artifacts MUST state whether the edit is
+canonical, generated, ephemeral, framework, or product scope.
+
+Before closing a non-trivial turn, the responsible orchestrator MUST inspect
+the relevant diff, confirm write-scope compliance, confirm customer-truth
+stewardship, confirm required specialist routing or explicit exceptions, and
+record any spawning limits or unresolved follow-up work.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes conflicting local practice for Spec Kit workflows
+in this repository. `CLAUDE.md`, `AGENTS.md`, and canonical role files remain
+the detailed runtime authority; if they conflict with this constitution, the
+conflict MUST be resolved by amending the relevant artifact rather than by
+choosing silently.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Amendments require a documented diff, a Sync Impact Report, and review of the
+dependent Spec Kit templates. Version changes use semantic versioning:
+MAJOR for incompatible governance or principle changes, MINOR for new or
+materially expanded principles or sections, and PATCH for clarifications that
+do not change obligations.
+
+Constitution compliance MUST be checked during planning, review, and before
+commit. New templates, adapters, generated artifacts, and runtime guidance MUST
+state how they preserve role routing, source authority, quality gates, and
+framework/project boundaries.
+
+TODO(RATIFICATION_DATE): Original ratification date is not recorded in the
+existing template.
+
+**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): Original ratification date is not recorded in the existing template. | **Last Amended**: 2026-05-12

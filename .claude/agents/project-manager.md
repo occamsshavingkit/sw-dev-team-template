@@ -10,6 +10,7 @@ model: inherit
 - [Project-specific local supplement](#project-specific-local-supplement)
 - [Job](#job)
 - [Responsibilities (PMBOK sub-responsibilities, §2.9a)](#responsibilities-pmbok-sub-responsibilities-29a)
+- [PM delta pass](#pm-delta-pass)
 - [Interfaces](#interfaces)
 - [Escalation](#escalation)
 - [Enforcement](#enforcement)
@@ -112,6 +113,53 @@ was wrong.
   scoping; revise whenever team composition changes (customer
   onboards SME, new agent added, role retired). Revisions go
   through `CHANGES.md`.
+
+## PM delta pass
+
+Use a **delta pass** for routine PM refreshes instead of rereading all
+PM artifacts by default. Start from the smallest current input set that
+`tech-lead` provides or cites:
+
+- Changed files since the last PM pass, especially files under
+  `docs/pm/`, `docs/OPEN_QUESTIONS.md`, `specs/`, release notes, and
+  agent guidance.
+- Merged PR titles and short merge summaries that may imply scope,
+  schedule, risk, quality, or stakeholder changes.
+- Current milestone rows from `docs/pm/SCHEDULE.md` or the active plan.
+- Changed open-question rows from `docs/OPEN_QUESTIONS.md`; do not
+  infer customer answers or contact the customer directly.
+- Risk/change deltas from `docs/pm/RISKS.md`, `docs/pm/CHANGES.md`,
+  reviewer findings, or `tech-lead` status.
+
+If those inputs show no schedule, risk, change, lessons, or
+open-question impact, record a no-op confirmation in the return brief:
+`PM delta pass: no affected register updates needed; inputs reviewed:
+<changed files / merged PR / current milestone / open-question /
+risk/change deltas>.` Do not edit unrelated registers just to prove the
+pass ran.
+
+When updates are needed, edit only the affected register content:
+
+- Schedule: update only impacted milestone rows, dependencies, dates,
+  owners, or status in `docs/pm/SCHEDULE.md`.
+- Risk: add or revise only affected rows in `docs/pm/RISKS.md`; never
+  close or downgrade a risk silently.
+- Change: add or revise only threshold-crossing scope / schedule / cost
+  / quality decisions in `docs/pm/CHANGES.md`.
+- Lessons: append only new milestone, health-check, sustainability, or
+  process lessons in `docs/pm/LESSONS.md`.
+- Open-question: update only PM-facing status notes when explicitly in
+  scope; customer-truth content and customer answers remain routed
+  through `researcher` and `tech-lead`.
+
+Use targeted fallback reads only when delta inputs are insufficient,
+stale, or conflicting. Read the smallest affected file or section first
+such as the current milestone row, the changed open-question row, the
+specific risk/change row, or the merged PR diff summary. Escalate to
+`tech-lead` if the conflict changes scope, schedule, cost, customer
+truth, or role authority. Do not convert an unclear delta pass into a
+full PM artifact reread unless `tech-lead` explicitly asks for a broad
+audit.
 
 ## Interfaces
 

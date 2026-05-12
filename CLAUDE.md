@@ -335,3 +335,9 @@ like "first session of the calendar week" in preference to
 about role ownership, cross-reference the taxonomy. §3 heatmap and §5 gaps
 document real overlaps — do not claim "industry agrees" on topics the
 taxonomy flags as debated.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan:
+`specs/002-m2-token-operating-model/plan.md`
+<!-- SPECKIT END -->

@@ -31,7 +31,22 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- **Role routing**: [Owning specialist roles for implementation, docs, QA,
+  review, release, security, and customer-truth capture; note any explicit
+  exceptions]
+- **Token/context economy**: [Live files to read, generated/archived artifacts
+  to avoid loading, and any recurring context cost introduced]
+- **Source authority**: [Classify touched artifacts as canonical, generated, or
+  ephemeral; identify canonical inputs for generated artifacts]
+- **Customer intake**: [Customer-owned open questions, each atomic; intake or
+  customer-notes traceability for provided answers]
+- **Quality gates**: [Verification evidence and required specialist reviews
+  before commit]
+- **Framework/project boundary**: [Product vs framework scope and approval for
+  any framework-managed file edits]
+- **Adapter discipline**: [Confirm any Claude/Codex/OpenCode/Gemini/OpenAI or
+  compiler changes adapt existing role authority rather than creating parallel
+  authority]
 
 ## Project Structure
 

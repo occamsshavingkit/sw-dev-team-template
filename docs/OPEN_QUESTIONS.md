@@ -17,6 +17,11 @@ Ask the customer **one question per turn**, only when all agents are idle
 (so the question does not scroll off screen). See
 `.claude/agents/tech-lead.md` Job #1 and `CLAUDE.md` Step 2.
 
+Archive pointer: historical snapshots live in `docs/OPEN_QUESTIONS-ARCHIVE.md`.
+Keep open and recently answered rows here; use `scripts/archive-registers.sh`
+for append-only archival before replacing historical live content with a compact
+tombstone.
+
 | ID | Opened | Question | Blocked on | Answerer | Status | Resolution |
 |---|---|---|---|---|---|---|
 | Q-0001 | 2026-04-19 | For PMBOK role placement, do we add a dedicated `project-manager.md` agent, harden `tech-lead.md` to own PMBOK, or both? | Template roster shape | customer | answered | **(a)** New dedicated `project-manager.md`; `tech-lead` stays technical. Customer, 2026-04-19. |

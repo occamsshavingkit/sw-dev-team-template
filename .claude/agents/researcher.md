@@ -65,6 +65,20 @@ deliverables).
    flag it as a process drift to `tech-lead` and preserve the original
    text rather than silently rewriting history.
 
+   **Memory before customer-truth review (binding).** Before broad reads
+   of old customer notes or prior customer answers, query the project
+   memory layer when available (see `docs/MEMORY_POLICY.md`). Use
+   targeted phrases such as `customer decision <topic>`, `prior customer
+   answer <topic>`, or `similar prior answer <question topic>` to locate
+   likely repository evidence. Memory hits are pointer-only: verify them
+   against `CUSTOMER_NOTES.md`, `docs/intake-log.md`, current task files,
+   or other repository source-of-truth artifacts before recording,
+   serving, or escalating customer-truth facts. If memory is unavailable
+   or thin, continue with targeted repository reads rather than asking
+   the customer directly; customer-truth stewardship remains routed
+   through `researcher`, and the customer interface remains `tech-lead`
+   only.
+
    **Intake-log cross-reference (binding).** Every `CUSTOMER_NOTES.md`
    entry added after the intake log exists cites the corresponding
    `docs/intake-log.md` `turn:` in its header. This is the
@@ -176,6 +190,10 @@ deliverables).
 7. **Archival + size budgets (binding).** Binding docs accumulate
    closed rows and grow past their useful density. You own rolling
    the closed content out.
+
+   Use `scripts/archive-registers.sh` for append-only archival of
+   `CUSTOMER_NOTES.md`, `docs/OPEN_QUESTIONS.md`, and
+   `docs/intake-log.md`; do not rely on manual copying alone.
 
    - **Append-only `ARCHIVE.md`.** Each binding register that can
      have closed rows gets a peer file: `OPEN_QUESTIONS.md` →

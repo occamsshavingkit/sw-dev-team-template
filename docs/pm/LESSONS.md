@@ -6,6 +6,10 @@ for *process* lessons that would otherwise rot.
 
 Based on `docs/templates/pm/LESSONS-template.md` shape.
 
+Archive pointer: historical snapshots live in `docs/pm/LESSONS-ARCHIVE.md`.
+Keep current milestone lessons here; archive older milestone-safe lessons
+append-only before any compact tombstone replaces live sections.
+
 ---
 
 ## 2026-04-21 — Sub-agent permission denials on `.claude/agents/**`

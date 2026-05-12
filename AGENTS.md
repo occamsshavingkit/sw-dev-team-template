@@ -252,5 +252,6 @@ config, mirror these matchers exactly.
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+shell commands, and other important information, read the current plan:
+`specs/002-m2-token-operating-model/plan.md`
 <!-- SPECKIT END -->

@@ -12,6 +12,10 @@ acceptance criteria, and rulings relayed by `tech-lead`. Maintained by
   new entry and cross-reference the superseded one.
 - If an entry is ambiguous on re-read, do not reinterpret — `tech-lead`
   must take the clarification back to the customer.
+- Archive pointer: historical snapshots live in `docs/customer-notes-archive.md`.
+  Use `scripts/archive-registers.sh` for append-only archival before replacing
+  historical live content with a compact tombstone; do not alter customer-note
+  entries during archival.
 
 **Entry template:**
 
@@ -319,3 +323,30 @@ an agent workflow invoked after a normal scaffold:
 - v0.11.0 does not need to address this. Tag proceeds.
 
 **Recorded by:** tech-lead (self-recorded).
+
+## 2026-05-12 — spec-kit-tech-lead-governance (turn: docs/intake-log.md turn 1)
+
+**Context.** Customer provided guidance during M2 implementation on the
+correct Spec Kit integration model for scaffolded `sw-dev-team-template`
+projects.
+
+**Customer guidance (concise preservation):**
+- In a scaffolded `sw-dev-team-template` project, the main session is
+  already `tech-lead`.
+- `tech-lead` invokes Spec Kit as a subordinate workflow tool for draft
+  specification, clarification, planning, task-generation, analysis, and
+  optional task-to-issue conversion outputs.
+- Spec Kit output is candidate material, not automatically
+  customer-facing output or final authority.
+- `tech-lead` must govern Spec Kit output: adjudicate, route, atomize
+  customer-owned questions, record answers through the existing intake /
+  `researcher` / `CUSTOMER_NOTES.md` flow, and enforce sw-dev role gates.
+- Raw Spec Kit implementation output must not bypass `architect`,
+  `software-engineer`, `qa-engineer`, `code-reviewer`, `project-manager`,
+  or `release-engineer`.
+- Slash commands, skills, and wrapper commands are all acceptable
+  harness-specific invocation surfaces if output returns to `tech-lead`
+  for routing and gate enforcement.
+- Core rule: Spec Kit may generate; `tech-lead` must govern.
+
+**Recorded by:** researcher.

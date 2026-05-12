@@ -61,6 +61,12 @@ the primary dispatch path.
    **If trigger is `none`:** dispatch directly to the assignee;
    workflow pipeline is skipped. DoR + DoD still apply.
 
+   **Token-band dispatch hint.** Assign the smallest defensible band
+   from the task template: `tiny` for one lookup or wording-only
+   change; `small` for tight single-file work; `medium` for several
+   related files; `large` for complex multi-step verification; `XL`
+   only as a split candidate unless explicitly accepted as oversized.
+
    **Escape hatches** per §7 of the memo: single-line fix on a
    triggered path may downgrade to proposal-only (record the
    downgrade); emergency security patch may collapse prior-art +
@@ -116,7 +122,8 @@ the primary dispatch path.
 ## Memory-first lookup (binding)
 
 Before re-reading long artifacts (`WORK_LOG.md`, `CHANGELOG.md`,
-past release reviews, old session transcripts) or escalating to
+past release reviews, old schedules, customer escalation history,
+old session transcripts, reopened ADR topics) or escalating to
 the human, query `claude-mem` if installed (default per
 `docs/adr/0001-context-memory-strategy.md`):
 
@@ -138,6 +145,13 @@ smells like "we already decided this" or "what did we say last
 time," dispatch a memory query first; fall back to reading full
 files only if the query is thin.
 
+Query patterns to prefer before broad reads: `current milestone
+blocker <milestone>` for old schedules, `prior customer answer
+<topic>` for customer escalation history, and `accepted ADR
+<topic>` before reopening architecture rationale. Memory points to
+repository evidence; `researcher` still owns customer-truth source
+routing, and `tech-lead` remains the only customer interface.
+
 ## Token economy (binding)
 
 Tokens are this project's running cost. The orchestration choices below
@@ -156,11 +170,12 @@ do not map cleanly to agent cadence and tend to *increase* tokens.
 - **JIT context loading.** Specialists load files, memory hits, or
   long artifacts only when the current step needs them. The task spec
   names which files are in scope; nothing else gets read by default.
-- **Token-budget hint in every task spec.** See
-  `docs/templates/task-template.md` § "Token budget". When actual
-  usage exceeds the budget by ≥ 2×, the specialist returns to
-  `tech-lead` rather than pressing on; tech-lead either renegotiates
-  the budget or splits the task.
+- **Token-budget hint in every task spec.** Use `tiny`, `small`,
+  `medium`, `large`, or `XL` per `docs/templates/task-template.md`
+  § "Token budget". `XL` is a split candidate unless explicitly
+  accepted as oversized. When actual usage exceeds the budget by
+  ≥ 2×, the specialist returns to `tech-lead` rather than pressing
+  on; tech-lead either renegotiates the budget or splits the task.
 - **DoD enforced before next dispatch.** Don't accumulate half-done
   work in an agent's context. Close the slice (DoD met, `code-reviewer`
   approved, traceability row updated) before dispatching the next.
@@ -175,8 +190,8 @@ What does **not** transfer from Scrum:
 - **Daily stand-ups** — fixed-cadence status burns tokens; agents emit
   at decision points instead.
 - **Story points / planning poker** — wrong unit. Estimate in token
-  budget (small / medium / large / XL with rough upper bound), not
-  story points.
+  budget (`tiny` / `small` / `medium` / `large` / `XL`), not story
+  points.
 - **Time-boxed sprints** — continuous flow / one-piece flow fits agent
   cadence better than 1–2 week boundaries.
 - **Velocity tracking** — capacity is bounded by context window, not

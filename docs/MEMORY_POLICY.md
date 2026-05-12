@@ -37,5 +37,36 @@ before the framework is installed.
 **Memory rule-of-thumb.** A recalled memory is a pointer, not a
 citation. If a recommendation would act on the recalled fact,
 verify against the current file, `git log`, or a fresh read
-first. Stale memory that caused a near-miss is worth noting in
+first. Repository artifacts remain the source of truth; when
+memory and repository evidence disagree, the repository wins and
+the stale memory is flagged or escalated through the existing role
+model. Stale memory that caused a near-miss is worth noting in
 `docs/pm/LESSONS.md` for future summarizer tuning.
+
+## Memory-query patterns
+
+Run a memory query before broad reads of old customer notes, old
+schedules, customer escalation history, or reopened ADR topics when the
+topic is known enough to search. Memory narrows the first files to
+verify; it does not replace `CUSTOMER_NOTES.md`, PM registers, ADRs, or
+other repository sources of truth.
+
+Use concrete query phrases like these, then verify any hit against the
+named repository artifact before acting:
+
+- **Customer decision:** `customer decision <topic> <feature|milestone>`
+  or `customer decided <topic>` before reviewing old customer notes.
+- **Current milestone blocker:** `current milestone blocker <milestone>`
+  or `blocked on <topic> milestone <name>` before rereading old
+  schedules or PM registers.
+- **Similar prior answer:** `similar prior answer <question topic>` or
+  `prior customer answer <topic>` before treating a customer escalation
+  as new.
+- **Accepted ADR:** `accepted ADR <topic>` or `ADR decision <component>`
+  before reopening an architectural decision or repeating rationale.
+
+If memory is unavailable or returns thin results, proceed from targeted
+repository reads. If memory returns a candidate answer, treat it as a
+pointer to `CUSTOMER_NOTES.md`, `docs/intake-log.md`, `docs/pm/`,
+`docs/adr/`, issues, commits, or the current file that must be verified
+before use.
