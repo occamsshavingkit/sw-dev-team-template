@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Edit(/home/quackdcs/SWEProj/**)",
+      "Write(/home/quackdcs/SWEProj/**)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(file *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(stat *)",
+      "Bash(tree *)",
+      "Bash(diff *)",
+      "Bash(diff -q *)",
+      "Bash(diff -r *)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(git remote*)",
+      "Bash(git config --get*)",
+      "Bash(git rev-parse*)",
+      "Bash(git ls-files*)",
+      "Bash(mkdir -p /home/quackdcs/SWEProj/**)"
+    ],
+    "deny": [
+      "Bash(rm *)",
+      "Bash(sudo *)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(git checkout -- *)",
+      "Bash(git restore --*)",
+      "Bash(git branch -D *)",
+      "Bash(chmod 777 *)",
+      "Bash(dd *)",
+      "Bash(mkfs *)"
+    ],
+    "autoMode": {
+      "allow": [
+        "$defaults",
+        "Edit(/home/quackdcs/SWEProj/**) — project-managed agent contracts and templates; the project owns these and they are tracked in git.",
+        "Write(/home/quackdcs/SWEProj/**) — same as above; new artifacts under the project root are project-owned."
+      ]
+    }
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -x ./scripts/version-check.sh ] && ./scripts/version-check.sh 2>&1 || true",
+            "timeout": 10,
+            "statusMessage": "Checking template version..."
+          }
+        ]
+      }
+    ]
+  }
+}

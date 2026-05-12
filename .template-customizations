@@ -1,0 +1,54 @@
+# .template-customizations — one path per line (project-root-relative).
+# Paths listed here are PERMANENTLY customized by this project and are
+# skipped by scripts/upgrade.sh.
+
+# This project's .gitignore adds `wg0.conf` (the WireGuard config held
+# at project root) which must never be committed.
+.gitignore
+
+# CUSTOMER_NOTES.md is append-only customer data; the scaffold stub
+# is never the right content after Step 2.
+CUSTOMER_NOTES.md
+
+# Project-specific agent naming; never upstream content.
+docs/AGENT_NAMES.md
+
+# --- Permanent project augmentations of agent contracts -------------
+# Each of these agent files carries a project-specific paraphrase of
+# one or more IEEE/ISO standards (LIB-0003 through LIB-0011), or a
+# project-specific "Token economy" section in the case of tech-lead.
+# Pinned here until ADR-0005 (paraphrase-cards extraction) lands in
+# v0.15.0; at that point these files will revert to citing the cards
+# and the customization can be removed.
+.claude/agents/architect.md
+.claude/agents/code-reviewer.md
+.claude/agents/qa-engineer.md
+.claude/agents/release-engineer.md
+.claude/agents/software-engineer.md
+.claude/agents/tech-lead.md
+
+# --- Permanent project augmentations of standard templates -----------
+# Same shape as the agent files — these templates carry project-
+# specific IEEE 1012 / 1016 / 29148 / Token-budget augmentations.
+# Same v0.15.0 review point.
+docs/templates/architecture-template.md
+docs/templates/phase-template.md
+docs/templates/requirements-template.md
+docs/templates/task-template.md
+
+# --- Project-state files (always project-specific, never upstream) ---
+.claude/settings.json
+README.md
+docs/OPEN_QUESTIONS.md
+
+# docs/pm/LESSONS.md is this project's own process journal (template-as-
+# project meta-workspace), distinct from the upstream template's
+# lessons file which has unrelated content.
+docs/pm/LESSONS.md
+
+# --- Canonical stub-fills (added by migrations/v0.14.4.sh, issue #65) ---
+docs/glossary/PROJECT.md
+
+# --- INDEX split (added by migrations/v0.15.0.sh, issue #66) ---
+docs/INDEX.md
+docs/INDEX-PROJECT.md

@@ -1,0 +1,43 @@
+# Secrets (never commit)
+wg0.conf
+
+# Private v2 planning — not for the public upstream
+V2_ROADMAP.md
+
+# Claude Code session/cache ephemera (tool-created, not user-edited)
+.claude/cache/
+.claude/history/
+.claude/sessions/
+.claude/tmp/
+
+# Personal-scope settings override (not for commit)
+.claude/settings.local.json
+
+# SME local-only material — per IP policy, external/copyrighted material
+# stays out of the repo. Cited in docs/sme/<domain>/INVENTORY.md.
+docs/sme/*/local/
+docs/sme/local/
+
+# Researcher library — general-standard copyrighted material (SWEBOK,
+# PMBOK, IEEE, ISO, etc.). Cited in docs/library/INVENTORY.md.
+docs/library/local/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.swp
+
+# Common build/env artifacts (adjust to your stack)
+node_modules/
+__pycache__/
+*.pyc
+*.log
+.env
+.env.local
+dist/
+build/
+target/
