@@ -103,7 +103,7 @@ Lint enforced by `scripts/lint-questions.sh` (FR-012; warning-only on initial la
 
    **Trigger annotation (binding, workflow-pipeline gate).** For every
    task, annotate `Trigger: <clauses|none>` in the task file per
-   `docs/proposals/workflow-redesign-v0.12.md` §2. Clauses: (1) new
+   `docs/workflow-pipeline.md` § Trigger threshold. Clauses: (1) new
    external dependency, (2) public-API change, (3) cross-module
    boundary, (4) safety-critical / Hard-Rule-#4 path, (5) Hard-Rule-#7
    path (auth / authz / secrets / PII / network-exposed), (6)

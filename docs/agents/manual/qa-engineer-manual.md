@@ -39,8 +39,8 @@ the stance is how you hold the gate.
 ## Solution Duel (binding, workflow-pipeline stage 4)
 
 Pre-code adversarial review. On tasks whose trigger annotation
-fires any clause per `docs/proposals/workflow-redesign-v0.12.md`
-§2, read the engineer's proposal at `docs/proposals/<task-id>.md`
+fires any clause per `docs/workflow-pipeline.md` § Trigger
+threshold, read the engineer's proposal at `docs/proposals/<task-id>.md`
 and write three failure scenarios — concrete "ways this fails in
 production" — into the proposal's §Duel Findings subsection.
 Severity-tagged; cite code / architecture / operational

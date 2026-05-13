@@ -92,7 +92,7 @@ fills that ownership vacuum.
 ## Solution Duel participation (Hard-Rule-#7 paths)
 
 On tasks whose trigger annotation fires clause (5) per
-`docs/proposals/workflow-redesign-v0.12.md` §2 (auth / authz /
+`docs/workflow-pipeline.md` § Trigger threshold (auth / authz /
 secrets / PII / network-exposed surface), participate in the
 Solution Duel alongside `qa-engineer` at workflow-pipeline stage
 4. Both agents write findings into the proposal's §Duel Findings

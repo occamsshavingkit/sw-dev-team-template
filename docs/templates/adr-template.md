@@ -102,9 +102,9 @@ decisions (e.g., naming convention, tooling pin).*
 **Three named alternatives are required**, not one recommendation
 disguised as alternatives. Forces divergent thinking and documents
 the road not taken, for future auditors. Per upstream issue #33
-and `docs/proposals/workflow-redesign-v0.12.md` §4.2. The
-Three-Path Rule is **binding** and stays Required even on minimal
-ADRs — never omit-with-rationale.
+and `docs/workflow-pipeline.md` § Three-path design options
+(collapsed into ADR). The Three-Path Rule is **binding** and stays
+Required even on minimal ADRs — never omit-with-rationale.
 
 ### Option M — Minimalist
 

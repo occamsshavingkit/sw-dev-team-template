@@ -5,8 +5,12 @@ the template's agent roles. This file is provider-neutral first, then
 maps the tiers to current OpenAI / ChatGPT and Claude / Claude Code
 model families.
 
-Status: draft post-v1.0.0 guideline. Re-verify provider mappings before
-each tagged release; model catalogs and aliases change over time.
+**Binding status**: This file is the binding default for fresh scaffolds (FR-016 + spec clarification 5). Downstream projects MAY override per-agent default-model assignments in a marked project-local supplement at `docs/model-routing-guidelines.local.md` (or wherever the project keeps local routing supplements), so long as the supplement carries the `project_local_override_marker` per `sw-dev-team-template/schemas/model-routing.schema.json`.
+
+**Model ID currency**: Exact provider/model identifiers in this file are RUNTIME-REVERIFIABLE — they may change between releases. Routing logic should rely on the model-class column (e.g., `claude-sonnet`, `gemini-pro`) rather than literal IDs. Exact IDs are confirmed at each MINOR-boundary Release per spec clarification 8.
+
+Re-verify provider mappings before each tagged release; model catalogs
+and aliases change over time.
 
 Sources checked on 2026-05-03:
 
@@ -28,16 +32,16 @@ Use four tiers:
 
 | Tier | Use for | OpenAI / ChatGPT mapping | Claude / Claude Code mapping |
 |---|---|---|---|
-| `fast` | Mechanical extraction, classification, short summaries, label hygiene | `gpt-5.4-nano` or successor nano-class model | `haiku` |
-| `standard` | Routine documentation, simple project-management updates, narrow test edits | `gpt-5.4-mini` or successor mini-class model | `sonnet` |
-| `strong` | Default for coding agents, QA, release work, non-trivial research synthesis | `gpt-5.4` or current affordable frontier-class model | `sonnet` with `high` effort, or `opusplan` when planning is important |
-| `frontier` | Architecture, security, code review, major tradeoffs, ambiguous cross-system work | `gpt-5.5` or current flagship model | `opus`, `best`, or `opusplan` |
+| `fast` | Mechanical extraction, classification, short summaries, label hygiene | `gpt-5.4-nano` (runtime-reverifiable) or successor nano-class model | `haiku` (runtime-reverifiable) |
+| `standard` | Routine documentation, simple project-management updates, narrow test edits | `gpt-5.4-mini` (runtime-reverifiable) or successor mini-class model | `sonnet` (runtime-reverifiable) |
+| `strong` | Default for coding agents, QA, release work, non-trivial research synthesis | `gpt-5.4` (runtime-reverifiable) or current affordable frontier-class model | `sonnet` with `high` effort, or `opusplan` (runtime-reverifiable) when planning is important |
+| `frontier` | Architecture, security, code review, major tradeoffs, ambiguous cross-system work | `gpt-5.5` (runtime-reverifiable) or current flagship model | `opus`, `best`, or `opusplan` (runtime-reverifiable) |
 
 Provider notes:
 
-- OpenAI currently recommends `gpt-5.5` for complex reasoning and
-  coding, and `gpt-5.4-mini` / `gpt-5.4-nano` for lower-latency,
-  lower-cost workloads.
+- OpenAI currently recommends `gpt-5.5` (runtime-reverifiable) for
+  complex reasoning and coding, and `gpt-5.4-mini` / `gpt-5.4-nano`
+  (runtime-reverifiable) for lower-latency, lower-cost workloads.
 - Claude Code aliases are preferable in template docs because `opus`,
   `sonnet`, `haiku`, and `opusplan` resolve to current recommended
   models for the configured provider. Pin full model IDs only when a
@@ -61,9 +65,10 @@ review.
 | `max` | Claude-only one-off emergency/deep reasoning mode. Use sparingly for release blockers or high-stakes design reviews. | Prefer recording why `max` was used; do not make it the project default without an ADR. |
 
 For OpenAI mappings, use the provider's available reasoning effort
-values. Current GPT-5.5 / GPT-5.4 family docs list `none`, `low`,
-`medium`, `high`, and `xhigh`. Treat Claude `max` as OpenAI `xhigh`
-plus an explicit prompt asking for a deeper review pass.
+values. Current GPT-5.5 / GPT-5.4 family (runtime-reverifiable) docs
+list `none`, `low`, `medium`, `high`, and `xhigh`. Treat Claude `max`
+as OpenAI `xhigh` plus an explicit prompt asking for a deeper review
+pass.
 
 ### Codex `reasoning_effort` policy
 

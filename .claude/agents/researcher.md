@@ -114,7 +114,7 @@ deliverables).
 
    **Durable artifact required on triggered tasks.** When
    `tech-lead` dispatches a task annotated with any trigger clause
-   per `docs/proposals/workflow-redesign-v0.12.md` §2 — (1) new
+   per `docs/workflow-pipeline.md` § Trigger threshold — (1) new
    external dependency, (2) public-API change, (3) cross-module
    boundary, (4) safety-critical, (5) Hard-Rule-#7 path, (6)
    data-model change — produce `docs/prior-art/<task-id>.md` per
