@@ -180,6 +180,11 @@ deliverables).
    - **Archival is not deletion.** Archived content stays in git
      history and in the archive file. It is just not in the
      agents' live context.
+   - **Archival mechanic.** Implemented in
+     `scripts/archive-registers.sh` (FR-004). Cutoff auto-derived
+     from `docs/pm/SCHEDULE.md`'s most-recent `passed` row;
+     `CUSTOMER_NOTES.md` requires `--include-customer-notes` to opt
+     in (customer-truth safety).
 
 ## Escalation
 

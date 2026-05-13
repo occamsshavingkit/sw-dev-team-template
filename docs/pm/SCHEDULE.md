@@ -13,7 +13,7 @@ Working branches in this sub-repo: `feat/m0-baseline` (M0),
 
 | ID | Milestone | Baseline date | Forecast date | Status | Exit criterion |
 |---|---|---|---|---|---|
-| M0 | Establish current-state measurements before changing behavior. | 2026-05-13 | 2026-05-13 | passed | Baseline metrics captured (token ledger seed, live-register sizes, prompt sizes); gate `G0` signed by `code-reviewer` (audit) + `project-manager` (this row) on 2026-05-13; PR slot `PR-1` queued for merge. |
+| M0 | Establish current-state measurements before changing behavior. | 2026-05-13 | 2026-05-13 | passed | G0 signed 2026-05-13 (`code-reviewer` + `project-manager`); evidence in [SCHEDULE-EVIDENCE.md §M0](./SCHEDULE-EVIDENCE.md#m0--mobilize-and-baseline). |
 | M1 | Reduce recurring context cost before adding new cross-AI features. | TBD | TBD | pending | M1.1 compact runtime contracts (FR-003) generated; M1.2 `archive-registers.sh` (FR-004 + SC-003) lands; token ledger (FR-008) shows measurable reduction vs. M0 baseline; PM live surfaces split (PR-4); gate `G1` signed; PR slots `PR-2a` + `PR-2` + `PR-3` + `PR-4` merged. |
 
 ## Activities
