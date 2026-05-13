@@ -174,6 +174,29 @@ json_escape() {
 # agent-contract.schema.json, then validate.
 lint_canonical_file() {
     src="$1"
+    # Skip files that aren't subject to the canonical-contract schema.
+    # See issues #140 (-local.md supplements) and #153 (sme-*.md derived files).
+    case "$(basename "$src")" in
+        sme-template.md)
+            # Already-excluded scaffold; keep current behavior.
+            return
+            ;;
+        sme-*.md)
+            # Per-project SME files use a different section vocabulary (Mode /
+            # Scope / Knowledge sources / Job / Escalation / Anti-patterns /
+            # Metadata) per docs/sme/CONTRACT.md. They are project-specific
+            # and not subject to the canonical-contract schema. Issue #153.
+            printf '%s\n' "lint-agent-contracts: SKIP: $src (SME — uses sme-template vocabulary)" >&2
+            return
+            ;;
+        *-local.md)
+            # Per-project routing supplements (issue #140, upstream PR #75)
+            # are layered on top of canonical contracts and aren't full agent
+            # contracts in their own right. Excluded by design.
+            printf '%s\n' "lint-agent-contracts: SKIP: $src (-local.md supplement)" >&2
+            return
+            ;;
+    esac
     workdir="$(mktemp -d)"
     # Per-invocation cleanup; no nested trap stacking.
     parsed="${workdir}/parsed.tsv"

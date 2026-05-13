@@ -1,4 +1,7 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
 # test-improve-template-logic.sh
 #
 # Local structural dry-run of the safety pipeline embedded in

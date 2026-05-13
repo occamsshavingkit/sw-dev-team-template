@@ -385,6 +385,49 @@ guard_bash_read_output="$(
 check "CUSTOMER_NOTES guard stays quiet on Bash notes read" \
   bash -c "[ -z '$guard_bash_read_output' ]"
 
+# Issue #156 — structurally-unexpected JSON must fail-open, not raise
+# AttributeError. The hook's isinstance() guards cover (a) top-level
+# payload not being a dict and (b) tool_input not being a dict.
+guard_toplevel_list_rc=0
+guard_toplevel_list_output="$(
+  printf '%s' '[]' \
+    | python3 "$target/scripts/hooks/customer-notes-guard.py" 2>&1
+)" || guard_toplevel_list_rc=$?
+check "CUSTOMER_NOTES guard fail-opens on top-level JSON list (#156)" \
+  bash -c "[ '$guard_toplevel_list_rc' -eq 0 ] && [ -z '$guard_toplevel_list_output' ]"
+
+guard_toplevel_string_rc=0
+guard_toplevel_string_output="$(
+  printf '%s' '"hello"' \
+    | python3 "$target/scripts/hooks/customer-notes-guard.py" 2>&1
+)" || guard_toplevel_string_rc=$?
+check "CUSTOMER_NOTES guard fail-opens on top-level JSON string (#156)" \
+  bash -c "[ '$guard_toplevel_string_rc' -eq 0 ] && [ -z '$guard_toplevel_string_output' ]"
+
+guard_tool_input_string_rc=0
+guard_tool_input_string_output="$(
+  printf '%s' '{"tool_input":"CUSTOMER_NOTES.md"}' \
+    | python3 "$target/scripts/hooks/customer-notes-guard.py" 2>&1
+)" || guard_tool_input_string_rc=$?
+check "CUSTOMER_NOTES guard fail-opens on string tool_input (#156)" \
+  bash -c "[ '$guard_tool_input_string_rc' -eq 0 ] && [ -z '$guard_tool_input_string_output' ]"
+
+guard_tool_input_list_rc=0
+guard_tool_input_list_output="$(
+  printf '%s' '{"tool_input":["CUSTOMER_NOTES.md"]}' \
+    | python3 "$target/scripts/hooks/customer-notes-guard.py" 2>&1
+)" || guard_tool_input_list_rc=$?
+check "CUSTOMER_NOTES guard fail-opens on list tool_input (#156)" \
+  bash -c "[ '$guard_tool_input_list_rc' -eq 0 ] && [ -z '$guard_tool_input_list_output' ]"
+
+guard_toplevel_number_rc=0
+guard_toplevel_number_output="$(
+  printf '%s' '42' \
+    | python3 "$target/scripts/hooks/customer-notes-guard.py" 2>&1
+)" || guard_toplevel_number_rc=$?
+check "CUSTOMER_NOTES guard fail-opens on top-level JSON number (#156)" \
+  bash -c "[ '$guard_toplevel_number_rc' -eq 0 ] && [ -z '$guard_toplevel_number_output' ]"
+
 # Helper: run a command capturing its exit code without tripping set -e.
 # The expected nonzero exits (drift=1, missing=2, corrupt=3, bogus=2)
 # would otherwise abort the smoke test under -e.

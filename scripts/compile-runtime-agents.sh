@@ -1,4 +1,7 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
 # compile-runtime-agents.sh — compact runtime-contract compiler (M1.1)
 # version: 0.2.0
 #
