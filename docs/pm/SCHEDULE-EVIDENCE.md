@@ -88,3 +88,23 @@ Non-blocking observations (LESSONS):
 - §M3.4 — pattern-2 regex needs tightening before hard-gate cutover (3 false-positive warnings).
 - §M3.5 — scoping-questions-template.md still carries compound seed forms; T035 scope didn't reach it. Follow-up issue recommended.
 - Constitution III observation — five-file verbatim repetition with cross-links; defensible for governance text but an ADR/compile-from-canonical solve is the longer-term answer.
+
+## M4 — Documentation authority + drift control
+
+Gate sign-off: G4 signed by `code-reviewer` (audit T049) + `project-manager` (this row) on 2026-05-13.
+
+Acceptance criteria evidence (per source plan §M4):
+
+- M4.1 Documentation Authority Policy inserted into `docs/framework-project-boundary.md` (commit `cc44c8d`, FR-014). Three-sentence form per research.md R-12; codifies canonical/generated/ephemeral + manual-mirror prohibition + generated-artifact reproducibility.
+- M4.2 Root-`ROADMAP.md` leakage fix (commit `cc44c8d`, FR-015). Sub-option (a)+(c) hybrid: scaffold and upgrade scripts seed a project-owned roadmap stub at the downstream root; entry recorded in `.template-customizations` so future upgrades never overwrite. `docs/TEMPLATE_UPGRADE.md` gains a "Root ROADMAP.md handling" paragraph.
+- M4.3 `docs/model-routing-guidelines.md` binding-status flipped (commit `cc44c8d`, FR-016). Binding-status block + model-ID-currency block at top; literal IDs tagged `(runtime-reverifiable)`; "draft" / "advisory" language removed.
+- M4.4 `docs/workflow-pipeline.md` created as canonical home for binding workflow rules (commit `cc44c8d`, FR-017). 342 lines covering Stages, Transition rules, Exit gates / Hard-block conditions — content moved verbatim from `docs/proposals/workflow-redesign-v0.12.md` §§1, 2, 3, 4, 6, 7, 9.5. Proposal doc gains non-binding status banner; section bodies replaced with one-line pointers to the canonical file.
+- T048 cross-link redirect: 10 canonical files (5 agent contracts, 1 manual, 4 templates) redirected from binding-content references to the new `docs/workflow-pipeline.md` with section anchors.
+
+SC status:
+- SC-001 PASS: tech-lead runtime 2491 ≤ 2736 floor.
+- SC-002 researcher exception still on the books per `docs/pm/LESSONS.md` §M2.3 (1655 vs 1597 floor); no new exception introduced by M4 (doc-only milestone with +2-word runtime delta from section-anchor redirect).
+
+Cross-references: PR-8 (commit `cc44c8d` — M4.1 + M4.2), PR-9 (commit `cc44c8d` — M4.3 + M4.4), runtime re-stamp (`4a44cdd`).
+
+Non-blocking observations: Constitution III observation from G3 (five-file batching-rule unification) carried forward; future ADR + compile-from-canonical solve still recommended. T044's Documentation Authority Policy is now the canonical reference for that ADR.

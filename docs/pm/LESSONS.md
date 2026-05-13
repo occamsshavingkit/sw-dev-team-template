@@ -423,3 +423,9 @@ into a fresh project until M8 retrofit triggers it.)
 
 - G3 first-audit BLOCK on a missing durable record of SC-002 researcher exception (commit message ≠ LESSONS entry; spec § SC-002 requires "any exception is justified and recorded"). Fix landed at commit `a37165c`. Recommend at M6 or M7 a CI guard that fails when a commit message claims an SC exception but `docs/pm/LESSONS.md` doesn't have a matching `## <SC-id> exception (date)` heading. (non-blocking, deferred)
 - Pattern continues from M1 close: canonical_sha staleness across canonical-edit → runtime-recompile cycles. Two-commit dance is fragile but worked. Same CI guard recommendation as in M1 close LESSONS still applies.
+
+## M4 close (2026-05-13)
+
+- G4 passed first-try (no rework cycle). M4 was doc-only, so the canonical_sha staleness pattern from M1/M3 close-outs still required a two-commit dance (canonical at `cc44c8d` + runtime re-stamp at `4a44cdd`), but no SC/Constitution defects surfaced.
+- T047 moved workflow-pipeline binding rules from `docs/proposals/workflow-redesign-v0.12.md` to `docs/workflow-pipeline.md`. The proposal doc retains historical/rationale content and now carries a non-binding status banner — the canonical/non-binding split is the pattern future binding-rule extractions should follow.
+- T048 cross-link redirect: 10 canonical files updated; remaining 4 references (canonical pointer, the proposal itself, runtime contracts, CHANGELOG) are expected and intentional. Documentation Authority Policy (T044) explicitly permits the canonical-pointer + historical-reference pattern. (non-blocking, deferred)
