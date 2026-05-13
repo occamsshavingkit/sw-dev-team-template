@@ -273,6 +273,10 @@ initial-state entries.
 - `baseline-token-economy.sh` invocation expects `BASELINE_DOWNSTREAM_ROOTS` paths relative to the sub-repo's cwd; document canonical invocation (`BASELINE_DOWNSTREAM_ROOTS="../../QuackDCS:../../QuackPLC:../../QuackS7:../../QuackSim"`) at top of script for reproducibility. (non-blocking, deferred)
 - Live-register row count includes header rows (off-by-one over data rows); consistent and deterministic, do not change mid-program. (non-blocking, deferred)
 
+## M1.1 evidence (2026-05-13)
+
+- code-reviewer canonical contract reached only 1.5% runtime reduction vs M0 (520 vs 528 words); SC-002 "where safe" clause invoked because the M0 contract was already among the leanest in the roster and had no extractable rationale to absorb into a manual without deleting normative review-gate content. Non-blocking; recorded for future-program reference if SC-002 thresholds tighten. See `docs/pm/token-economy-baseline.md` §M1.1 token-reduction evidence (post-T013).
+
 ## Milestone syntheses
 
 ### 2026-05-03 — v1.0.0-rc4 governance pass
