@@ -1,0 +1,60 @@
+# Schedule — sw-dev-team-template improvement program (M0–M9)
+
+PMBOK Planning / Monitoring artifact. Owned by `project-manager`.
+Baseline snapshot plus live forecast. Variances recorded, not
+overwritten.
+
+Source plan: `sw_dev_template_implementation_plan-2.md` (meta-project
+root). Spec directory: `specs/006-template-improvement-program/`.
+Working branches in this sub-repo: `feat/m0-baseline` (M0),
+`feat/m1-token-quick-wins` (M1, Phase 3 US1).
+
+## Milestone list
+
+| ID | Milestone | Baseline date | Forecast date | Status | Exit criterion |
+|---|---|---|---|---|---|
+| M0 | Establish current-state measurements before changing behavior. | 2026-05-13 | 2026-05-13 | passed | Baseline metrics captured (token ledger seed, live-register sizes, prompt sizes); gate `G0` signed by `code-reviewer` (audit) + `project-manager` (this row) on 2026-05-13; PR slot `PR-1` queued for merge. |
+| M1 | Reduce recurring context cost before adding new cross-AI features. | TBD | TBD | pending | M1.1 compact runtime contracts (FR-003) generated; M1.2 `archive-registers.sh` (FR-004 + SC-003) lands; token ledger (FR-008) shows measurable reduction vs. M0 baseline; PM live surfaces split (PR-4); gate `G1` signed; PR slots `PR-2a` + `PR-2` + `PR-3` + `PR-4` merged. |
+
+## Activities
+
+Activities roll up to milestones. Keep at the size one specialist can
+own end-to-end.
+
+| ID | Activity | Owner (teammate) | Predecessors | Duration | Start | Finish | Status |
+|---|---|---|---|---|---|---|---|
+| A-M0-1 | M0 baseline scaffold + PM artifact opens (this turn — T005/T006/T007/T008) | `project-manager` | — | 1 turn | 2026-05-13 | 2026-05-13 | in-progress |
+| A-M1-1 | M1.1 compact runtime contracts (PR-2a) | `architect` + `software-engineer` | M0 gate G0 | TBD | TBD | TBD | pending |
+| A-M1-2 | M1.2 archive-registers.sh (PR-2) | `software-engineer` | M0 gate G0 | TBD | TBD | TBD | pending |
+| A-M1-3 | Token ledger automation (PR-3) | `software-engineer` | A-M0-1 | TBD | TBD | TBD | pending |
+| A-M1-4 | PM live-surface split (PR-4) | `project-manager` | A-M1-2 | TBD | TBD | TBD | pending |
+
+## Critical path
+
+List the activities on the critical path (longest dependency chain).
+Any slip here moves the milestone.
+
+- A-M0-1 → A-M1-1 → A-M1-3 → A-M1-4 (M1.1 compact contracts must land
+  before token ledger can measure post-compact deltas; PM split
+  consumes the archive script from A-M1-2 in parallel).
+
+## Baseline snapshot
+
+Record the baseline date and the milestone dates at baseline. Do not
+edit once baselined — re-baseline with a change log row.
+
+| Baseline | Date set | Milestones at baseline |
+|---|---|---|
+| B-0 | 2026-05-13 | M0: 2026-05-13; M1: TBD (set at G0 gate close). |
+
+## Variance log
+
+| Date | Milestone | Baseline | Forecast | Variance | Cause | Response |
+|---|---|---|---|---|---|---|
+
+## Gates
+
+| Gate | Milestone | Signers | Status |
+|---|---|---|---|
+| G0 | M0 | `code-reviewer` (audit) + `project-manager` | signed 2026-05-13 |
+| G1 | M1 | `project-manager` + `architect` + `software-engineer` | pending |

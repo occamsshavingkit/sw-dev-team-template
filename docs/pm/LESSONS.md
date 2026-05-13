@@ -267,6 +267,12 @@ initial-state entries.
 **References.** `docs/pm/CHANGES.md`, `docs/pm/TOKEN_LEDGER.md`,
 `docs/v1.0.0-final-checklist.md` G-10.
 
+## M0 baseline (2026-05-13)
+
+- `scripts/baseline-token-economy.sh` lines 250–259 carry dead `awk_extract` commented-out gawk approach; safe to remove in a Phase 3 cleanup pass. (non-blocking, deferred)
+- `baseline-token-economy.sh` invocation expects `BASELINE_DOWNSTREAM_ROOTS` paths relative to the sub-repo's cwd; document canonical invocation (`BASELINE_DOWNSTREAM_ROOTS="../../QuackDCS:../../QuackPLC:../../QuackS7:../../QuackSim"`) at top of script for reproducibility. (non-blocking, deferred)
+- Live-register row count includes header rows (off-by-one over data rows); consistent and deterministic, do not change mid-program. (non-blocking, deferred)
+
 ## Milestone syntheses
 
 ### 2026-05-03 — v1.0.0-rc4 governance pass
