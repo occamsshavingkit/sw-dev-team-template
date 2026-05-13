@@ -7,6 +7,7 @@
 - [Acceptance criteria](#acceptance-criteria)
 - [INVEST check (stories only)](#invest-check-stories-only)
 - [Definition of Ready (DoR)](#definition-of-ready-dor)
+- [Token budget](#token-budget)
 - [Definition of Done (DoD)](#definition-of-done-dod)
 - [Dependencies and risks](#dependencies-and-risks)
 - [Change / execution log](#change--execution-log)
@@ -103,7 +104,7 @@ If any box is unchecked, the item is not ready.
 - [ ] **Workflow-pipeline trigger annotated.** `tech-lead` has
       recorded `Trigger: <clauses|none>` in the Identification
       block (see top of this file) per
-      `docs/proposals/workflow-redesign-v0.12.md` §2. Trigger
+      `docs/workflow-pipeline.md` § Trigger threshold. Trigger
       clauses are: (1) new external dependency, (2) public-API
       change, (3) cross-module boundary, (4) safety-critical /
       Hard-Rule-#4 path, (5) Hard-Rule-#7 path (auth / authz /
@@ -111,7 +112,8 @@ If any box is unchecked, the item is not ready.
 - [ ] **Pipeline artifacts present if trigger fires.** If trigger
       is not `none`, the following exist and are linked from
       this task (unless an escape hatch under
-      `workflow-redesign-v0.12.md` §7 is invoked and recorded):
+      `docs/workflow-pipeline.md` § Escape hatches is invoked and
+      recorded):
       - `docs/prior-art/<task-id>.md` (`researcher`, stage 1)
       - ADR with three alternatives, OR no-ADR justification
         (`architect`, stage 2) — Phase 3 item, optional until
@@ -120,6 +122,30 @@ If any box is unchecked, the item is not ready.
         stage 3)
       - Duel section in the proposal, status = closed
         (`qa-engineer` + `software-engineer`, stage 4)
+
+---
+
+## Token budget
+
+Token-budget bands per `specs/006-template-improvement-program/research.md`
+R-2; ledger row recorded at closure per FR-005 in
+`docs/pm/TOKEN_LEDGER.md`.
+
+- **Token budget:** `tiny` | `small` | `medium` | `large` | `xl`
+- **JIT file list:** <concise list of paths the assignee should load
+  first; omit files only needed transitively>
+- **Token actual:** <filled at closure if material; `wc -w` proxy of
+  prompts + load-set at dispatch time>
+
+Bands:
+
+| Band | Words (proxy) | Tokens (approx) | Intended use |
+|---|---:|---:|---|
+| Tiny | < 1 500 | < ~2 000 | one-file fix, no specialist chain |
+| Small | 1 500 – 6 000 | ~2 000 – ~8 000 | one specialist, focused files |
+| Medium | 6 000 – 19 000 | ~8 000 – ~25 000 | 2–3 specialists, limited docs |
+| Large | 19 000 – 60 000 | ~25 000 – ~80 000 | triggered workflow, multiple artifacts |
+| XL | > 60 000 | > ~80 000 | split unless explicitly approved |
 
 ---
 

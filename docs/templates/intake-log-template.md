@@ -21,6 +21,19 @@ per the question-asking protocol in `CLAUDE.md` § "FIRST ACTIONS"
 Step 2. `qa-engineer` reads the log to audit intake-flow conformance
 against `docs/qa/intake-conformance.md`.
 
+Canonical question-batching rule (binding, identical wording in
+`CLAUDE.md`, `docs/FIRST_ACTIONS.md`, `.claude/agents/tech-lead.md`, and
+`docs/OPEN_QUESTIONS.md`):
+
+> Batch questions internally in docs/OPEN_QUESTIONS.md.
+> Do not batch customer-facing questions.
+> Ask one queued customer question per turn, only when all agents and tools are idle, with the question as the final line.
+
+The `agents-running-at-ask: []` invariant in Hard rule #3 below is the
+intake-log audit surface for that rule; the Customer Question Gate in
+`.claude/agents/tech-lead.md` (FR-011) and `scripts/lint-questions.sh`
+(FR-012) are the runtime enforcement.
+
 ## Format
 
 Each turn is a YAML block, separated by `---`. Fields marked

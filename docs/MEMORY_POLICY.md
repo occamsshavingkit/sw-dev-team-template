@@ -39,3 +39,22 @@ citation. If a recommendation would act on the recalled fact,
 verify against the current file, `git log`, or a fresh read
 first. Stale memory that caused a near-miss is worth noting in
 `docs/pm/LESSONS.md` for future summarizer tuning.
+
+## Query patterns (binding)
+
+Memory query precedes long-artifact reads, customer escalations,
+and ADR-topic reopens. The four canonical patterns:
+
+| When you would otherwise... | Run memory query first | Then verify against |
+|---|---|---|
+| Read old `CUSTOMER_NOTES.md` entries | `search memory for "<topic> customer decision"` | `CUSTOMER_NOTES.md` |
+| Read old schedules | `search memory for "current milestone blocker"` | `docs/pm/SCHEDULE.md` |
+| Ask the customer | `search memory + OPEN_QUESTIONS for similar prior answer` | `CUSTOMER_NOTES.md` + `docs/OPEN_QUESTIONS.md` |
+| Reopen an ADR topic | `search memory for "<module> accepted ADR"` | the relevant `docs/adr/*.md` file |
+
+These patterns are mandatory before escalating to `tech-lead`
+(escalation chain rule, `CLAUDE.md` § Escalation protocol step 1).
+The memory layer is pointer-only, not authority: a hit points at
+a file / commit / issue to verify against the current repo state.
+If memory and repo disagree, the repo wins; flag the stale memory
+in `docs/pm/LESSONS.md`.

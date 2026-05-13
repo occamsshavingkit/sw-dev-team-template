@@ -267,6 +267,17 @@ initial-state entries.
 **References.** `docs/pm/CHANGES.md`, `docs/pm/TOKEN_LEDGER.md`,
 `docs/v1.0.0-final-checklist.md` G-10.
 
+## M0 baseline (2026-05-13)
+
+- `scripts/baseline-token-economy.sh` lines 250–259 carry dead `awk_extract` commented-out gawk approach; safe to remove in a Phase 3 cleanup pass. (non-blocking, deferred)
+- `baseline-token-economy.sh` invocation expects `BASELINE_DOWNSTREAM_ROOTS` paths relative to the sub-repo's cwd; document canonical invocation (`BASELINE_DOWNSTREAM_ROOTS="../../QuackDCS:../../QuackPLC:../../QuackS7:../../QuackSim"`) at top of script for reproducibility. (non-blocking, deferred)
+- Live-register row count includes header rows (off-by-one over data rows); consistent and deterministic, do not change mid-program. (non-blocking, deferred)
+
+## M1.1 evidence (2026-05-13)
+
+- code-reviewer canonical contract reached only 1.5% runtime reduction vs M0 (520 vs 528 words); SC-002 "where safe" clause invoked because the M0 contract was already among the leanest in the roster and had no extractable rationale to absorb into a manual without deleting normative review-gate content. Non-blocking; recorded for future-program reference if SC-002 thresholds tighten. See `docs/pm/token-economy-baseline.md` §M1.1 token-reduction evidence (post-T013).
+- M1 close: G1 first-audit BLOCK on researcher canonical_sha staleness (compiler reads HEAD blob SHA, not working-tree; a post-canonical-edit re-compile is required). Fix landed at commit `5f96450`. Recommend CI guard at M6 or M7 that fails when `git hash-object .claude/agents/<role>.md != canonical_sha` in `docs/runtime/agents/<role>.md`. (non-blocking, deferred)
+
 ## Milestone syntheses
 
 ### 2026-05-03 — v1.0.0-rc4 governance pass
@@ -296,3 +307,149 @@ per `.claude/agents/project-manager.md`.
 `v1.0.0` remains pending. rc6 cleared the final blocker queue, but the
 downstream clean-window sample, customer ratification, and GitHub Release
 object are still open.
+
+## M3.4 question-lint dry-run (2026-05-13)
+
+Ran `scripts/lint-questions.sh --summary` (FR-012, warning-only mode;
+`HARDGATE_AFTER_SHA=DEFERRED_SET_AT_HARDGATE_PR`) against the default
+file set on branch `feat/m1-token-quick-wins`.
+
+Output:
+
+```
+docs/templates/scoping-questions-template.md:11: pattern-2-multi-numbered: "   and what counts as "done" for the first milestone?"
+.claude/agents/tech-lead.md:68: pattern-2-multi-numbered: "2. **Is it atomic?** One decision axis only. Compound asks queue internally in `docs/OPEN_QUESTIONS.md`."
+docs/runtime/agents/tech-lead.md:45: pattern-2-multi-numbered: "2. **Is it atomic?** One decision axis only. Compound asks queue internally in `docs/OPEN_QUESTIONS.md`."
+lint-questions: WARN 3 violation(s); hard-gate not yet active (HARDGATE_AFTER_SHA=DEFERRED_SET_AT_HARDGATE_PR)
+lint-questions: 3 warnings, 0 errors
+```
+
+Per-line classification:
+
+- `docs/templates/scoping-questions-template.md:11` — **false positive**.
+  The template is the Step-2 scoping queue; items `0.`, `1.`, `2.`, `3.`,
+  ... are *independent* customer questions to be asked one per turn (the
+  file header explicitly says "ask them one per turn"). The regex flags
+  adjacent numbered items as a compound, but they are a queue of atomic
+  questions, not a multi-numbered compound ask.
+- `.claude/agents/tech-lead.md:68` — **false positive**. Line is item `2.`
+  of the Customer Question Gate's four-check enumeration (`1.` ... `4.`).
+  This is a procedural checklist that gates customer-facing questions; it
+  is not itself a question asked of the customer.
+- `docs/runtime/agents/tech-lead.md:45` — **false positive**. Compiled
+  runtime mirror of the same Customer Question Gate enumeration in
+  `.claude/agents/tech-lead.md:68`. Same classification, downstream of the
+  same source.
+
+Recommendation for the next iteration of `scripts/lint-questions.sh`
+(future refinement task, not in scope for T040): tighten pattern-2 so it
+does not fire on numbered-bullet lists that (a) sit under a heading whose
+purpose is a procedural checklist or a queue of atomic items, or (b) do
+not contain a `?` within the matched item, or (c) appear in
+`docs/templates/scoping-questions-template.md` and the runtime/source
+pair of `tech-lead.md` Customer Question Gate. Pre-existing
+`tech-lead.md:68` and its `docs/runtime/agents/tech-lead.md:45` mirror
+should not fire after the refinement.
+
+Hard-gate cutover (per spec clarification 13 and FR-012) lands at the
+next MINOR-boundary Release. Any warnings still firing at that cutover
+MUST be either (a) legitimate and fixed in source, or (b) grandfathered
+by setting `HARDGATE_AFTER_SHA` to a SHA prior to the offending row so
+the lint script treats pre-cutoff occurrences as warnings while erroring
+on new ones. The three current warnings are all false positives and
+should be resolved by pattern refinement before the cutover; no
+grandfathering needed if the regex is tightened first.
+
+## M2.3 researcher SC-002 exception (2026-05-13)
+
+T034 added the FR-009 memory-first-lookup patterns to
+`.claude/agents/researcher.md`. The four canonical patterns are binding
+governance and cannot be elided. Effect on the runtime contract:
+
+| Measure | M0 baseline | Post-M1.1 (G1) | Post-T034 (G3) |
+|---|---:|---:|---:|
+| Runtime words | 1996 | 1590 | 1653 |
+| Reduction vs M0 | — | 20.3% | **17.2%** |
+
+**SC-002 floor for researcher**: 1597 words (20.0% reduction).
+**Breach**: 1653 - 1597 = 56 words over the floor (1.8 percentage
+points below the threshold).
+
+**Justification under SC-002 "any exception is justified and recorded"**:
+The +63-word delta is the FR-009 memory-first-lookup binding text. The
+four query patterns are normative (binding governance — `CLAUDE.md` §
+Escalation protocol step 1 references the same patterns; reducing them
+below information-completeness would lose the verbatim invariants that
+make memory pointer-only). Trimmed as far as possible (33 words for
+patterns + 30 words for pointer-only and repo-wins-on-conflict
+invariants); further trim would lose the verbatim rule.
+
+**Deferral plan**:
+- Future trim candidate (non-binding rationale): the pronoun-verification
+  block at canonical lines 129-158, currently retained for the
+  customer-naming Step 3 in `docs/FIRST_ACTIONS.md`. If a future
+  milestone moves naming rationale into a manual companion (similar to
+  M1.1's rationale absorption pattern), the +56-word delta would be
+  recovered comfortably.
+- Considered at G3 close (2026-05-13); not actioned, deferred to a
+  Phase-3+ pass.
+
+This is the binding "justified and recorded" entry for the SC-002
+researcher exception. The exception is acknowledged and acceptable
+under the "where safe" clause of SC-002. (non-blocking, deferred)
+
+## M3.5 follow-up — scoping-questions-template (2026-05-13)
+
+G2+G3 audit observation OBS-G3-1: T035 atomicized
+`docs/FIRST_ACTIONS.md` seed questions but did not touch the canonical
+binding seed queue at `docs/templates/scoping-questions-template.md`,
+which contains the original compound forms that FR-010 was designed to
+prevent. The lint correctly flagged
+`docs/templates/scoping-questions-template.md:11` as
+`pattern-2-multi-numbered`; classification was previously "false
+positive" but on re-reading in context it is a genuine compound seed
+question split across numbered rows.
+
+**Recommendation**: open an issue for a follow-up task to atomize
+`scoping-questions-template.md` seed entries, matching the
+decomposition pattern used in `FIRST_ACTIONS.md` (one decision axis per
+row, atomic-gate preamble at the top). Update FR-010 acceptance scope
+to explicitly include `scoping-questions-template.md` if the template
+shape persists. (non-blocking, deferred — does not block G3 close
+because the lint surface is warning-only and the template won't ship
+into a fresh project until M8 retrofit triggers it.)
+
+## M3 close (2026-05-13)
+
+- G3 first-audit BLOCK on a missing durable record of SC-002 researcher exception (commit message ≠ LESSONS entry; spec § SC-002 requires "any exception is justified and recorded"). Fix landed at commit `a37165c`. Recommend at M6 or M7 a CI guard that fails when a commit message claims an SC exception but `docs/pm/LESSONS.md` doesn't have a matching `## <SC-id> exception (date)` heading. (non-blocking, deferred)
+- Pattern continues from M1 close: canonical_sha staleness across canonical-edit → runtime-recompile cycles. Two-commit dance is fragile but worked. Same CI guard recommendation as in M1 close LESSONS still applies.
+
+## M4 close (2026-05-13)
+
+- G4 passed first-try (no rework cycle). M4 was doc-only, so the canonical_sha staleness pattern from M1/M3 close-outs still required a two-commit dance (canonical at `cc44c8d` + runtime re-stamp at `4a44cdd`), but no SC/Constitution defects surfaced.
+- T047 moved workflow-pipeline binding rules from `docs/proposals/workflow-redesign-v0.12.md` to `docs/workflow-pipeline.md`. The proposal doc retains historical/rationale content and now carries a non-binding status banner — the canonical/non-binding split is the pattern future binding-rule extractions should follow.
+- T048 cross-link redirect: 10 canonical files updated; remaining 4 references (canonical pointer, the proposal itself, runtime contracts, CHANGELOG) are expected and intentional. Documentation Authority Policy (T044) explicitly permits the canonical-pointer + historical-reference pattern. (non-blocking, deferred)
+
+## M5 close (2026-05-13)
+
+- G5 passed first-try (no rework cycle). M5 was substantial: ADR-0009 + model-routing extensions + log-fallback.sh + compiler adapter-generation + --verify mode. No SC regressions.
+- **OBS-G5-1 — incomplete canonicals**: `onboarding-auditor` (missing escalation + output_format), `process-auditor` (missing hard_rules + escalation + output_format), `project-manager` (missing output_format), `sre` (missing hard_rules). Compiler's skip-incomplete behavior (with `--strict` flag for CI) means these get adapters but not runtime contracts. Recommend section additions at M6 (when `lint-agent-contracts.sh` hard-gates) or by M9 release readiness; otherwise these 4 agents ship without compact runtime contracts. (non-blocking, deferred)
+- **OBS-G5-2 — duplicate routing tables**: `docs/model-routing-guidelines.md` carries both the older `## Role defaults` tier table (fast/standard/strong/frontier vocabulary) and the new T052 `## Binding per-agent default-class table` (binding-schema-enum vocabulary). Two overlapping per-agent tables in one binding doc invite drift. Reconciliation: collapse to one table or formalize the two-system layering in a follow-up. (non-blocking, deferred)
+- **OBS-G5-3 — fallback-log.jsonl contract**: `scripts/log-fallback.sh` creates `docs/pm/fallback-log.jsonl` on first event. No file exists pre-event; this is intended steady-state. Consider documenting the create-on-first-write contract in `docs/pm/README.md` (or whichever PM index exists) or seeding an empty `fallback-log.jsonl` at scaffold time so the path is greppable from session start. (non-blocking, deferred)
+- The canonical_sha staleness pattern from M1/M3/M4 close-outs DID NOT recur at M5 close because M5 didn't edit any `.claude/agents/<role>.md` canonical file. Confirms the pattern: the staleness only fires when M-x edits canonical AND M-x's commit includes the runtime contracts; the two-commit dance is required only when canonical changes. M5 modified only the routing-guidelines doc + the compiler script + new schema/log scripts; runtime contracts regenerated cleanly because canonical SHAs at HEAD matched.
+
+## M6 close (2026-05-13)
+
+- G6 passed first-try (single trailing audit observation: 4 adapter SHAs lagged the canonical commit by one cycle; closed at `c243aa0` before SCHEDULE flip). The two-commit dance pattern from earlier milestones held at M6 close.
+- M5 OBS-G5-1 (4 incomplete canonicals — onboarding-auditor, process-auditor, project-manager, sre — missing schema-required sections) is CLOSED at M6. Pre-T060 work added the missing `## Hard rules` / `## Escalation` / `## Output format` sections sourced from existing canonical prose + CLAUDE.md hard-rule citations + spec clarification 14 (advisory roles). 4 new compact runtime contracts generated cleanly.
+- T059 schema activation surfaced a real defect: generated-artifact.schema.json's `additionalProperties: false` was incompatible with the compiler's `description: <text>` frontmatter emission. Fixed by adding `description` as an optional string property in the schema (both spec and sub-repo copies). Pattern lesson: **schema activation is a behavioral check** — schemas should be authored under `additionalProperties: false` and EVERY field the compiler emits must be enumerated. A future M9 release-readiness check should run schema validation against every newly-generated artifact.
+- Real-LLM prompt regression remains stubbed at G6 per T011 design. The structural SC-013 pass is what G6 audits; behavioral pass requires actual LLM invocation (Phase-3+). The stub harness's value: it catches fixture-validation bugs and missing-compiled-contract gaps; it does not catch behavioral regressions in the agents themselves. Recommend Phase-3+ task to wire the harness to real LLM execution against canonical AND compiled contracts; results would augment LESSONS as the agents drift over time.
+- canonical_sha staleness pattern recurred at M6 (4 new runtime contracts post-canonical-edit) AND for 4 OpenCode adapters (audit T064 caught these mid-audit). The two-commit dance (canonical + scripts in one commit; runtime+adapter regeneration in the next) remains the manual workaround. The CI guard idea from M1/M3 close LESSONS now applies to BOTH runtime contracts AND adapters; recommend the guard check `git hash-object` against the canonical_sha frontmatter for EVERY file under `docs/runtime/agents/` AND `.opencode/agents/`.
+
+## M7 close (2026-05-13)
+
+- G7 passed first-try with code-reviewer + release-engineer + security-engineer audit (T073 + T074). Three roles audited; recorded as Hard-Rule-#7 pre-condition. Customer approval still owed at G9 per FR-032.
+- T073 security review surfaced FR-027 anchor 11 ("any file containing a Hard Rule") as a content-based requirement not yet enforced by the workflow's path regex. R-8 records this; mitigated today by mandatory human review + size cap + paired-proposal escape valve. Phase-3+ hardening: grep -l "Hard Rule" content step. Pattern lesson: **content-based protection requires content-based checks** — path-only regexes capture only the explicit path entries.
+- T073 also identified the workflow_dispatch input-injection surface (R-9). Low blast radius (write-access required) but a one-line validator is cheap; defer to Phase-3+ when the real LLM step lands and a security re-review fires.
+- The M7 propose step is a placeholder. Phase-3+ wire-up to a real LLM is gated by R-6 (security re-review at LLM wire-up). The placeholder pattern shipped here is the right architecture: the security boundary (size cap, protected-files, customer-truth, paired-proposal, pre-flight drift) is independent of the proposal source.
+- canonical_sha staleness pattern did NOT recur at M7 close (workflow-only milestone; no `.claude/agents/*.md` edits). Continues to validate the pattern observation from M5 close: the two-commit dance is required ONLY when canonical agent files change.

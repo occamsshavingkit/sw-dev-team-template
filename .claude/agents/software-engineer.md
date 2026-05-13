@@ -52,7 +52,7 @@ What I already checked: <CUSTOMER_NOTES / other agents>
 ## Pre-code workflow (binding, workflow-pipeline stage 3+4)
 
 On tasks whose trigger annotation fires any clause per
-`docs/proposals/workflow-redesign-v0.12.md` §2:
+`docs/workflow-pipeline.md` § Trigger threshold:
 
 1. **Proposal before code.** Produce `docs/proposals/<task-id>.md`
    per `docs/templates/proposal-template.md` before writing
@@ -71,9 +71,9 @@ On tasks whose trigger annotation fires any clause per
    rule.
 3. **Below-threshold tasks** (trigger = `none`): no proposal
    required, code directly per existing DoR.
-4. **Escape hatches** (`workflow-redesign-v0.12.md` §7): recorded
-   in the task file by `tech-lead`, not invoked unilaterally by
-   the engineer.
+4. **Escape hatches** (`docs/workflow-pipeline.md` § Escape
+   hatches): recorded in the task file by `tech-lead`, not invoked
+   unilaterally by the engineer.
 
 ## Constraints
 

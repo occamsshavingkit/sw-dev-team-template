@@ -21,10 +21,12 @@ files (`VERSION`, `CHANGELOG.md`, `CONTRIBUTING.md`, `LICENSE`,
 role-local `.claude/agents/*-local.md` supplements), stamps
 `TEMPLATE_VERSION` at the project root (SemVer + git SHA + date),
 replaces `README.md` with a project stub, seeds an empty
-`.template-customizations`, and runs `git init -b main` in the
-target (no initial commit — the project owner makes that). Issues
-filed against the upstream cite the `TEMPLATE_VERSION` so the
-maintainer can tell whether a reported gap is still current.
+`.template-customizations` pre-populated with canonical stub-fills
+(including a project-local `ROADMAP.md` stub per T045 / FR-015), and
+runs `git init -b main` in the target (no initial commit — the project
+owner makes that). Issues filed against the upstream cite the
+`TEMPLATE_VERSION` so the maintainer can tell whether a reported gap
+is still current.
 
 **License of the template and of downstream projects.** The template
 itself is **MIT** (see `LICENSE`). That license is intentionally not
@@ -108,6 +110,37 @@ are never overwritten and never flagged as conflicts; they appear as
 empty; populate it the first time an upgrade flags a legitimate
 customization you want to keep.
 
+**Intake-log seeding (T041 / FR-013).** Scaffold creates
+`docs/intake-log.md` from `docs/templates/intake-log-template.md`,
+substituting the project display name, and lists the path in
+`.template-customizations` so future upgrades treat the live log as
+project-owned and never overwrite it. Older scaffolds that pre-date
+this behaviour are retrofitted at upgrade time: `scripts/upgrade.sh`
+seeds the file only when it is missing from the project (existing
+intake content is never touched) and appends the path to
+`.template-customizations` on first encounter.
+
+**Root ROADMAP.md handling (T045 / FR-015 / M4.2).** The template's own
+`ROADMAP.md` is upstream release planning and is intentionally **not**
+shipped to downstream scaffolds — both `scripts/scaffold.sh` and the
+`scripts/upgrade.sh` ship-file filter exclude it. In its place, scaffold
+seeds a short project-local `ROADMAP.md` stub at the downstream root
+(owned by `project-manager`, with entries mapping to
+`docs/pm/SCHEDULE.md` milestones) and lists the path in
+`.template-customizations` so future upgrades never overwrite it.
+Older scaffolds are retrofitted at upgrade time: when `ROADMAP.md` is
+missing, `scripts/upgrade.sh` seeds the same project-local stub and
+appends the path to `.template-customizations`; when `ROADMAP.md` is
+already present (including projects that received the template's own
+upstream roadmap by mistake before this fix), the existing file is
+left untouched. Downstream consumers of recent template versions who
+find their `ROADMAP.md` is actually template-scoped upstream-release
+planning should EITHER delete the local file and re-run `upgrade.sh`
+to receive the project-local stub, OR overwrite it by hand with a
+project-local roadmap. The template's own upstream `ROADMAP.md` stays
+in the template repo unchanged — only the leak to fresh scaffolds and
+the retrofit path are fixed here.
+
 **Volatile shipped files.** Avoid editing template-shipped scripts,
 `.claude/settings.json`, and append-only governance logs in place
 unless the project intentionally accepts the merge cost. Prefer
@@ -179,3 +212,24 @@ template repo. Scaffolded downstream projects strip `migrations/`, so a
 downstream maintainer reading this guide from a project tree may need to
 consult the upstream template repo for `migrations/README.md` and
 `migrations/TEMPLATE.sh`.
+
+## GitHub labels (FR-025)
+
+The framework defines a taxonomy of GitHub issue labels (template-gap,
+template-friction, authority-drift, docs-drift, agent-contract,
+atomic-question, model-routing, token-economy, process-breakdown,
+traceability-gap, generalization-risk, ai-behavior, m8-waiver) used
+across upstream and downstream repos for issue triage. After cloning
+fresh, or after a template upgrade introduces new labels in this set,
+run the setup script to actualize them on your GitHub remote (the
+script is idempotent — re-running is safe):
+
+```
+cd sw-dev-team-template
+REPO=<owner>/sw-dev-team-template ./scripts/setup-github-labels.sh
+```
+
+Use `--dry-run` to list the labels without contacting GitHub. The
+script never deletes or recolors existing labels; new colors / labels
+introduced by a template upgrade require a manual update of
+`scripts/setup-github-labels.sh` followed by a re-run.

@@ -1,5 +1,10 @@
 # Memo: Workflow redesign for v0.12.0 — composing #32 / #33 / #34 / #35
 
+> **Status**: Proposal doc — non-binding. Binding rules from this
+> proposal moved to [docs/workflow-pipeline.md](../workflow-pipeline.md)
+> on 2026-05-13 per FR-017 + M4.4. This file is retained for
+> historical rationale and migration narrative only.
+
 **Status:** proposed (recommendation only). Tech-lead + customer
 review required before any implementation dispatch.
 **Author:** `architect`. Persisted by `tech-lead` (architect spawn
@@ -23,198 +28,65 @@ ceremony, also the most duplicative of existing ADR trigger list).
 
 ## 1. Composition — one pipeline, five stages
 
+See `docs/workflow-pipeline.md` § Stages for the canonical
+five-stage table, feed relationships, and the pipeline-not-gate
+semantics. The composition narrative below (rationale only) explains
+*why* the four proposals chain into a single pipeline rather than
+shipping independently.
+
 The four proposals are not parallel; they form a dependency chain on
-a single deliverable path. Proposed stage order:
-
-| # | Stage | Owner | Input | Output artifact | Consumed by |
-|---|---|---|---|---|---|
-| 1 | Prior-art scan (#34) | `researcher` | task brief | `docs/prior-art/<task-id>.md` | stages 2, 3 |
-| 2 | Three-path design (#33) | `architect` | task brief + prior-art | ADR §Alternatives considered (three alternatives) | stage 3 |
-| 3 | Engineer proposal (#32) | `software-engineer` | chosen path + prior-art | `docs/proposals/<task-id>.md` | stage 4 |
-| 4 | Solution duel (#35) | `qa-engineer` → `software-engineer` revision | proposal | duel annex appended to `docs/proposals/<task-id>.md` | stage 5 |
-| 5 | Code | `software-engineer` | revised proposal | diff + tests | existing review + merge flow |
-
-**Feed relationships.**
-
-- Prior-art feeds both the architect (so alternatives aren't
-  reinvented) and the engineer (so implementation picks the right
-  library/API signatures). Writing it once, consuming it twice is
-  the reason it goes first.
-- Three-path is **upstream of** proposal, not parallel. The
-  engineer's proposal is the chosen path made concrete. If the
-  three-path step is skipped (see §2 trigger), the engineer's
-  proposal stands alone; if kept, the proposal cites which of
-  M/S/C it implements and why.
-- The duel is a **revision loop on stage 3's artifact**, not a
-  separate document class. QA's "three ways this fails in
-  production" attaches as an annex to the proposal; engineer
-  either revises the proposal in-place or rebuts each finding
-  in-annex. This matters for retention and for not creating a
-  fifth artifact.
-- Code does not start until the duel annex is closed (either all
-  findings addressed or explicitly accepted-as-risk by
-  `tech-lead`).
-
-This is a pipeline, not a gate: each stage's artifact is the next
-stage's required input. Skipping mid-pipeline (e.g., "prior-art
-says nothing new, go straight to code") is allowed only via the
-escape hatches in §7.
+a single deliverable path. Stage order is: prior-art (#34) →
+three-path (#33) → engineer proposal (#32) → solution duel (#35) →
+code. Prior-art feeds both the architect (so alternatives aren't
+reinvented) and the engineer (so implementation picks the right
+library/API signatures). Three-path is upstream of proposal, not
+parallel. The duel is a revision loop on the proposal artifact,
+not a separate document class — that is why this redesign collapses
+four proposed rules into a single artifact stream rather than four
+independent gates.
 
 ## 2. Trigger threshold (mechanical, not judgment)
 
-Each issue's triage hint asks whether the rule fires every task or
-only "non-trivial" ones. A judgment threshold ("only for non-trivial
-tasks") is gameable and inconsistent across agents. Recommendation:
-**any OR-clause triggers the full pipeline.** All conditions are
-mechanically checkable from the task file, the diff plan, or the
-routing table:
+See `docs/workflow-pipeline.md` § Transition rules for the canonical
+six-clause OR-set trigger, the trigger-false default, the
+trigger-annotation convention, and post-hoc auditability.
 
-**Trigger = true if any of:**
-
-1. **New external dependency.** Task adds or upgrades any
-   library/framework not previously in the project's dependency
-   manifest. (Pure transitive-pin bumps don't count; direct-
-   dependency adds do.) This is `architect.md` ADR trigger #2 and
-   the single strongest hallucination signal for #34.
-2. **Public-API change.** Task modifies any exported symbol
-   (function, type, endpoint, CLI flag, config key) that is named
-   in `docs/requirements.md`, an ADR, or a public interface doc.
-   Detected by comparing the proposed diff's changed-symbol set
-   against `grep -l` of those files.
-3. **Cross-module boundary crossed.** Task's file set spans two or
-   more top-level source modules/packages as defined in the
-   project's architecture doc. Single-module changes don't
-   trigger.
-4. **Safety-critical or Hard-Rule-#4 path touched.** Any file
-   flagged safety-critical in `CUSTOMER_NOTES.md` or by an ADR.
-5. **Hard-Rule-#7 path touched.** Any file in auth / authz /
-   secrets / PII / network-exposed surface as enumerated for
-   `security-engineer`.
-6. **Data model change.** Schema, serialization format,
-   persistence swap (matches ADR trigger #3).
-
-**Trigger = false** (pipeline skipped) if none of (1)–(6) holds.
-Typical below-threshold work: typo fix, single-function internal
-refactor, adding a log line, updating a docstring, tightening a
-lint rule.
-
-**Why OR-set rather than a single metric.** File-count alone (e.g.,
-"≥5 files") is the wrong proxy: a one-line auth change is more
-consequential than a ten-file rename. Each of (1)–(6) is already an
-independent ADR or Hard-Rule trigger elsewhere in the template;
-reusing those definitions means the workflow threshold drifts in
-lockstep with the gates it sits next to.
-
-**Who decides trigger status.** `tech-lead`, at task dispatch time,
-writes a single-line trigger annotation into the task file:
-`Trigger: <list of clauses that fire, or "none">`. Annotation is
-mechanically auditable post-hoc by `qa-engineer` at milestone close
-(new DoD row in task template — see §6).
+The rationale, retained here, is that a judgment threshold ("only
+for non-trivial tasks") is gameable and inconsistent across agents,
+and that file-count alone is the wrong proxy: a one-line auth
+change is more consequential than a ten-file rename. The OR-set
+reuses six conditions that are already independent ADR or
+Hard-Rule triggers elsewhere in the template, so the workflow
+threshold drifts in lockstep with the gates it sits next to.
 
 ## 3. Integration with existing gates (no duplication)
 
-The new pipeline slots **between DoR and code**, not in parallel
-with existing gates. Concretely:
+See `docs/workflow-pipeline.md` § Transition rules ("Integration with
+existing gates") for the canonical list of DoR / ADR / qa-engineer /
+code-reviewer / Hard-Rule / CHANGES.md interactions and the
+"no-new-gate-file" rule.
 
-- **Task template DoR** stays as-is. A new DoR row is added: *"If
-  trigger fires (see §2), required pipeline artifacts (prior-art /
-  design-options / proposal) exist and are linked from this task."*
-- **`architect` ADR trigger list** overlaps heavily with the §2
-  trigger. Rather than duplicate, **the three-path artifact for a
-  task under §2 trigger is the ADR body's "Alternatives considered"
-  section** — the architect writes one ADR that incorporates the
-  three-path options, rather than writing an ADR and a separate
-  design-options doc. This collapses #33's new artifact into the
-  existing ADR stream.
-- **`qa-engineer` adversarial stance** is *attitude at diff-review
-  time.* #35's Solution Duel is *attitude at proposal-review
-  time.* They compose: same adversarial posture, applied earlier.
-  The qa-engineer agent file gains a new job item; the stance text
-  stays put.
-- **`code-reviewer` two modes** are unchanged. Review mode still
-  fires at diff time. The duel does not replace review — it
-  catches design-level fails earlier; review still catches
-  implementation-level fails.
-- **Hard Rules #2, #4, #7** are unchanged. The pipeline produces
-  artifacts that *feed* the customer and security-engineer
-  sign-offs those rules require; it does not substitute for them.
-  See §9 for interaction detail.
-- **`docs/templates/pm/CHANGES.md`** is unchanged. Scope changes
-  discovered during prior-art (stage 1) or duel (stage 4) still
-  route through CHANGES.md.
-
-**No new gate file.** The pipeline is DoR-resident; the task
-template's DoR row is the single enforcement point.
+The rationale for slotting between DoR and code (rather than in
+parallel with existing gates) is that every overlap below — ADR
+trigger list, qa-engineer adversarial stance, code-reviewer two
+modes, CHANGES.md — already has a defined home; introducing a
+parallel gate would have created drift between the new pipeline and
+the existing gates it would shadow.
 
 ## 4. Artifact catalogue
 
-Four new (or one new + three existing-reuses) artifact classes:
+See `docs/workflow-pipeline.md` § Transition rules ("Artifact
+catalogue") for the canonical paths, owners, consumers, and
+retention rules of the four artifact classes (prior-art scan,
+three-path design options collapsed into the ADR, engineer
+proposal, and solution duel annex).
 
-### 4.1 Prior-art scan (#34)
-
-- **Path:** `docs/prior-art/<task-id>.md`
-- **Template:** new `docs/templates/prior-art-template.md` —
-  sections: Task reference / Search scope (which standards + vendor
-  docs + canonical libraries queried) / Canonical solution found
-  (or "none") / Candidate libraries + versions + license / Known
-  pitfalls / Citations (Tier-1/2/3 per `researcher.md`).
-- **Owner:** `researcher`.
-- **Consumers:** `architect` (stage 2), `software-engineer` (stages
-  3 and 5).
-- **Retention:** **durable**. Git-tracked. Small (one page
-  typical), high reuse value on follow-up tasks, and it's the
-  audit trail for "why we picked library X." Stored under
-  `docs/prior-art/` permanently; archived via `researcher`'s
-  archival rule only when the covered feature is removed.
-
-### 4.2 Three-path design options (#33, collapsed into ADR)
-
-- **Path:** no new file. The three alternatives land in the ADR's
-  **Alternatives considered** section. ADR path remains
-  `docs/adr/ADR-NNN-<slug>.md`.
-- **Template:** existing `docs/templates/architecture-template.md`
-  ADR shape; recommendation is to expand that template's
-  "Alternatives considered" guidance to require **three**
-  alternatives labeled Minimalist / Scalable / Creative, with
-  one-paragraph trade-off per alternative.
-- **Owner:** `architect`.
-- **Consumers:** `software-engineer` (stage 3), `code-reviewer`
-  (audit mode — checks that the shipped code matches the chosen
-  path).
-- **Retention:** **durable** (ADRs are already durable).
-
-### 4.3 Engineer proposal (#32)
-
-- **Path:** `docs/proposals/<task-id>.md`
-- **Template:** new `docs/templates/proposal-template.md` —
-  sections: Task reference / Chosen ADR path (M/S/C) /
-  Implementation sketch (pseudocode or interface-level, not
-  production code) / Dependencies touched / Test plan outline /
-  Risks + mitigations / Open questions.
-- **Owner:** `software-engineer`.
-- **Consumers:** `qa-engineer` (stage 4 duel), `code-reviewer`
-  (audit mode reference).
-- **Retention:** **durable for non-trivial; transient below
-  threshold.** Proposals for tasks that triggered §2 stay in the
-  repo as the design-intent record the code is measured against.
-  If the customer prefers slimming, a post-merge archival pass can
-  move proposals to `docs/proposals/ARCHIVE/` after the next
-  milestone close.
-
-### 4.4 Solution duel annex (#35)
-
-- **Path:** appended to `docs/proposals/<task-id>.md` as a fenced
-  `## Duel` section. Not a separate file.
-- **Template:** `docs/templates/proposal-template.md` ships a
-  `## Duel` section with two subsections: *Findings* (QA lists
-  three ways-to-fail) and *Rebuttals / revisions* (engineer
-  responds per-finding — either proposal revised, or risk accepted
-  with justification and tech-lead ratification).
-- **Owner:** jointly stewarded — `qa-engineer` writes Findings;
-  `software-engineer` writes Rebuttals.
-- **Consumers:** `tech-lead` (for ratification if any finding is
-  disputed), `code-reviewer` (audit reference).
-- **Retention:** travels with the proposal — same policy.
+The catalogue design choice retained here for rationale: only one
+genuinely new artifact class ships (prior-art); three-path collapses
+into the ADR's Alternatives-considered section, and the duel annex
+lives inside the proposal as a fenced `## Duel` section. The
+collapse pattern keeps net artifact-count growth to one rather than
+four.
 
 ## 5. Routing-table changes (proposed in prose)
 
@@ -244,93 +116,46 @@ choice is library-agnostic). `tech-lead` makes that call.
 
 ## 6. Agent-file changes (new rules; conflicts flagged)
 
-### `researcher.md`
+See `docs/workflow-pipeline.md` § Transition rules ("Agent-file
+binding rules") for the canonical rule text for `researcher.md`,
+`architect.md`, `software-engineer.md`, and `qa-engineer.md`, plus
+the duel round-limit rule. The conflict checks performed at design
+time (no conflict with existing researcher §Job, ADR trigger list,
+software-engineer Constraints, or qa-engineer Adversarial-stance
+clause) are reproduced in the rationale notes below.
 
-New binding rule: *"Prior-art artifact on triggered tasks. When
-`tech-lead` dispatches a task annotated with any §2 trigger clause,
-produce `docs/prior-art/<task-id>.md` per `prior-art-template.md`
-before the architect or engineer is dispatched to downstream
-stages."* **No conflict** — this makes §Job #5 ("Prior-art scans")
-concrete rather than ambient.
+Conflict-check notes (rationale only):
 
-### `architect.md`
-
-New binding rule: *"On triggered tasks, the ADR's Alternatives
-considered section carries three named alternatives (Minimalist /
-Scalable / Creative) with one-paragraph trade-offs per alternative,
-not a single recommendation disguised as alternatives."*
-**Conflict check:** existing ADR trigger list already requires ADRs
-on the same conditions as §2 — good, they align.
-
-### `software-engineer.md`
-
-Two new binding rules:
-
-1. *"On triggered tasks, produce `docs/proposals/<task-id>.md` per
-   `proposal-template.md` before writing production code. Code
-   without a matching proposal under trigger is a DoR violation."*
-2. *"Respond to every Solution Duel finding in the proposal's Duel
-   section — either revise the proposal, or record an
-   accepted-risk rebuttal with `tech-lead` ratification.
-   Unaddressed findings block code start."*
-
-**Conflict check:** existing Constraints "Do not silently expand
-scope" is unaffected. Output "Diffs with short rationale. No
-essays." is unchanged — proposals are a pre-code artifact.
-
-### `qa-engineer.md`
-
-New binding rule (peer to "Adversarial stance (binding)"):
-*"Solution Duel — pre-code adversarial review. On triggered tasks,
-read the engineer's proposal and write three failure scenarios
-('three ways this fails in production') into the proposal's Duel
-section. Post-code Adversarial stance is unchanged and still fires
-at diff-review time; the duel is the same stance applied earlier on
-the design artifact."* **No conflict** — the duel extends the
-adversarial posture to an earlier gate.
-
-**Round-limit rule (new):** each duel is one round — QA writes
-findings, engineer rebuts/revises once, then either (a) all
-findings addressed → code starts, or (b) any finding disputed →
-escalate to `tech-lead`, who decides (ratify engineer, ratify QA,
-or kick back for more design work). No back-and-forth past round
-one without tech-lead involvement. See §9.
+- `researcher.md` — the new rule makes the existing §Job item on
+  prior-art scans concrete rather than ambient.
+- `architect.md` — the ADR trigger list already fires on the same
+  conditions as the workflow trigger, so the three-path rule lands
+  inside an artifact the architect was going to write anyway.
+- `software-engineer.md` — the existing "Do not silently expand
+  scope" constraint and the "Diffs with short rationale. No
+  essays." output rule are both untouched; proposals are a
+  pre-code artifact and live alongside, not inside, the diff.
+- `qa-engineer.md` — the duel extends the existing
+  Adversarial-stance posture to an earlier gate; the post-code
+  stance still fires at diff-review time.
 
 ## 7. Escape hatches
 
-The pipeline is heavy; heavy ceremony kills trivial work. Documented
-exits:
+See `docs/workflow-pipeline.md` § Exit gates / Hard-block conditions
+("Escape hatches") for the canonical list of five exits
+(sub-trigger, emergency security patch, single-line fix on a
+triggered path, spike / throwaway, no-re-entry-after-failed-
+revision), plus the rule that all hatches are `tech-lead` calls
+recorded in the task file and audited by `code-reviewer`.
 
-1. **Sub-trigger tasks.** §2 trigger returns `none` → pipeline
-   skipped entirely. DoR + DoD apply as today. Typical: typo,
-   log-line addition, single-function internal refactor, docstring
-   update, lint-rule tightening.
-2. **Emergency security patch.** Hard Rule #7 path touched under
-   time pressure (actively-exploited CVE). `tech-lead` invokes an
-   emergency-patch override, records in `CUSTOMER_NOTES.md` with
-   timestamp and justification, dispatches `security-engineer` +
-   `software-engineer` in parallel without the three-path or duel
-   stages. Prior-art + proposal stages are **collapsed** into the
-   patch PR description rather than separate files. Post-merge,
-   `architect` writes a retroactive ADR within seven days. This is
-   the same shape as the existing Hard-Rule-#4 live-approval path.
-3. **Single-line fix on a triggered path.** Trigger fires because
-   of (3) cross-module or (1) dep-bump, but the actual change is
-   one line. `tech-lead` may downgrade to "proposal only, no
-   three-path, no duel" with one-line justification in the task
-   file. Auditable post-hoc by `qa-engineer`.
-4. **Spike / throwaway.** Tasks with Type: Spike in the task
-   template. Spikes produce learning, not shipping code — the
-   pipeline is optional; whatever was learned is written up in the
-   spike's closure note.
-5. **Pipeline re-entry not required after a failed revision.** If
-   QA's duel forces a rethink that lands in a new task, the new
-   task runs its own pipeline; the old task closes as "dropped"
-   or "split." No infinite-regression duels.
-
-Escape hatches are always `tech-lead` calls, recorded in the task
-file. `code-reviewer` audit mode checks that every escape-hatch use
-is recorded.
+The design intent retained here: the pipeline is heavy and heavy
+ceremony kills trivial work, so the hatches are deliberately broad
+on the lightweight end (typo / log line / docstring / spike) and
+narrow on the high-risk end (emergency security only when an
+actively-exploited CVE is on the table, with retroactive ADR within
+seven days). The hatches mirror the shape of the existing
+Hard-Rule-#4 live-approval path; they do not introduce a new
+exception model.
 
 ## 8. Composition examples
 
@@ -459,20 +284,17 @@ Mitigation:
 
 ### 9.5 Interaction with Hard Rules #2, #4, #7
 
-- **Hard Rule #2:** unchanged. Proposal stage produces the
-  artifact the customer reads before signing off; it's upstream of
-  #2, not a substitute.
-- **Hard Rule #4:** unchanged. Pipeline artifacts inform what the
-  customer approves; approval is still live.
-- **Hard Rule #7:** §2 trigger clause (5) aligns with this rule's
-  file set. On Rule #7 paths, the duel stage's findings should
-  pull `security-engineer` in as a joint duelist alongside
-  `qa-engineer`, not instead of. Recommend one added sentence to
-  `security-engineer.md`: *"For Rule #7 paths on triggered tasks,
-  participate in the Solution Duel alongside `qa-engineer` before
-  code starts; your sign-off per Hard Rule #7 is distinct and
-  still required at release time."* No rule duplication — duel is
-  design-time; sign-off is release-time.
+See `docs/workflow-pipeline.md` § Exit gates / Hard-block conditions
+("Interaction with Hard Rules #2, #4, #7") for the canonical text,
+including the `security-engineer.md` joint-duelist rule.
+
+Rationale retained here: the pipeline is design-time; the existing
+hard-rule sign-offs are release-time. Putting `security-engineer`
+into the duel on auth / authz / secrets / PII / network-exposed
+paths means design-stage failure modes get caught by the right pair
+of adversarial reviewers (qa-engineer + security-engineer) without
+duplicating or weakening the release-time sign-off the hard rule
+already demands.
 
 ## 10. Recommendation block
 

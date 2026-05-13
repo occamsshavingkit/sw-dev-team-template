@@ -810,6 +810,71 @@ for f in $ship_files; do
   fi
 done
 
+# --- Retrofit docs/intake-log.md (T041 / FR-013) -----------------------------
+# The template ships docs/templates/intake-log-template.md but does not
+# git-track docs/intake-log.md (it's project-owned, append-only customer-truth
+# content). Older scaffolds pre-dating this fix never materialised the live
+# log. On upgrade, if the project is missing docs/intake-log.md, seed it
+# from the upstream template now; if it already exists, leave it untouched.
+# Also ensure the path is listed in .template-customizations so future
+# upgrades skip it (the manifest_write below honours that file from disk).
+intake_template="$workdir/new/docs/templates/intake-log-template.md"
+intake_target="$project_root/docs/intake-log.md"
+if [[ -f "$intake_template" && ! -f "$intake_target" ]]; then
+  if [[ $dry_run -eq 0 ]]; then
+    mkdir -p "$project_root/docs"
+    # Derive a project name for the substitution: basename of project root.
+    proj_name="$(basename "$project_root")"
+    sed "s|<project name>|$proj_name|g" "$intake_template" > "$intake_target.tmp.$$"
+    mv "$intake_target.tmp.$$" "$intake_target"
+  fi
+  added+=("docs/intake-log.md")
+fi
+# Idempotently ensure .template-customizations lists docs/intake-log.md.
+# Safe to run even when the file already existed — older scaffolds may
+# have the live log but no preserve-list entry.
+if [[ $dry_run -eq 0 && -f "$customizations_file" ]]; then
+  if ! grep -qE '^docs/intake-log\.md[[:space:]]*(#.*)?$' "$customizations_file"; then
+    printf '# Project-owned intake conversation log (T041 / FR-013).\ndocs/intake-log.md\n' \
+      >> "$customizations_file"
+  fi
+fi
+
+# --- Retrofit project-local ROADMAP.md stub (T045 / FR-015 / M4.2) -----------
+# The template's own upstream ROADMAP.md is excluded from ship_files, so
+# upgrade never installs it. Older scaffolds (pre-T045) that received the
+# template's ROADMAP.md by mistake, or that scaffolded without one, get a
+# project-local stub seeded here when no ROADMAP.md is present. Existing
+# ROADMAP.md content is never touched — projects that already carry a
+# template-scoped ROADMAP.md must decide (delete it, or replace with a
+# project-local file) per docs/TEMPLATE_UPGRADE.md. Path is added to
+# .template-customizations so future upgrades treat it as project-owned.
+roadmap_target="$project_root/ROADMAP.md"
+if [[ ! -f "$roadmap_target" ]]; then
+  if [[ $dry_run -eq 0 ]]; then
+    proj_name_rm="$(basename "$project_root")"
+    cat > "$roadmap_target.tmp.$$" <<EOF
+# Roadmap — $proj_name_rm
+
+Project roadmap — owned by \`project-manager\`; entries map to
+\`docs/pm/SCHEDULE.md\` milestones.
+
+This file is the project's own forward-looking plan. It is **not** the
+upstream \`sw-dev-team-template\` roadmap; that one lives in the template
+repo and is intentionally not shipped to downstream scaffolds (FR-015 /
+M4.2).
+EOF
+    mv "$roadmap_target.tmp.$$" "$roadmap_target"
+  fi
+  added+=("ROADMAP.md")
+fi
+if [[ $dry_run -eq 0 && -f "$customizations_file" ]]; then
+  if ! grep -qE '^ROADMAP\.md[[:space:]]*(#.*)?$' "$customizations_file"; then
+    printf '# Project-owned roadmap stub (T045 / FR-015).\nROADMAP.md\n' \
+      >> "$customizations_file"
+  fi
+fi
+
 # Stamp the new TEMPLATE_VERSION (only if not dry-run AND there are no conflicts,
 # OR if the user accepts leaving conflicts in place — we do the latter by default).
 if [[ $dry_run -eq 0 ]]; then

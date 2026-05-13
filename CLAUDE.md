@@ -73,8 +73,20 @@ When any agent has a question it cannot answer from its own context:
    `CUSTOMER_NOTES.md` customer-truth entry and `tech-lead` relays the
    answer to the asking agent.
 
-The customer's inbox is scarce. Do not flood it. A well-framed question
-batched with others is better than three drip-feed interruptions.
+The customer's inbox is scarce. Do not flood it. The canonical
+question-batching rule (binding, identical wording in
+`docs/FIRST_ACTIONS.md`, `.claude/agents/tech-lead.md`,
+`docs/OPEN_QUESTIONS.md`, and `docs/templates/intake-log-template.md`):
+
+> Batch questions internally in docs/OPEN_QUESTIONS.md.
+> Do not batch customer-facing questions.
+> Ask one queued customer question per turn, only when all agents and tools are idle, with the question as the final line.
+
+Operational enforcement: the Customer Question Gate in
+`.claude/agents/tech-lead.md` (FR-011) runs the four-check procedure
+before any customer-facing question ships, and
+`scripts/lint-questions.sh` (FR-012) lints durable artefacts against
+the rule.
 
 ## Extracted references
 

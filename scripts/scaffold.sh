@@ -147,6 +147,28 @@ Maintained by `researcher`.
      Step-2 project charter + SME plan from the docs/FIRST_ACTIONS.md flow. -->
 EOF
 
+# Seed docs/intake-log.md from the template (FR-013 / M3.5, T041).
+# The template itself doesn't ship a populated docs/intake-log.md in
+# its git tree — only docs/templates/intake-log-template.md. Scaffold
+# materialises the project's working log here, substituting the project
+# name placeholder so the file is immediately usable by tech-lead.
+# Pre-existing file (e.g., scaffolding into an already-seeded dir) is
+# left alone — never overwrite intake content.
+if [[ ! -f "$target/docs/intake-log.md" ]]; then
+  mkdir -p "$target/docs"
+  if [[ -f "$target/docs/templates/intake-log-template.md" ]]; then
+    sed "s|<project name>|$project_name|g" \
+      "$target/docs/templates/intake-log-template.md" \
+      > "$target/docs/intake-log.md"
+  else
+    # Defensive fallback: template missing from the ship-set is a
+    # template-repo bug, but don't fail scaffold over it — leave an
+    # empty-shaped stub so the project still has the file at G3.
+    printf '# Intake Log — %s\n\n(template file missing; see docs/templates/intake-log-template.md upstream)\n' \
+      "$project_name" > "$target/docs/intake-log.md"
+  fi
+fi
+
 cat > "$target/docs/AGENT_NAMES.md" <<EOF
 # Agent Names — $project_name
 
@@ -230,9 +252,35 @@ README.md
 # (per FW-ADR-0007 follow-up / issue #66, v0.15.0+).
 docs/INDEX.md
 docs/INDEX-PROJECT.md
+# Project-owned intake conversation log (seeded from
+# docs/templates/intake-log-template.md at scaffold; T041 / FR-013).
+docs/intake-log.md
+# Project-owned roadmap stub (seeded at scaffold; T045 / FR-015).
+# The template's own upstream ROADMAP.md is intentionally not shipped.
+ROADMAP.md
 
 # --- Add your own permanent customizations below -----------------------
 EOF
+
+# --- Seed project-local ROADMAP.md stub (T045 / FR-015 / M4.2) ---------------
+# The template's own ROADMAP.md is upstream-release planning and is excluded
+# from the tar copy above. Seed a small project-local roadmap stub at the
+# downstream root so the project has its own roadmap surface from day one,
+# owned by project-manager. Pre-existing file (e.g., scaffolding into an
+# already-seeded dir) is left alone — never overwrite project roadmap content.
+if [[ ! -f "$target/ROADMAP.md" ]]; then
+  cat > "$target/ROADMAP.md" <<EOF
+# Roadmap — $project_name
+
+Project roadmap — owned by \`project-manager\`; entries map to
+\`docs/pm/SCHEDULE.md\` milestones.
+
+This file is the project's own forward-looking plan. It is **not** the
+upstream \`sw-dev-team-template\` roadmap; that one lives in the template
+repo and is intentionally not shipped to downstream scaffolds (FR-015 /
+M4.2).
+EOF
+fi
 
 # --- Replace template README with project stub -------------------------------
 cat > "$target/README.md" <<EOF

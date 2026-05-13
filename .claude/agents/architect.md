@@ -86,9 +86,9 @@ force divergent thinking. LLMs converge on the "average"
 solution; naming Creative explicitly bypasses that bias.
 
 Shape: `docs/templates/adr-template.md`. Per upstream issue #33
-and `docs/proposals/workflow-redesign-v0.12.md` §4.2 — the
-Three-Path Rule lives in the ADR's Considered-options section,
-not as a separate artifact class.
+and `docs/workflow-pipeline.md` § Three-path design options
+(collapsed into ADR) — the Three-Path Rule lives in the ADR's
+Considered-options section, not as a separate artifact class.
 
 ### Operations trade-offs (SWEBOK V4 ch. 6)
 

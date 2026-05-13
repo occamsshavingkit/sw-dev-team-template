@@ -1,0 +1,169 @@
+name: improve-template
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Optional: target a specific framework-gap issue by number. If omitted, the workflow picks the highest-reaction open template-gap issue.'
+        required: false
+        type: string
+      dry_run:
+        description: 'If true, perform all checks but do NOT open a PR. Default true for safety.'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  # Self-improvement opens PRs and issues; needs `contents: write` for branch
+  # creation (under feat/improve/*) and `pull-requests: write` + `issues: write`
+  # for PR creation and oversize-issue filing. NEVER write to `main` directly;
+  # branch protection on main enforces this externally.
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  improve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for git-blame analysis
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install check-jsonschema
+        run: pipx install check-jsonschema==0.37.2
+
+      - name: Identify target issue
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+        run: |
+          set -eu
+          if [ -n "${ISSUE_NUMBER:-}" ]; then
+            echo "issue=${ISSUE_NUMBER}" >> "$GITHUB_OUTPUT"
+          else
+            # Pick the highest-reaction open template-gap issue.
+            picked="$(gh issue list --repo "${GITHUB_REPOSITORY}" --label template-gap --state open --json number,reactionGroups,title --jq 'sort_by(- ([.reactionGroups[].users.totalCount] | add // 0)) | .[0].number')"
+            if [ -z "${picked}" ] || [ "${picked}" = "null" ]; then
+              echo "no eligible framework-gap issues; exiting no-op"
+              echo "issue=" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "issue=${picked}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Pre-flight drift checks (gate before proposing)
+        if: steps.target.outputs.issue != ''
+        run: |
+          set -eu
+          ./scripts/lint-agent-contracts.sh
+          ./scripts/compile-runtime-agents.sh --verify
+          ./scripts/compile-runtime-agents.sh --reproducibility-check
+        # On any non-zero exit, the workflow fails and we file a follow-up issue
+        # rather than proposing a change against a drifted repo.
+
+      - name: Propose one change (placeholder)
+        if: steps.target.outputs.issue != ''
+        id: propose
+        env:
+          ISSUE: ${{ steps.target.outputs.issue }}
+        run: |
+          set -eu
+          # PLACEHOLDER: this step is where the LLM proposal step will be wired
+          # in a Phase-3+ task. For M7, this is a stub that emits a no-op
+          # proposal to verify the surrounding plumbing works without invoking
+          # an LLM.
+          echo "PLACEHOLDER: would propose change for issue #${ISSUE}"
+          # Real proposal step would: write a diff to /tmp/proposal.diff,
+          # write a commit message, and emit them as outputs for the next step.
+          # For now, emit an empty proposal so size/protected-files checks have
+          # something to test against.
+          : > /tmp/proposal.diff
+          echo "proposal_file=/tmp/proposal.diff" >> "$GITHUB_OUTPUT"
+
+      - name: Size cap enforcement
+        if: steps.target.outputs.issue != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ steps.target.outputs.issue }}
+        run: |
+          set -eu
+          # Per R-3: <=400 added+removed lines; <=10 files; 1 commit (squash on merge).
+          lines=$(wc -l < /tmp/proposal.diff || echo 0)
+          files=$(grep -c '^diff --git' /tmp/proposal.diff || echo 0)
+          if [ "${lines}" -gt 400 ] || [ "${files}" -gt 10 ]; then
+            echo "Proposal exceeds size cap: lines=${lines} files=${files} (cap: 400/10)"
+            # File an oversize-followup issue instead of opening a PR.
+            gh issue create --repo "${GITHUB_REPOSITORY}" \
+              --title "[oversize] improve-template skipped issue #${ISSUE} (too large)" \
+              --body "The self-improvement loop attempted to propose a change for issue #${ISSUE} but the diff exceeded the size cap (lines=${lines}, files=${files}; cap is 400 lines / 10 files). Split the change or hand-author the fix." \
+              --label "template-friction"
+            exit 0
+          fi
+          echo "size OK: lines=${lines} files=${files}"
+
+      - name: Protected-files / customer-truth check
+        if: steps.target.outputs.issue != ''
+        run: |
+          set -eu
+          # Build the protected-files allowlist as a single regex.
+          protected_paths='^(CLAUDE\.md|AGENTS\.md|VERSION|TEMPLATE_MANIFEST\.lock|\.claude/agents/|docs/adr/|docs/framework-project-boundary\.md|docs/model-routing-guidelines\.md|\.github/workflows/|migrations/)'
+          customer_truth='^(CUSTOMER_NOTES\.md|docs/OPEN_QUESTIONS\.md|docs/intake-log\.md)$'
+          # Extract changed paths from the proposal diff.
+          changed_paths=$(grep '^diff --git' /tmp/proposal.diff | awk '{print $4}' | sed 's|^b/||' || true)
+          violations=""
+          for p in ${changed_paths}; do
+            if echo "${p}" | grep -Eq "${protected_paths}"; then
+              # Allow ONLY if the SAME run also adds a paired proposal at docs/proposals/<task-id>.md.
+              if ! echo "${changed_paths}" | grep -Eq '^docs/proposals/.+\.md$'; then
+                violations="${violations} ${p}"
+              fi
+            fi
+            if echo "${p}" | grep -Eq "${customer_truth}"; then
+              if ! echo "${changed_paths}" | grep -Eq '^docs/proposals/.+\.md$'; then
+                violations="${violations} ${p}"
+              fi
+            fi
+          done
+          if [ -n "${violations}" ]; then
+            echo "protected/customer-truth violation:${violations}"
+            echo "Self-improvement loop must not directly edit these paths; use a paired Markdown proposal under docs/proposals/<task-id>.md."
+            exit 1
+          fi
+          echo "protected-files / customer-truth check OK"
+
+      - name: Open draft PR
+        if: steps.target.outputs.issue != '' && inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ steps.target.outputs.issue }}
+        run: |
+          set -eu
+          branch="feat/improve/issue-${ISSUE}-$(date -u +%Y%m%d-%H%M%S)"
+          git checkout -b "${branch}"
+          # Apply the proposal diff:
+          if [ -s /tmp/proposal.diff ]; then
+            git apply /tmp/proposal.diff
+            git add -A
+            git -c user.name="improve-template" -c user.email="improve-template@users.noreply.github.com" commit -m "improve-template: propose fix for #${ISSUE}"
+            git push origin "${branch}"
+            gh pr create --repo "${GITHUB_REPOSITORY}" \
+              --base main --head "${branch}" \
+              --title "improve-template: propose fix for #${ISSUE}" \
+              --body "Auto-generated PR by .github/workflows/improve-template.yml for framework-gap issue #${ISSUE}. PLACEHOLDER stage (M7); proposal logic to be wired in a Phase-3+ task. Customer reviews + marks ready-for-review + merges; the workflow does NOT auto-merge." \
+              --draft
+          else
+            echo "Empty proposal diff; no PR opened. (M7 placeholder behavior.)"
+          fi
+
+      - name: Dry-run summary
+        if: steps.target.outputs.issue != '' && inputs.dry_run == true
+        run: |
+          set -eu
+          echo "Dry-run complete. Issue: #${{ steps.target.outputs.issue }}. Pre-flight + size + protected-files checks PASSED. No PR opened."

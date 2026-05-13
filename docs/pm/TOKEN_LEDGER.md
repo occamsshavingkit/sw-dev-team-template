@@ -1,5 +1,21 @@
 # Token Ledger — sw-dev-team-template
 
+<!--
+Schema source: FR-005 (specs/006-template-improvement-program/spec.md) and
+data-model.md E-5. Token-budget bands come from research.md R-2 (word-count
+proxy via `wc -w`; bands tiny/small/medium/large/xl).
+
+Verbatim prompts (when retained) live alongside this file under
+`docs/pm/token-ledger/prompts/<task-id>-<agent>.md`; see that directory's
+README.md for the archive contract. The live ledger holds only the hash —
+never the prompt body. Append-only; corrections are new rows referencing
+the corrected `Task ID` in `Notes`.
+
+Schema bumped at M1.3 (this program) from the six-column rc4-era form
+(Date | Task ID | Agent | Tokens | Prompt verbatim | Notes) to the
+eight-column FR-005 form below.
+-->
+
 Append-only log of token consumption per task dispatch. Owned by
 `project-manager`; populated at task closure per the DoD row in
 `docs/templates/task-template.md`.
@@ -8,44 +24,44 @@ Append-only log of token consumption per task dispatch. Owned by
 
 Feeds the estimation model `project-manager` uses for future task
 budgeting. A task closed without a ledger row cannot inform future
-estimates. Keeping the verbatim prompt alongside the token count lets
-the PM calibrate "this shape of ask costs roughly N tokens" when
-scoping the next slice of work.
+estimates. The hash + optional archive split (FR-005) keeps the live
+ledger grep-able while preserving full-prompt reproducibility when
+calibration disputes arise.
 
-## Schema
+## Schema (FR-005, eight columns)
 
-One markdown table, append-only. Columns:
-
-| Date | Task ID | Agent | Tokens | Prompt (verbatim, fenced) | Notes |
-|------|---------|-------|--------|---------------------------|-------|
-
-- **Date** — YYYY-MM-DD of the dispatch (not task closure).
-- **Task ID** — `T-NNNN` from `docs/tasks/`.
-- **Agent** — role name (`architect`, `software-engineer`, etc.) or
-  teammate name if the project renamed per `AGENT_NAMES.md`.
-- **Tokens** — total tokens for that dispatch (input + output, as
-  reported by the session).
-- **Prompt (verbatim, fenced)** — the exact brief given to the agent,
-  inside a fenced block. No paraphrase.
-- **Notes** — anomalies worth future reference: early termination,
-  context-limit pressure, retry, respawn, etc.
+| Column | Notes |
+|---|---|
+| `Date` | ISO 8601 date of the dispatch (not task closure). |
+| `Task ID` | Primary key, e.g. `T012`, `T058`. |
+| `Agent` | Role slug (`architect`, `software-engineer`, …) or teammate name per `AGENT_NAMES.md`. |
+| `Prompt hash` | sha256 of the full dispatched prompt, truncated to first 12 hex chars. Matches archive filename when present. |
+| `Prompt class` | Enum: `dispatch`, `regen`, `audit`, `summary`, `interactive`. |
+| `Token budget` | Enum from research.md R-2: `tiny` / `small` / `medium` / `large` / `xl`. |
+| `Token actual` | Integer; words via `wc -w` proxy at dispatch time. |
+| `Notes` | Optional free-form short text (anomalies, retry, respawn, …). |
 
 ## Ledger
 
-| Date | Task ID | Agent | Tokens | Prompt (verbatim, fenced) | Notes |
-|------|---------|-------|--------|---------------------------|-------|
-
-Initial state, 2026-05-03: no measured per-dispatch token rows have
-been recorded yet. The rc4 PM governance pass instantiated this file,
-but the harness did not expose a reliable total token count suitable for
-the `Tokens` column.
+| Date | Task ID | Agent | Prompt hash | Prompt class | Token budget | Token actual | Notes |
+|------|---------|-------|-------------|--------------|--------------|--------------|-------|
+| 2026-05-13 | T004 | software-engineer | `a1b2c3d4e5f6` | dispatch | small | 2480 | M0 baseline-script dispatch; example row, placeholder hash. |
 
 ## Conventions
 
 - **Append-only.** Do not edit or delete rows. Corrections go in a
   new row referencing the corrected one via `Notes`.
-- **Aggregate per task at closure** — if a task dispatched three
-  subagents, log three rows with the same `Task ID`.
-- **Create on first use.** This file was created during the rc4 PM
-  governance pass with an explicit no-measured-token initial state
-  rather than an invented estimate.
+- **One row per dispatch.** If a task dispatched three subagents, log
+  three rows with the same `Task ID` and distinct `Agent` / `Prompt
+  hash`. Re-dispatches to the same agent get a fresh row and a fresh
+  archive file (`<task-id>-<agent>.1.md`, `.2.md`, …).
+- **Hash, not body.** Never paste prompt text into a ledger cell. If
+  the prompt is non-trivial (>500 words or calibration-disputable),
+  archive it under `docs/pm/token-ledger/prompts/<task-id>-<agent>.md`
+  per that directory's README.
+- **Word-count proxy.** `Token actual` is `wc -w` of the dispatched
+  prompt at dispatch time. Bands per R-2 are PM-tunable; reviewed at
+  M2 gate close and at G9.
+- **TBD allowed for migrated rows.** When migrating a row from the
+  prior six-column schema, `Prompt hash`, `Prompt class`, `Token
+  budget`, and `Token actual` may carry `TBD` until back-fill.

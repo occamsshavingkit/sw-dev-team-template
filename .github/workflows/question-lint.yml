@@ -1,0 +1,35 @@
+# Question lint (FR-028).
+#
+# Runs lint-questions.sh on every PR. The script is warning-only at G6
+# (exit 0 even on findings) and becomes a hard gate after HARDGATE_AFTER_SHA;
+# this workflow blocks the PR on whatever the script's exit code is.
+#
+# Read-only check; default GITHUB_TOKEN permissions (contents: read) are
+# sufficient.
+
+name: question-lint
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  question-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install check-jsonschema
+        run: pipx install check-jsonschema==0.37.2
+      - name: Run lint-questions.sh (default file set, warning-only or hard-gated per HARDGATE_AFTER_SHA)
+        run: ./scripts/lint-questions.sh --summary
