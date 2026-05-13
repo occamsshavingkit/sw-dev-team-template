@@ -108,3 +108,28 @@ SC status:
 Cross-references: PR-8 (commit `cc44c8d` — M4.1 + M4.2), PR-9 (commit `cc44c8d` — M4.3 + M4.4), runtime re-stamp (`4a44cdd`).
 
 Non-blocking observations: Constitution III observation from G3 (five-file batching-rule unification) carried forward; future ADR + compile-from-canonical solve still recommended. T044's Documentation Authority Policy is now the canonical reference for that ADR.
+
+## M5 — Cross-AI / OpenCode / Gemini routing as adapter
+
+Gate sign-off: G5 signed by `code-reviewer` (audit T057) + `project-manager` (this row) on 2026-05-13.
+
+Acceptance criteria evidence (per source plan §M5):
+
+- M5.1 ADR `fw-adr-0009-opencode-harness-adapter.md` accepted (FR-018, T050). Four explicit prohibitions; three rejected alternatives; cites Constitution I + III + VII.
+- M5.2 `docs/model-routing-guidelines.md` extended (FR-019, T052) with provider/model ID conventions (Anthropic/OpenAI/Google/OpenCode), fallback behavior (4 triggers + closest-peer-then-one-tier-down per spec clarification 8), frontier-only escalation rules, and the 13-row binding per-agent default-class table per spec clarification 5. T046 binding-status block preserved at top.
+- M5.3 `scripts/log-fallback.sh` (183 lines, POSIX-sh) records every fallback event as JSONL to `docs/pm/fallback-log.jsonl` with the six FR-020 fields. Optional `--downgraded-one-tier` flag per spec clarification 8. Self-exercise confirms testability of SC-008.
+- M5.4 `scripts/compile-runtime-agents.sh` extended (FR-021, T054) to generate `.opencode/agents/<role>.md` thin adapter stubs alongside compact runtime contracts. 13 adapters generated at T055 (every canonical role). `--verify` mode added at T056 for FR-021 enforcement — body and frontmatter manual-edit FAILs demonstrated.
+- `schemas/model-routing.schema.json` shipped (T051, FR-022) byte-identical to specs/contracts/.
+- Compiler skip-incomplete behavior: 4 incomplete canonicals (onboarding-auditor, process-auditor, project-manager, sre) get adapters but no compact runtime contracts; `--strict` flag flips WARN→ERROR. 9 runtime contracts on disk + 13 adapters on disk.
+
+SC status:
+- SC-001 PASS: tech-lead runtime 2491 ≤ 2736 floor (unchanged from G4).
+- SC-002 researcher exception unchanged from G3 LESSONS §M2.3 (1655 vs 1597 floor).
+- SC-008 testability now confirmed via log-fallback.sh self-exercise.
+
+Cross-references: PR-10 + PR-11 (commit `72c922b`); compiler skip-incomplete fix is part of the same commit.
+
+Non-blocking observations (LESSONS at G5 close):
+- OBS-G5-1: 4 incomplete canonicals (onboarding-auditor, process-auditor, project-manager, sre) — section additions required by M6 lint hard-gate or M9 release readiness.
+- OBS-G5-2: Older `## Role defaults` tier table coexists with new `## Binding per-agent default-class table` in `docs/model-routing-guidelines.md`. Reconciliation deferred to Phase-3+.
+- OBS-G5-3: `docs/pm/fallback-log.jsonl` is create-on-first-write; consider documenting the contract in `docs/pm/README.md` or seeding an empty file at scaffold time.
