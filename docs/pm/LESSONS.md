@@ -359,3 +359,62 @@ the lint script treats pre-cutoff occurrences as warnings while erroring
 on new ones. The three current warnings are all false positives and
 should be resolved by pattern refinement before the cutover; no
 grandfathering needed if the regex is tightened first.
+
+## M2.3 researcher SC-002 exception (2026-05-13)
+
+T034 added the FR-009 memory-first-lookup patterns to
+`.claude/agents/researcher.md`. The four canonical patterns are binding
+governance and cannot be elided. Effect on the runtime contract:
+
+| Measure | M0 baseline | Post-M1.1 (G1) | Post-T034 (G3) |
+|---|---:|---:|---:|
+| Runtime words | 1996 | 1590 | 1653 |
+| Reduction vs M0 | — | 20.3% | **17.2%** |
+
+**SC-002 floor for researcher**: 1597 words (20.0% reduction).
+**Breach**: 1653 - 1597 = 56 words over the floor (1.8 percentage
+points below the threshold).
+
+**Justification under SC-002 "any exception is justified and recorded"**:
+The +63-word delta is the FR-009 memory-first-lookup binding text. The
+four query patterns are normative (binding governance — `CLAUDE.md` §
+Escalation protocol step 1 references the same patterns; reducing them
+below information-completeness would lose the verbatim invariants that
+make memory pointer-only). Trimmed as far as possible (33 words for
+patterns + 30 words for pointer-only and repo-wins-on-conflict
+invariants); further trim would lose the verbatim rule.
+
+**Deferral plan**:
+- Future trim candidate (non-binding rationale): the pronoun-verification
+  block at canonical lines 129-158, currently retained for the
+  customer-naming Step 3 in `docs/FIRST_ACTIONS.md`. If a future
+  milestone moves naming rationale into a manual companion (similar to
+  M1.1's rationale absorption pattern), the +56-word delta would be
+  recovered comfortably.
+- Considered at G3 close (2026-05-13); not actioned, deferred to a
+  Phase-3+ pass.
+
+This is the binding "justified and recorded" entry for the SC-002
+researcher exception. The exception is acknowledged and acceptable
+under the "where safe" clause of SC-002. (non-blocking, deferred)
+
+## M3.5 follow-up — scoping-questions-template (2026-05-13)
+
+G2+G3 audit observation OBS-G3-1: T035 atomicized
+`docs/FIRST_ACTIONS.md` seed questions but did not touch the canonical
+binding seed queue at `docs/templates/scoping-questions-template.md`,
+which contains the original compound forms that FR-010 was designed to
+prevent. The lint correctly flagged
+`docs/templates/scoping-questions-template.md:11` as
+`pattern-2-multi-numbered`; classification was previously "false
+positive" but on re-reading in context it is a genuine compound seed
+question split across numbered rows.
+
+**Recommendation**: open an issue for a follow-up task to atomize
+`scoping-questions-template.md` seed entries, matching the
+decomposition pattern used in `FIRST_ACTIONS.md` (one decision axis per
+row, atomic-gate preamble at the top). Update FR-010 acceptance scope
+to explicitly include `scoping-questions-template.md` if the template
+shape persists. (non-blocking, deferred — does not block G3 close
+because the lint surface is warning-only and the template won't ship
+into a fresh project until M8 retrofit triggers it.)
