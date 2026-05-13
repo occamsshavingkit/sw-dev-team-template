@@ -1,76 +1,84 @@
 name: Framework gap
-description: Report a gap in this template (missing agent, wrong default, rule that produced a worse outcome, template that did not fit, broken skill / plugin assumption, etc.)
-title: "[gap] "
-labels: ["framework-gap"]
+description: Report a gap, friction, or M8 deferred deliverable in the sw-dev-team-template framework
+title: "[framework-gap] "
+labels: ["template-gap"]
 body:
   - type: markdown
     attributes:
       value: |
-        Reporting a framework gap you hit on a downstream project. See `docs/ISSUE_FILING.md` for the convention.
+        Thanks for filing a framework gap. This template ensures the
+        report carries the seven fields required by FR-026 + the
+        redaction-confirmation per spec clarification 10. See
+        `docs/IP_POLICY.md` for the sensitive-content definition.
+
+        Before submitting:
+        - Run `git grep -i <customer-name>` on your downstream repo and
+          ensure no real customer/vendor names appear in this report.
+        - If you are filing an M8 waiver, also add the `m8-waiver` label
+          (see FR-029 / spec clarification 12).
 
   - type: input
     id: template-version
     attributes:
-      label: Template version where the gap was found
-      description: From your project's `TEMPLATE_VERSION` file — the SemVer plus commit SHA.
-      placeholder: "v0.2.0 (5b0af06)"
-    validations:
-      required: true
-
-  - type: dropdown
-    id: gap-category
-    attributes:
-      label: Gap category
-      options:
-        - Missing agent / missing route
-        - Rule produced a worse outcome
-        - Template did not fit a PMBOK / ISO / IEEE / ISTQB / SFIA / SWEBOK requirement
-        - Question path was unclear (who should have answered)
-        - Register / notes / inventory shape was wrong
-        - Assumed skill / plugin / env var missing or deprecated
-        - Other (describe below)
+      label: Template version (from your project's TEMPLATE_VERSION file)
+      placeholder: "v1.0.0"
     validations:
       required: true
 
   - type: input
-    id: where
+    id: downstream-context
     attributes:
-      label: Where in the template
-      description: Specific file + section (e.g., `CLAUDE.md` § Step 2, or `.claude/agents/tech-lead.md` § Routing table).
-      placeholder: "CLAUDE.md § Step 2"
+      label: Downstream repo / project context (redacted as needed)
+      description: Which repo and what kind of project (PLC firmware, brewery automation, web app, etc.).
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected-layer
+    attributes:
+      label: Affected layer
+      description: Which part of the framework is affected (matches the E-8 enum from data-model.md).
+      options:
+        - agent-contract
+        - docs
+        - scripts
+        - workflows
+        - migrations
+        - meta
+        - m8-deliverable
     validations:
       required: true
 
   - type: textarea
-    id: what-happened
+    id: observed
     attributes:
-      label: What happened on the downstream project
-      description: One paragraph. Redact customer-sensitive content if necessary, keeping the pattern intact.
+      label: Observed behavior
+      description: What happened.
     validations:
       required: true
 
   - type: textarea
-    id: why-gap
+    id: expected
     attributes:
-      label: Why it is a gap
-      description: Which rule / standard / PMBOK clause / ISO section was not served.
+      label: Expected behavior
+      description: What should have happened.
     validations:
       required: true
-
-  - type: textarea
-    id: suggested-fix
-    attributes:
-      label: Suggested fix (optional)
-      description: If `tech-lead` and the relevant specialist have a concrete proposal, include it.
-    validations:
-      required: false
 
   - type: checkboxes
-    id: checks
+    id: redaction-confirm
     attributes:
-      label: Checks
+      label: Sensitive-content redaction (FR-026 + spec clarification 10)
+      description: |
+        Confirm you have removed or generalized any of the following sensitive content:
       options:
-        - label: I've included the template version (SemVer + SHA) so the maintainer can judge whether the gap is still current.
+        - label: I confirm I have removed or generalized (i) customer or vendor identities and brand names; (ii) downstream project names; (iii) any CUSTOMER_NOTES.md content (verbatim or paraphrased); (iv) credentials, secrets, tokens, hostnames, IPs. Downstream repos may extend this set in their local docs/IP_POLICY.md.
           required: true
-        - label: I've redacted customer-sensitive content.
-          required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Proposed acceptance criteria
+      description: How the fix would be verified.
+    validations:
+      required: false

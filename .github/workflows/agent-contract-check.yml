@@ -1,0 +1,42 @@
+# Agent contract check (FR-028, SC-007).
+#
+# Runs lint-agent-contracts.sh + canonical-only prompt-regression on every PR.
+# The prompt-regression step uses the stub harness and does NOT invoke a real
+# LLM; it exercises the fixture YAML validation pipeline only (13/13 fixtures
+# parse). Real LLM execution is out of scope for CI.
+#
+# Read-only checks; default GITHUB_TOKEN permissions (contents: read) are
+# sufficient. No write permissions are needed or granted.
+
+name: agent-contract-check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  agent-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install check-jsonschema
+        run: pipx install check-jsonschema==0.37.2
+      - name: Run lint-agent-contracts.sh
+        run: ./scripts/lint-agent-contracts.sh
+      - name: Run prompt-regression (canonical mode, validate-only)
+        run: ./tests/prompt-regression/run.sh --validate-only
+      - name: Run compile-runtime-agents --verify (drift detection)
+        run: ./scripts/compile-runtime-agents.sh --verify
+      - name: Run compile-runtime-agents --reproducibility-check
+        run: ./scripts/compile-runtime-agents.sh --reproducibility-check

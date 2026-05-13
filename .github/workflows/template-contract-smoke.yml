@@ -1,0 +1,34 @@
+# Template contract smoke test (FR-028, SC-011).
+#
+# Runs scripts/smoke-test.sh (scaffold + upgrade smoke, 158 assertions per
+# T042 + T041) on every PR. Any non-zero exit blocks the PR.
+#
+# Read-only check; default GITHUB_TOKEN permissions (contents: read) are
+# sufficient.
+
+name: template-contract-smoke
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  template-contract-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install check-jsonschema
+        run: pipx install check-jsonschema==0.37.2
+      - name: Run smoke-test.sh (scaffold + upgrade)
+        run: ./scripts/smoke-test.sh

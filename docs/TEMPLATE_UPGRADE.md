@@ -212,3 +212,24 @@ template repo. Scaffolded downstream projects strip `migrations/`, so a
 downstream maintainer reading this guide from a project tree may need to
 consult the upstream template repo for `migrations/README.md` and
 `migrations/TEMPLATE.sh`.
+
+## GitHub labels (FR-025)
+
+The framework defines a taxonomy of GitHub issue labels (template-gap,
+template-friction, authority-drift, docs-drift, agent-contract,
+atomic-question, model-routing, token-economy, process-breakdown,
+traceability-gap, generalization-risk, ai-behavior, m8-waiver) used
+across upstream and downstream repos for issue triage. After cloning
+fresh, or after a template upgrade introduces new labels in this set,
+run the setup script to actualize them on your GitHub remote (the
+script is idempotent — re-running is safe):
+
+```
+cd sw-dev-team-template
+REPO=<owner>/sw-dev-team-template ./scripts/setup-github-labels.sh
+```
+
+Use `--dry-run` to list the labels without contacting GitHub. The
+script never deletes or recolors existing labels; new colors / labels
+introduced by a template upgrade require a manual update of
+`scripts/setup-github-labels.sh` followed by a re-run.
