@@ -107,11 +107,13 @@ OLDIFS=$IFS
 # Deliberate IFS change for line-safe iteration over $LABELS; restored
 # immediately at the top of the loop body (and saved in OLDIFS).
 # shellcheck disable=SC2034  # OLDIFS is read on the line below; SC2034 is a false positive here
+# nosemgrep: bash.lang.security.ifs-tampering.ifs-tampering  # deliberate IFS change for newline-safe iteration; restored on next loop entry
 IFS='
 '
 for row in $LABELS; do
   # Restore saved IFS so all command substitutions inside the loop body
   # use default whitespace splitting.
+  # nosemgrep: bash.lang.security.ifs-tampering.ifs-tampering  # restoring saved IFS
   IFS=$OLDIFS
   name=$(echo "$row" | cut -d'|' -f1)
   color=$(echo "$row" | cut -d'|' -f2)

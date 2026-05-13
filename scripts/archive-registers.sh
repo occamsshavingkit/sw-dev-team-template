@@ -127,8 +127,8 @@ date_valid() {
 # Compare two YYYY-MM-DD strings. Echoes -1/0/1 for a<b/a=b/a>b.
 # Lexical compare works because the format is fixed-width.
 date_cmp() {
-    if [ "$1" = "$2" ]; then echo 0
     # shellcheck disable=SC3012  # POSIX \< is undefined; we target bash/dash where it works for fixed-width date strings
+    if [ "$1" = "$2" ]; then echo 0
     elif [ "$1" \< "$2" ]; then echo -1
     else echo 1
     fi

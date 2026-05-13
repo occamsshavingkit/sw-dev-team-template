@@ -327,12 +327,14 @@ if [ "${REPRO_MODE}" -eq 1 ]; then
       # Re-split validated role list into positional parameters so the
       # child invocation uses quoted "$@" (no unquoted expansion).
       # shellcheck disable=SC2086  # deliberate word-split of validated role list into positional params
+      # nosemgrep: bash.lang.correctness.unquoted-expansion.unquoted-variable-expansion-in-command  # deliberate word-split; roles are validated above
       set -- ${repro_roles}
       sh scripts/compile-runtime-agents.sh "$@" >/dev/null
   ) || true
   (
       cd "${REPRO_B}/root"
       # shellcheck disable=SC2086  # deliberate word-split of validated role list into positional params
+      # nosemgrep: bash.lang.correctness.unquoted-expansion.unquoted-variable-expansion-in-command  # deliberate word-split; roles are validated above
       set -- ${repro_roles}
       sh scripts/compile-runtime-agents.sh "$@" >/dev/null
   ) || true
