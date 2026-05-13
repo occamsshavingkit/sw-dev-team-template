@@ -27,6 +27,8 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+      - name: Check SPDX headers (issue #142 gate)
+        run: ./scripts/check-spdx.sh --summary
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
