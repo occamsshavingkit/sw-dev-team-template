@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sw-dev-team-template/schemas/generated-artifact.schema.json",
+  "title": "Generated artifact frontmatter",
+  "description": "Validates the YAML frontmatter of any generated artifact (compact runtime contracts under docs/runtime/agents/, OpenCode adapters under .opencode/agents/, generated session summaries). Lint enforces that manual edits to these files fail because they will fail this schema (canonical_sha mismatch).",
+  "type": "object",
+  "required": ["name", "canonical_source", "canonical_sha", "generator", "generator_version"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,63}$",
+      "description": "Generated artifact name; for agent runtime contracts and adapters, this matches the canonical role slug"
+    },
+    "model": {
+      "type": "string",
+      "description": "Configured model class for harnesses that consume this artifact (e.g., OpenCode adapter); optional for compact runtime contracts"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 20,
+      "description": "One-paragraph role description mirrored from the canonical's frontmatter; not authoritative (canonical_source remains canonical)."
+    },
+    "canonical_source": {
+      "type": "string",
+      "pattern": "^\\.claude/agents/[a-z][a-z0-9-]{1,63}\\.md$|^docs/[A-Za-z0-9_./-]+\\.md$",
+      "description": "Path (project-relative) to the canonical input that produced this artifact"
+    },
+    "canonical_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$|^[0-9a-f]{64}$",
+      "description": "Git blob SHA of the canonical source at generation time; lint compares this against the current canonical SHA and fails if stale or hand-edited"
+    },
+    "local_supplement": {
+      "type": "string",
+      "description": "Optional project-local supplement path the harness should load after the canonical source"
+    },
+    "generator": {
+      "type": "string",
+      "pattern": "^scripts/[A-Za-z0-9_./-]+\\.sh$",
+      "description": "Path of the generator script that produced this artifact"
+    },
+    "generator_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-rc\\d+)?$",
+      "description": "Semver of the generator script at generation time"
+    },
+    "classification": {
+      "type": "string",
+      "enum": ["generated"],
+      "default": "generated",
+      "description": "Per Constitution III; this artifact is generated, not canonical. Lint rejects values other than `generated`."
+    }
+  }
+}

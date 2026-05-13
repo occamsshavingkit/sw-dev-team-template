@@ -37,36 +37,24 @@ before the framework is installed.
 **Memory rule-of-thumb.** A recalled memory is a pointer, not a
 citation. If a recommendation would act on the recalled fact,
 verify against the current file, `git log`, or a fresh read
-first. Repository artifacts remain the source of truth; when
-memory and repository evidence disagree, the repository wins and
-the stale memory is flagged or escalated through the existing role
-model. Stale memory that caused a near-miss is worth noting in
+first. Stale memory that caused a near-miss is worth noting in
 `docs/pm/LESSONS.md` for future summarizer tuning.
 
-## Memory-query patterns
+## Query patterns (binding)
 
-Run a memory query before broad reads of old customer notes, old
-schedules, customer escalation history, or reopened ADR topics when the
-topic is known enough to search. Memory narrows the first files to
-verify; it does not replace `CUSTOMER_NOTES.md`, PM registers, ADRs, or
-other repository sources of truth.
+Memory query precedes long-artifact reads, customer escalations,
+and ADR-topic reopens. The four canonical patterns:
 
-Use concrete query phrases like these, then verify any hit against the
-named repository artifact before acting:
+| When you would otherwise... | Run memory query first | Then verify against |
+|---|---|---|
+| Read old `CUSTOMER_NOTES.md` entries | `search memory for "<topic> customer decision"` | `CUSTOMER_NOTES.md` |
+| Read old schedules | `search memory for "current milestone blocker"` | `docs/pm/SCHEDULE.md` |
+| Ask the customer | `search memory + OPEN_QUESTIONS for similar prior answer` | `CUSTOMER_NOTES.md` + `docs/OPEN_QUESTIONS.md` |
+| Reopen an ADR topic | `search memory for "<module> accepted ADR"` | the relevant `docs/adr/*.md` file |
 
-- **Customer decision:** `customer decision <topic> <feature|milestone>`
-  or `customer decided <topic>` before reviewing old customer notes.
-- **Current milestone blocker:** `current milestone blocker <milestone>`
-  or `blocked on <topic> milestone <name>` before rereading old
-  schedules or PM registers.
-- **Similar prior answer:** `similar prior answer <question topic>` or
-  `prior customer answer <topic>` before treating a customer escalation
-  as new.
-- **Accepted ADR:** `accepted ADR <topic>` or `ADR decision <component>`
-  before reopening an architectural decision or repeating rationale.
-
-If memory is unavailable or returns thin results, proceed from targeted
-repository reads. If memory returns a candidate answer, treat it as a
-pointer to `CUSTOMER_NOTES.md`, `docs/intake-log.md`, `docs/pm/`,
-`docs/adr/`, issues, commits, or the current file that must be verified
-before use.
+These patterns are mandatory before escalating to `tech-lead`
+(escalation chain rule, `CLAUDE.md` § Escalation protocol step 1).
+The memory layer is pointer-only, not authority: a hit points at
+a file / commit / issue to verify against the current repo state.
+If memory and repo disagree, the repo wins; flag the stale memory
+in `docs/pm/LESSONS.md`.

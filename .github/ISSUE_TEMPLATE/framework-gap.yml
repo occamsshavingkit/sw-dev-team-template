@@ -1,0 +1,84 @@
+name: Framework gap
+description: Report a reusable framework/template defect for upstream triage.
+title: "[Framework gap]: "
+labels:
+  - framework:template-gap
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form only for framework/template gaps that can be fixed upstream. Redact downstream project identity, customer identity, product codenames, secrets, and private project details before filing.
+  - type: input
+    id: template-version
+    attributes:
+      label: Template version
+      description: The value from TEMPLATE_VERSION or the git SHA recorded there.
+      placeholder: v0.0.0 or git SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: gap-category
+    attributes:
+      label: Gap category
+      description: Choose the primary framework-gap label from docs/ISSUE_FILING.md.
+      options:
+        - framework:agent-routing
+        - framework:rule-defect
+        - framework:template-gap
+        - framework:standards-gap
+        - framework:tooling-gap
+        - framework:downstream-leakage
+        - framework:release-policy
+    validations:
+      required: true
+  - type: input
+    id: affected-location
+    attributes:
+      label: Affected file and section
+      description: Name the framework file and section, not a private downstream path.
+      placeholder: AGENTS.md Role Binding section
+    validations:
+      required: true
+  - type: textarea
+    id: abstract-context
+    attributes:
+      label: Abstract downstream context
+      description: Describe the project class only enough to reproduce the pattern; do not name the project, customer, repository, product, or site.
+      placeholder: A downstream project using the template for release-gated automation.
+    validations:
+      required: false
+  - type: textarea
+    id: observed-outcome
+    attributes:
+      label: What happened
+      description: Redacted observed behavior that made the framework gap visible.
+    validations:
+      required: true
+  - type: textarea
+    id: gap-rationale
+    attributes:
+      label: Why this is a framework gap
+      description: Cite the rule, standard, role contract, or reusable template expectation that was not served.
+    validations:
+      required: true
+  - type: textarea
+    id: suggested-fix
+    attributes:
+      label: Suggested fix
+      description: Optional concrete upstream change proposed by tech-lead or the relevant specialist.
+    validations:
+      required: false
+  - type: checkboxes
+    id: redaction-confirmation
+    attributes:
+      label: Redaction confirmation
+      options:
+        - label: I removed downstream project names, customer names, repository names, product codenames, secrets, and private identifiers.
+          required: true
+  - type: checkboxes
+    id: opt-in-confirmation
+    attributes:
+      label: Opt-in confirmation
+      options:
+        - label: The downstream project has issue-feedback opt-in recorded before upstream filing.
+          required: true

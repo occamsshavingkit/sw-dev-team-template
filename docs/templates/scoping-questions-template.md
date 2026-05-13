@@ -1,48 +1,44 @@
 # Scoping Questions (Step 2 queue)
 
 The seed queue `tech-lead` uses to open Step 2 of `CLAUDE.md` FIRST
-ACTIONS. Copy each question as a row into `docs/OPEN_QUESTIONS.md`
-at the start of a new project, add follow-ups as they arise, and
-ask them **one per turn** with all agents idle (see
+ACTIONS. Copy one row per decision axis into `docs/OPEN_QUESTIONS.md`
+at the start of a new project, add follow-ups as separate one-axis rows,
+and ask them **one per idle turn** with all agents idle (see
 `CLAUDE.md` "Question-asking protocol").
 
 ## Minimum queue
 
-0. **(Step-1 follow-up) Specialized skills / watch-items.** Beyond
-   the Step-1 skill-pack catalog, are there any specialized skills,
-   plugins, MCP servers, agent packs, or tools you want installed
-   for this project, or anything specific the team should watch for
-   (a known risk in your domain, a style convention, a safety-
-   critical behaviour)? Names get verified by `researcher` and
-   installed / tracked.
-1. **Project summary.** What are we building, for whom, on what stack,
-   and what counts as "done" for the first milestone?
-2. **Deliverable shape.** What shape is the deliverable: code
-   (library / CLI / service / agent), data (dataset / model / corpus),
-   artefact (document, skill, playbook, prompt, runbook), process
-   (procedure humans or AI follow), or hybrid? Define every customer-
-   domain term used in the answer so `tech-lead` can add it to
-   `docs/glossary/PROJECT.md` before design work starts.
-3. **Domain SMEs.** Does this project need domain SMEs? Candidate
-   domains: industry-specific process knowledge, regulatory /
-   compliance, legal, accessibility, security, hardware, a specific
-   vendor platform or framework, legacy-system archaeology, a specific
-   customer site's conventions, localization / i18n, accounting /
-   finance rules, anything else.
-4. **Customer as SME.** Are you (the customer) one of the SMEs? If
-   yes, which domains?
-5. **External SMEs.** For SME domains you are NOT expert in — do you
-   have external SMEs to consult, or does the team need to recruit /
-   substitute? If substitute, say what acceptance criteria the
-   substitute must meet.
-6. **Step 3 — agent naming category.** Pick a naming category (e.g.,
-   Muppets, famous singers, historical scientists), a custom name
-   list, or keep canonical role names. `tech-lead` proposes
-   specific names; `researcher` verifies pronouns. See
-   `docs/AGENT_NAMES.md`.
-7. **Step 0 — issue-feedback opt-in** (atomic yes/no). Does this
-   project participate in upstream issue feedback when the team hits
-   a gap in the framework? See `docs/ISSUE_FILING.md`.
+0. **(Step-1 follow-up) Extra installation requests.** Beyond the
+   catalog above, are there any specialized skills, plugins, MCP
+   servers, agent packs, or tools you already know you want installed
+   for this project?
+1. **(Step-1 follow-up) Watch-items / issue triggers.** Is there
+   anything specific you want the team to watch for or file an issue
+   about, such as a known domain risk, style convention, or safety-
+   critical behaviour?
+2. **Project summary.** What are we building?
+3. **Target user.** Who is it for?
+4. **Technical stack.** What stack, platform, or existing repository
+   should the team assume?
+5. **First milestone done criteria.** What counts as done for the
+   first milestone?
+6. **Deliverable kind.** What shape is the deliverable: code, data,
+   artefact, process, or hybrid?
+7. **Named deliverables.** What specific deliverables should exist,
+   and where should each live if you already know?
+8. **Customer-domain terms.** Which customer-domain terms in the
+   deliverable description need definitions before design starts?
+9. **SME domains.** Which domain SME areas does this project need?
+10. **Customer SME role.** Which SME domains, if any, do you
+    personally cover?
+11. **External SME availability.** For SME domains you do not cover,
+    do you have an external SME available?
+12. **SME substitute criteria.** If the team must recruit or
+    substitute for an SME domain, what acceptance criteria should that
+    substitute meet?
+13. **Step 3 — agent naming category.** What naming category, custom
+    name list, or canonical-name decision should the team use for
+    agent names?
 
 ## Follow-ups to consider (ask only when genuinely thin)
 

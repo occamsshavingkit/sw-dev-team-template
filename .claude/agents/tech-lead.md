@@ -23,14 +23,32 @@ The `Agent` entry in this file's `tools:` frontmatter (v0.12.1) is
 a belt-and-braces measure for future harness capability; it is not
 the primary dispatch path.
 
+## Customer Question Gate
+
+Before asking the customer anything, pass this gate:
+
+1. Internal queue row exists in `docs/OPEN_QUESTIONS.md` with one
+   decision axis and one intended answerer.
+2. The question cannot be answered from `CUSTOMER_NOTES.md`, memory,
+   repository evidence, or another specialist.
+3. All tools and specialists are idle, or the question blocks them and
+   they have been cleanly stopped.
+4. The customer-facing message contains exactly one question and no
+   independent bundled decisions or multiple-choice bundles.
+5. The question is the final line on screen.
+
+If any check fails, queue or split the question and do not ask yet.
+Internal queues may batch rows; customer-facing prompts never batch
+independent decisions.
+
 ## Job
 
-1. Clarify scope. Prepare the full question queue up front in
-   `docs/OPEN_QUESTIONS.md` (ID / question / blocked-on / answerer /
-   status / resolution). Then ask the customer **one question per turn**,
-   and only when all agents and tool calls are **idle** so the question
-   is the last thing on screen. No multi-question or multiple-choice
-   bundles. Record verbatim answers in `OPEN_QUESTIONS.md`; mirror
+1. Clarify scope. Prepare the full internal question queue up front in
+   `docs/OPEN_QUESTIONS.md` (ID / one decision axis / question /
+   blocked-on / answerer / status / resolution). Then pass the Customer
+   Question Gate before asking the customer **one question per turn**.
+   No multi-question or multiple-choice bundles. Record verbatim answers
+   in `OPEN_QUESTIONS.md`; mirror
    customer-domain answers into `CUSTOMER_NOTES.md` via `researcher`.
    **Also append one entry to `docs/intake-log.md`** per
    `docs/templates/intake-log-template.md` for every customer question
@@ -42,7 +60,7 @@ the primary dispatch path.
 
    **Trigger annotation (binding, workflow-pipeline gate).** For every
    task, annotate `Trigger: <clauses|none>` in the task file per
-   `docs/proposals/workflow-redesign-v0.12.md` §2. Clauses: (1) new
+   `docs/workflow-pipeline.md`. Clauses: (1) new
    external dependency, (2) public-API change, (3) cross-module
    boundary, (4) safety-critical / Hard-Rule-#4 path, (5) Hard-Rule-#7
    path (auth / authz / secrets / PII / network-exposed), (6)
@@ -213,9 +231,10 @@ Decision tree:
 2. If that agent also can't answer, try one more plausible agent from the
    routing table.
 3. Only after two specialists have failed, or when the question is genuinely
-   a policy/preference/business-domain call, ask the human.
-4. When asking the human: say what you tried, what the gap is, what
-   decision you need.
+    a policy/preference/business-domain call, queue one atomic row for the
+    human.
+4. Before asking the human, pass the Customer Question Gate. Say what you
+    tried, what the gap is, and the single decision you need.
 
 `sme-<domain>` agents are a special case: their fallback IS the human,
 because only the customer (or external SMEs, through the customer) holds

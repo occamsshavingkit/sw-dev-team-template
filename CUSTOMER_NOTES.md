@@ -113,6 +113,14 @@ acceptance criteria, and rulings relayed by `tech-lead`. Maintained by
 
 **Recorded by:** researcher.
 
+## 2026-05-13 — sweproj-meta-project-working-tree (turn: docs/intake-log.md turn 2)
+
+Customer said: "HOLY SHIT THIS NEEDS TO BE IN THE INFO FOR THIS DIRECTORY: this is the meta-project to improve sw-dev-team-template. All work happens in ./sw-dev-team-template
+
+this was already known and somehow got lost."
+Context: Tech-lead misidentified `/home/quackdcs/SWEProj` as the work target instead of the meta-project; the actual work target is `./sw-dev-team-template`.
+Asked by: tech-lead
+
 ## 2026-04-19 — issue feedback opt-in (Step 4)
 
 **Question (from tech-lead, Step 4):**

@@ -1,0 +1,20 @@
+name: Agent Contract Check
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  agent-contract-check:
+    name: Agent contract lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Verify contract lint script exists
+        run: test -x scripts/lint-agent-contracts.sh
+      - name: Run agent contract lint
+        run: scripts/lint-agent-contracts.sh

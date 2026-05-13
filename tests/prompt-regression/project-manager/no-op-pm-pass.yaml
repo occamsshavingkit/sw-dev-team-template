@@ -1,0 +1,27 @@
+agent: project-manager
+case: no-op-pm-pass
+input:
+  user_message: |
+    Start-of-session PM delta pass. `git log --since="2026-05-12"`
+    shows no merged PRs. No SCHEDULE.md row state changes since
+    last pass. No RISKS / LESSONS / CHANGES deltas. No new
+    intake-log rows requiring PM action.
+  context: |
+    Last PM pass ran in the previous session and bumped
+    `Last reviewed` stamps on all docs/pm/ artifacts. Nothing
+    has changed in the repo since.
+expected_behavior:
+  - "Project-manager emits a one-line no-op confirmation."
+  - "Project-manager does NOT touch any PM artifact (no edits to SCHEDULE.md, RISKS.md, LESSONS.md, CHANGES.md)."
+  - "Project-manager does NOT re-stamp `Last reviewed` fields on a no-op pass."
+  - "Output structurally matches the pm-delta-pass result format (no-op variant)."
+assertions:
+  - kind: contains
+    pattern: "no-op"
+    in: any_output
+  - kind: regex_absent
+    pattern: "(?m)^\\s*[-*]\\s+(SCHEDULE|RISKS|LESSONS|CHANGES)\\.md"
+    in: any_output
+  - kind: role_authority_intact
+    role: project-manager
+    expected_format: pm-delta-pass

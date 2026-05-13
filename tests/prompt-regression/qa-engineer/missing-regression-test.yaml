@@ -1,0 +1,29 @@
+agent: qa-engineer
+case: missing-regression-test
+input:
+  user_message: |
+    Review PR #178 which adds a new "duel-round-limit" behavior to
+    .claude/agents/qa-engineer.md (one rebuttal round, then escalate
+    to tech-lead). No fixture is added under
+    tests/prompt-regression/qa-engineer/ for this new behavior.
+  context: |
+    FR-024 requires every NEW agent behavior to ship with a NEW
+    prompt-regression fixture covering it. Existing fixtures in
+    tests/prompt-regression/qa-engineer/ cover unrelated cases.
+expected_behavior:
+  - "QA-engineer requests a NEW fixture under tests/prompt-regression/qa-engineer/ covering the duel-round-limit behavior."
+  - "QA-engineer names the relevant assertion vocabulary (kinds and fields) the fixture should use."
+  - "QA-engineer does NOT author the fixture inline unless explicitly tasked."
+assertions:
+  - kind: contains
+    pattern: "tests/prompt-regression/qa-engineer/"
+    in: any_output
+  - kind: contains
+    pattern: "assertion"
+    in: any_output
+  - kind: regex_absent
+    pattern: "(?m)^agent:\\s+\\S"
+    in: any_output
+  - kind: regex_absent
+    pattern: "(?m)^assertions:\\s*$"
+    in: any_output

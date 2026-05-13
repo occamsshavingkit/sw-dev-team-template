@@ -4,6 +4,14 @@ This template lives inside each downstream repository so agents can
 operate there, but the template is not the product. Treat the working
 tree as three layers with different owners and review paths.
 
+## Documentation Authority
+
+Every artifact in this repository is canonical, generated, or ephemeral.
+Manual mirrors of shared content are prohibited: if two files need the same content, one MUST be generated from the other, link to the other, or be removed in favor of the other.
+Generated artifacts MUST identify their canonical inputs and be reproducible by documented tooling before they are used as operational guidance.
+
+This policy is FR-014 + M4.1 in `specs/006-template-improvement-program/spec.md` and resolves the Constitution III source-authority requirement.
+
 ## Path ownership
 
 | Layer | Owner | Typical paths | Default handling |

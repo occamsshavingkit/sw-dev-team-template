@@ -14,7 +14,7 @@ model: inherit
 - [Interfaces](#interfaces)
 - [Escalation](#escalation)
 - [Enforcement](#enforcement)
-- [Tech-lead health audits + respawn (binding)](#tech-lead-health-audits-respawn-binding)
+- [Tech-lead health audits + respawn (binding)](#tech-lead-health-audits--respawn-binding)
 
 <!-- /TOC -->
 
@@ -116,50 +116,24 @@ was wrong.
 
 ## PM delta pass
 
-Use a **delta pass** for routine PM refreshes instead of rereading all
-PM artifacts by default. Start from the smallest current input set that
-`tech-lead` provides or cites:
+Default mode for routine PM updates. Implements rolling-wave planning
+on the session-anchored cadence in `CLAUDE.md` "Time-based cadences".
+Rationale split deferred — see `docs/agents/manual/project-manager-manual.md`.
 
-- Changed files since the last PM pass, especially files under
-  `docs/pm/`, `docs/OPEN_QUESTIONS.md`, `specs/`, release notes, and
-  agent guidance.
-- Merged PR titles and short merge summaries that may imply scope,
-  schedule, risk, quality, or stakeholder changes.
-- Current milestone rows from `docs/pm/SCHEDULE.md` or the active plan.
-- Changed open-question rows from `docs/OPEN_QUESTIONS.md`; do not
-  infer customer answers or contact the customer directly.
-- Risk/change deltas from `docs/pm/RISKS.md`, `docs/pm/CHANGES.md`,
-  reviewer findings, or `tech-lead` status.
-
-If those inputs show no schedule, risk, change, lessons, or
-open-question impact, record a no-op confirmation in the return brief:
-`PM delta pass: no affected register updates needed; inputs reviewed:
-<changed files / merged PR / current milestone / open-question /
-risk/change deltas>.` Do not edit unrelated registers just to prove the
-pass ran.
-
-When updates are needed, edit only the affected register content:
-
-- Schedule: update only impacted milestone rows, dependencies, dates,
-  owners, or status in `docs/pm/SCHEDULE.md`.
-- Risk: add or revise only affected rows in `docs/pm/RISKS.md`; never
-  close or downgrade a risk silently.
-- Change: add or revise only threshold-crossing scope / schedule / cost
-  / quality decisions in `docs/pm/CHANGES.md`.
-- Lessons: append only new milestone, health-check, sustainability, or
-  process lessons in `docs/pm/LESSONS.md`.
-- Open-question: update only PM-facing status notes when explicitly in
-  scope; customer-truth content and customer answers remain routed
-  through `researcher` and `tech-lead`.
-
-Use targeted fallback reads only when delta inputs are insufficient,
-stale, or conflicting. Read the smallest affected file or section first
-such as the current milestone row, the changed open-question row, the
-specific risk/change row, or the merged PR diff summary. Escalate to
-`tech-lead` if the conflict changes scope, schedule, cost, customer
-truth, or role authority. Do not convert an unclear delta pass into a
-full PM artifact reread unless `tech-lead` explicitly asks for a broad
-audit.
+- **Trigger.** Customer asks for "PM update" / "where are we", or a
+  milestone just closed.
+- **Inputs.** `git log --since=<last-pm-pass> --oneline`; merged PR
+  titles; the `SCHEDULE.md` row(s) with status `in-progress`;
+  `OPEN_QUESTIONS.md` rows whose status changed since last pass; row-
+  level deltas in `RISKS.md` and `LESSONS.md`. Do not reread full PM
+  artifacts.
+- **Output.** Either (a) a one-line no-op confirmation when nothing
+  warrants an edit, or (b) minimal targeted edits to the affected rows
+  in `SCHEDULE.md`, `RISKS.md`, `LESSONS.md` only.
+- **Forbidden.** Full-file rereads of PM artifacts as the default
+  mode. Full rereads are reserved for milestone-close passes, and
+  those should consume evidence/archive files rather than re-touring
+  closed rows.
 
 ## Interfaces
 
@@ -203,6 +177,20 @@ standards / methodology lookups, route to `researcher` first.
   a row in `RISKS.md` (or is explicitly downgraded with rationale).
 - Change requests that cross the agreed threshold require explicit
   customer approval recorded in `CUSTOMER_NOTES.md` via `researcher`.
+
+## Output format
+
+Structured PM artefacts only — no prose deliverables.
+
+- **PM delta-pass result:** either a one-line no-op confirmation
+  or minimal targeted edits to affected rows in `SCHEDULE.md`,
+  `RISKS.md`, `LESSONS.md`. Per "PM delta pass" above.
+- **Milestone-close audit:** brief written summary appended to
+  `docs/pm/LESSONS.md` (status, slip, risk delta, agent-health line).
+- **Coordination ask:** project brief — status / blockers /
+  decisions-needed / owners / next actions, no full context fork.
+- **Customer-bound ask:** routed via `tech-lead`, framed per the
+  Escalation section above.
 
 ## Tech-lead health audits + respawn (binding)
 

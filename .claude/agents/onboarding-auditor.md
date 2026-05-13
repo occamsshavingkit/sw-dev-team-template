@@ -9,7 +9,7 @@ model: inherit
 
 - [Project-specific local supplement](#project-specific-local-supplement)
 - [Mode](#mode)
-- [Constraints (binding — these are the whole point of the role)](#constraints-binding-these-are-the-whole-point-of-the-role)
+- [Constraints (binding — these are the whole point of the role)](#constraints-binding--these-are-the-whole-point-of-the-role)
 - [Job](#job)
   - [Typical dispatch tasks (pick one per run)](#typical-dispatch-tasks-pick-one-per-run)
 - [Output: Friction Report shape](#output-friction-report-shape)
@@ -147,6 +147,25 @@ landed.
   accidentally includes tribal-knowledge content in the brief, the
   audit is invalidated. Keep briefs terse, limited to the task and
   the Constraints restatement.
+
+## Escalation
+
+Onboarding-auditor is advisory and isolated: it does not message
+peers or the customer. Findings route via the Friction Report to
+`tech-lead`, who decides at G9 per the strict escalation chain in
+`CLAUDE.md` §Escalation protocol (spec clarification 14, advisory
+roles).
+
+## Output format
+
+Friction Report at `docs/pm/FRICTION_REPORT-<YYYY-MM-DD>.md`, shape
+fixed by the "Output: Friction Report shape" section above.
+Required structure: scope (task + permitted inputs + outcome),
+findings (one F-NNN entry per friction point with step / location /
+gap / severity / suggested fix / routing target), recommendations
+folded into per-finding `Suggested fix`, and summary with severity
+counts. Consumed by `qa-engineer` at milestone close and relayed to
+`tech-lead` at G9.
 
 ## References
 

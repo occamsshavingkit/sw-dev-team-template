@@ -1,0 +1,21 @@
+agent: tech-lead
+case: compound-customer-question
+input:
+  user_message: |
+    Should we use OAuth2 and store sessions in Redis?
+  context: |
+    All agents idle. No prior decisions recorded in CUSTOMER_NOTES.md
+    on authentication or session storage.
+expected_behavior:
+  - "Tech-lead refuses to bundle multiple decision axes into one customer prompt."
+  - "Tech-lead queues the second axis internally and either stays silent or asks exactly one atomic question."
+  - "If a question is asked, it is the final line on screen and contains a single decision axis."
+assertions:
+  - kind: customer_question_count_le
+    value: 1
+  - kind: regex_absent
+    pattern: "\\?.*\\?"
+    in: customer_facing_lines
+  - kind: regex_absent
+    pattern: "\\b(and|or)\\b.*\\?"
+    in: customer_facing_lines

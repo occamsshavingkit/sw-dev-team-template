@@ -52,3 +52,19 @@ docs/glossary/PROJECT.md
 # --- INDEX split (added by migrations/v0.15.0.sh, issue #66) ---
 docs/INDEX.md
 docs/INDEX-PROJECT.md
+
+# --- Workshop-specific archive content (rc9 upgrade triage 2026-05-13) ---
+# Local OPEN_QUESTIONS-ARCHIVE has 12 substantive Q-0001..Q-0012 snapshots
+# from the meta-project workshop; upstream ships only a 29-line stub.
+docs/OPEN_QUESTIONS-ARCHIVE.md
+
+# --- Meta-project Project Identity block in CLAUDE.md / AGENTS.md ---
+# Both files carry a "Project Identity / Working Tree" header naming
+# /home/quackdcs/SWEProj and ./sw-dev-team-template plus a SPECKIT
+# trailer block. Hand-merged with rc9 upstream on 2026-05-13.
+CLAUDE.md
+AGENTS.md
+# Project-owned intake conversation log (T041 / FR-013).
+docs/intake-log.md
+# Project-owned roadmap stub (T045 / FR-015).
+ROADMAP.md

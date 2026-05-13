@@ -172,3 +172,22 @@ decision: Spec Kit is subordinate draft-generation workflow invoked by tech-lead
 cross-refs:
   - CUSTOMER_NOTES.md#2026-05-12-spec-kit-tech-lead-governance
 notes: Customer provided this as guidance during M2 implementation; researcher records the durable customer-notes entry.
+---
+turn: 2
+timestamp: 2026-05-13T15:23Z
+asked-by: tech-lead
+framing: |
+  Tech-lead misidentified the active repository location and treated
+  `/home/quackdcs/SWEProj` as the work target instead of recognizing
+  the project-specific meta/worktree split.
+options-presented: []
+recommended-default: none
+agents-running-at-ask: []
+customer-answer: |
+  HOLY SHIT THIS NEEDS TO BE IN THE INFO FOR THIS DIRECTORY: this is the meta-project to improve sw-dev-team-template. All work happens in ./sw-dev-team-template
+
+  this was already known and somehow got lost.
+decision: SWEProj is the meta-project for improving sw-dev-team-template; work target is `./sw-dev-team-template`, and active directory instructions must state that explicitly.
+cross-refs:
+  - CUSTOMER_NOTES.md#2026-05-13-sweproj-meta-project-working-tree
+notes: Customer correction after repo-location drift; prior repo docs already contained this fact, but active entrypoint instructions did not make it explicit enough.

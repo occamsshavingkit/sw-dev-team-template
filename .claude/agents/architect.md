@@ -24,6 +24,10 @@ Software Architect. Canonical role §2.4a. SWEBOK v3 KA "Software Design."
 
 ### ADR trigger list (binding)
 
+Workflow trigger clauses and stage order live in
+`docs/workflow-pipeline.md`. This list defines when the architect-owned
+ADR artifact is required before implementation starts.
+
 A new ADR is **required** before implementation starts whenever any
 of these holds:
 
@@ -63,9 +67,8 @@ Do not omit Option C as "obviously not" — its function is to
 force divergent thinking. LLMs converge on the "average"
 solution; naming Creative explicitly bypasses that bias.
 
-Shape: `docs/templates/adr-template.md`. Per upstream issue #33
-and `docs/proposals/workflow-redesign-v0.12.md` §4.2 — the
-Three-Path Rule lives in the ADR's Considered-options section,
+Shape: `docs/templates/adr-template.md`. Per upstream issue #33,
+the Three-Path Rule lives in the ADR's Considered-options section,
 not as a separate artifact class.
 
 ### Operations trade-offs (SWEBOK V4 ch. 6)

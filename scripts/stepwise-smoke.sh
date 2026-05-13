@@ -75,7 +75,8 @@ esac
 
 # SemVer tag sort lives in scripts/lib/semver.sh — shared with
 # scripts/upgrade.sh. Single source of truth (issue #108).
-# shellcheck source=lib/semver.sh
+# shellcheck source=scripts/lib/semver.sh
+# shellcheck disable=SC1091
 source "$(dirname "$0")/lib/semver.sh"
 
 if [[ -z "$start_tag" ]]; then

@@ -5,8 +5,12 @@ the template's agent roles. This file is provider-neutral first, then
 maps the tiers to current OpenAI / ChatGPT and Claude / Claude Code
 model families.
 
-Status: draft post-v1.0.0 guideline. Re-verify provider mappings before
-each tagged release; model catalogs and aliases change over time.
+**Binding status**: This file is the binding default for fresh scaffolds (FR-016 + spec clarification 5). Downstream projects MAY override per-agent default-model assignments in a marked project-local supplement at `docs/model-routing-guidelines.local.md` (or wherever the project keeps local routing supplements), so long as the supplement carries the `project_local_override_marker` per `sw-dev-team-template/schemas/model-routing.schema.json`.
+
+**Model ID currency**: Exact provider/model identifiers in this file are RUNTIME-REVERIFIABLE — they may change between releases. Routing logic should rely on the model-class column (e.g., `claude-sonnet`, `gemini-pro`) rather than literal IDs. Exact IDs are confirmed at each MINOR-boundary Release per spec clarification 8.
+
+Re-verify provider mappings before each tagged release; model catalogs
+and aliases change over time.
 
 Sources checked on 2026-05-03:
 
@@ -28,16 +32,16 @@ Use four tiers:
 
 | Tier | Use for | OpenAI / ChatGPT mapping | Claude / Claude Code mapping |
 |---|---|---|---|
-| `fast` | Mechanical extraction, classification, short summaries, label hygiene | `gpt-5.4-nano` or successor nano-class model | `haiku` |
-| `standard` | Routine documentation, simple project-management updates, narrow test edits | `gpt-5.4-mini` or successor mini-class model | `sonnet` |
-| `strong` | Default for coding agents, QA, release work, non-trivial research synthesis | `gpt-5.4` or current affordable frontier-class model | `sonnet` with `high` effort, or `opusplan` when planning is important |
-| `frontier` | Architecture, security, code review, major tradeoffs, ambiguous cross-system work | `gpt-5.5` or current flagship model | `opus`, `best`, or `opusplan` |
+| `fast` | Mechanical extraction, classification, short summaries, label hygiene | `gpt-5.4-nano` (runtime-reverifiable) or successor nano-class model | `haiku` (runtime-reverifiable) |
+| `standard` | Routine documentation, simple project-management updates, narrow test edits | `gpt-5.4-mini` (runtime-reverifiable) or successor mini-class model | `sonnet` (runtime-reverifiable) |
+| `strong` | Default for coding agents, QA, release work, non-trivial research synthesis | `gpt-5.4` (runtime-reverifiable) or current affordable frontier-class model | `sonnet` with `high` effort, or `opusplan` (runtime-reverifiable) when planning is important |
+| `frontier` | Architecture, security, code review, major tradeoffs, ambiguous cross-system work | `gpt-5.5` (runtime-reverifiable) or current flagship model | `opus`, `best`, or `opusplan` (runtime-reverifiable) |
 
 Provider notes:
 
-- OpenAI currently recommends `gpt-5.5` for complex reasoning and
-  coding, and `gpt-5.4-mini` / `gpt-5.4-nano` for lower-latency,
-  lower-cost workloads.
+- OpenAI currently recommends `gpt-5.5` (runtime-reverifiable) for
+  complex reasoning and coding, and `gpt-5.4-mini` / `gpt-5.4-nano`
+  (runtime-reverifiable) for lower-latency, lower-cost workloads.
 - Claude Code aliases are preferable in template docs because `opus`,
   `sonnet`, `haiku`, and `opusplan` resolve to current recommended
   models for the configured provider. Pin full model IDs only when a
@@ -61,9 +65,10 @@ review.
 | `max` | Claude-only one-off emergency/deep reasoning mode. Use sparingly for release blockers or high-stakes design reviews. | Prefer recording why `max` was used; do not make it the project default without an ADR. |
 
 For OpenAI mappings, use the provider's available reasoning effort
-values. Current GPT-5.5 / GPT-5.4 family docs list `none`, `low`,
-`medium`, `high`, and `xhigh`. Treat Claude `max` as OpenAI `xhigh`
-plus an explicit prompt asking for a deeper review pass.
+values. Current GPT-5.5 / GPT-5.4 family (runtime-reverifiable) docs
+list `none`, `low`, `medium`, `high`, and `xhigh`. Treat Claude `max`
+as OpenAI `xhigh` plus an explicit prompt asking for a deeper review
+pass.
 
 ### Codex `reasoning_effort` policy
 
@@ -169,3 +174,51 @@ Lower tier or effort when all of these are true:
   `code-reviewer`, or `tech-lead` requires code-reviewer review.
 - Making GitHub Projects, provider-specific tools, or a specific model
   vendor mandatory for downstream projects requires an ADR.
+
+## Provider/model ID conventions
+
+- **Anthropic**: `anthropic/claude-{opus,sonnet,haiku}-<minor>-<patch>` (e.g., `anthropic/claude-sonnet-4-7`). Per-class fallback uses the closest peer within the same class.
+- **OpenAI**: `openai/<model-id>` (e.g., `openai/gpt-5-pro`). The `openai-coding` class is for code-heavy tasks; `openai-frontier` for advanced reasoning; `openai-mini` for cheap interactive use.
+- **Google (Gemini)**: `google/gemini-<class>-<minor>` (e.g., `google/gemini-pro-2.5`). `gemini-pro` for substantive synthesis; `gemini-flash` for fast iteration.
+- **OpenCode harness**: per ADR-0009, OpenCode is a harness adapter; the model identifier is whichever provider/model OpenCode's adapter resolves to. The routing rule that fires applies to the resolved upstream identifier, not OpenCode itself.
+
+All literal IDs marked `(runtime-reverifiable)` may change between MINOR-boundary Releases. Use the class column for binding routing rules.
+
+## Fallback behavior
+
+Fallback triggers (per spec clarification 8 + FR-020):
+
+- `credit_exhausted` — provider account has insufficient credit for the request.
+- `provider_unavailable_5xx` — provider returned HTTP 5xx.
+- `provider_timeout` — provider timed out before responding.
+- `provider_rate_limit` — provider returned a rate-limit response (HTTP 429 or equivalent).
+
+Substitution policy: **closest peer in the same model class** first (e.g., Sonnet-class request → next available Sonnet-tier model). If no same-class peer is available, substitute **one tier down** and append `; downgraded_one_tier` to `fallback_reason`. Fallback MUST NOT change role authority or output format.
+
+Every fallback event is logged to `docs/pm/fallback-log.jsonl` via `scripts/log-fallback.sh` (FR-020). The log carries six required fields: `agent`, `requested_model`, `actual_model`, `fallback_reason`, `timestamp` (ISO 8601 UTC), `task_id`.
+
+## Frontier-only escalation
+
+Frontier-class models (`claude-opus`, `openai-frontier`, `gemini-pro`) are NOT the default for any agent. They are reserved for the per-agent escalation conditions in the binding default-class table below. Escalation is per-task: when the predicate fires, the routing wrapper selects the frontier model for that task only; subsequent tasks revert to the default.
+
+## Binding per-agent default-class table
+
+The table below is the binding default for fresh template scaffolds (FR-019 + spec clarification 5). Downstream projects MAY override per-agent assignments in a marked project-local supplement; the supplement MUST carry the `project_local_override_marker` per `schemas/model-routing.schema.json`.
+
+Class names use the enum from `schemas/model-routing.schema.json`: `claude-opus`, `claude-sonnet`, `claude-haiku`, `gemini-pro`, `gemini-flash`, `openai-frontier`, `openai-coding`, `openai-mini`.
+
+| Agent | Default class | Frontier only when |
+|---|---|---|
+| `tech-lead` | `claude-sonnet` | unresolved conflict, safety/customer-critical routing |
+| `architect` | `claude-sonnet` | ADR conflict, major boundary, safety/security architecture |
+| `software-engineer` | `openai-coding` | ambiguous design tradeoff |
+| `release-engineer` | `openai-coding` | release blocker or cross-harness failure |
+| `code-reviewer` | `claude-sonnet` | hard-block, ADR conflict, safety/security |
+| `qa-engineer` | `claude-sonnet` | safety/timing-critical validation |
+| `researcher` | `gemini-pro` | disputed source synthesis |
+| `project-manager` | `gemini-flash` | major scope/risk/stakeholder conflict |
+| `tech-writer` | `claude-sonnet` | release-critical public docs |
+| `security-engineer` | `claude-sonnet` | safety-critical authentication / secrets / network-exposed change |
+| `sre` | `claude-sonnet` | DR-tier escalation, performance-critical incident |
+| `onboarding-auditor` | `claude-sonnet` | (advisory-only role; frontier escalation not gating) |
+| `process-auditor` | `claude-sonnet` | (advisory-only role; frontier escalation not gating) |

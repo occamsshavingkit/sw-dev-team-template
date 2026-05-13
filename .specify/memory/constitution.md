@@ -1,14 +1,24 @@
 <!--
 Sync Impact Report
-Version change: placeholder template -> 1.0.0
-Modified principles: placeholder principles -> I. Role-Bound Delegation and Sole Customer Interface; II. Token and Context Economy; III. Canonical Source Authority; IV. Atomic Customer Questions and Intake Traceability; V. Quality Gates Before Commit; VI. Framework and Project Boundary Safety; VII. Harness Adapters, Not Parallel Authority
-Added sections: Operational Constraints; Development Workflow and Review Gates
-Removed sections: Placeholder Section 2; Placeholder Section 3
-Templates requiring updates: updated .specify/templates/plan-template.md; updated .specify/templates/spec-template.md; updated .specify/templates/tasks-template.md; updated .specify/templates/checklist-template.md; no .specify/templates/commands/*.md files found
-Follow-up TODOs: TODO(RATIFICATION_DATE): Original ratification date is not recorded in the existing template.
+Version change: 1.0.0 -> 1.1.0
+Modified principles: none (titles and rules unchanged)
+Added sections: Project Scope (top-of-document scope statement)
+Removed sections: none
+Templates requiring updates: ✅ .specify/templates/plan-template.md (already references Principle VI framework/project boundary); ✅ .specify/templates/spec-template.md (no changes required); ✅ .specify/templates/tasks-template.md (no changes required); ✅ .specify/templates/checklist-template.md (no changes required)
+Follow-up TODOs: none (RATIFICATION_DATE resolved to 2026-05-12)
 -->
 
 # SW-dev Team Template Constitution
+
+## Project Scope
+
+This constitution governs the meta-project rooted at `/home/quackdcs/SWEProj`
+whose primary working target is the subdirectory `./sw-dev-team-template`
+(the active template repository). Sessions start at the meta-project root;
+framework and template edits MUST target `./sw-dev-team-template` unless the
+task explicitly targets meta-project scaffolding artifacts in the root. Both
+the meta-project and the template subdirectory are bound by every principle,
+operational constraint, and governance rule below.
 
 ## Core Principles
 
@@ -81,7 +91,10 @@ broad edits, review, staging, or commit. Product tasks MUST NOT edit
 framework-managed files unless the customer explicitly authorizes template
 upgrade or framework maintenance for that task. Framework gaps discovered
 during product work MUST be filed or routed upstream instead of patched
-opportunistically in the product change.
+opportunistically in the product change. In this meta-project, edits targeting
+`./sw-dev-team-template` are framework-scoped by default; edits in the
+meta-project root outside that subdirectory are meta-project scaffolding and
+MUST be classified explicitly when a change crosses the boundary.
 
 Rationale: separating framework evolution from product delivery prevents
 accidental template drift and unsafe mixed-scope releases.
@@ -156,7 +169,4 @@ commit. New templates, adapters, generated artifacts, and runtime guidance MUST
 state how they preserve role routing, source authority, quality gates, and
 framework/project boundaries.
 
-TODO(RATIFICATION_DATE): Original ratification date is not recorded in the
-existing template.
-
-**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): Original ratification date is not recorded in the existing template. | **Last Amended**: 2026-05-12
+**Version**: 1.1.0 | **Ratified**: 2026-05-12 | **Last Amended**: 2026-05-13

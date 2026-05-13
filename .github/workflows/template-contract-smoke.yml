@@ -1,0 +1,30 @@
+name: Template Contract Smoke
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  template-contract-smoke:
+    name: Template contract smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Verify smoke scripts exist
+        run: |
+          test -x scripts/lint-agent-contracts.sh
+          test -x scripts/compile-runtime-agents.sh
+      - name: Run contract lint
+        run: scripts/lint-agent-contracts.sh
+      - name: Compile runtime agents
+        run: scripts/compile-runtime-agents.sh
+      - name: Verify generated output is stable
+        run: |
+          if ! git diff --quiet -- docs/runtime/agents/generated docs/runtime/agents/generated-artifacts.manifest.json; then
+            git diff -- docs/runtime/agents/generated docs/runtime/agents/generated-artifacts.manifest.json
+            exit 1
+          fi

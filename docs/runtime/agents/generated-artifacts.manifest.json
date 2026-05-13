@@ -1,0 +1,284 @@
+{
+  "schema_version": "1.0",
+  "artifact_type": "runtime-agent-candidates",
+  "authority": "generated-candidate",
+  "generator": {
+    "command": "scripts/compile-runtime-agents.sh",
+    "version": "m6-2 llmdc=used:/usr/local/bin/llmdc schema2llmd=used:/usr/local/bin/schema2llmd"
+  },
+  "canonical_inputs": [
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".claude/agents/architect.md",
+    ".claude/agents/code-reviewer.md",
+    ".claude/agents/onboarding-auditor.md",
+    ".claude/agents/process-auditor.md",
+    ".claude/agents/project-manager.md",
+    ".claude/agents/qa-engineer.md",
+    ".claude/agents/release-engineer.md",
+    ".claude/agents/researcher.md",
+    ".claude/agents/security-engineer.md",
+    ".claude/agents/sme-template.md",
+    ".claude/agents/software-engineer.md",
+    ".claude/agents/sre.md",
+    ".claude/agents/tech-lead.md",
+    ".claude/agents/tech-writer.md"
+  ],
+  "generated_at": "deterministic",
+  "review_gate": "G6 qa-engineer/code-reviewer review before operational use",
+  "retention": "Durable generated evidence; regenerate from canonical inputs instead of hand editing.",
+  "artifacts": [
+    {
+      "output_path": "docs/runtime/agents/generated/architect.md",
+      "authority": "generated-candidate",
+      "canonical_inputs": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".claude/agents/architect.md"
+      ],
+      "checksum": {
+        "algorithm": "sha256",
+        "digest": "55dc4952ba896ade46db95bbb8351ab9f81bc0aeafa1ef213af04332fd651a22"
+      },
+      "line_count": 33,
+      "byte_count": 1685,
+      "token_count": {
+        "status": "not-configured"
+      }
+    },
+    {
+      "output_path": "docs/runtime/agents/generated/code-reviewer.md",
+      "authority": "generated-candidate",
+      "canonical_inputs": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".claude/agents/code-reviewer.md"
+      ],
+      "checksum": {
+        "algorithm": "sha256",
+        "digest": "4cf6daaed700fd43f3433ca69ca440b25e83991fbc4493e94db55752a4c22611"
+      },
+      "line_count": 33,
+      "byte_count": 1694,
+      "token_count": {
+        "status": "not-configured"
+      }
+    },
+    {
+      "output_path": "docs/runtime/agents/generated/onboarding-auditor.md",
+      "authority": "generated-candidate",
+      "canonical_inputs": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".claude/agents/onboarding-auditor.md"
+      ],
+      "checksum": {
+        "algorithm": "sha256",
+        "digest": "7d8118a98ef89ebe8cf95ba1d94023500330cc4414c052eb761016d64906c31f"
+      },
+      "line_count": 33,
+      "byte_count": 1897,
+      "token_count": {
+        "status": "not-configured"
+      }
+    },
+    {
+      "output_path": "docs/runtime/agents/generated/process-auditor.md",
+      "authority": "generated-candidate",
+      "canonical_inputs": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".claude/agents/process-auditor.md"
+      ],
+      "checksum": {
+        "algorithm": "sha256",
+        "digest": "8525340efac295e3b5f4d4581c3113cafb0e3fdc8a3d1cdc546cecd1e0bd8ac5"
+      },
+      "line_count": 33,
+      "byte_count": 1882,
+      "token_count": {
+        "status": "not-configured"
+      }
+    },
+    {
+      "output_path": "docs/runtime/agents/generated/project-manager.md",
+      "authority": "generated-candidate",
+      "canonical_inputs": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".claude/agents/project-manager.md"
+      ],
+      "checksum": {
+        "algorithm": "sha256",
+        "digest": "3a698862e3e7f12691601bebc7329799db241b1ebab7cdd87f0313cc4eefe5fb"
+      },
+      "line_count": 33,
+      "byte_count": 1883,
+      "token_count": {
+        "status": "not-configured"
+      }
+    },
+    {
+      "output_path": "docs/runtime/agents/generated/qa-engineer.md",
+      "authority": "generated-candidate",
+      "canonical_inputs": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".claude/agents/qa-engineer.md"
+      ],
+      "checksum": {
+        "algorithm": "sha256",
+        "digest": "131b68717060211de9873b182e878c21b41e3ae322bf041e09ec238e2a8b5546"
+      },
+      "line_count": 33,
+      "byte_count": 1665,
+      "token_count": {
+        "status": "not-configured"
+      }
+    },
+    {
+      "output_path": "docs/runtime/agents/generated/release-engineer.md",
+      "authority": "generated-candidate",
+      "canonical_inputs": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".claude/agents/release-engineer.md"
+      ],
+      "checksum": {
+        "algorithm": "sha256",
+        "digest": "64b3356a9b1c392ea555482c5cd4b436c7f85e7c9351ccea3f09d5401142fb89"
+      },
+      "line_count": 33,
+      "byte_count": 1718,
+      "token_count": {
+        "status": "not-configured"
+      }
+    },
+    {
+      "output_path": "docs/runtime/agents/generated/researcher.md",
+      "authority": "generated-candidate",
+      "canonical_inputs": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".claude/agents/researcher.md"
+      ],
+      "checksum": {
+        "algorithm": "sha256",
+        "digest": "2fc16520ce147f0183fa41380eaa42cc0d1430957368441ab12f52f7ff4ad68d"
+      },
+      "line_count": 33,
+      "byte_count": 1726,
+      "token_count": {
+        "status": "not-configured"
+      }
+    },
+    {
+      "output_path": "docs/runtime/agents/generated/security-engineer.md",
+      "authority": "generated-candidate",
+      "canonical_inputs": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".claude/agents/security-engineer.md"
+      ],
+      "checksum": {
+        "algorithm": "sha256",
+        "digest": "674f801031258b1ec7c3698c2fa051f912e2417b98d3c1ab5cff5edd3b922e68"
+      },
+      "line_count": 33,
+      "byte_count": 1820,
+      "token_count": {
+        "status": "not-configured"
+      }
+    },
+    {
+      "output_path": "docs/runtime/agents/generated/sme-template.md",
+      "authority": "generated-candidate",
+      "canonical_inputs": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".claude/agents/sme-template.md"
+      ],
+      "checksum": {
+        "algorithm": "sha256",
+        "digest": "bc12ed59fc4e65cd5d7bf2271f3cdc641d52ec6e286ddc39fd893b1a96311dd4"
+      },
+      "line_count": 33,
+      "byte_count": 1747,
+      "token_count": {
+        "status": "not-configured"
+      }
+    },
+    {
+      "output_path": "docs/runtime/agents/generated/software-engineer.md",
+      "authority": "generated-candidate",
+      "canonical_inputs": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".claude/agents/software-engineer.md"
+      ],
+      "checksum": {
+        "algorithm": "sha256",
+        "digest": "1cd1decc12acb5ee6e9ec3290b8def1bc3951db4397d00e7e4195d6a95034332"
+      },
+      "line_count": 33,
+      "byte_count": 1651,
+      "token_count": {
+        "status": "not-configured"
+      }
+    },
+    {
+      "output_path": "docs/runtime/agents/generated/sre.md",
+      "authority": "generated-candidate",
+      "canonical_inputs": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".claude/agents/sre.md"
+      ],
+      "checksum": {
+        "algorithm": "sha256",
+        "digest": "554dc0cb2ce27bad9e2872e392cfc05f7a382fb0749ef5832e862b0d757a6289"
+      },
+      "line_count": 33,
+      "byte_count": 1569,
+      "token_count": {
+        "status": "not-configured"
+      }
+    },
+    {
+      "output_path": "docs/runtime/agents/generated/tech-lead.md",
+      "authority": "generated-candidate",
+      "canonical_inputs": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".claude/agents/tech-lead.md"
+      ],
+      "checksum": {
+        "algorithm": "sha256",
+        "digest": "aa73d19854b5239fd91d67f39ecf6a9509cfa2aff18ad9313f53b6c83c00040a"
+      },
+      "line_count": 33,
+      "byte_count": 1697,
+      "token_count": {
+        "status": "not-configured"
+      }
+    },
+    {
+      "output_path": "docs/runtime/agents/generated/tech-writer.md",
+      "authority": "generated-candidate",
+      "canonical_inputs": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".claude/agents/tech-writer.md"
+      ],
+      "checksum": {
+        "algorithm": "sha256",
+        "digest": "625ac796b82ab965808a8a5790a8904c332f039c790e2120b9a0611b13886c9b"
+      },
+      "line_count": 33,
+      "byte_count": 1588,
+      "token_count": {
+        "status": "not-configured"
+      }
+    }
+  ]
+}

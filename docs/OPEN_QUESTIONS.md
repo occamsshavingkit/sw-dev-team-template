@@ -13,9 +13,11 @@ Columns:
 - **Status** — `open` / `answered` / `deferred` / `withdrawn`.
 - **Resolution** — verbatim answer (if from customer, mirror into `CUSTOMER_NOTES.md`) + date.
 
-Ask the customer **one question per turn**, only when all agents are idle
-(so the question does not scroll off screen). See
-`.claude/agents/tech-lead.md` Job #1 and `CLAUDE.md` Step 2.
+Each row records exactly one decision axis. Internal planning queues may
+hold multiple related rows, but do not merge independent decisions into a
+single `Question` cell. Ask the customer **one question per idle turn**,
+only when all agents are idle (so the question does not scroll off
+screen). See `.claude/agents/tech-lead.md` Job #1 and `CLAUDE.md` Step 2.
 
 Archive pointer: historical snapshots live in `docs/OPEN_QUESTIONS-ARCHIVE.md`.
 Keep open and recently answered rows here; use `scripts/archive-registers.sh`

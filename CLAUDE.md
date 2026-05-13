@@ -1,5 +1,14 @@
 # Claude Code Project Guide
 
+## Project Identity / Working Tree
+
+Sessions start in `/home/quackdcs/SWEProj`, which is the meta-project
+root. The active template repository and normal work target is
+`./sw-dev-team-template`.
+
+Use `./sw-dev-team-template` for framework and template edits unless the
+task explicitly targets meta-project scaffolding artifacts in this root.
+
 - [The human is the customer (and may also be an SME)](#the-human-is-the-customer-and-may-also-be-an-sme)
 - [Escalation protocol (strict)](#escalation-protocol-strict)
 - [Extracted references](#extracted-references)
@@ -73,8 +82,20 @@ When any agent has a question it cannot answer from its own context:
    `CUSTOMER_NOTES.md` customer-truth entry and `tech-lead` relays the
    answer to the asking agent.
 
-The customer's inbox is scarce. Do not flood it. A well-framed question
-batched with others is better than three drip-feed interruptions.
+The customer's inbox is scarce. Do not flood it. The canonical
+question-batching rule (binding, identical wording in
+`docs/FIRST_ACTIONS.md`, `.claude/agents/tech-lead.md`,
+`docs/OPEN_QUESTIONS.md`, and `docs/templates/intake-log-template.md`):
+
+> Batch questions internally in docs/OPEN_QUESTIONS.md.
+> Do not batch customer-facing questions.
+> Ask one queued customer question per turn, only when all agents and tools are idle, with the question as the final line.
+
+Operational enforcement: the Customer Question Gate in
+`.claude/agents/tech-lead.md` (FR-011) runs the four-check procedure
+before any customer-facing question ships, and
+`scripts/lint-questions.sh` (FR-012) lints durable artefacts against
+the rule.
 
 ## Extracted references
 
@@ -219,9 +240,11 @@ by `architect` with `project-manager` on the cost / schedule side.
 
 ## Binding references
 
-All agents and all human contributors MUST use these references.
-Disagreement is resolved by amending the referenced file, not by
-diverging in practice.
+Use these references for all agent and human contributor work. Resolve
+disagreement by amending the referenced file, not by diverging in
+practice. If a required reference is missing, unreadable, or in conflict
+with customer-truth records, stop the affected work and escalate through
+`tech-lead`.
 
 - **`docs/glossary/ENGINEERING.md`** — binding software-engineering
   terminology (generic). Precedes any agent's own reading of an
@@ -291,10 +314,12 @@ like "first session of the calendar week" in preference to
    `tech-lead`, no cached approval, no agent-only path.
 5. Prefer paraphrase over quotation from standards docs (SWEBOK, IEEE,
    ISO). Copyright + drift risk.
-6. Before escalating to `tech-lead`, an agent must first check
-   `CUSTOMER_NOTES.md` and consider whether another agent is the right
-   addressee. Do not guess customer-domain facts, but also do not flood
-   the escalation channel with questions another agent can answer.
+6. Before escalating to `tech-lead`, first check `CUSTOMER_NOTES.md`
+   and consider whether another agent is the right
+   addressee. If `CUSTOMER_NOTES.md` is absent, unreadable, or itself
+   the subject of the escalation, state that condition in the escalation.
+   Do not guess customer-domain facts, but also do not flood the
+   escalation channel with questions another agent can answer.
 7. No release touching authentication, authorization, secrets, PII, or
    network-exposed endpoints ships without `security-engineer` sign-off
    recorded in `CUSTOMER_NOTES.md` alongside the customer approval
@@ -323,11 +348,13 @@ like "first session of the calendar week" in preference to
    framework maintenance for that task. File discovered framework gaps
    upstream through `docs/ISSUE_FILING.md`; see
    `docs/framework-project-boundary.md` for path ownership and
-   review / commit splitting. Product-only release audits must classify
-   release/version artifacts before writing and must not edit
-   `TEMPLATE_VERSION`, template versioning docs, rc stabilization docs,
-   final checklists, scaffold / upgrade scripts, manifest files, or
-   other framework-managed files.
+   review / commit splitting. For product-only release audits, classify
+   release/version artifacts before writing; leave `TEMPLATE_VERSION`,
+   template versioning docs, rc stabilization docs, final checklists,
+   scaffold / upgrade scripts, manifest files, and other
+   framework-managed files unedited unless the customer explicitly
+   authorized template-upgrade or framework-maintenance work for that
+   task.
 
 ## Taxonomy discipline
 
@@ -338,6 +365,6 @@ taxonomy flags as debated.
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan:
-`specs/002-m2-token-operating-model/plan.md`
+shell commands, and other important information, read the current plan
+at `specs/006-template-improvement-program/plan.md`.
 <!-- SPECKIT END -->

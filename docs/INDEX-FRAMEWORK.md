@@ -20,7 +20,7 @@ Project-authored content lives in
 | `CHANGELOG.md` | Release history. MAJOR / MINOR / PATCH semantics. |
 | `scripts/scaffold.sh` | Scaffolds a new downstream project from this template. Writes the initial `TEMPLATE_MANIFEST.lock` and self-verifies before exit. |
 | `scripts/version-check.sh` | Session-start hook; compares `TEMPLATE_VERSION` against upstream and prints a banner if an upgrade is available. Pre-release tags filtered out for stable-track projects (issue #60). |
-| `scripts/upgrade.sh` | Upgrades a scaffolded project to the latest template version. Respects user-added agents / SMEs; flags customized standard files for review. Subcommands: `--dry-run` (plan-only), `--verify` (offline drift check against `TEMPLATE_MANIFEST.lock`, FW-ADR-0002), `--help`. |
+| `scripts/upgrade.sh` | Upgrades a scaffolded project to the selected template version. Respects user-added agents / SMEs; flags customized standard files for review. Subcommands: `--dry-run` (plan-only), `--verify` (offline drift + unresolved-conflict check against `TEMPLATE_MANIFEST.lock` and `.template-conflicts.json`), `--resolve` (prune resolved conflict records), `--target <ver>` (pin the upstream tag), `--self-test-semver` (template-maintenance SemVer-sort guard), `--help`. Accepted-local framework files may still need stale-reference review after upstream doc extraction. |
 | `scripts/hooks/customer-notes-guard.py` | Claude Code PreToolUse hook that asks for confirmation before writes to `CUSTOMER_NOTES.md`, reinforcing researcher ownership of customer-answer entries. |
 | `scripts/lib/manifest.sh` | Shared helpers for `TEMPLATE_MANIFEST.lock` (write / verify / ship-files enumeration / SHA256). Sourced by `upgrade.sh` and `scaffold.sh`. Per FW-ADR-0002. |
 | `scripts/lib/first-actions.sh` | Shared FIRST ACTIONS detection helpers for session-start and upgrade warnings when Step-0 issue-feedback opt-in is missing. |
@@ -29,9 +29,9 @@ Project-authored content lives in
 | `scripts/respawn.sh` | Stubs a handover-brief file and prints the respawn checklist. Per `docs/agent-health-contract.md` § 4. |
 | `docs/templates/handover-template.md` | Shape of a respawn handover brief. |
 | `examples/README.md` | Catalog of filled-in reference projects (not shipped to downstream). |
-| `migrations/README.md` | Per-version migration-script contract. |
-| `migrations/TEMPLATE.sh` | Scaffold for writing a new migration. |
-| `migrations/vX.Y.Z.sh` | Per-release migration (file moves / renames / shape changes); most releases do not ship one. |
+| `migrations/README.md` | Per-version migration-script contract. Upstream-template file; stripped from scaffolded downstream projects. |
+| `migrations/TEMPLATE.sh` | Scaffold for writing a new migration. Upstream-template file; stripped from scaffolded downstream projects. |
+| `migrations/vX.Y.Z.sh` | Per-release migration (file moves / renames / shape changes); most releases do not ship one. Upstream-template files; stripped from scaffolded downstream projects. |
 | `CONTRIBUTING.md` | How to propose changes to the template (template-repo-local; not carried to downstream projects). |
 | `.github/ISSUE_TEMPLATE/framework-gap.yml` | GitHub issue form for framework-gap reports. |
 | `CUSTOMER_NOTES.md` | Append-only log of customer answers, verbatim, stewarded by `researcher`. |

@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sw-dev-team-template/schemas/agent-contract.schema.json",
+  "title": "Agent contract (canonical role file)",
+  "description": "Validates the JSON representation of a canonical .claude/agents/<role>.md file, as produced by scripts/lint-agent-contracts.sh's parser. The parser extracts YAML frontmatter and named body sections; this schema validates that extraction.",
+  "type": "object",
+  "required": ["frontmatter", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "frontmatter": {
+      "type": "object",
+      "required": ["name", "description"],
+      "additionalProperties": true,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{1,63}$",
+          "description": "Canonical role slug; matches the file basename and the SendMessage `to` field"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 20,
+          "description": "One-paragraph role description; first sentence is the role's PROACTIVE / one-line purpose"
+        },
+        "model": {
+          "type": "string",
+          "description": "Optional default model class for this agent; if absent, falls back to docs/model-routing-guidelines.md table"
+        },
+        "tools": {
+          "type": "string",
+          "description": "Comma-separated tool allowlist (Claude Code format) or `*` for all"
+        }
+      }
+    },
+    "sections": {
+      "type": "object",
+      "required": [
+        "role_overview",
+        "hard_rules",
+        "escalation",
+        "output_format"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "role_overview": {
+          "type": "object",
+          "required": ["heading", "body"],
+          "properties": {
+            "heading": {"type": "string", "minLength": 3},
+            "body":    {"type": "string", "minLength": 20}
+          }
+        },
+        "hard_rules": {
+          "type": "object",
+          "required": ["heading", "rules"],
+          "properties": {
+            "heading": {"type": "string"},
+            "rules": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["id", "text"],
+                "properties": {
+                  "id":   {"type": "string", "pattern": "^[A-Z]$|^HR-[0-9]+$"},
+                  "text": {"type": "string", "minLength": 10}
+                }
+              }
+            }
+          }
+        },
+        "escalation": {
+          "type": "object",
+          "required": ["heading", "body"],
+          "properties": {
+            "heading": {"type": "string"},
+            "body":    {"type": "string", "minLength": 20, "description": "Must describe how the role escalates to tech-lead (never directly to customer)"}
+          }
+        },
+        "output_format": {
+          "type": "object",
+          "required": ["heading", "body"],
+          "properties": {
+            "heading": {"type": "string"},
+            "body":    {"type": "string", "minLength": 20}
+          }
+        },
+        "allowed_tools": {
+          "type": "object",
+          "required": ["heading", "tools"],
+          "properties": {
+            "heading": {"type": "string"},
+            "tools": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string"}
+            }
+          }
+        },
+        "local_supplement_rule": {
+          "type": "object",
+          "description": "Optional but recommended; documents how project-local supplements interact with this canonical contract",
+          "properties": {
+            "heading": {"type": "string"},
+            "body":    {"type": "string"}
+          }
+        },
+        "customer_interface_rule": {
+          "type": "object",
+          "description": "Required for tech-lead.md; optional for other roles where customer-facing prohibition is implicit",
+          "properties": {
+            "heading": {"type": "string"},
+            "body":    {"type": "string"}
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "tech_lead_only_rules": {
+      "description": "Additional rules enforced by lint-agent-contracts.sh when frontmatter.name == 'tech-lead': customer_interface_rule present; Customer Question Gate section present; FR-011 four checks enumerated"
+    }
+  }
+}

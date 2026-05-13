@@ -11,7 +11,7 @@
 - [7. Open questions](#7-open-questions)
 - [8. Duel](#8-duel)
   - [8.1 Findings (`qa-engineer`)](#81-findings-qa-engineer)
-  - [8.2 Rebuttals / revisions (`software-engineer`)](#82-rebuttals-revisions-software-engineer)
+  - [8.2 Rebuttals / revisions (`software-engineer`)](#82-rebuttals--revisions-software-engineer)
   - [8.3 Status](#83-status)
 - [9. Post-close](#9-post-close)
 
@@ -19,7 +19,7 @@
 
 Owned by `software-engineer`. Produced at workflow-pipeline stage 3
 for tasks whose trigger annotation fires any of the six clauses in
-`docs/proposals/workflow-redesign-v0.12.md` §2. The proposal is the
+`docs/workflow-pipeline.md` § Trigger threshold. The proposal is the
 "think-in-workspace" gate — the engineer records the intended
 implementation shape before writing production code. Solution Duel
 (§Duel below) is the adversarial review of this proposal before code

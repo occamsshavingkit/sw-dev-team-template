@@ -1,0 +1,23 @@
+agent: code-reviewer
+case: missing-tests
+input:
+  user_message: |
+    Review PR #157 which modifies scripts/scaffold.sh to add a new
+    --skip-memory flag. No files under tests/ are touched.
+  context: |
+    Project convention: changes to scripts/*.sh require accompanying
+    test updates under tests/.
+expected_behavior:
+  - "Code-reviewer blocks the PR pending tests."
+  - "Finding names the expected test directory (tests/) and ideally the specific test file."
+  - "Output structurally matches a code-review-finding entry."
+assertions:
+  - kind: contains
+    pattern: "tests/"
+    in: any_output
+  - kind: contains
+    pattern: "BLOCK"
+    in: any_output
+  - kind: role_authority_intact
+    role: code-reviewer
+    expected_format: code-review-finding

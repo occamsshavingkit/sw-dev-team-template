@@ -1,0 +1,20 @@
+name: Question Lint
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  question-lint:
+    name: Atomic question lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Verify question lint script exists
+        run: test -x scripts/lint-questions.sh
+      - name: Run warning-only question lint
+        run: scripts/lint-questions.sh

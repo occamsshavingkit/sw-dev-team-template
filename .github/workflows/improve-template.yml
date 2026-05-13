@@ -1,0 +1,213 @@
+name: Improve Template
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: One GitHub issue number, issue URL, or framework-gap identifier.
+        required: true
+        type: string
+      dry_run:
+        description: Run checks and reporting without creating a PR.
+        required: true
+        default: true
+        type: boolean
+  schedule:
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
+
+env:
+  M7_MAX_CHANGED_FILES: '5'
+  M7_MAX_DIFF_LINES: '400'
+
+jobs:
+  preflight:
+    name: M7 preflight and bounded generation
+    runs-on: ubuntu-latest
+    outputs:
+      target: ${{ steps.target.outputs.target }}
+      dry_run: ${{ steps.target.outputs.dry_run }}
+      has_changes: ${{ steps.patch.outputs.has_changes }}
+      changed_files: ${{ steps.patch.outputs.changed_files }}
+      diff_lines: ${{ steps.patch.outputs.diff_lines }}
+      no_op_reason: ${{ steps.generate.outputs.no_op_reason }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Resolve one target
+        id: target
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TARGET: ${{ inputs.target }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          ENABLE_M7_SCHEDULED_IMPROVEMENTS: ${{ vars.ENABLE_M7_SCHEDULED_IMPROVEMENTS }}
+          M7_SCHEDULED_TARGET: ${{ vars.M7_SCHEDULED_TARGET }}
+        run: |
+          set -eu
+          target=''
+          dry_run='true'
+          if [ "$EVENT_NAME" = 'workflow_dispatch' ]; then
+            target=$INPUT_TARGET
+            dry_run=$INPUT_DRY_RUN
+          elif [ "$ENABLE_M7_SCHEDULED_IMPROVEMENTS" = 'true' ] && [ -n "$M7_SCHEDULED_TARGET" ]; then
+            target=$M7_SCHEDULED_TARGET
+          else
+            {
+              printf '%s\n' '### M7 improvement no-op'
+              printf '%s\n' 'Scheduled improvements are disabled or no single scheduled target is configured.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          case "$target" in
+            *','*|*' '*|*'\n'*|'')
+              printf '%s\n' 'target must name exactly one issue, URL, or framework-gap identifier' >&2
+              exit 1
+              ;;
+          esac
+          printf 'target=%s\n' "$target" >> "$GITHUB_OUTPUT"
+          printf 'dry_run=%s\n' "$dry_run" >> "$GITHUB_OUTPUT"
+      - name: Run contract checks before generation
+        run: |
+          set -eu
+          test -x scripts/lint-agent-contracts.sh
+          test -x scripts/lint-questions.sh
+          test -x scripts/compile-runtime-agents.sh
+          scripts/lint-agent-contracts.sh
+          scripts/lint-questions.sh
+          scripts/compile-runtime-agents.sh
+          git diff --quiet -- docs/runtime/agents/generated docs/runtime/agents/generated-artifacts.manifest.json
+      - name: Run repository-owned improvement generator if present
+        id: generate
+        env:
+          M7_TARGET: ${{ steps.target.outputs.target }}
+          M7_DRY_RUN: ${{ steps.target.outputs.dry_run }}
+        run: |
+          set -eu
+          if [ ! -x scripts/improve-template.sh ]; then
+            printf 'no_op_reason=%s\n' 'scripts/improve-template.sh not present; no changes generated' >> "$GITHUB_OUTPUT"
+            {
+              printf '%s\n' '### M7 improvement no-op'
+              printf 'Target: `%s`\n' "$M7_TARGET"
+              printf '%s\n' 'Reason: repository-owned generator is not present.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          scripts/improve-template.sh "$M7_TARGET" "$M7_DRY_RUN"
+      - name: Enforce M7 patch limits
+        id: patch
+        run: |
+          set -eu
+          changed_files=$(git diff --name-only --diff-filter=ACDMRTUXB HEAD -- | wc -l | tr -d ' ')
+          diff_lines=$(git diff --numstat HEAD -- | awk '$1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ { total += $1 + $2 } END { print total + 0 }')
+          printf 'changed_files=%s\n' "$changed_files" >> "$GITHUB_OUTPUT"
+          printf 'diff_lines=%s\n' "$diff_lines" >> "$GITHUB_OUTPUT"
+          if [ "$changed_files" -eq 0 ]; then
+            printf 'has_changes=false\n' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          printf 'has_changes=true\n' >> "$GITHUB_OUTPUT"
+          if [ "$changed_files" -gt "$M7_MAX_CHANGED_FILES" ] || [ "$diff_lines" -gt "$M7_MAX_DIFF_LINES" ]; then
+            {
+              printf '%s\n' '### M7 improvement blocked'
+              printf 'Changed files: `%s` / `%s`\n' "$changed_files" "$M7_MAX_CHANGED_FILES"
+              printf 'Diff lines: `%s` / `%s`\n' "$diff_lines" "$M7_MAX_DIFF_LINES"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+      - name: Summarize review requirements
+        if: steps.patch.outputs.has_changes == 'true'
+        run: |
+          {
+            printf '%s\n' '### M7 review sequence required'
+            printf '%s\n' '1. Implementation owner'
+            printf '%s\n' '2. release-engineer'
+            printf '%s\n' '3. security-engineer or `security-engineer: not required` with criteria'
+            printf '%s\n' '4. code-reviewer final approval'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  create-pr:
+    name: Create PR for bounded M7 output
+    needs: preflight
+    if: needs.preflight.outputs.has_changes == 'true' && needs.preflight.outputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Re-run generator for PR workspace
+        env:
+          M7_TARGET: ${{ needs.preflight.outputs.target }}
+        run: |
+          set -eu
+          test -x scripts/improve-template.sh
+          scripts/improve-template.sh "$M7_TARGET" false
+      - name: Re-enforce M7 patch limits
+        run: |
+          set -eu
+          changed_files=$(git diff --name-only --diff-filter=ACDMRTUXB HEAD -- | wc -l | tr -d ' ')
+          diff_lines=$(git diff --numstat HEAD -- | awk '$1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ { total += $1 + $2 } END { print total + 0 }')
+          test "$changed_files" -le "$M7_MAX_CHANGED_FILES"
+          test "$diff_lines" -le "$M7_MAX_DIFF_LINES"
+      - name: Create pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          M7_TARGET: ${{ needs.preflight.outputs.target }}
+          CHANGED_FILES: ${{ needs.preflight.outputs.changed_files }}
+          DIFF_LINES: ${{ needs.preflight.outputs.diff_lines }}
+        run: |
+          set -eu
+          branch="m7/improve-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b "$branch"
+          git add -A
+          git commit -m "Propose M7 improvement for ${M7_TARGET}"
+          git push --set-upstream origin "$branch"
+          body_file=$(mktemp)
+          {
+            printf '%s\n' '## Summary'
+            printf '%s\n' "- Targets exactly one framework gap: ${M7_TARGET}"
+            printf '%s\n' "- Changed files: ${CHANGED_FILES}/${M7_MAX_CHANGED_FILES}"
+            printf '%s\n' "- Diff lines: ${DIFF_LINES}/${M7_MAX_DIFF_LINES}"
+            printf '\n%s\n' '## Required Review Sequence'
+            printf '%s\n' '- [ ] Implementation owner verified target match, patch limits, and no unrelated changes.'
+            printf '%s\n' '- [ ] release-engineer reviewed workflow/release mechanics and no-op behavior.'
+            printf '%s\n' '- [ ] security-engineer reviewed workflow/permission/token/bot/security-sensitive surfaces, or recorded `security-engineer: not required` with criteria.'
+            printf '%s\n' '- [ ] code-reviewer gave final approval after the preceding role checks.'
+            printf '\n%s\n' 'Automation must not approve, merge, or enable auto-merge for this PR.'
+          } > "$body_file"
+          gh pr create --title "M7 improvement: ${M7_TARGET}" --body-file "$body_file"
+
+  report-no-op:
+    name: Report no-op or dry run
+    needs: preflight
+    if: always() && (needs.preflight.result != 'success' || needs.preflight.outputs.has_changes != 'true' || needs.preflight.outputs.dry_run == 'true')
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Summarize no-op outcome
+        env:
+          TARGET: ${{ needs.preflight.outputs.target }}
+          DRY_RUN: ${{ needs.preflight.outputs.dry_run }}
+          HAS_CHANGES: ${{ needs.preflight.outputs.has_changes }}
+          CHANGED_FILES: ${{ needs.preflight.outputs.changed_files }}
+          DIFF_LINES: ${{ needs.preflight.outputs.diff_lines }}
+          NO_OP_REASON: ${{ needs.preflight.outputs.no_op_reason }}
+        run: |
+          {
+            printf '%s\n' '### M7 improvement no-op/failure report'
+            printf 'Target: `%s`\n' "${TARGET:-not selected}"
+            printf 'Dry run: `%s`\n' "${DRY_RUN:-unknown}"
+            printf 'Has changes: `%s`\n' "${HAS_CHANGES:-false}"
+            printf 'Changed files: `%s`\n' "${CHANGED_FILES:-0}"
+            printf 'Diff lines: `%s`\n' "${DIFF_LINES:-0}"
+            printf 'Reason: `%s`\n' "${NO_OP_REASON:-preflight failed or intentionally produced no PR}"
+          } >> "$GITHUB_STEP_SUMMARY"

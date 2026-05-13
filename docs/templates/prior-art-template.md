@@ -2,7 +2,7 @@
 
 Owned by `researcher`. Produced at workflow-pipeline stage 1 for
 tasks whose trigger annotation fires any of the six clauses in
-`docs/proposals/workflow-redesign-v0.12.md` §2. Consumed by
+`docs/workflow-pipeline.md` § Trigger threshold. Consumed by
 `architect` (stage 2) and `software-engineer` (stages 3, 5).
 
 Keep it tight. One page is ideal. The point is to *prevent
