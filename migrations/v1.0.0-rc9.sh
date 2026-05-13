@@ -295,13 +295,12 @@ for rel in $preserved_agents; do
     fi
 
     # Stderr advisory per the issue contract.
-    # shellcheck disable=SC2086
-    # nosemgrep: bash.lang.correctness.unquoted-expansion.unquoted-variable-expansion-in-command
     # $missing is a deliberately whitespace-separated list of section
     # slugs (built above via "$missing $slug"); word-splitting is the
     # intended behaviour so `printf ' %s'` emits one space-prefixed
     # token per slug.
-    echo "MIGRATION: $base missing section(s):$(printf ' %s' $missing)" >&2
+    # shellcheck disable=SC2086
+    echo "MIGRATION: $base missing section(s):$(printf ' %s' $missing)" >&2  # nosemgrep: bash.lang.correctness.unquoted-expansion.unquoted-variable-expansion-in-command
 
     for slug in $missing; do
         case "$slug" in

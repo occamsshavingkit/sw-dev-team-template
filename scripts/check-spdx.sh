@@ -50,8 +50,13 @@ if [ -z "$candidates" ]; then
 fi
 
 # Iterate without globally tampering with IFS (avoids
-# Semgrep `bash.lang.security.ifs-tampering`). Heredoc keeps the loop
-# in the current shell so $total / $missing / $missing_list persist.
+# Semgrep `bash.lang.security.ifs-tampering`). Stash candidates to a
+# tempfile and redirect from there so the read loop stays in the
+# current shell ($total / $missing / $missing_list persist) and no
+# heredoc / pipe / unquoted-expansion semgrep warning is triggered.
+candidates_file="$(mktemp -t check-spdx-XXXXXX)"
+printf '%s\n' "$candidates" > "$candidates_file"
+
 while IFS= read -r file; do
     [ -z "$file" ] && continue
     total=$((total + 1))
@@ -63,9 +68,9 @@ while IFS= read -r file; do
 "
         printf 'missing SPDX header: %s\n' "$file" >&2
     fi
-done <<EOF
-$candidates
-EOF
+done < "$candidates_file"
+
+rm -f "$candidates_file"
 
 if [ "$SUMMARY" -eq 1 ]; then
     compliant=$((total - missing))
