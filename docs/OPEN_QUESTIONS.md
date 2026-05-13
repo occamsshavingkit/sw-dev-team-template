@@ -13,9 +13,16 @@ Columns:
 - **Status** — `open` / `answered` / `deferred` / `withdrawn`.
 - **Resolution** — verbatim answer (if from customer, mirror into `CUSTOMER_NOTES.md`) + date.
 
-Ask the customer **one question per turn**, only when all agents are idle
-(so the question does not scroll off screen). See
-`.claude/agents/tech-lead.md` Job #1 and `CLAUDE.md` Step 2.
+Canonical question-batching rule (binding, identical wording in
+`CLAUDE.md`, `docs/FIRST_ACTIONS.md`, `.claude/agents/tech-lead.md`, and
+`docs/templates/intake-log-template.md`):
+
+> Batch questions internally in docs/OPEN_QUESTIONS.md.
+> Do not batch customer-facing questions.
+> Ask one queued customer question per turn, only when all agents and tools are idle, with the question as the final line.
+
+Enforcement: Customer Question Gate in `.claude/agents/tech-lead.md`
+(FR-011); lint by `scripts/lint-questions.sh` (FR-012).
 
 | ID | Opened | Question | Blocked on | Answerer | Status | Resolution |
 |---|---|---|---|---|---|---|

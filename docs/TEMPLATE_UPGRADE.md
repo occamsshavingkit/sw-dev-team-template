@@ -108,6 +108,16 @@ are never overwritten and never flagged as conflicts; they appear as
 empty; populate it the first time an upgrade flags a legitimate
 customization you want to keep.
 
+**Intake-log seeding (T041 / FR-013).** Scaffold creates
+`docs/intake-log.md` from `docs/templates/intake-log-template.md`,
+substituting the project display name, and lists the path in
+`.template-customizations` so future upgrades treat the live log as
+project-owned and never overwrite it. Older scaffolds that pre-date
+this behaviour are retrofitted at upgrade time: `scripts/upgrade.sh`
+seeds the file only when it is missing from the project (existing
+intake content is never touched) and appends the path to
+`.template-customizations` on first encounter.
+
 **Volatile shipped files.** Avoid editing template-shipped scripts,
 `.claude/settings.json`, and append-only governance logs in place
 unless the project intentionally accepts the merge cost. Prefer

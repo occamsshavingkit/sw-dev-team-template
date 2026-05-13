@@ -307,3 +307,55 @@ per `.claude/agents/project-manager.md`.
 `v1.0.0` remains pending. rc6 cleared the final blocker queue, but the
 downstream clean-window sample, customer ratification, and GitHub Release
 object are still open.
+
+## M3.4 question-lint dry-run (2026-05-13)
+
+Ran `scripts/lint-questions.sh --summary` (FR-012, warning-only mode;
+`HARDGATE_AFTER_SHA=DEFERRED_SET_AT_HARDGATE_PR`) against the default
+file set on branch `feat/m1-token-quick-wins`.
+
+Output:
+
+```
+docs/templates/scoping-questions-template.md:11: pattern-2-multi-numbered: "   and what counts as "done" for the first milestone?"
+.claude/agents/tech-lead.md:68: pattern-2-multi-numbered: "2. **Is it atomic?** One decision axis only. Compound asks queue internally in `docs/OPEN_QUESTIONS.md`."
+docs/runtime/agents/tech-lead.md:45: pattern-2-multi-numbered: "2. **Is it atomic?** One decision axis only. Compound asks queue internally in `docs/OPEN_QUESTIONS.md`."
+lint-questions: WARN 3 violation(s); hard-gate not yet active (HARDGATE_AFTER_SHA=DEFERRED_SET_AT_HARDGATE_PR)
+lint-questions: 3 warnings, 0 errors
+```
+
+Per-line classification:
+
+- `docs/templates/scoping-questions-template.md:11` — **false positive**.
+  The template is the Step-2 scoping queue; items `0.`, `1.`, `2.`, `3.`,
+  ... are *independent* customer questions to be asked one per turn (the
+  file header explicitly says "ask them one per turn"). The regex flags
+  adjacent numbered items as a compound, but they are a queue of atomic
+  questions, not a multi-numbered compound ask.
+- `.claude/agents/tech-lead.md:68` — **false positive**. Line is item `2.`
+  of the Customer Question Gate's four-check enumeration (`1.` ... `4.`).
+  This is a procedural checklist that gates customer-facing questions; it
+  is not itself a question asked of the customer.
+- `docs/runtime/agents/tech-lead.md:45` — **false positive**. Compiled
+  runtime mirror of the same Customer Question Gate enumeration in
+  `.claude/agents/tech-lead.md:68`. Same classification, downstream of the
+  same source.
+
+Recommendation for the next iteration of `scripts/lint-questions.sh`
+(future refinement task, not in scope for T040): tighten pattern-2 so it
+does not fire on numbered-bullet lists that (a) sit under a heading whose
+purpose is a procedural checklist or a queue of atomic items, or (b) do
+not contain a `?` within the matched item, or (c) appear in
+`docs/templates/scoping-questions-template.md` and the runtime/source
+pair of `tech-lead.md` Customer Question Gate. Pre-existing
+`tech-lead.md:68` and its `docs/runtime/agents/tech-lead.md:45` mirror
+should not fire after the refinement.
+
+Hard-gate cutover (per spec clarification 13 and FR-012) lands at the
+next MINOR-boundary Release. Any warnings still firing at that cutover
+MUST be either (a) legitimate and fixed in source, or (b) grandfathered
+by setting `HARDGATE_AFTER_SHA` to a SHA prior to the offending row so
+the lint script treats pre-cutoff occurrences as warnings while erroring
+on new ones. The three current warnings are all false positives and
+should be resolved by pattern refinement before the cutover; no
+grandfathering needed if the regex is tightened first.

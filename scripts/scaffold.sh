@@ -147,6 +147,28 @@ Maintained by `researcher`.
      Step-2 project charter + SME plan from the docs/FIRST_ACTIONS.md flow. -->
 EOF
 
+# Seed docs/intake-log.md from the template (FR-013 / M3.5, T041).
+# The template itself doesn't ship a populated docs/intake-log.md in
+# its git tree — only docs/templates/intake-log-template.md. Scaffold
+# materialises the project's working log here, substituting the project
+# name placeholder so the file is immediately usable by tech-lead.
+# Pre-existing file (e.g., scaffolding into an already-seeded dir) is
+# left alone — never overwrite intake content.
+if [[ ! -f "$target/docs/intake-log.md" ]]; then
+  mkdir -p "$target/docs"
+  if [[ -f "$target/docs/templates/intake-log-template.md" ]]; then
+    sed "s|<project name>|$project_name|g" \
+      "$target/docs/templates/intake-log-template.md" \
+      > "$target/docs/intake-log.md"
+  else
+    # Defensive fallback: template missing from the ship-set is a
+    # template-repo bug, but don't fail scaffold over it — leave an
+    # empty-shaped stub so the project still has the file at G3.
+    printf '# Intake Log — %s\n\n(template file missing; see docs/templates/intake-log-template.md upstream)\n' \
+      "$project_name" > "$target/docs/intake-log.md"
+  fi
+fi
+
 cat > "$target/docs/AGENT_NAMES.md" <<EOF
 # Agent Names — $project_name
 
@@ -230,6 +252,9 @@ README.md
 # (per FW-ADR-0007 follow-up / issue #66, v0.15.0+).
 docs/INDEX.md
 docs/INDEX-PROJECT.md
+# Project-owned intake conversation log (seeded from
+# docs/templates/intake-log-template.md at scaffold; T041 / FR-013).
+docs/intake-log.md
 
 # --- Add your own permanent customizations below -----------------------
 EOF

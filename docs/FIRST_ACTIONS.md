@@ -8,12 +8,18 @@ Run these steps in order before starting the user's task.
 **one decision axis per question** (FR-010). Compound forms like "what
 are we building, for whom, on what stack, and what counts as done?" are
 decomposed into separate atomic questions before they reach the
-customer. Internally, the full batch is queued in
-`docs/OPEN_QUESTIONS.md` at session start; externally, the Customer
-Question Gate (FR-011) serialises delivery — **one question, asked when
-all agents are idle, as the last thing on screen.** Step 0 and Step 3
-each expect a single atomic customer answer and must not be deferred or
-resolved implicitly. Step 2's DoD (below) gates on both.
+customer. The canonical question-batching rule (binding, identical
+wording in `CLAUDE.md`, `.claude/agents/tech-lead.md`,
+`docs/OPEN_QUESTIONS.md`, and `docs/templates/intake-log-template.md`):
+
+> Batch questions internally in docs/OPEN_QUESTIONS.md.
+> Do not batch customer-facing questions.
+> Ask one queued customer question per turn, only when all agents and tools are idle, with the question as the final line.
+
+The Customer Question Gate (FR-011) in `.claude/agents/tech-lead.md`
+serialises delivery against that rule. Step 0 and Step 3 each expect a
+single atomic customer answer and must not be deferred or resolved
+implicitly. Step 2's DoD (below) gates on both.
 
 ## Step 0 — Issue-feedback opt-in (atomic, asked FIRST)
 

@@ -810,6 +810,38 @@ for f in $ship_files; do
   fi
 done
 
+# --- Retrofit docs/intake-log.md (T041 / FR-013) -----------------------------
+# The template ships docs/templates/intake-log-template.md but does not
+# git-track docs/intake-log.md (it's project-owned, append-only customer-truth
+# content). Older scaffolds pre-dating this fix never materialised the live
+# log. On upgrade, if the project is missing docs/intake-log.md, seed it
+# from the upstream template now; if it already exists, leave it untouched.
+# Also ensure the path is listed in .template-customizations so future
+# upgrades skip it (the manifest_write below honours that file from disk).
+intake_template="$workdir/new/docs/templates/intake-log-template.md"
+intake_target="$project_root/docs/intake-log.md"
+intake_retrofitted=0
+if [[ -f "$intake_template" && ! -f "$intake_target" ]]; then
+  if [[ $dry_run -eq 0 ]]; then
+    mkdir -p "$project_root/docs"
+    # Derive a project name for the substitution: basename of project root.
+    proj_name="$(basename "$project_root")"
+    sed "s|<project name>|$proj_name|g" "$intake_template" > "$intake_target.tmp.$$"
+    mv "$intake_target.tmp.$$" "$intake_target"
+  fi
+  intake_retrofitted=1
+  added+=("docs/intake-log.md")
+fi
+# Idempotently ensure .template-customizations lists docs/intake-log.md.
+# Safe to run even when the file already existed — older scaffolds may
+# have the live log but no preserve-list entry.
+if [[ $dry_run -eq 0 && -f "$customizations_file" ]]; then
+  if ! grep -qE '^docs/intake-log\.md[[:space:]]*(#.*)?$' "$customizations_file"; then
+    printf '# Project-owned intake conversation log (T041 / FR-013).\ndocs/intake-log.md\n' \
+      >> "$customizations_file"
+  fi
+fi
+
 # Stamp the new TEMPLATE_VERSION (only if not dry-run AND there are no conflicts,
 # OR if the user accepts leaving conflicts in place — we do the latter by default).
 if [[ $dry_run -eq 0 ]]; then

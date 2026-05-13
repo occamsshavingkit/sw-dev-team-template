@@ -191,6 +191,17 @@ check ".template-customizations seeded"   test -f "$target/.template-customizati
 check "OPEN_QUESTIONS.md present"         test -f "$target/docs/OPEN_QUESTIONS.md"
 check "AGENT_NAMES.md present"            test -f "$target/docs/AGENT_NAMES.md"
 check "CUSTOMER_NOTES.md present"         test -f "$target/CUSTOMER_NOTES.md"
+# T041 / T042 / FR-013: scaffold seeds docs/intake-log.md from the template.
+check "docs/intake-log.md present (T041/FR-013)" \
+  test -f "$target/docs/intake-log.md"
+check "docs/intake-log.md is non-empty" \
+  bash -c "[ -s '$target/docs/intake-log.md' ]"
+check "docs/intake-log.md carries canonical question-batching rule" \
+  bash -c "grep -q 'Batch questions internally in docs/OPEN_QUESTIONS.md' '$target/docs/intake-log.md'"
+check "docs/intake-log.md substitutes project name in title" \
+  bash -c "head -1 '$target/docs/intake-log.md' | grep -q 'Acme Smoke Test'"
+check "docs/intake-log.md listed in .template-customizations" \
+  bash -c "grep -qE '^docs/intake-log\\.md\$' '$target/.template-customizations'"
 check "docs/glossary/ENGINEERING.md"      test -f "$target/docs/glossary/ENGINEERING.md"
 check "docs/glossary/PROJECT.md"          test -f "$target/docs/glossary/PROJECT.md"
 check "docs/templates/ present"           test -d "$target/docs/templates"
@@ -700,6 +711,54 @@ EOF
   # stale .tmp.* files after upgrade.
   check "no stale .tmp.* files after upgrade"               bash -c "[ \"\$(find '$target' -name '*.tmp.*' 2>/dev/null | wc -l)\" -eq 0 ]"
 
+  echo "-- upgrade intake-log retrofit (T041 / T042 / FR-013) --"
+  # Scaffold a project, simulate an older scaffold by removing
+  # docs/intake-log.md and its .template-customizations entry, then
+  # run upgrade. Expect the upgrade to retrofit both.
+  intake_retrofit_target="$tmp/intake-retrofit-target"
+  ./scripts/scaffold.sh "$intake_retrofit_target" "Intake Retrofit Smoke" >/dev/null
+  rm -f "$intake_retrofit_target/docs/intake-log.md"
+  grep -v '^docs/intake-log\.md$' \
+    "$intake_retrofit_target/.template-customizations" \
+    > "$intake_retrofit_target/.template-customizations.tmp" \
+    && mv "$intake_retrofit_target/.template-customizations.tmp" \
+          "$intake_retrofit_target/.template-customizations"
+  # Hand-stamp to v0.1.0 so the upgrade runs the full sync path.
+  printf 'v0.1.0\nunknown\n2026-01-01\n' > "$intake_retrofit_target/TEMPLATE_VERSION"
+  retrofit_rc=0
+  (
+    cd "$intake_retrofit_target"
+    SWDT_UPSTREAM_URL="$bootstrap_upstream" ./scripts/upgrade.sh
+  ) > "$tmp/upgrade-intake-retrofit.log" 2>&1 || retrofit_rc=$?
+  check "upgrade with missing intake-log exits 0" \
+    bash -c "[ $retrofit_rc -eq 0 ]"
+  check "upgrade retrofits docs/intake-log.md when missing" \
+    test -f "$intake_retrofit_target/docs/intake-log.md"
+  check "retrofitted intake-log carries canonical batching rule" \
+    bash -c "grep -q 'Batch questions internally in docs/OPEN_QUESTIONS.md' '$intake_retrofit_target/docs/intake-log.md'"
+  check "upgrade appends docs/intake-log.md to .template-customizations" \
+    bash -c "grep -qE '^docs/intake-log\\.md\$' '$intake_retrofit_target/.template-customizations'"
+
+  # Second run: intake-log already present, .template-customizations
+  # already lists it. Upgrade should NOT re-append the path (idempotent).
+  cust_lines_before=$(grep -cE '^docs/intake-log\.md$' \
+    "$intake_retrofit_target/.template-customizations")
+  intake_sha_before=$(sha256sum "$intake_retrofit_target/docs/intake-log.md" | awk '{print $1}')
+  retrofit_rc2=0
+  (
+    cd "$intake_retrofit_target"
+    SWDT_UPSTREAM_URL="$bootstrap_upstream" ./scripts/upgrade.sh
+  ) > "$tmp/upgrade-intake-retrofit-2.log" 2>&1 || retrofit_rc2=$?
+  cust_lines_after=$(grep -cE '^docs/intake-log\.md$' \
+    "$intake_retrofit_target/.template-customizations")
+  intake_sha_after=$(sha256sum "$intake_retrofit_target/docs/intake-log.md" | awk '{print $1}')
+  check "second upgrade run exits 0 (intake retrofit idempotent)" \
+    bash -c "[ $retrofit_rc2 -eq 0 ]"
+  check "second upgrade does not duplicate intake-log preserve entry" \
+    bash -c "[ '$cust_lines_before' -eq '$cust_lines_after' ]"
+  check "second upgrade does not overwrite existing intake-log content" \
+    bash -c "[ '$intake_sha_before' = '$intake_sha_after' ]"
+
 # v0.14.4 / issue #65: scaffold pre-populates canonical stub-fills.
 check "stub-fill: CUSTOMER_NOTES.md in .template-customizations" \
   bash -c "grep -qE '^CUSTOMER_NOTES\\.md\$' '$target/.template-customizations'"
@@ -719,6 +778,9 @@ check "stub-fill: docs/INDEX.md in .template-customizations" \
   bash -c "grep -qE '^docs/INDEX\\.md\$' '$target/.template-customizations'"
 check "stub-fill: docs/INDEX-PROJECT.md in .template-customizations" \
   bash -c "grep -qE '^docs/INDEX-PROJECT\\.md\$' '$target/.template-customizations'"
+# T041 / FR-013: docs/intake-log.md is project-owned post-scaffold.
+check "stub-fill: docs/intake-log.md in .template-customizations" \
+  bash -c "grep -qE '^docs/intake-log\\.md\$' '$target/.template-customizations'"
 check "INDEX-FRAMEWORK.md present after scaffold (template-shipped)" \
   test -f "$target/docs/INDEX-FRAMEWORK.md"
 check "INDEX-PROJECT.md present after scaffold (project-fillable stub)" \

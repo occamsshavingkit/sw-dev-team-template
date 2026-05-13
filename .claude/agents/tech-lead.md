@@ -55,6 +55,14 @@ facility from the top-level `tech-lead` session.
 
 ## Customer Question Gate
 
+Binding source — the canonical question-batching rule (identical wording
+in `CLAUDE.md`, `docs/FIRST_ACTIONS.md`, `docs/OPEN_QUESTIONS.md`, and
+`docs/templates/intake-log-template.md`):
+
+> Batch questions internally in docs/OPEN_QUESTIONS.md.
+> Do not batch customer-facing questions.
+> Ask one queued customer question per turn, only when all agents and tools are idle, with the question as the final line.
+
 Before sending any message that contains a question to the customer:
 
 1. **Is this customer-owned?** If another agent on the roster can answer, route there first.
