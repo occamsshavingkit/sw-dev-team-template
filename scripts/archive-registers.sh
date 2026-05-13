@@ -29,6 +29,7 @@ LANG=C
 LC_ALL=C
 export LANG LC_ALL
 
+# shellcheck disable=SC2100  # false positive: hyphen in filename literal, not arithmetic
 PROG=archive-registers.sh
 
 usage() {
@@ -97,7 +98,9 @@ done
 
 if [ -z "$ROOT" ]; then
     # Resolve script's parent directory portably.
+    # shellcheck disable=SC1007  # deliberate: empty CDPATH assignment scopes to the cd call
     script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+    # shellcheck disable=SC1007  # deliberate: empty CDPATH assignment scopes to the cd call
     ROOT=$(CDPATH= cd -- "$script_dir/.." && pwd)
 fi
 
@@ -125,6 +128,7 @@ date_valid() {
 # Lexical compare works because the format is fixed-width.
 date_cmp() {
     if [ "$1" = "$2" ]; then echo 0
+    # shellcheck disable=SC3012  # POSIX \< is undefined; we target bash/dash where it works for fixed-width date strings
     elif [ "$1" \< "$2" ]; then echo -1
     else echo 1
     fi
@@ -222,6 +226,7 @@ fi
 # Terminal statuses are eligible for archive when row-date < cutoff.
 # Non-terminal statuses always stay live regardless of date.
 # CUSTOMER_NOTES special case: only superseded/withdrawn are eligible.
+# shellcheck disable=SC2317  # false positive: case-branch returns are reachable via call site
 is_terminal_status() {
     case "$1" in
         answered|deferred|withdrawn|superseded|closed|done|resolved|accepted|rejected|mitigated) return 0 ;;
@@ -229,6 +234,7 @@ is_terminal_status() {
     esac
 }
 
+# shellcheck disable=SC2317  # false positive: case-branch returns are reachable via call site
 is_customer_notes_eligible_status() {
     case "$1" in
         superseded|withdrawn) return 0 ;;
@@ -491,7 +497,9 @@ process_table_register() {
             live_base=$(basename -- "$live")
             {
                 printf '# %s archive\n\n' "$live_base"
+                # shellcheck disable=SC2016  # literal backticks for Markdown output
                 printf 'Append-only archive paired with `%s`.\n' "$live"
+                # shellcheck disable=SC2016  # literal backticks for Markdown output
                 printf 'Rules in `scripts/archive-registers.sh`.\n\n'
             } > "$archive"
         fi
@@ -650,7 +658,9 @@ process_customer_notes() {
             live_base=$(basename -- "$live")
             {
                 printf '# %s archive\n\n' "$live_base"
+                # shellcheck disable=SC2016  # literal backticks for Markdown output
                 printf 'Append-only archive paired with `%s`.\n' "$live"
+                # shellcheck disable=SC2016  # literal backticks for Markdown output
                 printf 'Rules in `scripts/archive-registers.sh`.\n\n'
             } > "$archive"
         fi

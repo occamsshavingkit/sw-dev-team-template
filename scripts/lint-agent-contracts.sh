@@ -111,6 +111,7 @@ err() {
     ERR_COUNT=$((ERR_COUNT + 1))
 }
 
+# shellcheck disable=SC2317  # false positive: warn() is invoked dynamically from validation paths
 warn() {
     printf 'lint-agent-contracts: WARN: %s: %s\n' "$1" "$2" >&2
     WARN_COUNT=$((WARN_COUNT + 1))
@@ -173,7 +174,6 @@ json_escape() {
 # agent-contract.schema.json, then validate.
 lint_canonical_file() {
     src="$1"
-    bn="$(basename "${src}" .md)"
     workdir="$(mktemp -d)"
     # Per-invocation cleanup; no nested trap stacking.
     parsed="${workdir}/parsed.tsv"
@@ -366,7 +366,7 @@ lint_canonical_file() {
                         # single rule from the whole body. This still
                         # satisfies the structural check; the section
                         # exists and carries non-trivial text.
-                        body_text="$(cat "${body_file}" | json_escape)"
+                        body_text="$(json_escape < "${body_file}")"
                         printf '        {"id": "HR-1", "text": "%s"}' \
                             "${body_text}"
                     fi
@@ -403,14 +403,14 @@ lint_canonical_file() {
                         done < "${tools_tmp}"
                     fi
                     if [ "${tcount}" -eq 0 ]; then
-                        body_text="$(cat "${body_file}" | json_escape)"
+                        body_text="$(json_escape < "${body_file}")"
                         printf '        "%s"' "${body_text}"
                     fi
                     printf '\n      ]\n'
                     printf '    }'
                     ;;
                 *)
-                    body_text="$(cat "${body_file}" | json_escape)"
+                    body_text="$(json_escape < "${body_file}")"
                     printf '    "%s": {\n' "${slug}"
                     printf '      "heading": "%s",\n' "${esc_heading}"
                     printf '      "body": "%s"\n' "${body_text}"

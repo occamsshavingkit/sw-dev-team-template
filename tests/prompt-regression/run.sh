@@ -250,6 +250,7 @@ while IFS= read -r fixture; do
         # One row per missing key, stable order from awk.
         printf '%s\n' "$missing" | while IFS= read -r key; do
             [ -n "$key" ] || continue
+            # shellcheck disable=SC2016  # literal backticks for Markdown output
             printf -- '- `%s`: missing key `%s`\n' "$rel" "$key" >> "$validation_failures"
         done
         # Skip execution for invalid fixtures.

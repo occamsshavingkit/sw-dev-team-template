@@ -307,6 +307,11 @@ if [ "${REPRO_MODE}" -eq 1 ]; then
   done
 
   # Build positional role-list string for the child invocations.
+  # Each role name is validated against a strict charset; we still
+  # carry the list as a space-separated string and re-split inside
+  # the subshells with `set --` so the child sees clean positional
+  # parameters (quoted "$@") rather than relying on unquoted
+  # word-splitting.
   repro_roles=""
   for r in ${ROLES}; do
       case "${r}" in
@@ -319,13 +324,17 @@ if [ "${REPRO_MODE}" -eq 1 ]; then
   # compiler's own diagnostics (SKIP / WARN lines).
   (
       cd "${REPRO_A}/root"
-      # shellcheck disable=SC2086
-      sh scripts/compile-runtime-agents.sh ${repro_roles} >/dev/null
+      # Re-split validated role list into positional parameters so the
+      # child invocation uses quoted "$@" (no unquoted expansion).
+      # shellcheck disable=SC2086  # deliberate word-split of validated role list into positional params
+      set -- ${repro_roles}
+      sh scripts/compile-runtime-agents.sh "$@" >/dev/null
   ) || true
   (
       cd "${REPRO_B}/root"
-      # shellcheck disable=SC2086
-      sh scripts/compile-runtime-agents.sh ${repro_roles} >/dev/null
+      # shellcheck disable=SC2086  # deliberate word-split of validated role list into positional params
+      set -- ${repro_roles}
+      sh scripts/compile-runtime-agents.sh "$@" >/dev/null
   ) || true
 
   repro_status=0
@@ -367,7 +376,7 @@ if [ "${REPRO_MODE}" -eq 1 ]; then
       fi
   done
 
-  exit ${repro_status}
+  exit "${repro_status}"
 fi
 
 # ---- verify-mode setup ----------------------------------------------
@@ -636,7 +645,9 @@ write_opencode_adapter() {
     printf 'classification: generated\n'
     printf -- '---\n'
     printf '\n'
+    # shellcheck disable=SC2016  # literal backticks for Markdown output
     printf 'Read `.claude/agents/%s.md` (canonical role contract).\n' "${role}"
+    # shellcheck disable=SC2016  # literal backticks for Markdown output
     printf 'If `local_supplement` resolves to an existing file, read it after the canonical file.\n'
     printf 'Act only as that role.\n'
     printf "Return output in the role's required format.\n"
@@ -897,7 +908,7 @@ if [ "${VERIFY_MODE}" -eq 1 ]; then
   # In verify mode, the verify exit code dominates so drift is the
   # sole signal. (overall_status may be non-zero from canonical-file
   # diagnostics; that's still useful but doesn't change pass/fail.)
-  exit ${verify_status}
+  exit "${verify_status}"
 fi
 
-exit ${overall_status}
+exit "${overall_status}"

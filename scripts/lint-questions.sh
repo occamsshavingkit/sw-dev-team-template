@@ -138,7 +138,7 @@ emit_to() {
     # emit_to <outfile> <file> <line> <pattern-id> <snippet>
     out="$1"; rel="$2"; lineno="$3"; pid="$4"; snippet="$5"
     case "$rel" in
-        "$REPO_ROOT"/*) rel="${rel#$REPO_ROOT/}" ;;
+        "$REPO_ROOT"/*) rel="${rel#"$REPO_ROOT"/}" ;;
     esac
     snippet=$(printf '%s' "$snippet" | tr -d '\r' | cut -c 1-160)
     printf '%s:%s: %s: "%s"\n' "$rel" "$lineno" "$pid" "$snippet" >> "$out"

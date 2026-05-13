@@ -246,19 +246,9 @@ find . -type d -name .git -prune -o -type f -name '*.md' -print \
     | sed 's|^\./||' \
     | sort > "$tmpdir/md.list"
 
-# AWK extracts (file, target) pairs; the shell loop resolves paths.
-awk_extract='
-{
-    line = $0
-    # Walk the line, find every [..](..). Naive but sufficient for our
-    # docs: assume no nested brackets within link text/target.
-    while (match(line, /\[[^]]*\]\(([^)]+)\)/, m)) {
-        # gawk match() with array — but POSIX awk has no third arg.
-    }
-}
-'
-# POSIX awk lacks match() third arg, so we use a different strategy:
-# read each line; find every "](" anchor, slice forward to next ")".
+# POSIX awk lacks match() third arg with capture groups, so we use a
+# different strategy: read each line; find every "](" anchor, slice
+# forward to next ")".
 extract_links() {
     file="$1"
     awk -v F="$file" '
@@ -387,6 +377,7 @@ report="$tmpdir/report.md"
     else
         while IFS="$(printf '\t')" read -r src target; do
             [ -n "$src" ] || continue
+            # shellcheck disable=SC2016  # literal backticks for Markdown output
             printf -- '- `%s` -> `%s`\n' "$src" "$target"
         done < "$broken_display"
         if [ "$broken_extra" -gt 0 ]; then

@@ -820,7 +820,6 @@ done
 # upgrades skip it (the manifest_write below honours that file from disk).
 intake_template="$workdir/new/docs/templates/intake-log-template.md"
 intake_target="$project_root/docs/intake-log.md"
-intake_retrofitted=0
 if [[ -f "$intake_template" && ! -f "$intake_target" ]]; then
   if [[ $dry_run -eq 0 ]]; then
     mkdir -p "$project_root/docs"
@@ -829,7 +828,6 @@ if [[ -f "$intake_template" && ! -f "$intake_target" ]]; then
     sed "s|<project name>|$proj_name|g" "$intake_template" > "$intake_target.tmp.$$"
     mv "$intake_target.tmp.$$" "$intake_target"
   fi
-  intake_retrofitted=1
   added+=("docs/intake-log.md")
 fi
 # Idempotently ensure .template-customizations lists docs/intake-log.md.

@@ -22,6 +22,7 @@
 
 set -eu
 
+# shellcheck disable=SC1007  # deliberate: empty CDPATH assignment scopes to the cd call
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 FIXTURE_DIR="${SCRIPT_DIR}/fixtures"
 
