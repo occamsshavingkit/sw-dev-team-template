@@ -3,7 +3,7 @@ name: researcher
 description: Librarian and researcher. Use when the task requires authoritative information from standards (SWEBOK, ISO, IEEE, ISTQB, SFIA, PMBOK), official vendor/framework documentation, or prior art — and for recording customer-provided domain facts into CUSTOMER_NOTES.md after tech-lead gets them. Does not contact the customer directly.
 model: inherit
 canonical_source: .claude/agents/researcher.md
-canonical_sha: 4e539e14cfadda0e465a15465428081163149924
+canonical_sha: 6acfce1134de1911664d50715e946307501c9904
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.1.0
 classification: generated
