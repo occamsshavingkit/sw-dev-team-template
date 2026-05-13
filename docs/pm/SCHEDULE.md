@@ -20,6 +20,7 @@ Working branches in this sub-repo: `feat/m0-baseline` (M0),
 | M4 | Documentation authority + drift control. | 2026-05-13 | 2026-05-13 | passed | G4 signed 2026-05-13 (`code-reviewer` audit + `project-manager`); evidence in [SCHEDULE-EVIDENCE.md §M4](./SCHEDULE-EVIDENCE.md#m4--documentation-authority--drift-control). PRs PR-8 + PR-9 merged. |
 | M5 | Cross-AI / OpenCode / Gemini routing as adapter. | 2026-05-13 | 2026-05-13 | passed | G5 signed 2026-05-13 (`code-reviewer` audit + `project-manager`); evidence in [SCHEDULE-EVIDENCE.md §M5](./SCHEDULE-EVIDENCE.md#m5--cross-ai--opencode--gemini-routing-as-adapter). PRs PR-10 + PR-11 merged. |
 | M6 | Markdown compiler / runtime contract pipeline. | 2026-05-13 | 2026-05-13 | passed | G6 signed 2026-05-13 (`code-reviewer` + `qa-engineer` audit + `project-manager`); evidence in [SCHEDULE-EVIDENCE.md §M6](./SCHEDULE-EVIDENCE.md#m6--markdown-compiler--runtime-contract-pipeline). PRs PR-12 + PR-13 merged. |
+| M7 | Self-improvement loop. | 2026-05-13 | 2026-05-13 | passed | G7 signed 2026-05-13 (`code-reviewer` + `release-engineer` + `security-engineer` audit + `project-manager`); evidence in [SCHEDULE-EVIDENCE.md §M7](./SCHEDULE-EVIDENCE.md#m7--self-improvement-loop). PRs PR-14 + PR-15 merged. Security sign-off: PASS-WITH-RESIDUAL-RISK (5 risks R-5..R-9 in docs/pm/RISKS.md). |
 
 ## Activities
 
@@ -68,3 +69,4 @@ edit once baselined — re-baseline with a change log row.
 | G4 | M4 | `code-reviewer` (audit) + `project-manager` | signed 2026-05-13 |
 | G5 | M5 | `code-reviewer` (audit) + `project-manager` | signed 2026-05-13 |
 | G6 | M6 | code-reviewer + qa-engineer (audit) + project-manager | signed 2026-05-13 |
+| G7 | M7 | code-reviewer + release-engineer + security-engineer (audit) + project-manager | signed 2026-05-13 |

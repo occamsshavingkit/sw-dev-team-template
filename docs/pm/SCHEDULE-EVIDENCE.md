@@ -159,3 +159,31 @@ Non-blocking observations:
 - Real LLM-driven prompt regression remains a Phase-3+ follow-up; structural pass at G6 is the binding G6 criterion. Recorded in LESSONS §M6 close.
 - M5 OBS-G5-2 (duplicate routing tables in `docs/model-routing-guidelines.md`) still open; reconciliation deferred to Phase-3+.
 - M5 OBS-G5-3 (fallback-log.jsonl create-on-first-write contract) still open; consider seeding at scaffold time as part of M8.
+
+## M7 — Self-improvement loop
+
+Gate sign-off: G7 signed by `code-reviewer` + `release-engineer` + `security-engineer` (audit T074 + T073) + `project-manager` (this row) on 2026-05-13.
+
+Acceptance criteria evidence (per source plan §M7):
+
+- M7.1 issue taxonomy: 13 labels via `scripts/setup-github-labels.sh` (FR-025, T065). Idempotent + `--dry-run` mode. Customer-actualized post-G7. docs/TEMPLATE_UPGRADE.md gains run instructions.
+- M7.2 framework-gap issue template: `.github/ISSUE_TEMPLATE/framework-gap.yml` per FR-026 + spec clarification 10 (T066). Seven required fields + redaction-confirm checkbox citing the four mandatory items. `docs/IP_POLICY.md` extended with the sensitive-content section + per-repo extension marker (T067).
+- M7.3 self-improvement workflow: `.github/workflows/improve-template.yml` per FR-027 + research.md R-3 (T071). on: workflow_dispatch only (no schedule trigger); permissions: contents/PRs/issues write only; size cap ≤400 lines / ≤10 files / 1 commit; protected-files set + customer-truth set read-only; paired Markdown proposal under docs/proposals/ as the only escape valve; pre-flight drift checks (lint + --verify + --reproducibility-check); PR opened in draft mode; never auto-merge. Placeholder propose step (M7); Phase-3+ wires real LLM call.
+- M7.4 three hardened CI workflows: agent-contract-check.yml, question-lint.yml, template-contract-smoke.yml (T068+T069+T070, FR-028). All pinned to actions/checkout@v4 + actions/setup-python@v5; permissions: contents: read.
+- T072 mock-issue dry-run: 7/7 fixture classes pass (small-clean, oversize-lines, oversize-files, protected-no-proposal, protected-with-proposal, customer-truth-no-proposal, customer-truth-with-proposal). SC-010 verified at HEAD.
+- T073 security review: PASS-WITH-RESIDUAL-RISK per Hard Rule #7. 13 findings + 5 residual risks (R-5..R-9) recorded in docs/pm/RISKS.md. Sign-off in CUSTOMER_NOTES.md § "Security sign-off — M7 self-improvement loop (2026-05-13)".
+
+SC status:
+- SC-010 (zero self-improvement PRs touching protected files) — PASS at G7 (workflow safety logic verified by 7/7 fixture test; forward-looking after first real invocations).
+- SC-001 / SC-002 unchanged — M7 is workflow-only, no canonical-agent edits, no runtime-contract changes.
+
+Cross-references: PR-14 (T065+T066+T067) + PR-15 (T068+T069+T070+T071+T072+T073+T074) — both in commit `<current HEAD SHA>`.
+
+Non-blocking residual risks (in RISKS.md):
+- R-5 (branch-protection prereq): operational guidance via docs/TEMPLATE_UPGRADE.md before first real invocation.
+- R-6 (Phase-3+ LLM re-review): security-engineer re-review MANDATORY at LLM wire-up.
+- R-7 (label setup-script dry-run): operational guidance; `--dry-run` default + clear --help.
+- R-8 (Hard-Rule content-based protection gap): mitigated by code-reviewer human review + size cap + paired-proposal escape valve. Phase-3+ hardening: grep -l "Hard Rule" content check.
+- R-9 (workflow_dispatch input injection): low blast radius (write-access required to invoke); Phase-3+ adds a one-line numeric validator.
+
+Customer approval condition: per FR-032 + spec clarification 2, the v1.0.0 final tag (G9) requires customer sign-off in CUSTOMER_NOTES.md. M7's security sign-off is the Hard-Rule-#7 pre-condition; customer approval is deferred to G9.
