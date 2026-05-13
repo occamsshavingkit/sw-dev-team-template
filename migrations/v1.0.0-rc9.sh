@@ -152,6 +152,10 @@ placeholder_body() {
     printf '## %s\n\n' "$section"
     printf -- '- **TODO**: the rc9 agent-contract schema requires this section.\n'
     printf -- '  Backfill with the canonical content from the rc9-shipped\n'
+    # shellcheck disable=SC2016
+    # `%s` here is a printf format-string conversion (substitutes
+    # $role_file), not a shell variable. Single-quoting is required so
+    # the backticks render literally in the output.
     printf -- '  version of this role (e.g., `git show v1.0.0-rc9:%s`).\n' "$role_file"
 }
 
@@ -291,6 +295,12 @@ for rel in $preserved_agents; do
     fi
 
     # Stderr advisory per the issue contract.
+    # shellcheck disable=SC2086
+    # nosemgrep: bash.lang.correctness.unquoted-expansion.unquoted-variable-expansion-in-command
+    # $missing is a deliberately whitespace-separated list of section
+    # slugs (built above via "$missing $slug"); word-splitting is the
+    # intended behaviour so `printf ' %s'` emits one space-prefixed
+    # token per slug.
     echo "MIGRATION: $base missing section(s):$(printf ' %s' $missing)" >&2
 
     for slug in $missing; do

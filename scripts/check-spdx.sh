@@ -49,9 +49,11 @@ if [ -z "$candidates" ]; then
     exit 1
 fi
 
-IFS='
-'
-for file in $candidates; do
+# Iterate without globally tampering with IFS (avoids
+# Semgrep `bash.lang.security.ifs-tampering`). Heredoc keeps the loop
+# in the current shell so $total / $missing / $missing_list persist.
+while IFS= read -r file; do
+    [ -z "$file" ] && continue
     total=$((total + 1))
     if head -n 5 -- "$file" | grep -q 'SPDX-License-Identifier:'; then
         :
@@ -61,8 +63,9 @@ for file in $candidates; do
 "
         printf 'missing SPDX header: %s\n' "$file" >&2
     fi
-done
-unset IFS
+done <<EOF
+$candidates
+EOF
 
 if [ "$SUMMARY" -eq 1 ]; then
     compliant=$((total - missing))
