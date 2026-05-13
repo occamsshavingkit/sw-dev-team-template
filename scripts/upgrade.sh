@@ -230,6 +230,12 @@ if [[ $resolve_mode -eq 1 ]]; then
   tmp_out="$conflicts_path.tmp.$$"
   removed=0
   kept_unresolved=0
+  # Issue #152: collect "path<TAB>new_sha" lines for every conflict entry
+  # cleared by hand-merge so we can refresh TEMPLATE_MANIFEST.lock rows
+  # after the JSON rewrite. Without this, --verify fails on the very
+  # next run because the manifest still carries pre-resolution SHAs.
+  resolved_paths_log="$conflicts_path.resolved.$$"
+  : > "$resolved_paths_log"
   {
     printf '{\n'
     printf '  "schema": 1,\n'
@@ -277,6 +283,9 @@ if [[ $resolve_mode -eq 1 ]]; then
 
       if [[ $resolved -eq 1 ]]; then
         removed=$((removed + 1))
+        # Issue #152: stash the new SHA so the manifest gets refreshed
+        # below. Tab-separated to keep parsing trivial.
+        printf '%s\t%s\n' "$e_path" "$proj_now" >> "$resolved_paths_log"
         continue
       fi
 
@@ -290,11 +299,52 @@ if [[ $resolve_mode -eq 1 ]]; then
     printf '\n  ]\n}\n'
   } > "$tmp_out"
   mv "$tmp_out" "$conflicts_path"
+
+  # Issue #152: refresh TEMPLATE_MANIFEST.lock rows for every conflict
+  # cleared above. Rewrite each row in-place with the post-merge SHA so
+  # the very next `--verify` run sees a clean manifest. Lock format
+  # (per scripts/lib/manifest.sh): `<sha256>  <path>` with exactly two
+  # spaces. Comment lines start with `#` and are passed through.
+  manifest_for_resolve="$project_root/TEMPLATE_MANIFEST.lock"
+  refreshed_manifest_rows=0
+  if [[ -s "$resolved_paths_log" && -f "$manifest_for_resolve" ]]; then
+    manifest_tmp="$manifest_for_resolve.tmp.$$"
+    awk -F '\t' '
+      NR == FNR { new_sha[$1] = $2; next }
+      /^[[:space:]]*#/ || /^[[:space:]]*$/ { print; next }
+      {
+        sep = index($0, "  ")
+        if (sep > 0) {
+          path = substr($0, sep + 2)
+          if (path in new_sha && new_sha[path] != "") {
+            printf "%s  %s\n", new_sha[path], path
+            refreshed[path] = 1
+            next
+          }
+        }
+        print
+      }
+      END {
+        n = 0
+        for (p in refreshed) n++
+        # Print count to stderr for caller capture.
+        print n > "/dev/stderr"
+      }
+    ' "$resolved_paths_log" "$manifest_for_resolve" > "$manifest_tmp" 2> "$manifest_tmp.count"
+    refreshed_manifest_rows=$(tr -d '[:space:]' < "$manifest_tmp.count" 2>/dev/null || echo 0)
+    mv "$manifest_tmp" "$manifest_for_resolve"
+    rm -f "$manifest_tmp.count"
+  fi
+  rm -f "$resolved_paths_log"
+
   if [[ $kept_unresolved -eq 0 ]]; then
     rm -f "$conflicts_path"
     echo "Resolved $removed entr$([[ $removed -eq 1 ]] && echo 'y' || echo 'ies'); .template-conflicts.json removed."
   else
     echo "Cleared $removed entr$([[ $removed -eq 1 ]] && echo 'y' || echo 'ies'); $kept_unresolved still unresolved."
+  fi
+  if [[ "$refreshed_manifest_rows" -gt 0 ]] 2>/dev/null; then
+    echo "Refreshed $refreshed_manifest_rows manifest row(s) in TEMPLATE_MANIFEST.lock (issue #152)."
   fi
   exit 0
 fi
@@ -438,6 +488,30 @@ if [[ "$local_version" == "$new_version" ]]; then
       }
     ' "$manifest_path" | sort > "$actual_paths"
     if cmp -s "$expected_paths" "$actual_paths"; then
+      # Issue #138: same version, same path-set, manifest clean — but the
+      # stamped SHA on the second line of TEMPLATE_VERSION may still
+      # differ from the upstream tag's actual commit (e.g., upstream
+      # force-updated the tag after the project stamped, or the project
+      # was stamped at a pre-correction SHA). Detect and refresh the
+      # SHA + date lines silently-but-noisily; the manifest is fine, so
+      # nothing else to sync.
+      local_sha_short="${local_sha:0:12}"
+      new_sha_short="${new_sha:0:12}"
+      if [[ -n "$new_sha" && -n "$local_sha" && "$local_sha" != "$new_sha" ]]; then
+        echo "WARN: TEMPLATE_VERSION stamp SHA drift detected: local=$local_sha_short upstream=$new_sha_short for version $local_version" >&2
+        if [[ $dry_run -eq 0 ]]; then
+          cat > "$tv.tmp.$$" <<EOF
+$local_version
+$new_sha
+$(date -u +%Y-%m-%d)
+EOF
+          mv "$tv.tmp.$$" "$tv"
+          echo "       TEMPLATE_VERSION SHA line refreshed to $new_sha_short (issue #138)." >&2
+        else
+          echo "       (dry-run: would refresh TEMPLATE_VERSION SHA line to $new_sha_short) (issue #138)" >&2
+        fi
+        exit 0
+      fi
       echo "Template already at $local_version — files match manifest, nothing to do." >&2
       exit 0
     fi
@@ -1053,6 +1127,60 @@ if [[ $dry_run -eq 0 ]]; then
     echo "  After hand-merging, run scripts/upgrade.sh --resolve to clear."
   elif [[ ${#local_only_kept[@]} -gt 0 || ${#accepted_local[@]} -gt 0 ]]; then
     echo "Manifest verifies clean; remaining listed files are local customizations, not upgrade blockers."
+  fi
+
+  # Issue #155: when the upgrade preserves custom canonical agent files
+  # (entries in .template-customizations pointing at .claude/agents/*.md),
+  # those files were last validated against the OLD schema. The new
+  # release may have tightened the contract schema. Run a read-only
+  # lint pass and surface failures as ACTION REQUIRED so the operator
+  # backfills before the next session — instead of discovering it on
+  # the next interactive lint run. Advisory only: the upgrade itself
+  # is complete, exit code stays 0.
+  lint_script="$project_root/scripts/lint-agent-contracts.sh"
+  if [[ -x "$lint_script" ]]; then
+    preserved_canonical_agents=()
+    for pf in "${preserved[@]:-}"; do
+      case "$pf" in
+        .claude/agents/*.md)
+          # Skip sme-* / *-local / sme-template — those aren't canonical
+          # contract surfaces per lint-agent-contracts.sh's surface 1.
+          case "$pf" in
+            .claude/agents/sme-*.md|.claude/agents/*-local.md) ;;
+            *) preserved_canonical_agents+=("$pf") ;;
+          esac
+          ;;
+      esac
+    done
+    if [[ ${#preserved_canonical_agents[@]} -gt 0 ]]; then
+      lint_log="$(mktemp -t upgrade-lint-XXXXXX.log)"
+      lint_rc=0
+      ( cd "$project_root" && "$lint_script" --canonical-only ) >"$lint_log" 2>&1 || lint_rc=$?
+      if [[ $lint_rc -ne 0 ]]; then
+        echo
+        echo "ACTION REQUIRED: preserved custom agent file(s) fail the new contract schema (issue #155):"
+        # Filter the lint log to lines that name a preserved canonical
+        # agent path; show those plus their immediately-following
+        # context (missing-section / schema-error detail).
+        for pf in "${preserved_canonical_agents[@]}"; do
+          if grep -F -- "$pf" "$lint_log" >/dev/null 2>&1; then
+            echo "  $pf:"
+            grep -F -- "$pf" "$lint_log" | sed 's/^/    /'
+          fi
+        done
+        # Surface any errors that didn't match a preserved-agent path
+        # in case the schema reports them by a different label.
+        echo
+        echo "  Full lint output (read-only --canonical-only pass):"
+        sed 's/^/    /' "$lint_log"
+        echo
+        echo "  Backfill the missing sections per the rc-specific migration at"
+        echo "    migrations/$new_version.sh"
+        echo "  (or the latest migrations/<target>.sh that touches agent contracts)."
+        echo "  The upgrade itself succeeded; this notice is advisory."
+      fi
+      rm -f "$lint_log"
+    fi
   fi
 else
   echo "(No changes written — this was a dry run.)"
