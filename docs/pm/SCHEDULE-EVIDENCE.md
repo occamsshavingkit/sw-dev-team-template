@@ -133,3 +133,29 @@ Non-blocking observations (LESSONS at G5 close):
 - OBS-G5-1: 4 incomplete canonicals (onboarding-auditor, process-auditor, project-manager, sre) — section additions required by M6 lint hard-gate or M9 release readiness.
 - OBS-G5-2: Older `## Role defaults` tier table coexists with new `## Binding per-agent default-class table` in `docs/model-routing-guidelines.md`. Reconciliation deferred to Phase-3+.
 - OBS-G5-3: `docs/pm/fallback-log.jsonl` is create-on-first-write; consider documenting the contract in `docs/pm/README.md` or seeding an empty file at scaffold time.
+
+## M6 — Markdown compiler / runtime contract pipeline
+
+Gate sign-off: G6 signed by `code-reviewer` + `qa-engineer` (audit T064) + `project-manager` (this row) on 2026-05-13.
+
+Acceptance criteria evidence (per source plan §M6):
+
+- M6.1 schemas shipped: `schemas/agent-contract.schema.json` (T058, byte-identical to specs/contracts/), `schemas/generated-artifact.schema.json` (T059 + description-property fix), `schemas/model-routing.schema.json` (T051 at M5). All three metaschema-valid (JSON Schema 2020-12).
+- M6.2 `scripts/lint-agent-contracts.sh` (643 lines POSIX-sh) validates 52 surfaces — 13 canonical agents + 13 prompt-regression fixtures + 13 runtime contracts + 13 OpenCode adapters. Default scan: 0 errors / 0 warnings. Per-surface filter flags. R-VR-1 fixture-YAML check inlined.
+- `scripts/compile-runtime-agents.sh` gains `--reproducibility-check` mode for SC-007 (T061). All 13 roles report `reproducibility OK`. `--verify` mode complements: all 13 roles report `verify OK`.
+- M6 pre-work: 4 incomplete canonicals (onboarding-auditor, process-auditor, project-manager, sre) gained their missing schema-required sections (`## Hard rules`, `## Escalation`, `## Output format` as appropriate). Compiler now generates runtime contracts for ALL 13 roles (was 9 at G5).
+- M6.3 prompt-regression: full 13-fixture set per source plan §M6.3 (T062). Run against canonical + compiled (T063): 13/13 validate, 13/13 STUB in canonical mode, 13/13 STUB in compiled mode, 0 skipped. Real LLM-driven execution remains stubbed per T011 design; Phase-3+ follow-up.
+- T060 negative tests demonstrated lint failure on (a) canonical missing `## Hard rules` (b) fixture missing `expected_behavior` (c) adapter missing `canonical_source`; all three exit 1 with diagnostics; restore via re-compile.
+
+SC status:
+- SC-007 (zero generated artifacts manually edited per lint) — STRONG PASS. Manual-edit detection via `--verify` + `lint-agent-contracts.sh` frontmatter schema check; both surfaces audited.
+- SC-013 (lint + prompt-regression pass canonical+compiled) — STRUCTURAL PASS. Real-LLM execution remains a Phase-3+ follow-up.
+- SC-001 PASS unchanged (tech-lead runtime 2491 ≤ 2736 floor).
+- SC-002 researcher exception unchanged from G3 LESSONS §M2.3 (1655 vs 1597).
+
+Cross-references: PR-12 + PR-13 (commits `1fb9607` + `c243aa0`); compiler skip-incomplete fix from G5 now fully resolved by 4-canonical pre-work; M5 OBS-G5-1 deferred item closed at M6.
+
+Non-blocking observations:
+- Real LLM-driven prompt regression remains a Phase-3+ follow-up; structural pass at G6 is the binding G6 criterion. Recorded in LESSONS §M6 close.
+- M5 OBS-G5-2 (duplicate routing tables in `docs/model-routing-guidelines.md`) still open; reconciliation deferred to Phase-3+.
+- M5 OBS-G5-3 (fallback-log.jsonl create-on-first-write contract) still open; consider seeding at scaffold time as part of M8.

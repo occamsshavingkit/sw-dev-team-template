@@ -19,6 +19,7 @@ Working branches in this sub-repo: `feat/m0-baseline` (M0),
 | M3 | Atomic-question + intake repair. | 2026-05-13 | 2026-05-13 | passed | G3 signed 2026-05-13 (`code-reviewer` audit + `project-manager`); evidence in [SCHEDULE-EVIDENCE.md §M3](./SCHEDULE-EVIDENCE.md#m3--atomic-question--intake-repair). PRs PR-5 + PR-6 + PR-7 merged. |
 | M4 | Documentation authority + drift control. | 2026-05-13 | 2026-05-13 | passed | G4 signed 2026-05-13 (`code-reviewer` audit + `project-manager`); evidence in [SCHEDULE-EVIDENCE.md §M4](./SCHEDULE-EVIDENCE.md#m4--documentation-authority--drift-control). PRs PR-8 + PR-9 merged. |
 | M5 | Cross-AI / OpenCode / Gemini routing as adapter. | 2026-05-13 | 2026-05-13 | passed | G5 signed 2026-05-13 (`code-reviewer` audit + `project-manager`); evidence in [SCHEDULE-EVIDENCE.md §M5](./SCHEDULE-EVIDENCE.md#m5--cross-ai--opencode--gemini-routing-as-adapter). PRs PR-10 + PR-11 merged. |
+| M6 | Markdown compiler / runtime contract pipeline. | 2026-05-13 | 2026-05-13 | passed | G6 signed 2026-05-13 (`code-reviewer` + `qa-engineer` audit + `project-manager`); evidence in [SCHEDULE-EVIDENCE.md §M6](./SCHEDULE-EVIDENCE.md#m6--markdown-compiler--runtime-contract-pipeline). PRs PR-12 + PR-13 merged. |
 
 ## Activities
 
@@ -66,3 +67,4 @@ edit once baselined — re-baseline with a change log row.
 | G3 | M3 | `code-reviewer` (audit) + `project-manager` | signed 2026-05-13 |
 | G4 | M4 | `code-reviewer` (audit) + `project-manager` | signed 2026-05-13 |
 | G5 | M5 | `code-reviewer` (audit) + `project-manager` | signed 2026-05-13 |
+| G6 | M6 | code-reviewer + qa-engineer (audit) + project-manager | signed 2026-05-13 |
