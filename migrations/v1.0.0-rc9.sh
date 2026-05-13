@@ -234,11 +234,32 @@ append_decision() {
 }
 
 # ---- walk + backfill -------------------------------------------------
+#
+# Only operate on canonical agents the project has CUSTOMISED (i.e.,
+# paths listed in `.template-customizations`). Files not in that list
+# are overwritten by the ship sync that runs immediately after this
+# migration in scripts/upgrade.sh, so the rc9-canonical Hard rules and
+# Output format sections will arrive automatically — modifying them
+# here would create a spurious local-delta that the 3-way merge then
+# flags as a conflict (regression observed in rc3->rc9 smoke; see
+# issue #141 follow-up in PR #157).
+
+customizations_file="$PROJECT_ROOT/.template-customizations"
+preserved_agents=""
+if [ -f "$customizations_file" ]; then
+    preserved_agents=$(grep -E '^\.claude/agents/[^/]+\.md$' "$customizations_file" 2>/dev/null || true)
+fi
+if [ -z "$preserved_agents" ]; then
+    echo "migrations/v1.0.0-rc9.sh: 0 files backfilled, 0 files already current (no customised canonical agents)."
+    exit 0
+fi
 
 backfilled=0
 already_current=0
 
-for f in "$agents_dir"/*.md; do
+# shellcheck disable=SC2034  # iterated by relative path, not glob
+for rel in $preserved_agents; do
+    f="$PROJECT_ROOT/$rel"
     [ -f "$f" ] || continue
 
     base=$(basename "$f")
