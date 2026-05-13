@@ -276,6 +276,7 @@ initial-state entries.
 ## M1.1 evidence (2026-05-13)
 
 - code-reviewer canonical contract reached only 1.5% runtime reduction vs M0 (520 vs 528 words); SC-002 "where safe" clause invoked because the M0 contract was already among the leanest in the roster and had no extractable rationale to absorb into a manual without deleting normative review-gate content. Non-blocking; recorded for future-program reference if SC-002 thresholds tighten. See `docs/pm/token-economy-baseline.md` §M1.1 token-reduction evidence (post-T013).
+- M1 close: G1 first-audit BLOCK on researcher canonical_sha staleness (compiler reads HEAD blob SHA, not working-tree; a post-canonical-edit re-compile is required). Fix landed at commit `5f96450`. Recommend CI guard at M6 or M7 that fails when `git hash-object .claude/agents/<role>.md != canonical_sha` in `docs/runtime/agents/<role>.md`. (non-blocking, deferred)
 
 ## Milestone syntheses
 

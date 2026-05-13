@@ -14,7 +14,7 @@ Working branches in this sub-repo: `feat/m0-baseline` (M0),
 | ID | Milestone | Baseline date | Forecast date | Status | Exit criterion |
 |---|---|---|---|---|---|
 | M0 | Establish current-state measurements before changing behavior. | 2026-05-13 | 2026-05-13 | passed | G0 signed 2026-05-13 (`code-reviewer` + `project-manager`); evidence in [SCHEDULE-EVIDENCE.md §M0](./SCHEDULE-EVIDENCE.md#m0--mobilize-and-baseline). |
-| M1 | Reduce recurring context cost before adding new cross-AI features. | TBD | TBD | pending | M1.1 compact runtime contracts (FR-003) generated; M1.2 `archive-registers.sh` (FR-004 + SC-003) lands; token ledger (FR-008) shows measurable reduction vs. M0 baseline; PM live surfaces split (PR-4); gate `G1` signed; PR slots `PR-2a` + `PR-2` + `PR-3` + `PR-4` merged. |
+| M1 | Reduce recurring context cost before adding new cross-AI features. | 2026-05-13 | 2026-05-13 | passed | G1 signed 2026-05-13 (`code-reviewer` re-audit + `project-manager`); evidence in [SCHEDULE-EVIDENCE.md §M1](./SCHEDULE-EVIDENCE.md#m1--token-quick-wins). PRs PR-2a + PR-2 + PR-3 + PR-4 merged. |
 
 ## Activities
 
@@ -24,10 +24,10 @@ own end-to-end.
 | ID | Activity | Owner (teammate) | Predecessors | Duration | Start | Finish | Status |
 |---|---|---|---|---|---|---|---|
 | A-M0-1 | M0 baseline scaffold + PM artifact opens (this turn — T005/T006/T007/T008) | `project-manager` | — | 1 turn | 2026-05-13 | 2026-05-13 | in-progress |
-| A-M1-1 | M1.1 compact runtime contracts (PR-2a) | `architect` + `software-engineer` | M0 gate G0 | TBD | TBD | TBD | pending |
-| A-M1-2 | M1.2 archive-registers.sh (PR-2) | `software-engineer` | M0 gate G0 | TBD | TBD | TBD | pending |
-| A-M1-3 | Token ledger automation (PR-3) | `software-engineer` | A-M0-1 | TBD | TBD | TBD | pending |
-| A-M1-4 | PM live-surface split (PR-4) | `project-manager` | A-M1-2 | TBD | TBD | TBD | pending |
+| A-M1-1 | M1.1 compact runtime contracts (PR-2a) | `architect` + `software-engineer` | M0 gate G0 | TBD | 2026-05-13 | 2026-05-13 | passed |
+| A-M1-2 | M1.2 archive-registers.sh (PR-2) | `software-engineer` | M0 gate G0 | TBD | 2026-05-13 | 2026-05-13 | passed |
+| A-M1-3 | Token ledger automation (PR-3) | `software-engineer` | A-M0-1 | TBD | 2026-05-13 | 2026-05-13 | passed |
+| A-M1-4 | PM live-surface split (PR-4) | `project-manager` | A-M1-2 | TBD | 2026-05-13 | 2026-05-13 | passed |
 
 ## Critical path
 
@@ -57,4 +57,4 @@ edit once baselined — re-baseline with a change log row.
 | Gate | Milestone | Signers | Status |
 |---|---|---|---|
 | G0 | M0 | `code-reviewer` (audit) + `project-manager` | signed 2026-05-13 |
-| G1 | M1 | `project-manager` + `architect` + `software-engineer` | pending |
+| G1 | M1 | `code-reviewer` (re-audit) + `project-manager` | signed 2026-05-13 |
