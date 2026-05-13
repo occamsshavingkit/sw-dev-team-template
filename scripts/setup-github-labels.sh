@@ -92,58 +92,54 @@ generalization-risk|fef2c0|Project-specific code in framework-managed file
 ai-behavior|bfd4f2|Agent behavioral regression or drift (prompt-regression catch)
 m8-waiver|cccccc|Downstream-repo M8 waiver issue (per FR-029)"
 
-CREATED=0
-EXISTING=0
-WOULD_CREATE=0
-
 # In non-dry-run mode, list existing labels once so each iteration is cheap.
 EXISTING_LIST=""
 if [ "$DRY_RUN" -eq 0 ]; then
   EXISTING_LIST=$(gh label list --repo "$REPO" --limit 200 2>/dev/null || true)
 fi
 
-# Iterate. POSIX-sh: use IFS=newline, read each pipe-delimited row.
-OLDIFS=$IFS
-# Deliberate IFS change for line-safe iteration over $LABELS; restored
-# immediately at the top of the loop body (and saved in OLDIFS).
-# shellcheck disable=SC2034  # OLDIFS is read on the line below; SC2034 is a false positive here
-# nosemgrep: bash.lang.security.ifs-tampering.ifs-tampering  # deliberate IFS change for newline-safe iteration; restored on next loop entry
-IFS='
-'
-for row in $LABELS; do
-  # Restore saved IFS so all command substitutions inside the loop body
-  # use default whitespace splitting.
-  # nosemgrep: bash.lang.security.ifs-tampering.ifs-tampering  # restoring saved IFS
-  IFS=$OLDIFS
-  name=$(echo "$row" | cut -d'|' -f1)
-  color=$(echo "$row" | cut -d'|' -f2)
-  desc=$(echo "$row" | cut -d'|' -f3)
+# Counters live in temp files because the `while read` loop below runs
+# in a subshell (pipeline RHS); plain shell-variable increments would
+# not survive the loop exit under POSIX sh.
+COUNT_DIR=$(mktemp -d)
+trap 'rm -rf "$COUNT_DIR"' EXIT INT TERM HUP
+echo 0 > "$COUNT_DIR/created"
+echo 0 > "$COUNT_DIR/existing"
+echo 0 > "$COUNT_DIR/would_create"
 
+bump() {
+  # bump <counter-name> — increment the named counter file by 1.
+  _f="$COUNT_DIR/$1"
+  _n=$(cat "$_f")
+  echo $((_n + 1)) > "$_f"
+}
+
+# Iterate newline-separated label table; the IFS='|' prefix on `read`
+# is local to that command, so no global IFS mutation occurs.
+printf '%s\n' "$LABELS" | while IFS='|' read -r name color desc; do
   if [ "$DRY_RUN" -eq 1 ]; then
     echo "would-create: $name (color=$color)"
-    WOULD_CREATE=$((WOULD_CREATE + 1))
-    IFS='
-'
+    bump would_create
     continue
   fi
 
   # Idempotent: skip if a label with this exact name (column 1) already exists.
   if echo "$EXISTING_LIST" | awk -v n="$name" '$1 == n { found=1 } END { exit !found }'; then
     echo "exists: $name"
-    EXISTING=$((EXISTING + 1))
+    bump existing
   else
     if gh label create --repo "$REPO" "$name" --description "$desc" --color "$color" >/dev/null 2>&1; then
       echo "created: $name"
-      CREATED=$((CREATED + 1))
+      bump created
     else
       echo "failed: $name (gh label create returned non-zero)" >&2
     fi
   fi
-
-  IFS='
-'
 done
-IFS=$OLDIFS
+
+CREATED=$(cat "$COUNT_DIR/created")
+EXISTING=$(cat "$COUNT_DIR/existing")
+WOULD_CREATE=$(cat "$COUNT_DIR/would_create")
 
 if [ "$DRY_RUN" -eq 1 ]; then
   echo "setup-github-labels: dry-run — $WOULD_CREATE label(s) would be processed (no GitHub calls made)"
