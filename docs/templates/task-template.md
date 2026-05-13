@@ -7,6 +7,7 @@
 - [Acceptance criteria](#acceptance-criteria)
 - [INVEST check (stories only)](#invest-check-stories-only)
 - [Definition of Ready (DoR)](#definition-of-ready-dor)
+- [Token budget](#token-budget)
 - [Definition of Done (DoD)](#definition-of-done-dod)
 - [Dependencies and risks](#dependencies-and-risks)
 - [Change / execution log](#change--execution-log)
@@ -120,6 +121,30 @@ If any box is unchecked, the item is not ready.
         stage 3)
       - Duel section in the proposal, status = closed
         (`qa-engineer` + `software-engineer`, stage 4)
+
+---
+
+## Token budget
+
+Token-budget bands per `specs/006-template-improvement-program/research.md`
+R-2; ledger row recorded at closure per FR-005 in
+`docs/pm/TOKEN_LEDGER.md`.
+
+- **Token budget:** `tiny` | `small` | `medium` | `large` | `xl`
+- **JIT file list:** <concise list of paths the assignee should load
+  first; omit files only needed transitively>
+- **Token actual:** <filled at closure if material; `wc -w` proxy of
+  prompts + load-set at dispatch time>
+
+Bands:
+
+| Band | Words (proxy) | Tokens (approx) | Intended use |
+|---|---:|---:|---|
+| Tiny | < 1 500 | < ~2 000 | one-file fix, no specialist chain |
+| Small | 1 500 – 6 000 | ~2 000 – ~8 000 | one specialist, focused files |
+| Medium | 6 000 – 19 000 | ~8 000 – ~25 000 | 2–3 specialists, limited docs |
+| Large | 19 000 – 60 000 | ~25 000 – ~80 000 | triggered workflow, multiple artifacts |
+| XL | > 60 000 | > ~80 000 | split unless explicitly approved |
 
 ---
 

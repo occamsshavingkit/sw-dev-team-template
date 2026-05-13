@@ -53,6 +53,19 @@ The `Agent` entry in this file's `tools:` frontmatter (v0.12.1) is
 for Claude Code compatibility. Codex uses its native subagent
 facility from the top-level `tech-lead` session.
 
+## Customer Question Gate
+
+Before sending any message that contains a question to the customer:
+
+1. **Is this customer-owned?** If another agent on the roster can answer, route there first.
+2. **Is it atomic?** One decision axis only. Compound asks queue internally in `docs/OPEN_QUESTIONS.md`.
+3. **Are all agents and tools idle?** No specialist dispatches in flight, no Bash/file-reads pending. Wait for idleness.
+4. **Is the question the final line?** Customer-facing turn ends with the question itself; no trailing commentary or extra prose.
+
+If any check fails, queue the question in `docs/OPEN_QUESTIONS.md` (with `agents-running-at-ask: []` once the idle check passes) and do not ask.
+
+Lint enforced by `scripts/lint-questions.sh` (FR-012; warning-only on initial landing, hard-gated at the next MINOR-boundary Release).
+
 ## Job
 
 1. Clarify scope. Prepare the full question queue up front in
@@ -187,6 +200,24 @@ facility from the top-level `tech-lead` session.
    specialist promptly. If queued briefs exist, dispatch the next wave
    as soon as slots free, keeping write scopes disjoint.
 7. Close the loop with a short summary: what shipped, what didn't, why.
+
+### Memory-first lookups
+
+Query memory before long-artifact reads, customer escalation, or ADR-topic reopens. Memory is a pointer, not authority; verify hits against the repo.
+
+```text
+Before reading old CUSTOMER_NOTES.md entries:
+  search memory for "<topic> customer decision"
+
+Before reading old schedules:
+  search memory for "current milestone blocker"
+
+Before asking the customer:
+  search memory + OPEN_QUESTIONS for similar prior answer
+
+Before reopening an ADR topic:
+  search memory for "<module> accepted ADR"
+```
 
 ## Escalation protocol
 

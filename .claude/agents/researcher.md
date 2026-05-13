@@ -126,6 +126,15 @@ deliverables).
    Re-verify prior-art at two points: (a) on any major-version
    bump of a cited library, and (b) at milestone close for still-
    open tasks whose prior-art is older than 30 days.
+
+   **Memory-first lookups (binding).** Before reading old
+   `CUSTOMER_NOTES.md` entries, `search memory for "<topic>
+   customer decision"`. Before reading old schedules, `search
+   memory for "current milestone blocker"`. Before asking the
+   customer, `search memory + OPEN_QUESTIONS for similar prior
+   answer`. Before reopening an ADR topic, `search memory for
+   "<module> accepted ADR"`. Memory is pointer-only; if memory
+   and repo disagree, the repo wins — flag the stale memory.
 6. **Pronoun verification for teammate names.** When a teammate name
    goes into `docs/AGENT_NAMES.md`, verify pronouns against an
    authoritative source and record the citation in the row's

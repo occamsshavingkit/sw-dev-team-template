@@ -4,12 +4,16 @@
 
 Run these steps in order before starting the user's task.
 
-**Atomic gate.** Step 0 and Step 3 each expect a single atomic
-customer answer — **one question, asked when all agents are idle,
-as the last thing on screen.** These must not be deferred or
-resolved implicitly. Write them into `docs/OPEN_QUESTIONS.md` at
-session start and ask them at the first moment of idleness.
-Step 2's DoD (below) gates on both.
+**Atomic gate.** Every seed scoping question in this document holds to
+**one decision axis per question** (FR-010). Compound forms like "what
+are we building, for whom, on what stack, and what counts as done?" are
+decomposed into separate atomic questions before they reach the
+customer. Internally, the full batch is queued in
+`docs/OPEN_QUESTIONS.md` at session start; externally, the Customer
+Question Gate (FR-011) serialises delivery — **one question, asked when
+all agents are idle, as the last thing on screen.** Step 0 and Step 3
+each expect a single atomic customer answer and must not be deferred or
+resolved implicitly. Step 2's DoD (below) gates on both.
 
 ## Step 0 — Issue-feedback opt-in (atomic, asked FIRST)
 
@@ -127,19 +131,22 @@ Rules:
   do not silently pick one.
 - Sources verified 2026-05-06; repos move.
 
-After the user picks from the catalog, ask **one atomic follow-up
-question, agents idle**:
+After the user picks from the catalog, queue these atomic follow-ups
+into `docs/OPEN_QUESTIONS.md` and ask them **one at a time, agents
+idle**:
 
-> Beyond the catalog above, are there any specialized skills,
-> plugins, MCP servers, agent packs, or tools you already know you
-> want installed for this project? Or anything specific you want the
-> team to watch for / file an issue about (e.g., a known risk in your
-> domain, a style convention, a safety-critical behaviour)? Name
-> them — I'll look them up and either install, or open a tracking
-> item in `docs/OPEN_QUESTIONS.md` for something to watch.
+> Beyond the catalog above, are there specialized skills, plugins,
+> MCP servers, agent packs, or tools you already know you want
+> installed for this project? Name them — I'll look them up and
+> either install or open a tracking item.
 
-Route the answer to `researcher` for a verbatim `CUSTOMER_NOTES.md`
-entry (specialized skills or watch-items are customer-domain facts).
+> Is there anything specific you want the team to watch for or file
+> an issue about (e.g., a known risk in your domain, a style
+> convention, a safety-critical behaviour)? Name it — I'll open a
+> tracking item in `docs/OPEN_QUESTIONS.md`.
+
+Route each verbatim answer to `researcher` for a `CUSTOMER_NOTES.md`
+entry (specialized skills and watch-items are customer-domain facts).
 For each named skill: verify the current install command via
 `researcher` before running; for each watch-item, open an
 `OPEN_QUESTIONS.md` row with answerer set to the right specialist
@@ -263,7 +270,9 @@ scope pin covers:
   detectives — character names, not the actors who played them").
 - Obvious edge cases to rule in or out (e.g., "include lesser-known
   peers, but exclude anyone convicted of violent crime").
-- Living + deceased both allowed? Tone-sensitive exclusions?
+- Are living members of the category allowed?
+- Are deceased members of the category allowed?
+- Are there tone-sensitive exclusions to apply?
 
 The customer confirms or edits in one reply. Only then does
 `tech-lead` dispatch `researcher`. This prevents the common failure

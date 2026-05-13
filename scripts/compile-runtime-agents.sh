@@ -36,7 +36,8 @@
 #   local_supplement_rule  : "project-specific local supplement",
 #                            "local supplement"
 #   customer_interface_rule: "customer interface",
-#                            "customer-facing output discipline"
+#                            "customer-facing output discipline",
+#                            "customer question gate"
 #
 # Determinism: same canonical inputs + same GENERATOR_VERSION ->
 # byte-identical output. canonical_sha is read from the git index
@@ -179,7 +180,7 @@ map_section() {
       echo "allowed_tools" ;;
     "project specific local supplement"|"local supplement"|"local supplement rule")
       echo "local_supplement_rule" ;;
-    "customer interface"|"customer interface rule")
+    "customer interface"|"customer interface rule"|"customer question gate")
       echo "customer_interface_rule" ;;
     *)
       echo "" ;;

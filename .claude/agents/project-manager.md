@@ -10,6 +10,7 @@ model: inherit
 - [Project-specific local supplement](#project-specific-local-supplement)
 - [Job](#job)
 - [Responsibilities (PMBOK sub-responsibilities, §2.9a)](#responsibilities-pmbok-sub-responsibilities-29a)
+- [PM delta pass](#pm-delta-pass)
 - [Interfaces](#interfaces)
 - [Escalation](#escalation)
 - [Enforcement](#enforcement)
@@ -112,6 +113,27 @@ was wrong.
   scoping; revise whenever team composition changes (customer
   onboards SME, new agent added, role retired). Revisions go
   through `CHANGES.md`.
+
+## PM delta pass
+
+Default mode for routine PM updates. Implements rolling-wave planning
+on the session-anchored cadence in `CLAUDE.md` "Time-based cadences".
+Rationale split deferred — see `docs/agents/manual/project-manager-manual.md`.
+
+- **Trigger.** Customer asks for "PM update" / "where are we", or a
+  milestone just closed.
+- **Inputs.** `git log --since=<last-pm-pass> --oneline`; merged PR
+  titles; the `SCHEDULE.md` row(s) with status `in-progress`;
+  `OPEN_QUESTIONS.md` rows whose status changed since last pass; row-
+  level deltas in `RISKS.md` and `LESSONS.md`. Do not reread full PM
+  artifacts.
+- **Output.** Either (a) a one-line no-op confirmation when nothing
+  warrants an edit, or (b) minimal targeted edits to the affected rows
+  in `SCHEDULE.md`, `RISKS.md`, `LESSONS.md` only.
+- **Forbidden.** Full-file rereads of PM artifacts as the default
+  mode. Full rereads are reserved for milestone-close passes, and
+  those should consume evidence/archive files rather than re-touring
+  closed rows.
 
 ## Interfaces
 
