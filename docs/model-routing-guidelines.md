@@ -174,3 +174,51 @@ Lower tier or effort when all of these are true:
   `code-reviewer`, or `tech-lead` requires code-reviewer review.
 - Making GitHub Projects, provider-specific tools, or a specific model
   vendor mandatory for downstream projects requires an ADR.
+
+## Provider/model ID conventions
+
+- **Anthropic**: `anthropic/claude-{opus,sonnet,haiku}-<minor>-<patch>` (e.g., `anthropic/claude-sonnet-4-7`). Per-class fallback uses the closest peer within the same class.
+- **OpenAI**: `openai/<model-id>` (e.g., `openai/gpt-5-pro`). The `openai-coding` class is for code-heavy tasks; `openai-frontier` for advanced reasoning; `openai-mini` for cheap interactive use.
+- **Google (Gemini)**: `google/gemini-<class>-<minor>` (e.g., `google/gemini-pro-2.5`). `gemini-pro` for substantive synthesis; `gemini-flash` for fast iteration.
+- **OpenCode harness**: per ADR-0009, OpenCode is a harness adapter; the model identifier is whichever provider/model OpenCode's adapter resolves to. The routing rule that fires applies to the resolved upstream identifier, not OpenCode itself.
+
+All literal IDs marked `(runtime-reverifiable)` may change between MINOR-boundary Releases. Use the class column for binding routing rules.
+
+## Fallback behavior
+
+Fallback triggers (per spec clarification 8 + FR-020):
+
+- `credit_exhausted` — provider account has insufficient credit for the request.
+- `provider_unavailable_5xx` — provider returned HTTP 5xx.
+- `provider_timeout` — provider timed out before responding.
+- `provider_rate_limit` — provider returned a rate-limit response (HTTP 429 or equivalent).
+
+Substitution policy: **closest peer in the same model class** first (e.g., Sonnet-class request → next available Sonnet-tier model). If no same-class peer is available, substitute **one tier down** and append `; downgraded_one_tier` to `fallback_reason`. Fallback MUST NOT change role authority or output format.
+
+Every fallback event is logged to `docs/pm/fallback-log.jsonl` via `scripts/log-fallback.sh` (FR-020). The log carries six required fields: `agent`, `requested_model`, `actual_model`, `fallback_reason`, `timestamp` (ISO 8601 UTC), `task_id`.
+
+## Frontier-only escalation
+
+Frontier-class models (`claude-opus`, `openai-frontier`, `gemini-pro`) are NOT the default for any agent. They are reserved for the per-agent escalation conditions in the binding default-class table below. Escalation is per-task: when the predicate fires, the routing wrapper selects the frontier model for that task only; subsequent tasks revert to the default.
+
+## Binding per-agent default-class table
+
+The table below is the binding default for fresh template scaffolds (FR-019 + spec clarification 5). Downstream projects MAY override per-agent assignments in a marked project-local supplement; the supplement MUST carry the `project_local_override_marker` per `schemas/model-routing.schema.json`.
+
+Class names use the enum from `schemas/model-routing.schema.json`: `claude-opus`, `claude-sonnet`, `claude-haiku`, `gemini-pro`, `gemini-flash`, `openai-frontier`, `openai-coding`, `openai-mini`.
+
+| Agent | Default class | Frontier only when |
+|---|---|---|
+| `tech-lead` | `claude-sonnet` | unresolved conflict, safety/customer-critical routing |
+| `architect` | `claude-sonnet` | ADR conflict, major boundary, safety/security architecture |
+| `software-engineer` | `openai-coding` | ambiguous design tradeoff |
+| `release-engineer` | `openai-coding` | release blocker or cross-harness failure |
+| `code-reviewer` | `claude-sonnet` | hard-block, ADR conflict, safety/security |
+| `qa-engineer` | `claude-sonnet` | safety/timing-critical validation |
+| `researcher` | `gemini-pro` | disputed source synthesis |
+| `project-manager` | `gemini-flash` | major scope/risk/stakeholder conflict |
+| `tech-writer` | `claude-sonnet` | release-critical public docs |
+| `security-engineer` | `claude-sonnet` | safety-critical authentication / secrets / network-exposed change |
+| `sre` | `claude-sonnet` | DR-tier escalation, performance-critical incident |
+| `onboarding-auditor` | `claude-sonnet` | (advisory-only role; frontier escalation not gating) |
+| `process-auditor` | `claude-sonnet` | (advisory-only role; frontier escalation not gating) |

@@ -1,16 +1,22 @@
 #!/bin/sh
 # compile-runtime-agents.sh — compact runtime-contract compiler (M1.1)
-# version: 0.1.0
+# version: 0.2.0
 #
 # Reads canonical role files at .claude/agents/<role>.md, applies the
 # section allowlist from schemas/agent-contract.schema.json, and writes
 # a deterministic compact runtime contract to docs/runtime/agents/<role>.md.
 #
-# T012 scope: compact-runtime mode only. OpenCode adapter generation
-# lands at T054 (US4).
+# T054 scope: also writes a thin OpenCode adapter stub to
+# .opencode/agents/<role>.md per FR-021 + research.md R-7. The adapter's
+# model class is resolved from the binding default-class table in
+# docs/model-routing-guidelines.md; unknown roles default to
+# claude-sonnet with a stderr WARN. Pass --no-opencode-adapters to
+# skip adapter generation (compact-runtime-only mode for self-tests).
 #
 # Usage:
-#   scripts/compile-runtime-agents.sh [--check] [--out-dir <path>] [role...]
+#   scripts/compile-runtime-agents.sh [--check] [--verify] [--strict] \
+#                                     [--out-dir <path>] \
+#                                     [--no-opencode-adapters] [role...]
 #
 # Inputs:
 #   * Zero positional args -> walk every .claude/agents/*.md (excluding
@@ -20,7 +26,32 @@
 # Flags:
 #   --check         Validate inputs and report which canonical files
 #                   exist; do not write outputs.
+#   --verify        Read-only mode (T056 / FR-021): for each requested
+#                   role, regenerate adapter + compact-runtime contract
+#                   to a tempfile and `cmp -s` against the committed
+#                   on-disk copy. Print `verify OK: <role>` for matches
+#                   and `verify FAIL: <path> differs from generator
+#                   output` for mismatches. Exit 0 if all clean, 1 if
+#                   any drift, 2 on usage error. Never writes to the
+#                   committed output paths.
+#   --strict        Treat canonicals missing one or more required
+#                   sections as a fatal error rather than a WARN.
+#                   Default (without --strict): print a SKIP line per
+#                   missing section to stderr, omit the compact runtime
+#                   contract for that role, remove any stale runtime
+#                   contract previously written for it, but still
+#                   produce the OpenCode adapter (FR-021 only needs
+#                   frontmatter + fixed body). Exit 0 unless a true
+#                   error occurred (missing canonical, write failure,
+#                   schema validation failure on a file that WAS
+#                   generated). With --strict, missing-section
+#                   conditions flip back to ERROR -> exit 1.
 #   --out-dir <p>   Output directory (default: docs/runtime/agents).
+#   --no-opencode-adapters
+#                   Skip writing .opencode/agents/<role>.md adapters.
+#                   Default behaviour generates both compact-runtime
+#                   contracts and adapter stubs. In --verify mode this
+#                   restricts verification to compact-runtime only.
 #
 # Section-heading mapping (canonical-slug <- accepted heading patterns,
 # case-insensitive, whitespace-tolerant; punctuation/parentheticals
@@ -48,22 +79,37 @@ LANG=C
 LC_ALL=C
 export LANG LC_ALL
 
-GENERATOR_VERSION="0.1.0"
+GENERATOR_VERSION="0.2.0"
 GENERATOR_PATH="scripts/compile-runtime-agents.sh"
 AGENTS_DIR=".claude/agents"
 SCHEMA_DIR="schemas"
 DEFAULT_OUT_DIR="docs/runtime/agents"
 GENERATED_SCHEMA="${SCHEMA_DIR}/generated-artifact.schema.json"
+OPENCODE_OUT_DIR=".opencode/agents"
+OPENCODE_LOCAL_DIR=".opencode/agents/local"
+ROUTING_DOC="docs/model-routing-guidelines.md"
+DEFAULT_MODEL_CLASS="claude-sonnet"
 
 # ---- arg parsing -----------------------------------------------------
 CHECK_MODE=0
+VERIFY_MODE=0
+STRICT_MODE=0
 OUT_DIR="${DEFAULT_OUT_DIR}"
 ROLES=""
+NO_OPENCODE_ADAPTERS=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --check)
       CHECK_MODE=1
+      shift
+      ;;
+    --verify)
+      VERIFY_MODE=1
+      shift
+      ;;
+    --strict)
+      STRICT_MODE=1
       shift
       ;;
     --out-dir)
@@ -78,8 +124,12 @@ while [ $# -gt 0 ]; do
       OUT_DIR="${1#--out-dir=}"
       shift
       ;;
+    --no-opencode-adapters)
+      NO_OPENCODE_ADAPTERS=1
+      shift
+      ;;
     -h|--help)
-      sed -n '2,40p' "$0"
+      sed -n '2,71p' "$0"
       exit 0
       ;;
     --)
@@ -146,6 +196,34 @@ if [ -z "${ROLES}" ]; then
   echo "compile-runtime-agents: no roles to process" >&2
   exit 2
 fi
+
+# ---- verify-mode setup ----------------------------------------------
+# In verify mode, redirect outputs to a scratch dir; capture the
+# committed paths first so we can cmp after generation. The committed
+# paths are NEVER written in verify mode.
+VERIFY_SCRATCH=""
+VERIFY_COMMITTED_RUNTIME=""
+VERIFY_COMMITTED_OPENCODE=""
+if [ "${VERIFY_MODE}" -eq 1 ]; then
+  if [ "${CHECK_MODE}" -eq 1 ]; then
+    echo "compile-runtime-agents: --verify and --check are mutually exclusive" >&2
+    exit 2
+  fi
+  VERIFY_SCRATCH="$(mktemp -d)"
+  VERIFY_COMMITTED_RUNTIME="${OUT_DIR}"
+  VERIFY_COMMITTED_OPENCODE="${OPENCODE_OUT_DIR}"
+  OUT_DIR="${VERIFY_SCRATCH}/runtime"
+  OPENCODE_OUT_DIR="${VERIFY_SCRATCH}/opencode"
+  mkdir -p "${OUT_DIR}" "${OPENCODE_OUT_DIR}"
+  # Trap cleanup; preserved across compile_role's own EXIT trap usage
+  # by being installed last and re-installing after each compile.
+fi
+
+verify_cleanup() {
+  if [ -n "${VERIFY_SCRATCH}" ] && [ -d "${VERIFY_SCRATCH}" ]; then
+    rm -rf "${VERIFY_SCRATCH}"
+  fi
+}
 
 # ---- helpers ---------------------------------------------------------
 
@@ -317,6 +395,87 @@ maybe_validate_output() {
   return 0
 }
 
+# ---- model-class resolver -------------------------------------------
+# Look up the role's default class in docs/model-routing-guidelines.md.
+# Only scans rows under the "## Binding per-agent default-class table"
+# heading, since other tables in the doc (e.g., role-defaults / tier
+# table) share the `agent` | `value` | shape but carry tier names, not
+# class names. The binding table rows look like:
+#   | `tech-lead` | `claude-sonnet` | unresolved conflict, ... |
+# Emit the class on stdout; emit empty string if not found.
+resolve_model_class() {
+  role_slug="$1"
+  if [ ! -f "${ROUTING_DOC}" ]; then
+    echo ""
+    return 0
+  fi
+  awk -v role="${role_slug}" '
+    BEGIN { FS = "|"; in_table = 0 }
+    /^##[ \t]+Binding per-agent default-class table/ { in_table = 1; next }
+    /^##[ \t]+/ { if (in_table) in_table = 0 }
+    in_table == 0 { next }
+    /^\|[ \t]*`[a-z0-9-]+`[ \t]*\|[ \t]*`[a-z0-9-]+`[ \t]*\|/ {
+      agent = $2
+      gsub(/^[ \t]+|[ \t]+$/, "", agent)
+      gsub(/`/, "", agent)
+      if (agent == role) {
+        cls = $3
+        gsub(/^[ \t]+|[ \t]+$/, "", cls)
+        gsub(/`/, "", cls)
+        print cls
+        exit
+      }
+    }
+  ' "${ROUTING_DOC}"
+}
+
+# ---- opencode adapter writer ----------------------------------------
+# Writes .opencode/agents/<role>.md with frontmatter + the fixed
+# four-line body required by R-7. canonical_sha is the same 40-hex
+# value already resolved for the compact-runtime contract.
+write_opencode_adapter() {
+  role="$1"
+  canonical_src="$2"
+  canonical_sha="$3"
+
+  model_class="$(resolve_model_class "${role}")"
+  if [ -z "${model_class}" ]; then
+    echo "compile-runtime-agents: ${role} not in routing table, defaulting to ${DEFAULT_MODEL_CLASS}" >&2
+    model_class="${DEFAULT_MODEL_CLASS}"
+  fi
+
+  mkdir -p "${OPENCODE_OUT_DIR}"
+  out_path="${OPENCODE_OUT_DIR}/${role}.md"
+  tmp_out="${out_path}.tmp"
+
+  local_supplement="${OPENCODE_LOCAL_DIR}/${role}.md"
+  {
+    printf -- '---\n'
+    printf 'name: %s\n' "${role}"
+    printf 'model: %s\n' "${model_class}"
+    printf 'canonical_source: %s\n' "${canonical_src}"
+    printf 'canonical_sha: %s\n' "${canonical_sha}"
+    if [ -f "${local_supplement}" ]; then
+      printf 'local_supplement: %s\n' "${local_supplement}"
+    fi
+    printf 'generator: %s\n' "${GENERATOR_PATH}"
+    printf 'generator_version: %s\n' "${GENERATOR_VERSION}"
+    printf 'classification: generated\n'
+    printf -- '---\n'
+    printf '\n'
+    printf 'Read `.claude/agents/%s.md` (canonical role contract).\n' "${role}"
+    printf 'If `local_supplement` resolves to an existing file, read it after the canonical file.\n'
+    printf 'Act only as that role.\n'
+    printf "Return output in the role's required format.\n"
+  } > "${tmp_out}"
+
+  mv "${tmp_out}" "${out_path}"
+
+  if ! maybe_validate_output "${out_path}"; then
+    overall_status=1
+  fi
+}
+
 compile_role() {
   role="$1"
   src="${AGENTS_DIR}/${role}.md"
@@ -387,18 +546,31 @@ compile_role() {
     fi
   done < "${workdir}/sections.tsv"
 
-  # Diagnose missing required slugs but continue writing what we have.
+  # Diagnose missing required slugs. Default (WARN) mode: SKIP the
+  # compact runtime contract for this role, remove any stale on-disk
+  # copy left over from a previous run, and continue. --strict mode:
+  # the missing-section condition is fatal (overall_status=1). Adapter
+  # generation is independent and proceeds either way (FR-021 only
+  # needs frontmatter + fixed body, not section completeness).
   missing=""
   for r in ${REQUIRED_SLUGS}; do
     if ! grep -q "^${r}$" "${seen_slugs}"; then
       missing="${missing} ${r}"
     fi
   done
+  role_incomplete=0
   if [ -n "${missing}" ]; then
-    for r in ${missing}; do
-      echo "compile-runtime-agents: ${role} is missing required section \"${r}\"" >&2
-    done
-    overall_status=1
+    role_incomplete=1
+    if [ "${STRICT_MODE}" -eq 1 ]; then
+      for r in ${missing}; do
+        echo "compile-runtime-agents: ${role} is missing required section \"${r}\"" >&2
+      done
+      overall_status=1
+    else
+      for r in ${missing}; do
+        echo "compile-runtime-agents: SKIP runtime contract for ${role} — missing required section \"${r}\"" >&2
+      done
+    fi
   fi
 
   # Resolve canonical_sha from the git index.
@@ -413,8 +585,29 @@ compile_role() {
     canonical_sha="0000000000000000000000000000000000000000"
   fi
 
-  mkdir -p "${OUT_DIR}"
+  # OpenCode adapter (FR-021 / R-7) — always written when adapters
+  # are enabled, regardless of section completeness, because the
+  # adapter body is fixed and only depends on the canonical slug +
+  # sha + routing-table class.
+  if [ "${NO_OPENCODE_ADAPTERS}" -eq 0 ]; then
+    write_opencode_adapter "${role}" "${src}" "${canonical_sha}"
+  fi
+
   out_path="${OUT_DIR}/${role}.md"
+
+  if [ "${role_incomplete}" -eq 1 ] && [ "${STRICT_MODE}" -eq 0 ]; then
+    # Default WARN behaviour: do not write the compact runtime contract.
+    # Clean up any stale on-disk copy from a previous run so we never
+    # leave dangling generated artefacts for a now-incomplete canonical.
+    if [ -f "${out_path}" ]; then
+      rm -f "${out_path}"
+    fi
+    rm -rf "${workdir}"
+    trap - EXIT INT TERM
+    return 0
+  fi
+
+  mkdir -p "${OUT_DIR}"
   tmp_out="${workdir}/out.md"
 
   # Emit frontmatter (deterministic key order).
@@ -479,5 +672,59 @@ for role in ${ROLES}; do
   esac
   compile_role "${role}"
 done
+
+# ---- verify-mode comparison -----------------------------------------
+if [ "${VERIFY_MODE}" -eq 1 ]; then
+  verify_status=0
+  for role in ${ROLES}; do
+    case "${role}" in
+      *[!a-z0-9-]*|"") continue ;;
+    esac
+
+    role_ok=1
+
+    # Compact runtime contract.
+    gen_runtime="${OUT_DIR}/${role}.md"
+    cmt_runtime="${VERIFY_COMMITTED_RUNTIME}/${role}.md"
+    if [ -f "${gen_runtime}" ]; then
+      if [ ! -f "${cmt_runtime}" ]; then
+        echo "verify FAIL: ${cmt_runtime} differs from generator output (committed file missing)"
+        role_ok=0
+        verify_status=1
+      elif ! cmp -s "${gen_runtime}" "${cmt_runtime}"; then
+        echo "verify FAIL: ${cmt_runtime} differs from generator output"
+        role_ok=0
+        verify_status=1
+      fi
+    fi
+
+    # OpenCode adapter (unless suppressed).
+    if [ "${NO_OPENCODE_ADAPTERS}" -eq 0 ]; then
+      gen_opencode="${OPENCODE_OUT_DIR}/${role}.md"
+      cmt_opencode="${VERIFY_COMMITTED_OPENCODE}/${role}.md"
+      if [ -f "${gen_opencode}" ]; then
+        if [ ! -f "${cmt_opencode}" ]; then
+          echo "verify FAIL: ${cmt_opencode} differs from generator output (committed file missing)"
+          role_ok=0
+          verify_status=1
+        elif ! cmp -s "${gen_opencode}" "${cmt_opencode}"; then
+          echo "verify FAIL: ${cmt_opencode} differs from generator output"
+          role_ok=0
+          verify_status=1
+        fi
+      fi
+    fi
+
+    if [ "${role_ok}" -eq 1 ]; then
+      echo "verify OK: ${role}"
+    fi
+  done
+
+  verify_cleanup
+  # In verify mode, the verify exit code dominates so drift is the
+  # sole signal. (overall_status may be non-zero from canonical-file
+  # diagnostics; that's still useful but doesn't change pass/fail.)
+  exit ${verify_status}
+fi
 
 exit ${overall_status}

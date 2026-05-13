@@ -5,7 +5,7 @@ model: inherit
 canonical_source: .claude/agents/qa-engineer.md
 canonical_sha: 1ad43bb1185b67379d681c3a9e01e272cfbea7d7
 generator: scripts/compile-runtime-agents.sh
-generator_version: 0.1.0
+generator_version: 0.2.0
 classification: generated
 ---
 

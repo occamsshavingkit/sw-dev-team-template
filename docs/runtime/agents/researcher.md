@@ -5,7 +5,7 @@ model: inherit
 canonical_source: .claude/agents/researcher.md
 canonical_sha: f208493ecf3b87e69c91f206f43395d7ecbdafed
 generator: scripts/compile-runtime-agents.sh
-generator_version: 0.1.0
+generator_version: 0.2.0
 classification: generated
 ---
 
