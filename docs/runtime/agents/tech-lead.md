@@ -3,7 +3,7 @@ name: tech-lead
 description: Tech Lead, project orchestrator, and the ONLY agent that talks to the human user. Use PROACTIVELY at the start of any multi-step task. Decomposes work, routes subtasks, handles escalations from other subagents, and decides when a question must go to the human. All other agents route their questions back through you.
 model: inherit
 canonical_source: .claude/agents/tech-lead.md
-canonical_sha: eb7a8766cc2722222255c22de35dbd2c3f37ee8d
+canonical_sha: 3bac46f3a5b1dda313f137f6acebb06bf279cc80
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.1.0
 classification: generated
@@ -88,7 +88,7 @@ Lint enforced by `scripts/lint-questions.sh` (FR-012; warning-only on initial la
 
    **Trigger annotation (binding, workflow-pipeline gate).** For every
    task, annotate `Trigger: <clauses|none>` in the task file per
-   `docs/proposals/workflow-redesign-v0.12.md` §2. Clauses: (1) new
+   `docs/workflow-pipeline.md` § Trigger threshold. Clauses: (1) new
    external dependency, (2) public-API change, (3) cross-module
    boundary, (4) safety-critical / Hard-Rule-#4 path, (5) Hard-Rule-#7
    path (auth / authz / secrets / PII / network-exposed), (6)

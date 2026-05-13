@@ -3,7 +3,7 @@ name: researcher
 description: Librarian and researcher. Use when the task requires authoritative information from standards (SWEBOK, ISO, IEEE, ISTQB, SFIA, PMBOK), official vendor/framework documentation, or prior art — and for recording customer-provided domain facts into CUSTOMER_NOTES.md after tech-lead gets them. Does not contact the customer directly.
 model: inherit
 canonical_source: .claude/agents/researcher.md
-canonical_sha: ff79191e143dadb2c28f46cbbb8381ff81ea458f
+canonical_sha: f208493ecf3b87e69c91f206f43395d7ecbdafed
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.1.0
 classification: generated
@@ -114,7 +114,7 @@ deliverables).
 
    **Durable artifact required on triggered tasks.** When
    `tech-lead` dispatches a task annotated with any trigger clause
-   per `docs/proposals/workflow-redesign-v0.12.md` §2 — (1) new
+   per `docs/workflow-pipeline.md` § Trigger threshold — (1) new
    external dependency, (2) public-API change, (3) cross-module
    boundary, (4) safety-critical, (5) Hard-Rule-#7 path, (6)
    data-model change — produce `docs/prior-art/<task-id>.md` per
