@@ -114,3 +114,22 @@ R-4 (rationale-absorption pattern).
 SC-001 (tech-lead ≥30% reduction): **PASS** at 42.4%.
 SC-002 (other targeted agents ≥20% where safe): **PASS** with one
 documented "where safe" invocation (code-reviewer).
+
+## M6 prompt-regression run (2026-05-13)
+
+T063 ran `tests/prompt-regression/run.sh` against the full 13-fixture
+set (5 agents: tech-lead, researcher, code-reviewer, qa-engineer,
+project-manager) in stub mode. Compiler (`scripts/compile-runtime-agents.sh`)
+exited 0; 9 compact runtime contracts current at HEAD.
+
+- `--validate-only`: 13 / 13 fixtures PASS schema validation.
+- `--canonical`: 13 / 13 STUB-execute against `.claude/agents/<agent>.md`;
+  0 skipped.
+- `--compiled`: 13 / 13 STUB-execute against
+  `docs/runtime/agents/<agent>.md`; 0 skipped (project-manager runtime
+  contract present post-T060-prework, so both `no-op-pm-pass` and
+  `stale-schedule-delta` STUB rather than SKIP).
+- SC-013 structural pass: both lint and regression complete against
+  canonical and compiled sources with no skip gaps.
+- Phase-3+ follow-up: real LLM-driven execution (not stub) deferred per
+  T011 design; logged in `docs/pm/LESSONS.md`.

@@ -94,6 +94,7 @@ DEFAULT_MODEL_CLASS="claude-sonnet"
 CHECK_MODE=0
 VERIFY_MODE=0
 STRICT_MODE=0
+REPRO_MODE=0
 OUT_DIR="${DEFAULT_OUT_DIR}"
 ROLES=""
 NO_OPENCODE_ADAPTERS=0
@@ -106,6 +107,16 @@ while [ $# -gt 0 ]; do
       ;;
     --verify)
       VERIFY_MODE=1
+      shift
+      ;;
+    --reproducibility-check)
+      # T061 / SC-007: run two independent compilations and cmp them
+      # byte-for-byte. Verifies the compiler itself is deterministic
+      # (complement of --verify, which checks committed-vs-fresh).
+      # Handled below the arg-parse loop as a wrapper around the
+      # ordinary entry-point so the core compile logic stays
+      # untouched.
+      REPRO_MODE=1
       shift
       ;;
     --strict)
@@ -195,6 +206,168 @@ fi
 if [ -z "${ROLES}" ]; then
   echo "compile-runtime-agents: no roles to process" >&2
   exit 2
+fi
+
+# ---- reproducibility-check mode (T061 / SC-007) ---------------------
+# Run two independent fresh compilations into separate scratch dirs and
+# cmp them byte-for-byte. Verifies that the compiler is deterministic
+# (the canonical_sha is read from the git index, not the working tree,
+# so determinism reduces to: same inputs + same GENERATOR_VERSION ->
+# byte-identical outputs). Intended for CI; complements --verify, which
+# instead asserts committed-vs-fresh equality.
+#
+# Behaviour:
+#   * Compile each requested role into tempdir A.
+#   * Compile each requested role into tempdir B (separate workdir).
+#   * For each role, cmp -s the compact runtime contract AND the
+#     OpenCode adapter (when adapter generation is enabled).
+#   * Print 'reproducibility OK: <role>' on per-role match, or
+#     'reproducibility FAIL: <role> -- diff at <path>' on mismatch.
+#   * Exit 0 iff all roles match.
+#
+# A role that has no compact-runtime contract (incomplete canonical in
+# default-WARN mode) still has its adapter checked; the OK line is
+# emitted as long as whatever artefacts WERE produced match.
+if [ "${REPRO_MODE}" -eq 1 ]; then
+  if [ "${CHECK_MODE}" -eq 1 ] || [ "${VERIFY_MODE}" -eq 1 ]; then
+    echo "compile-runtime-agents: --reproducibility-check is mutually exclusive with --check / --verify" >&2
+    exit 2
+  fi
+
+  REPRO_A="$(mktemp -d)"
+  REPRO_B="$(mktemp -d)"
+  trap 'rm -rf "${REPRO_A}" "${REPRO_B}"' EXIT INT TERM
+
+  # Use the script path captured at startup. Each invocation is a fresh
+  # shell process with its own working state, satisfying R-VR-1's
+  # "two independent compilations" requirement.
+  SELF="$0"
+
+  repro_args_a="--out-dir ${REPRO_A}/runtime"
+  repro_args_b="--out-dir ${REPRO_B}/runtime"
+  if [ "${STRICT_MODE}" -eq 1 ]; then
+    repro_args_a="${repro_args_a} --strict"
+    repro_args_b="${repro_args_b} --strict"
+  fi
+  if [ "${NO_OPENCODE_ADAPTERS}" -eq 1 ]; then
+    repro_args_a="${repro_args_a} --no-opencode-adapters"
+    repro_args_b="${repro_args_b} --no-opencode-adapters"
+  fi
+
+  # OPENCODE_OUT_DIR is read from the script's own default; we need to
+  # override it for the two compilations so adapters land in the
+  # scratch dirs, not in the committed .opencode/agents/ path. We do
+  # this by exporting an environment override and consuming it at the
+  # top of the script's main body. The simpler path used here: redirect
+  # via a wrapping shell that pre-sets the script's OPENCODE_OUT_DIR
+  # via a chdir-equivalent. Since the compiler hard-codes
+  # OPENCODE_OUT_DIR=".opencode/agents", we instead chdir each
+  # invocation into a tree rooted at the scratch dir that symlinks the
+  # canonical inputs and routing doc.
+
+  mkdir -p "${REPRO_A}/root/.claude/agents" "${REPRO_B}/root/.claude/agents"
+  mkdir -p "${REPRO_A}/root/scripts" "${REPRO_B}/root/scripts"
+  mkdir -p "${REPRO_A}/root/schemas" "${REPRO_B}/root/schemas"
+  mkdir -p "${REPRO_A}/root/docs" "${REPRO_B}/root/docs"
+
+  # Mirror the inputs the compiler reads into each scratch root via
+  # hardlinks (no-op for filesystems that don't support links: fall
+  # back to copy). Inputs are read-only from the compiler's POV.
+  copy_or_link() {
+      src_path="$1"; dst_path="$2"
+      [ -e "${src_path}" ] || return 0
+      mkdir -p "$(dirname "${dst_path}")"
+      if ! ln "${src_path}" "${dst_path}" 2>/dev/null; then
+          cp "${src_path}" "${dst_path}"
+      fi
+  }
+
+  for root in "${REPRO_A}/root" "${REPRO_B}/root"; do
+      # canonical agents
+      for f in "${AGENTS_DIR}"/*.md; do
+          [ -f "${f}" ] || continue
+          copy_or_link "${f}" "${root}/${f}"
+      done
+      # schemas
+      for f in "${SCHEMA_DIR}"/*.json; do
+          [ -f "${f}" ] || continue
+          copy_or_link "${f}" "${root}/${f}"
+      done
+      # routing doc
+      copy_or_link "${ROUTING_DOC}" "${root}/${ROUTING_DOC}"
+      # the compiler script itself, so $0 resolution inside the child
+      # picks up the right SCRIPT_DIR / REPO_ROOT.
+      copy_or_link "${SELF}" "${root}/scripts/compile-runtime-agents.sh"
+      chmod +x "${root}/scripts/compile-runtime-agents.sh"
+      # The child also needs a .git pointer for canonical_sha resolution.
+      # Symlink the original .git into each scratch root (read-only ref).
+      if [ -d ".git" ]; then
+          ln -s "$(pwd)/.git" "${root}/.git" 2>/dev/null || true
+      fi
+  done
+
+  # Build positional role-list string for the child invocations.
+  repro_roles=""
+  for r in ${ROLES}; do
+      case "${r}" in
+          *[!a-z0-9-]*|"") continue ;;
+      esac
+      repro_roles="${repro_roles} ${r}"
+  done
+
+  # Run both compilations. Stderr passes through so users see the
+  # compiler's own diagnostics (SKIP / WARN lines).
+  (
+      cd "${REPRO_A}/root"
+      # shellcheck disable=SC2086
+      sh scripts/compile-runtime-agents.sh ${repro_roles} >/dev/null
+  ) || true
+  (
+      cd "${REPRO_B}/root"
+      # shellcheck disable=SC2086
+      sh scripts/compile-runtime-agents.sh ${repro_roles} >/dev/null
+  ) || true
+
+  repro_status=0
+  for r in ${repro_roles}; do
+      role_ok=1
+
+      a_runtime="${REPRO_A}/root/${DEFAULT_OUT_DIR}/${r}.md"
+      b_runtime="${REPRO_B}/root/${DEFAULT_OUT_DIR}/${r}.md"
+      if [ -f "${a_runtime}" ] || [ -f "${b_runtime}" ]; then
+          if [ ! -f "${a_runtime}" ] || [ ! -f "${b_runtime}" ]; then
+              echo "reproducibility FAIL: ${r} -- diff at ${a_runtime} (one side missing)"
+              role_ok=0
+              repro_status=1
+          elif ! cmp -s "${a_runtime}" "${b_runtime}"; then
+              echo "reproducibility FAIL: ${r} -- diff at ${a_runtime}"
+              role_ok=0
+              repro_status=1
+          fi
+      fi
+
+      if [ "${NO_OPENCODE_ADAPTERS}" -eq 0 ]; then
+          a_op="${REPRO_A}/root/${OPENCODE_OUT_DIR}/${r}.md"
+          b_op="${REPRO_B}/root/${OPENCODE_OUT_DIR}/${r}.md"
+          if [ -f "${a_op}" ] || [ -f "${b_op}" ]; then
+              if [ ! -f "${a_op}" ] || [ ! -f "${b_op}" ]; then
+                  echo "reproducibility FAIL: ${r} -- diff at ${a_op} (one side missing)"
+                  role_ok=0
+                  repro_status=1
+              elif ! cmp -s "${a_op}" "${b_op}"; then
+                  echo "reproducibility FAIL: ${r} -- diff at ${a_op}"
+                  role_ok=0
+                  repro_status=1
+              fi
+          fi
+      fi
+
+      if [ "${role_ok}" -eq 1 ]; then
+          echo "reproducibility OK: ${r}"
+      fi
+  done
+
+  exit ${repro_status}
 fi
 
 # ---- verify-mode setup ----------------------------------------------

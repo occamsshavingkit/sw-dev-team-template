@@ -178,6 +178,20 @@ standards / methodology lookups, route to `researcher` first.
 - Change requests that cross the agreed threshold require explicit
   customer approval recorded in `CUSTOMER_NOTES.md` via `researcher`.
 
+## Output format
+
+Structured PM artefacts only — no prose deliverables.
+
+- **PM delta-pass result:** either a one-line no-op confirmation
+  or minimal targeted edits to affected rows in `SCHEDULE.md`,
+  `RISKS.md`, `LESSONS.md`. Per "PM delta pass" above.
+- **Milestone-close audit:** brief written summary appended to
+  `docs/pm/LESSONS.md` (status, slip, risk delta, agent-health line).
+- **Coordination ask:** project brief — status / blockers /
+  decisions-needed / owners / next actions, no full context fork.
+- **Customer-bound ask:** routed via `tech-lead`, framed per the
+  Escalation section above.
+
 ## Tech-lead health audits + respawn (binding)
 
 Per `docs/agent-health-contract.md` § 5, you are the designated
