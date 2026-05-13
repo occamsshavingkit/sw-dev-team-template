@@ -15,6 +15,8 @@ Working branches in this sub-repo: `feat/m0-baseline` (M0),
 |---|---|---|---|---|---|
 | M0 | Establish current-state measurements before changing behavior. | 2026-05-13 | 2026-05-13 | passed | G0 signed 2026-05-13 (`code-reviewer` + `project-manager`); evidence in [SCHEDULE-EVIDENCE.md §M0](./SCHEDULE-EVIDENCE.md#m0--mobilize-and-baseline). |
 | M1 | Reduce recurring context cost before adding new cross-AI features. | 2026-05-13 | 2026-05-13 | passed | G1 signed 2026-05-13 (`code-reviewer` re-audit + `project-manager`); evidence in [SCHEDULE-EVIDENCE.md §M1](./SCHEDULE-EVIDENCE.md#m1--token-quick-wins). PRs PR-2a + PR-2 + PR-3 + PR-4 merged. |
+| M2 | Token operating model. | 2026-05-13 | 2026-05-13 | passed | G2 signed 2026-05-13 (`code-reviewer` audit + `project-manager`); evidence in [SCHEDULE-EVIDENCE.md §M2](./SCHEDULE-EVIDENCE.md#m2--token-operating-model). PRs PR-3 (token-budget fields + delta-pass) merged. |
+| M3 | Atomic-question + intake repair. | 2026-05-13 | 2026-05-13 | passed | G3 signed 2026-05-13 (`code-reviewer` audit + `project-manager`); evidence in [SCHEDULE-EVIDENCE.md §M3](./SCHEDULE-EVIDENCE.md#m3--atomic-question--intake-repair). PRs PR-5 + PR-6 + PR-7 merged. |
 
 ## Activities
 
@@ -58,3 +60,5 @@ edit once baselined — re-baseline with a change log row.
 |---|---|---|---|
 | G0 | M0 | `code-reviewer` (audit) + `project-manager` | signed 2026-05-13 |
 | G1 | M1 | `code-reviewer` (re-audit) + `project-manager` | signed 2026-05-13 |
+| G2 | M2 | `code-reviewer` (audit) + `project-manager` | signed 2026-05-13 |
+| G3 | M3 | `code-reviewer` (audit) + `project-manager` | signed 2026-05-13 |

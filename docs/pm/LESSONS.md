@@ -418,3 +418,8 @@ to explicitly include `scoping-questions-template.md` if the template
 shape persists. (non-blocking, deferred — does not block G3 close
 because the lint surface is warning-only and the template won't ship
 into a fresh project until M8 retrofit triggers it.)
+
+## M3 close (2026-05-13)
+
+- G3 first-audit BLOCK on a missing durable record of SC-002 researcher exception (commit message ≠ LESSONS entry; spec § SC-002 requires "any exception is justified and recorded"). Fix landed at commit `a37165c`. Recommend at M6 or M7 a CI guard that fails when a commit message claims an SC exception but `docs/pm/LESSONS.md` doesn't have a matching `## <SC-id> exception (date)` heading. (non-blocking, deferred)
+- Pattern continues from M1 close: canonical_sha staleness across canonical-edit → runtime-recompile cycles. Two-commit dance is fragile but worked. Same CI guard recommendation as in M1 close LESSONS still applies.
