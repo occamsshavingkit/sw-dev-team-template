@@ -66,16 +66,24 @@ gate_subgate_migrations-standalone() {
             continue
         fi
 
-        # Setup: ensure shared upstream-fixture exists. Reuse if Phase-4's
-        # upgrade-paths sub-gate already set it up; otherwise build here.
+        # Setup: each sub-gate runs in its own subshell so we can't rely on
+        # upgrade-paths having set GATE_UPSTREAM_FIXTURE. Build a dedicated
+        # one for this sub-gate, idempotently removing any prior state.
         if [ -z "${GATE_UPSTREAM_FIXTURE:-}" ] || [ ! -d "${GATE_UPSTREAM_FIXTURE:-/nonexistent}" ]; then
-            # shellcheck disable=SC1090
-            . "${GATE_LIB_DIR:-$(dirname "$0")}/gate-tags.sh"
-            gate_setup_upgrade_fixture || {
-                echo "migration $mig: setup_upgrade_fixture failed"
+            # Use a sub-gate-specific path so concurrent setups don't collide
+            # with upgrade-paths's $GATE_TEMP_ROOT/upstream-fixture.
+            GATE_UPSTREAM_FIXTURE="$GATE_TEMP_ROOT/upstream-fixture-mig"
+            rm -rf "$GATE_UPSTREAM_FIXTURE"
+            git clone --local --quiet "$GATE_CANDIDATE_TREE" "$GATE_UPSTREAM_FIXTURE" >/dev/null 2>&1 || {
+                echo "migration $mig: clone for fixture failed"
                 failures=$((failures + 1))
                 continue
             }
+            git -C "$GATE_UPSTREAM_FIXTURE" config user.email "gate@example.invalid"
+            git -C "$GATE_UPSTREAM_FIXTURE" config user.name "pre-release gate"
+            GATE_CANDIDATE_TAG="gate-candidate-mig"
+            candidate_sha=$(git -C "$GATE_CANDIDATE_TREE" rev-parse HEAD)
+            git -C "$GATE_UPSTREAM_FIXTURE" tag -a "$GATE_CANDIDATE_TAG" -m "pre-release gate candidate sentinel" "$candidate_sha" 2>/dev/null
         fi
 
         fixture_dir=$(mktemp -d "$GATE_TEMP_ROOT/mig-fixture-${target}.XXXXXX")

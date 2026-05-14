@@ -224,11 +224,44 @@ gate_subgate_check-spdx() {
     ./scripts/check-spdx.sh --summary
 }
 
+# readme-current (regression). Added per customer ask 2026-05-14: README.md
+# must be updated for every release. The gate enforces this by requiring
+# that README.md either (a) literally contains the candidate's VERSION
+# string, OR (b) has been modified since the most recent release tag
+# reachable from HEAD. Either signal is taken as "the maintainer remembered."
+gate_subgate_readme-current() {
+    cd "$GATE_CANDIDATE_TREE" || return 1
+    if [ ! -f README.md ]; then
+        echo "readme-current: README.md missing"
+        return 1
+    fi
+    version=$(cat VERSION 2>/dev/null)
+    if [ -z "$version" ]; then
+        echo "readme-current: VERSION file missing or empty"
+        return 1
+    fi
+    # Signal (a): README mentions current VERSION.
+    if grep -qF "$version" README.md; then
+        return 0
+    fi
+    # Signal (b): README touched since most recent v* tag reachable from HEAD.
+    last_tag=$(git describe --tags --abbrev=0 --match 'v*' HEAD 2>/dev/null)
+    if [ -n "$last_tag" ]; then
+        if git diff --name-only "$last_tag" -- README.md 2>/dev/null | grep -q '^README\.md$'; then
+            return 0
+        fi
+    fi
+    echo "readme-current: README.md neither mentions $version nor was modified since ${last_tag:-<no prior tag>}"
+    echo "Update README.md with release notes / version stamp before tagging."
+    return 1
+}
+
 # ----- Registration -----------------------------------------------------------
 
 gate_register worktree-clean   precondition  "Worktree clean against git status (FR-008)."
 gate_register lint-contracts   regression    "Canonical agent contracts schema (FR-004)."
 gate_register check-spdx       regression    "SPDX-License-Identifier headers (FR-005)."
+gate_register readme-current   regression    "README.md mentions current VERSION or was modified since last v* tag (customer ask 2026-05-14)."
 
 # Sub-gates contributed by US2 / US3 are sourced from their dedicated libraries
 # when those phases land; the source lines below are guarded so the file can
