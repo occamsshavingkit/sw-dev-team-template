@@ -589,7 +589,15 @@ fi
 bootstrap_target="$tmp/bootstrap-target"
 ./scripts/scaffold.sh "$bootstrap_target" "Bootstrap Args Smoke" >/dev/null
 printf 'v0.1.0\nunknown\n2026-01-01\n' > "$bootstrap_target/TEMPLATE_VERSION"
-printf '\n# force bootstrap drift\n' >> "$bootstrap_target/scripts/lib/first-actions.sh"
+# FW-ADR-0010: pre-bootstrap 3-SHA matrix routes baseline-unreachable +
+# project-edited bootstrap-critical files to "refuse" (exit 2). To exercise
+# the dry-run re-exec path under the new contract, drop a bootstrap-critical
+# helper so the matrix routes "missing-locally → proceed" for that one path
+# (the rest of the lib stays project==upstream, which routes "noop"). The
+# missing-helper case is the legitimate add-from-upstream signal that
+# bootstrap is meant to handle. Predecessor fixture (`force bootstrap drift`)
+# routed to baseline-unreachable refuse under the new ADR and was removed.
+rm -f "$bootstrap_target/scripts/lib/first-actions.sh"
 bootstrap_rc=$(run_capture "$tmp/bootstrap-dry-run.log" \
                bash -c "cd '$bootstrap_target' && SWDT_UPSTREAM_URL='$bootstrap_upstream' ./scripts/upgrade.sh --dry-run --target '$expected_version'")
 bootstrap_post_version="$(head -1 "$bootstrap_target/TEMPLATE_VERSION" | tr -d '[:space:]')"
@@ -601,8 +609,12 @@ check "bootstrap re-exec preserves --target" \
   bash -c "grep -q 'Pinning upgrade to --target $expected_version' '$tmp/bootstrap-dry-run.log'"
 check "bootstrap dry-run leaves TEMPLATE_VERSION unchanged" \
   bash -c "[ '$bootstrap_post_version' = 'v0.1.0' ]"
-check "bootstrap dry-run leaves helper drift in place" \
-  bash -c "grep -q 'force bootstrap drift' '$bootstrap_target/scripts/lib/first-actions.sh'"
+# FW-ADR-0010: dry-run must not install the missing helper into the project.
+# (Pre-ADR-0010 fixture asserted "drift in place"; under the new contract
+# the dry-run signal is the inverse — the missing-locally path stays
+# missing locally on a dry-run.)
+check "bootstrap dry-run leaves missing helper missing" \
+  bash -c "[ ! -f '$bootstrap_target/scripts/lib/first-actions.sh' ]"
 check "upgrade surfaces FIRST ACTIONS warning when Step 0 missing" \
   bash -c "grep -q 'ACTION REQUIRED: FIRST ACTIONS Step 0 is not recorded' '$tmp/bootstrap-dry-run.log'"
 
