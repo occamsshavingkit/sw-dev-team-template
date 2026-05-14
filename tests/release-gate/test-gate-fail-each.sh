@@ -109,6 +109,61 @@ assert_subgate_fails "03-dangling-advisory" "advisory-pointers"
 mv "$backup_script" "$victim_script"
 revert_actions=()
 
+# ----- Fixture 07: synthetic broken v* tag → upgrade-paths ---------------
+# Exercises the upgrade-paths sub-gate's failure surface (issue #166-A). The
+# sub-gate enumerates v* tags reachable from HEAD whose scripts/upgrade.sh
+# honours SWDT_UPSTREAM_URL, then runs a scaffold+upgrade+verify round-trip
+# from each. To produce a deliberate failure that doesn't touch shipped
+# history, we:
+#
+#   1. Create a commit B whose tree intentionally breaks scaffold.sh.
+#   2. Create a fixup commit C on top of B that restores scaffold.sh, so the
+#      candidate state (HEAD = C) is healthy AND B is reachable from HEAD.
+#   3. Tag B as a synthetic v* name (not in the allowlist) — gate enumerates
+#      it, runs the round-trip starting from B's broken tree, scaffold fails,
+#      round-trip fails, sub-gate reports it as a blocking failing source tag.
+#   4. On revert: git reset --hard <orig_head> drops both B and C; tag -d
+#      removes the synthetic tag.
+#
+# The synthetic tag name embeds the PID so concurrent test runs don't collide.
+fixture07_tag="v0.0.0-fixture-07-$$"
+fixture07_orig_head=$(git -C "$repo_root" rev-parse HEAD)
+if git -C "$repo_root" diff --quiet && git -C "$repo_root" diff --cached --quiet; then
+    fixture07_scaffold="$repo_root/scripts/scaffold.sh"
+    fixture07_backup="$fixture07_scaffold.bak-$$"
+    cp "$fixture07_scaffold" "$fixture07_backup"
+    # Commit B: deliberately broken scaffold.sh (early exit 1) → scaffold step
+    # of round-trip fails immediately.
+    printf '#!/usr/bin/env bash\n# SPDX-License-Identifier: MIT\necho "fixture-07: deliberate scaffold break" >&2\nexit 1\n' > "$fixture07_scaffold"
+    git -C "$repo_root" add scripts/scaffold.sh >/dev/null 2>&1
+    git -C "$repo_root" -c commit.gpgsign=false commit -q \
+        -m "test(fixture-07): broken scaffold.sh (synthetic, do-not-ship)" >/dev/null 2>&1
+    git -C "$repo_root" tag "$fixture07_tag" HEAD >/dev/null 2>&1
+    # Commit C: restore scaffold.sh so HEAD (the candidate) is healthy.
+    mv "$fixture07_backup" "$fixture07_scaffold"
+    git -C "$repo_root" add scripts/scaffold.sh >/dev/null 2>&1
+    git -C "$repo_root" -c commit.gpgsign=false commit -q \
+        -m "test(fixture-07): restore scaffold.sh (synthetic, do-not-ship)" >/dev/null 2>&1
+    register_revert "git -C '$repo_root' tag -d '$fixture07_tag' >/dev/null 2>&1; git -C '$repo_root' reset --hard '$fixture07_orig_head' >/dev/null 2>&1"
+    assert_subgate_fails "07-upgrade-paths-fail" "upgrade-paths"
+    # Check the diagnostic line names the synthetic tag.
+    out=$("$gate" 2>&1) || true
+    if printf '%s' "$out" | grep -qE "failing source tags:.*${fixture07_tag}"; then
+        echo "  PASS: [07-upgrade-paths-fail] '$fixture07_tag' surfaces in failing-source-tags diagnostic"
+        pass=$((pass + 1))
+    else
+        echo "  FAIL: [07-upgrade-paths-fail] '$fixture07_tag' not in failing-source-tags diagnostic"
+        echo "       output: $(printf '%s' "$out" | grep 'failing source tags' || echo '<no failing-source-tags line>')"
+        fail=$((fail + 1))
+    fi
+    # Revert via trap action.
+    git -C "$repo_root" tag -d "$fixture07_tag" >/dev/null 2>&1 || true
+    git -C "$repo_root" reset --hard "$fixture07_orig_head" >/dev/null 2>&1 || true
+    revert_actions=()
+else
+    echo "  SKIP: 07-upgrade-paths-fail — worktree is dirty; cannot synthesize a transient v* tag safely"
+fi
+
 # ----- Fixture 06: migration writes placeholder body → migrations-standalone --
 # Create a one-shot stub migration that writes the placeholder marker into
 # a canonical agent file. The gate's per-migration scan will find it.
