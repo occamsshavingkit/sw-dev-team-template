@@ -224,10 +224,10 @@ operator to resolve.
     the customer's ruling specifically asked for. A merged file
     is *neither* the operator's edit nor the upstream — it's a
     new artifact nobody reviewed.
-  - The override semantics get murky: what does
-    `SWDT_PREBOOTSTRAP_FORCE=1` mean against a merge? "Take ours"?
-    "Take theirs"? "Accept conflict markers"? Each is wrong in
-    a different real scenario.
+  - The override semantics get murky: `SWDT_PREBOOTSTRAP_FORCE=1`
+    has no good meaning against a merge — `take-ours`, `take-theirs`,
+    and `accept-conflict-markers` are all wrong in a different real
+    scenario.
 - **When C wins:** if the bootstrap-critical fileset were prose or
   data, not executable shell. It is shell. C loses on the
   conflict-marker-in-executable failure mode alone.
