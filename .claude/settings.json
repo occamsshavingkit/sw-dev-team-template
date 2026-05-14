@@ -12,6 +12,11 @@
             "type": "command",
             "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/tech-lead-authoring-guard.py\"",
+            "timeout": 5
           }
         ]
       },
@@ -21,6 +26,11 @@
           {
             "type": "command",
             "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/tech-lead-authoring-guard.py\"",
             "timeout": 5
           }
         ]
@@ -32,6 +42,11 @@
             "type": "command",
             "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/tech-lead-authoring-guard.py\"",
+            "timeout": 5
           }
         ]
       },
@@ -41,6 +56,11 @@
           {
             "type": "command",
             "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/tech-lead-authoring-guard.py\"",
             "timeout": 5
           }
         ]
@@ -60,6 +80,23 @@
             "command": "[ -x \"${CLAUDE_PROJECT_DIR}/scripts/hooks/atomic-question-reminder.sh\" ] && \"${CLAUDE_PROJECT_DIR}/scripts/hooks/atomic-question-reminder.sh\" 2>&1 || true",
             "timeout": 5,
             "statusMessage": "Atomic-question rule reminder..."
+          },
+          {
+            "type": "command",
+            "command": "[ -x \"${CLAUDE_PROJECT_DIR}/scripts/hooks/role-routing-reminder.sh\" ] && \"${CLAUDE_PROJECT_DIR}/scripts/hooks/role-routing-reminder.sh\" 2>&1 || true",
+            "timeout": 5,
+            "statusMessage": "Role-routing rule reminder..."
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -x \"${CLAUDE_PROJECT_DIR}/scripts/hooks/post-compact-refresh.sh\" ] && \"${CLAUDE_PROJECT_DIR}/scripts/hooks/post-compact-refresh.sh\" 2>&1 || true",
+            "timeout": 5,
+            "statusMessage": "Post-compaction refresh directive..."
           }
         ]
       }

@@ -45,6 +45,16 @@ export LANG LC_ALL
 
 : "${PROJECT_ROOT:?PROJECT_ROOT is required}"
 
+# Visibility for degraded-mode operation (issue #159). If WORKDIR_NEW is
+# empty/unset OR doesn't contain an upstream .claude/agents/ tree, the
+# migration still runs but uses TODO placeholders instead of canonical
+# upstream section bodies. Surface that condition on stderr so operators
+# can re-run with a proper upstream clone if they want canonical content.
+# Non-fatal: placeholder fallback is a valid degraded path.
+if [ -z "${WORKDIR_NEW:-}" ] || [ ! -d "${WORKDIR_NEW:-}/.claude/agents" ]; then
+    printf 'WARN: WORKDIR_NEW=%s is not a usable upstream clone; this migration will fall back to TODO placeholders instead of upstream-canonical section bodies. Set WORKDIR_NEW to an extracted rc9+ upstream tree to backfill from canonical content.\n' "${WORKDIR_NEW:-}" >&2
+fi
+
 agents_dir="$PROJECT_ROOT/.claude/agents"
 decisions_log="$PROJECT_ROOT/docs/DECISIONS.md"
 
@@ -239,40 +249,79 @@ append_decision() {
 
 # ---- walk + backfill -------------------------------------------------
 #
-# Only operate on canonical agents the project has CUSTOMISED (i.e.,
-# paths listed in `.template-customizations`). Files not in that list
-# are overwritten by the ship sync that runs immediately after this
-# migration in scripts/upgrade.sh, so the rc9-canonical Hard rules and
-# Output format sections will arrive automatically — modifying them
-# here would create a spurious local-delta that the 3-way merge then
-# flags as a conflict (regression observed in rc3->rc9 smoke; see
-# issue #141 follow-up in PR #157).
-
-customizations_file="$PROJECT_ROOT/.template-customizations"
-preserved_agents=""
-if [ -f "$customizations_file" ]; then
-    preserved_agents=$(grep -E '^\.claude/agents/[^/]+\.md$' "$customizations_file" 2>/dev/null || true)
-fi
-if [ -z "$preserved_agents" ]; then
-    echo "migrations/v1.0.0-rc9.sh: 0 files backfilled, 0 files already current (no customised canonical agents)."
-    exit 0
-fi
+# Selection predicate (post-#172):
+#
+# Operate on every `.claude/agents/*.md` file EXCEPT per-project SMEs
+# (`sme-*.md`) and the SME scaffold (`sme-template.md`). Canonical
+# agents and `*-local.md` supplements are both in scope.
+#
+# Classification per candidate:
+#
+#   1. If WORKDIR_OLD is set AND the baseline file
+#      `$WORKDIR_OLD/.claude/agents/<base>` exists, compare it byte-for-
+#      byte against the project file:
+#        - identical  → clean canonical; ship sync will replace it with
+#                       the rc9-canonical version. Skip.
+#        - different  → customised; run the section-missing check and
+#                       backfill.
+#   2. If WORKDIR_OLD is unavailable (env unset OR directory missing
+#      OR baseline file missing), fall through to the slug check on the
+#      candidate. The slug check is idempotent — a candidate that
+#      already has both `## Hard rules` and `## Output format` is a
+#      no-op, so worst case we walk files we didn't need to.
+#
+# Prior scope was `.template-customizations`-listed paths only
+# (#0c5d3cc); that narrowed the false-conflict regression but silently
+# skipped agents customised before `.template-customizations` existed
+# (issue #172). Customer ruling 2026-05-14 widened the scope and
+# explicitly accepted that this crosses the framework/project boundary
+# for `*-local.md` supplements.
 
 backfilled=0
 already_current=0
 
-# shellcheck disable=SC2034  # iterated by relative path, not glob
-for rel in $preserved_agents; do
-    f="$PROJECT_ROOT/$rel"
+baseline_agents=""
+if [ -n "${WORKDIR_OLD:-}" ] && [ -d "${WORKDIR_OLD}/.claude/agents" ]; then
+    baseline_agents="${WORKDIR_OLD}/.claude/agents"
+fi
+
+# Enumerate candidates: every .md under .claude/agents/ except sme-*.md
+# and sme-template.md. `*-local.md` is intentionally NOT excluded
+# (customer ruling 2026-05-14).
+candidates=$(find "$agents_dir" -maxdepth 1 -type f -name '*.md' \
+    ! -name 'sme-*.md' ! -name 'sme-template.md' \
+    2>/dev/null | LC_ALL=C sort)
+
+if [ -z "$candidates" ]; then
+    echo "migrations/v1.0.0-rc9.sh: 0 files backfilled, 0 files already current (no candidate agents)."
+    exit 0
+fi
+
+# shellcheck disable=SC2034  # iterated by absolute path, not glob
+for f in $candidates; do
     [ -f "$f" ] || continue
 
     base=$(basename "$f")
-    # Skip per-project SMEs and -local supplements.
+    # Defensive: the find filter above already excludes these, but keep
+    # the case-arm so a future refactor of `candidates=` can't silently
+    # widen scope to SMEs.
     case "$base" in
         sme-template.md) continue ;;
         sme-*.md)        continue ;;
-        *-local.md)      continue ;;
     esac
+
+    # Baseline classification: if we have an upstream-OLD baseline for
+    # this file AND it matches the project file byte-for-byte, the file
+    # is clean canonical — the ship sync will replace it with the rc9
+    # ship, so backfilling here would create a spurious local-delta
+    # that the 3-way merge flags as a conflict (regression #0c5d3cc
+    # fixed). Skip. If different OR baseline unavailable, fall through
+    # to the slug check below.
+    if [ -n "$baseline_agents" ] && [ -f "$baseline_agents/$base" ]; then
+        if cmp -s "$baseline_agents/$base" "$f"; then
+            continue
+        fi
+    fi
 
     # Determine which required sections (of the two added by rc9 that
     # downstream customisation tends to drop) are missing. role_overview

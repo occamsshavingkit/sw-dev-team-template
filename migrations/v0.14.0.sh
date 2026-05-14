@@ -51,27 +51,230 @@ set -euo pipefail
 # replacement; the sync loop then sees cmp-equal between $new_path and
 # $proj_path and skips the cp altogether.
 #
-# Idempotent: runs every time this migration runs, no harm if the files
-# are already identical.
-if [ -f "$WORKDIR_NEW/scripts/upgrade.sh" ] && [ -f "$PROJECT_ROOT/scripts/upgrade.sh" ]; then
-    if ! cmp -s "$WORKDIR_NEW/scripts/upgrade.sh" "$PROJECT_ROOT/scripts/upgrade.sh"; then
-        cp "$WORKDIR_NEW/scripts/upgrade.sh" "$PROJECT_ROOT/scripts/upgrade.sh.tmp.$$"
-        mv "$PROJECT_ROOT/scripts/upgrade.sh.tmp.$$" "$PROJECT_ROOT/scripts/upgrade.sh"
-        echo "  pre-bootstrapped scripts/upgrade.sh to candidate (cross-MAJOR safe)"
+# FW-ADR-0010 (issue #170): apply the 3-SHA decision matrix here too.
+# Refuse-on-uncertain when project carries local edits or the baseline is
+# unreachable. SWDT_PREBOOTSTRAP_FORCE=1 is the operator's self-service
+# override (audit-logged to docs/pm/pre-release-gate-overrides.md).
+#
+# Idempotent: re-running on the same project state produces the same
+# block artefact (timestamp aside) or proceeds with no work.
+
+prebootstrap_sha() {
+    if [ -f "$1" ]; then
+        sha256sum "$1" | awk '{print $1}'
+    else
+        printf ''
     fi
+}
+
+# Build the bootstrap-critical path list: scripts/upgrade.sh + every
+# scripts/lib/*.sh the candidate ships.
+prebootstrap_paths=""
+if [ -f "$WORKDIR_NEW/scripts/upgrade.sh" ]; then
+    prebootstrap_paths="scripts/upgrade.sh"
 fi
 if [ -d "$WORKDIR_NEW/scripts/lib" ]; then
-    mkdir -p "$PROJECT_ROOT/scripts/lib"
     for lib in "$WORKDIR_NEW/scripts/lib"/*.sh; do
         [ -f "$lib" ] || continue
-        lib_name=$(basename "$lib")
-        proj_lib="$PROJECT_ROOT/scripts/lib/$lib_name"
-        if [ ! -f "$proj_lib" ] || ! cmp -s "$lib" "$proj_lib"; then
-            cp "$lib" "$proj_lib.tmp.$$"
-            mv "$proj_lib.tmp.$$" "$proj_lib"
-        fi
+        prebootstrap_paths="$prebootstrap_paths
+scripts/lib/$(basename "$lib")"
     done
 fi
+
+baseline_dir=""
+if [ -n "${WORKDIR_OLD:-}" ] && [ -d "${WORKDIR_OLD:-}" ]; then
+    baseline_dir="$WORKDIR_OLD"
+fi
+
+# Build two parallel newline-delimited lists: blocked (refused) paths
+# (action:reason:path:project_sha:baseline_sha:upstream_sha) and proceed
+# paths (path).
+blocked_list=""
+proceed_list=""
+any_block=0
+saw_local_edit=0
+saw_baseline_unreachable=0
+
+# shellcheck disable=SC2034
+oldIFS="$IFS"
+IFS='
+'
+for rel in $prebootstrap_paths; do
+    [ -z "$rel" ] && continue
+    proj_file="$PROJECT_ROOT/$rel"
+    new_file="$WORKDIR_NEW/$rel"
+    proj_sha=$(prebootstrap_sha "$proj_file")
+    new_sha=$(prebootstrap_sha "$new_file")
+    base_sha=""
+    if [ -n "$baseline_dir" ]; then
+        base_sha=$(prebootstrap_sha "$baseline_dir/$rel")
+    fi
+
+    # Missing locally: treat as add-from-upstream (proceed).
+    if [ -z "$proj_sha" ]; then
+        proceed_list="$proceed_list
+$rel"
+        continue
+    fi
+
+    if [ -n "$base_sha" ]; then
+        if [ "$proj_sha" = "$base_sha" ]; then
+            if [ "$proj_sha" = "$new_sha" ]; then
+                : # noop
+            else
+                proceed_list="$proceed_list
+$rel"
+            fi
+        else
+            if [ "$proj_sha" = "$new_sha" ]; then
+                : # noop — operator already at upstream
+            else
+                blocked_list="$blocked_list
+refuse:local-edit:$rel:$proj_sha:$base_sha:$new_sha"
+                any_block=1
+                saw_local_edit=1
+            fi
+        fi
+    else
+        if [ "$proj_sha" = "$new_sha" ]; then
+            : # noop
+        else
+            blocked_list="$blocked_list
+retrofit:baseline-unreachable:$rel:$proj_sha::$new_sha"
+            any_block=1
+            saw_baseline_unreachable=1
+        fi
+    fi
+done
+IFS="$oldIFS"
+
+prebootstrap_block_artefact="$PROJECT_ROOT/.template-prebootstrap-blocked.json"
+
+if [ "$any_block" -eq 1 ]; then
+    if [ "$saw_local_edit" -eq 1 ] && [ "$saw_baseline_unreachable" -eq 1 ]; then
+        reason_summary="mixed"
+    elif [ "$saw_local_edit" -eq 1 ]; then
+        reason_summary="local-edit"
+    else
+        reason_summary="baseline-unreachable"
+    fi
+
+    if [ "${SWDT_PREBOOTSTRAP_FORCE:-}" = "1" ]; then
+        override_log="$PROJECT_ROOT/docs/pm/pre-release-gate-overrides.md"
+        if [ ! -w "$override_log" ]; then
+            printf 'ERROR: SWDT_PREBOOTSTRAP_FORCE=1 set, but %s is unwritable.\n' "$override_log" >&2
+            printf '       Refusing to bypass without an audit row. Fix permissions and re-run.\n' >&2
+            exit 2
+        fi
+        date_iso=$(date -u +%Y-%m-%d)
+        operator=$(git config user.email 2>/dev/null || echo "${USER:-unknown}@$(hostname 2>/dev/null || echo unknown)")
+        force_reason="${SWDT_PREBOOTSTRAP_FORCE_REASON:-unspecified}"
+        IFS='
+'
+        for entry in $blocked_list; do
+            [ -z "$entry" ] && continue
+            # entry: action:reason:path:project_sha:baseline_sha:upstream_sha
+            action=$(printf '%s' "$entry" | cut -d: -f1)
+            reason=$(printf '%s' "$entry" | cut -d: -f2)
+            path=$(printf '%s' "$entry" | cut -d: -f3)
+            row="| $date_iso | pre-bootstrap | (migration v0.14.0) | | $operator | ${reason}:${path} ($force_reason) | |"
+            printf '%s\n' "$row" >> "$override_log"
+            printf 'WARN: SWDT_PREBOOTSTRAP_FORCE=1 — overriding pre-bootstrap block on %s (reason=%s, action=%s)\n' "$path" "$reason" "$action" >&2
+            # Promote to proceed.
+            proceed_list="$proceed_list
+$path"
+        done
+        IFS="$oldIFS"
+        printf 'WARN: pre-bootstrap audit row(s) appended to %s\n' "$override_log" >&2
+        rm -f "$prebootstrap_block_artefact"
+    else
+        # Write block artefact atomically.
+        tmp_artefact=$(mktemp "$prebootstrap_block_artefact.tmp.XXXXXX")
+        {
+            printf '{\n'
+            printf '  "version": 1,\n'
+            printf '  "generated": "%s",\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            printf '  "reason_summary": "%s",\n' "$reason_summary"
+            printf '  "blocked": [\n'
+            # Sort entries by path for determinism.
+            sorted_entries=$(printf '%s' "$blocked_list" | awk -F: 'NF { print $3 "|" $0 }' | LC_ALL=C sort | sed 's/^[^|]*|//')
+            first=1
+            IFS='
+'
+            for entry in $sorted_entries; do
+                [ -z "$entry" ] && continue
+                action=$(printf '%s' "$entry" | cut -d: -f1)
+                reason=$(printf '%s' "$entry" | cut -d: -f2)
+                path=$(printf '%s' "$entry" | cut -d: -f3)
+                proj_sha=$(printf '%s' "$entry" | cut -d: -f4)
+                base_sha=$(printf '%s' "$entry" | cut -d: -f5)
+                new_sha=$(printf '%s' "$entry" | cut -d: -f6)
+                reason_field="local-edit"
+                [ "$action" = "retrofit" ] && reason_field="baseline-unreachable"
+                if [ "$first" -eq 0 ]; then printf ',\n'; fi
+                printf '    {\n'
+                printf '      "path": "%s",\n' "$path"
+                printf '      "project_sha": "%s",\n' "$proj_sha"
+                printf '      "baseline_sha": "%s",\n' "$base_sha"
+                printf '      "upstream_sha": "%s",\n' "$new_sha"
+                printf '      "reason": "%s"\n' "$reason_field"
+                printf '    }'
+                first=0
+            done
+            IFS="$oldIFS"
+            printf '\n  ]\n}\n'
+        } > "$tmp_artefact"
+        mv "$tmp_artefact" "$prebootstrap_block_artefact"
+
+        printf '\nERROR: pre-bootstrap refused — bootstrap-critical files carry local edits or an unreachable baseline.\n' >&2
+        IFS='
+'
+        for entry in $blocked_list; do
+            [ -z "$entry" ] && continue
+            action=$(printf '%s' "$entry" | cut -d: -f1)
+            reason=$(printf '%s' "$entry" | cut -d: -f2)
+            path=$(printf '%s' "$entry" | cut -d: -f3)
+            printf '  %s: reason=%s\n' "$path" "$reason" >&2
+        done
+        IFS="$oldIFS"
+        printf '\nBlock artefact: %s\n' "$prebootstrap_block_artefact" >&2
+        printf 'Recovery:\n' >&2
+        printf '  - Review the listed paths; declare deliberate local edits in .template-customizations.\n' >&2
+        printf '  - For baseline-unreachable rows, follow the retrofit playbook:\n' >&2
+        printf '      docs/templates/retrofit-playbook-template.md\n' >&2
+        printf '  - To bypass (atomic-replace every blocked path, audit-logged):\n' >&2
+        printf '      SWDT_PREBOOTSTRAP_FORCE=1 scripts/upgrade.sh ...\n' >&2
+        printf '    (Optionally set SWDT_PREBOOTSTRAP_FORCE_REASON=<note> for the audit row.)\n' >&2
+        exit 2
+    fi
+fi
+
+# Execute the proceed list (atomic install).
+IFS='
+'
+for rel in $proceed_list; do
+    [ -z "$rel" ] && continue
+    new_file="$WORKDIR_NEW/$rel"
+    proj_file="$PROJECT_ROOT/$rel"
+    [ -f "$new_file" ] || continue
+    case "$rel" in
+        scripts/lib/*)
+            mkdir -p "$PROJECT_ROOT/scripts/lib"
+            ;;
+    esac
+    if [ -x "$new_file" ]; then
+        install -m 0755 "$new_file" "$proj_file"
+    else
+        install -m 0644 "$new_file" "$proj_file"
+    fi
+    if [ "$rel" = "scripts/upgrade.sh" ]; then
+        echo "  pre-bootstrapped scripts/upgrade.sh to candidate (cross-MAJOR safe)"
+    fi
+done
+IFS="$oldIFS"
+
+# Clear any stale block artefact from a prior refused run.
+rm -f "$prebootstrap_block_artefact"
 
 manifest="$PROJECT_ROOT/TEMPLATE_MANIFEST.lock"
 
