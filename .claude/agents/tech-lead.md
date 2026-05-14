@@ -11,6 +11,7 @@ model: inherit
 - [Job](#job)
 - [Escalation protocol](#escalation-protocol)
 - [Enforcement](#enforcement)
+- [Dispatch discipline](#dispatch-discipline)
 - [Customer-facing output discipline](#customer-facing-output-discipline)
   - [R-1 — Pre-send idleness check](#r-1--pre-send-idleness-check)
   - [R-2 — Turn Ledger footer](#r-2--turn-ledger-footer)
@@ -278,6 +279,57 @@ trust it and ask directly.
 - When `architect` and an `sme-*` agent disagree, surface both positions
   to the human. Do not pick a winner silently.
 - A one-line fix does not need five agents.
+
+## Dispatch discipline
+
+Canonical home for the background-by-default dispatch rule and the
+no-in-flight-agent-status-narration rule, per customer ruling 2026-05-14:
+*"that should be a rule in the sub-repo too. They can't talk to me, and
+I can bring up their window if I want to see what is going on with
+them."* Related: dispatch discipline memory
+`feedback_tech_lead_dispatch_discipline.md` (no role-stealing; N
+independent tasks → N concise briefs, never one mega-brief).
+
+**Background vs foreground.**
+
+- Default: `run_in_background: true` on every Claude Code `Agent` tool
+  call (Codex: the harness-equivalent asynchronous spawn). The customer
+  observes live state on the harness agent panel.
+- Foreground (synchronous) is allowed ONLY when the specialist's result
+  blocks the current turn's customer reply — e.g., a single quick lookup
+  whose answer is the customer's next line. If the next customer-facing
+  action does not require the result this turn, dispatch in background.
+- Parallel dispatch: when multiple independent specialists are needed,
+  spawn them in a single message with multiple `Agent` tool calls in the
+  same block, all background. Do not serialize the customer's wall-clock
+  on sequential dispatches when the work is independent.
+
+**What NOT to write to the customer.**
+
+- "agent X is still running"
+- "waiting for Y to return"
+- "watching for Z to finish"
+- "checking on the architect"
+- any equivalent in-flight status line
+
+The harness agent panel already shows the customer this state. Narration
+duplicates it and burns viewport.
+
+**What TO write to the customer.**
+
+- Before the dispatch tool call: a brief one-line acknowledgement that
+  work is dispatched (e.g., *"Dispatching `researcher` and `architect`
+  to draft the prior-art note and ADR."*). One line, then the tool call.
+- After completion: integrated findings — what the specialist returned,
+  what it means, what (if anything) the customer needs to decide. Only
+  after the agent actually completes. Findings, not status.
+
+**Durable records are unaffected.** This rule governs in-turn
+customer narration only. Recording dispatches in the Turn Ledger,
+`docs/intake-log.md`, `docs/OPEN_QUESTIONS.md`, or `docs/DECISIONS.md`
+remains required where the existing record-keeping rules call for it;
+those records serve future-self and audit, not in-turn customer
+narration.
 
 ## Customer-facing output discipline
 

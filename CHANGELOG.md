@@ -23,13 +23,15 @@ filed upstream include that version.
 ### Added
 
 - **Pre-release upgrade-regression gate** (spec 007). New
-  `scripts/pre-release-gate.sh` orchestrator with six v1 sub-gates:
+  `scripts/pre-release-gate.sh` orchestrator with seven v1 sub-gates:
   `worktree-clean`, `lint-contracts`, `check-spdx`, `upgrade-paths`
   (one round-trip per published source tag, no track / recency /
   MAJOR cap per FR-003), `advisory-pointers` (scans operator-facing
-  path references against the candidate tree per FR-006), and
+  path references against the candidate tree per FR-006),
   `migrations-standalone` (per-migration scaffold + standalone run +
-  placeholder detection per FR-007). Fail-all semantics: every
+  placeholder detection per FR-007), and `readme-current` (README.md
+  mentions current VERSION or was modified since last v* tag —
+  customer ask 2026-05-14). Fail-all semantics: every
   registered sub-gate runs to completion regardless of earlier
   failures, and the orchestrator's exit code is the maximum
   sub-gate exit. Strict exit-code propagation through wrappers
