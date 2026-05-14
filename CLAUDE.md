@@ -355,7 +355,13 @@ like "first session of the calendar week" in preference to
     one queued customer question per turn, only when all agents and
     tools are idle, as the FINAL line of the turn. Enforcement: `scripts/lint-questions.sh`
     runs hard-gate (CI-blocking) for commits after the `HARDGATE_AFTER_SHA`
-    recorded in that script. Reason for promotion to a numbered Hard Rule:
+    recorded in that script. **Exception:** when `docs/OPEN_QUESTIONS.md`
+    is unwritable (read-only filesystem, missing path, permission denied),
+    the queue mechanism is unavailable; `tech-lead` MAY ask the customer
+    the immediate question directly, with an inline note naming the
+    unwritable queue path. Atomicity (one decision axis), idle-agents-and-tools,
+    and final-line-of-turn placement still bind; only queue-first ordering
+    is relaxed. Reason for promotion to a numbered Hard Rule:
     the prior placement (multiple non-numbered references across
     `CLAUDE.md`, `AGENTS.md`, `.claude/agents/tech-lead.md`, `docs/FIRST_ACTIONS.md`,
     `docs/OPEN_QUESTIONS.md`, `docs/templates/intake-log-template.md`) was
