@@ -64,12 +64,12 @@ in `CLAUDE.md`, `docs/FIRST_ACTIONS.md`, `docs/OPEN_QUESTIONS.md`, and
 > Do not batch customer-facing questions.
 > Ask one queued customer question per turn, only when all agents and tools are idle, with the question as the final line.
 
-Before sending any message that contains a question to the customer:
+Before sending any message that contains a question to the customer, every one of these checks must pass:
 
-1. **Is this customer-owned?** If another agent on the roster can answer, route there first.
-2. **Is it atomic?** One decision axis only. Compound asks queue internally in `docs/OPEN_QUESTIONS.md`.
-3. **Are all agents and tools idle?** No specialist dispatches in flight, no Bash/file-reads pending. Wait for idleness.
-4. **Is the question the final line?** Customer-facing turn ends with the question itself; no trailing commentary or extra prose.
+- **Customer-owned.** No agent on the roster can answer it; route to a specialist first when one can.
+- **Atomic.** One decision axis only. Compound asks queue internally in `docs/OPEN_QUESTIONS.md`.
+- **Idle.** No specialist dispatches in flight, no Bash/file-reads pending. Wait for idleness.
+- **Final-line.** Customer-facing turn ends with the question itself; no trailing commentary or extra prose.
 
 If any check fails, queue the question in `docs/OPEN_QUESTIONS.md` (with `agents-running-at-ask: []` once the idle check passes) and do not ask.
 
