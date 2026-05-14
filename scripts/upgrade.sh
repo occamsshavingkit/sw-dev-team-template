@@ -1174,9 +1174,15 @@ if [[ $dry_run -eq 0 ]]; then
         echo "  Full lint output (read-only --canonical-only pass):"
         sed 's/^/    /' "$lint_log"
         echo
-        echo "  Backfill the missing sections per the rc-specific migration at"
-        echo "    migrations/$new_version.sh"
-        echo "  (or the latest migrations/<target>.sh that touches agent contracts)."
+        if [ -f "migrations/$new_version.sh" ]; then
+          echo "  Backfill the missing sections per the rc-specific migration at"
+          echo "    migrations/$new_version.sh"
+          echo "  (or the latest migrations/<target>.sh that touches agent contracts)."
+        else
+          echo "  Backfill the missing sections per the latest migrations/<target>.sh"
+          echo "  that touches agent contracts (no rc-specific migration exists for"
+          echo "  $new_version)."
+        fi
         echo "  The upgrade itself succeeded; this notice is advisory."
       fi
       rm -f "$lint_log"
