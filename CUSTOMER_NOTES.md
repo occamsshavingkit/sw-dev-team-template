@@ -468,3 +468,43 @@ follows (option A). No #163 hotfix ahead of #170.
 **Cross-refs:** → issue #170; issue #163.
 
 **Recorded by:** researcher (via tech-lead).
+
+## 2026-05-14 — FW-ADR-0010 override-audit surface (turn: pending — flagged to tech-lead)
+
+**Context.** Post-PR-#162 triage: FW-ADR-0010 (commit `876208f` on
+`feat/rc12-followup-triage`) introduces `SWDT_PREBOOTSTRAP_FORCE=1` as
+the operator escape hatch for pre-bootstrap's refuse-on-edit behaviour
+(ruling 2026-05-14 — #170 escape hatch policy). Open decision on where
+the override-audit row lands when an operator exercises the hatch.
+
+**Question (from architect, relayed by tech-lead):**
+> Where does the override-audit row land when an operator uses `SWDT_PREBOOTSTRAP_FORCE=1` to bypass pre-bootstrap's refuse-on-edit?
+> A) Overload `docs/pm/pre-release-gate-overrides.md` (add a `Gate` column distinguishing `pre-release` from `pre-bootstrap`; existing rows leave the new column empty)
+> B) Sibling file `docs/pm/pre-bootstrap-overrides.md` (separate clean-header append-only log)
+
+**Customer answer (verbatim):**
+> A
+
+**Ruling.** Single audit history on the existing append-only file with a
+new `Gate` column (option A). No sibling file.
+
+**Implications:**
+- Schema bump on `docs/pm/pre-release-gate-overrides.md`: new `Gate`
+  column with values `pre-release` or `pre-bootstrap`. Existing rows
+  leave the new column empty.
+- FW-ADR-0010 to be updated to encode "audit row goes to the shared
+  file with the new `Gate` column."
+- Software-engineer implementing #170 must add the column to the file
+  header AND emit the column value (`pre-bootstrap`) when appending
+  rows on `SWDT_PREBOOTSTRAP_FORCE=1` overrides.
+- Existing pre-release-gate hook (`.git-hooks/pre-push`) also writes
+  to this file; its append code must be updated to fill the column
+  with `pre-release`.
+
+**Cross-refs:** → FW-ADR-0010 (commit `876208f` on
+`feat/rc12-followup-triage`); issue #170;
+`docs/pm/pre-release-gate-overrides.md`; `.git-hooks/pre-push`; prior
+2026-05-14 rulings (#170 escape hatch policy, #170 baseline-unreachable
+behaviour, #172 migration scope, #170/#163 sequencing).
+
+**Recorded by:** researcher (via tech-lead).
