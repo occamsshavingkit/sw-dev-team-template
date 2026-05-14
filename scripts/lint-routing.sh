@@ -15,25 +15,32 @@
 #
 #   Routed-Through: <role>[:<qualifier>]
 #
-# Allowed roles:
-#   software-engineer architect tech-writer researcher qa-engineer sre
-#   release-engineer security-engineer code-reviewer project-manager
-#   sme-<domain> onboarding-auditor process-auditor tool-bridge
+# Allowed roles (per FW-ADR-0011 §"Allowed roles (binding)"):
+#   tech-lead project-manager architect software-engineer researcher
+#   qa-engineer sre tech-writer code-reviewer release-engineer
+#   security-engineer onboarding-auditor process-auditor sme-<domain>
 #
 # - `sme-<domain>` is a glob matching `^sme-[a-z][a-z0-9_-]*$`.
-# - `tool-bridge` REQUIRES a `:qualifier` from the closed set
+# - `tech-lead` is the tool-bridge carve-out actor: it REQUIRES a
+#   `:qualifier` from the closed set
 #   { agent-push, orchestration, ci-fixup, merge, revert, rebase,
 #     cherry-pick }.
-# - Non-tool-bridge roles MAY carry a `:qualifier` (informational,
-#   not validated).
+# - Non-tech-lead roles MUST NOT carry a `:qualifier`.
+# - On `agent-push` ONLY, a second `On-Behalf-Of: <role>` trailer is
+#   required (names the specialist whose work tech-lead pushed); the
+#   second trailer is forbidden on every other qualifier and on
+#   non-tech-lead roles.
 #
 # Pattern IDs:
 #   R1 — missing Routed-Through: trailer in commit body
-#   R2 — malformed trailer (unknown role; bad / missing tool-bridge
-#        qualifier; syntax error)
+#   R2 — malformed trailer (unknown role; bad / missing qualifier on
+#        tech-lead; qualifier on a non-tech-lead role; missing /
+#        extraneous / malformed On-Behalf-Of)
 #   R3 — trailer / file-class mismatch (see file-class table below)
-#   R4 — tool-bridge trailer on a disallowed file class
-#   R5 — CUSTOMER_NOTES.md touched with a non-researcher trailer
+#   R4 — tech-lead:<qualifier> trailer on a file class the qualifier's
+#        whitelist does not cover
+#   R5 — CUSTOMER_NOTES.md touched without a researcher trailer (or
+#        the tech-lead:agent-push + On-Behalf-Of: researcher pair)
 #
 # File-class table for R3 / R4:
 #
@@ -42,20 +49,24 @@
 #   docs/adr/**                                architect | tech-writer
 #   CHANGELOG.md, README.md,                   tech-writer
 #   docs/**/*.md (non-ADR)
-#   CUSTOMER_NOTES.md                          researcher (sole)
+#   CUSTOMER_NOTES.md                          researcher (sole; or
+#                                              tech-lead:agent-push +
+#                                              On-Behalf-Of: researcher)
 #   tests/**, *test*                           qa-engineer |
 #                                              software-engineer
 #   .github/workflows/**, release/**           release-engineer
 #   docs/security/**                           security-engineer
-#   docs/OPEN_QUESTIONS.md,                    tool-bridge OR any role
-#   docs/intake-log.md,
+#   docs/OPEN_QUESTIONS.md,                    tech-lead:<qualifier> OR
+#   docs/intake-log.md,                        any role
 #   docs/pm/dispatch-log.md
 #   anything else                              any role
 #
-# Tool-bridge is additionally allowed on the explicit orchestration
-# artefacts above and on zero-net-content cases (merge / revert /
-# rebase / cherry-pick qualifiers). Tool-bridge on a code / ADR /
-# CHANGELOG / CUSTOMER_NOTES path → R4.
+# Tech-lead with a tool-bridge qualifier is additionally allowed on
+# the explicit orchestration artefacts above and on zero-net-content
+# cases (merge / revert / rebase / cherry-pick qualifiers). Tech-lead
+# on a code / ADR / CHANGELOG / CUSTOMER_NOTES path with a non-zero-
+# net-content qualifier (other than agent-push with a valid
+# On-Behalf-Of cascade) → R4.
 #
 # Modes:
 #   warning-only (default until HARDGATE_AFTER_SHA is recorded) —
@@ -159,11 +170,14 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 # ----- Allowed-role list / closed qualifier set ---------------------------
 
 # Fixed-role list. `sme-<domain>` and qualifier-bearing forms checked
-# separately. Space-delimited so we can grep it cheaply.
-FIXED_ROLES="software-engineer architect tech-writer researcher qa-engineer sre release-engineer security-engineer code-reviewer project-manager onboarding-auditor process-auditor tool-bridge"
+# separately. Space-delimited so we can grep it cheaply. Per
+# FW-ADR-0011 §"Allowed roles (binding)", tech-lead is the actor for
+# the tool-bridge carve-out; `tool-bridge` is NOT a role token.
+FIXED_ROLES="tech-lead software-engineer architect tech-writer researcher qa-engineer sre release-engineer security-engineer code-reviewer project-manager onboarding-auditor process-auditor"
 
-# Closed set of tool-bridge qualifiers per customer ruling 7
-# (2026-05-14): adds rebase / cherry-pick to the earlier list.
+# Closed set of tool-bridge qualifiers per FW-ADR-0011 §"Tool-bridge
+# carve-out (binding)" / customer ruling 7 (2026-05-14): adds
+# rebase / cherry-pick to the earlier list.
 TOOLBRIDGE_QUALS="agent-push orchestration ci-fixup merge revert rebase cherry-pick"
 
 # ----- Role classification helpers ----------------------------------------
@@ -230,8 +244,10 @@ validate_role_token() {
     done
     [ "$found" -eq 1 ] || return 1
 
-    # tool-bridge requires a qualifier from the closed set.
-    if [ "$ROLE_BASE" = "tool-bridge" ]; then
+    # tech-lead requires a qualifier from the closed set; any other
+    # role must NOT carry a qualifier (ADR §"Trailer grammar":
+    # "<qualifier> ... present only when <role> is tech-lead").
+    if [ "$ROLE_BASE" = "tech-lead" ]; then
         [ -n "$ROLE_QUAL" ] || return 1
         qfound=0
         for q in $TOOLBRIDGE_QUALS; do
@@ -241,6 +257,8 @@ validate_role_token() {
             fi
         done
         [ "$qfound" -eq 1 ] || return 1
+    else
+        [ -z "$ROLE_QUAL" ] || return 1
     fi
     return 0
 }
@@ -299,18 +317,22 @@ classify_path() {
 
 # Is the role allowed on the given file class?
 # Returns 0 (yes) or non-zero (no). Also encodes the tool-bridge
-# allowlist: tool-bridge is OK on `orchestration` and on zero-net-content
-# qualifiers (merge / revert / rebase / cherry-pick).
+# allowlist: tech-lead with a tool-bridge qualifier is OK on
+# `orchestration` and on zero-net-content qualifiers (merge / revert /
+# rebase / cherry-pick). The agent-push qualifier is handled
+# separately in lint_commit via On-Behalf-Of cascading authorization
+# (the On-Behalf-Of role is re-checked against role_allowed_for_class
+# with qual="").
 role_allowed_for_class() {
     role="$1"; qual="$2"; klass="$3"
 
     case "$role" in
-        tool-bridge)
+        tech-lead)
             # Zero-net-content qualifiers are always OK regardless of class.
             case "$qual" in
                 merge|revert|rebase|cherry-pick) return 0 ;;
             esac
-            # Otherwise tool-bridge only on orchestration class.
+            # Otherwise tech-lead only on orchestration class.
             case "$klass" in
                 orchestration|other) return 0 ;;
                 *) return 1 ;;
@@ -391,6 +413,26 @@ extract_trailer() {
         '
 }
 
+# Extract the On-Behalf-Of: trailer value (last occurrence wins) from
+# a commit message body. Echoes the value on stdout, or empty if
+# absent. Per FW-ADR-0011 §"Tool-bridge carve-out (binding)" lines
+# 331-336, this trailer is required when, and only when, the
+# Routed-Through qualifier is `agent-push`.
+extract_on_behalf_of() {
+    sha="$1"
+    git -C "$REPO_ROOT" log -1 --format=%B "$sha" 2>/dev/null \
+        | awk '
+            BEGIN { val = "" }
+            /^[Oo]n-[Bb]ehalf-[Oo]f:[[:space:]]*/ {
+                v = $0
+                sub(/^[Oo]n-[Bb]ehalf-[Oo]f:[[:space:]]*/, "", v)
+                sub(/[[:space:]]+$/, "", v)
+                val = v
+            }
+            END { print val }
+        '
+}
+
 # Return 1 if commit is a merge commit (>= 2 parents), 0 otherwise.
 is_merge_commit() {
     sha="$1"
@@ -415,7 +457,7 @@ lint_commit() {
         return 0
     fi
 
-    # Validate token.
+    # Validate Routed-Through token.
     if ! validate_role_token "$trailer"; then
         emit "$sha" "R2" "malformed trailer: \"$trailer\""
         return 0
@@ -423,28 +465,96 @@ lint_commit() {
     role="$ROLE_BASE"
     qual="$ROLE_QUAL"
 
+    # On-Behalf-Of: parsing per FW-ADR-0011 §"Tool-bridge carve-out"
+    # lines 331-336. Required iff Routed-Through qualifier is
+    # agent-push. Forbidden on every other qualifier and on non-
+    # tech-lead roles.
+    on_behalf=$(extract_on_behalf_of "$sha")
+    if [ "$role" = "tech-lead" ] && [ "$qual" = "agent-push" ]; then
+        if [ -z "$on_behalf" ]; then
+            emit "$sha" "R2" "missing On-Behalf-Of on agent-push"
+            return 0
+        fi
+    else
+        if [ -n "$on_behalf" ]; then
+            if [ "$role" = "tech-lead" ]; then
+                emit "$sha" "R2" "extraneous On-Behalf-Of (qualifier=$qual)"
+            else
+                emit "$sha" "R2" "extraneous On-Behalf-Of (role=$role)"
+            fi
+            return 0
+        fi
+    fi
+
+    # Validate the On-Behalf-Of value if present.
+    # On-Behalf-Of names a specialist; it cannot itself be a
+    # tech-lead:<qualifier> form (no qualifier shape allowed).
+    on_behalf_role=""
+    if [ -n "$on_behalf" ]; then
+        case "$on_behalf" in
+            *:*)
+                emit "$sha" "R2" "malformed On-Behalf-Of: \"$on_behalf\" (no qualifier permitted)"
+                return 0
+                ;;
+        esac
+        if ! validate_role_token "$on_behalf"; then
+            emit "$sha" "R2" "malformed On-Behalf-Of: \"$on_behalf\""
+            return 0
+        fi
+        # On-Behalf-Of must not itself be tech-lead.
+        if [ "$ROLE_BASE" = "tech-lead" ]; then
+            emit "$sha" "R2" "On-Behalf-Of cannot be tech-lead"
+            return 0
+        fi
+        on_behalf_role="$ROLE_BASE"
+        # Restore the outer Routed-Through parse (validate_role_token
+        # clobbered ROLE_BASE / ROLE_QUAL).
+        ROLE_BASE="$role"
+        ROLE_QUAL="$qual"
+    fi
+
     # Gather changed files for this commit.
     files=$(git -C "$REPO_ROOT" show --no-renames --name-only --pretty=format: "$sha" 2>/dev/null \
             | awk 'NF > 0')
     [ -n "$files" ] || return 0
 
     # Per-file class checks.
-    saw_customer_notes=0
-    bad_classes=""
-    toolbridge_bad=""
     printf '%s\n' "$files" | while IFS= read -r f; do
         [ -n "$f" ] || continue
         klass=$(classify_path "$f")
-        # R5 takes priority over R3 for CUSTOMER_NOTES.md.
-        if [ "$klass" = "customer_notes" ] && [ "$role" != "researcher" ]; then
-            emit "$sha" "R5" "non-researcher trailer ($role) touches $f"
+
+        # R5 takes priority over R3 / R4 for CUSTOMER_NOTES.md.
+        # researcher direct, OR tech-lead:agent-push + On-Behalf-Of:
+        # researcher (ADR §"Pattern IDs (binding)" lines 378-381).
+        if [ "$klass" = "customer_notes" ]; then
+            if [ "$role" = "researcher" ]; then
+                :
+            elif [ "$role" = "tech-lead" ] && [ "$qual" = "agent-push" ] \
+                 && [ "$on_behalf_role" = "researcher" ]; then
+                :
+            else
+                emit "$sha" "R5" "non-researcher trailer ($role) touches $f"
+                continue
+            fi
+        fi
+
+        # agent-push cascading authorization: On-Behalf-Of names the
+        # specialist whose work was pushed; the file-class allowance
+        # follows that specialist, not tech-lead. ADR §"Tool-bridge
+        # carve-out" lines 330-334.
+        if [ "$role" = "tech-lead" ] && [ "$qual" = "agent-push" ] \
+           && [ -n "$on_behalf_role" ]; then
+            if ! role_allowed_for_class "$on_behalf_role" "" "$klass"; then
+                emit "$sha" "R4" "tech-lead:$qual (on-behalf-of=$on_behalf_role) not allowed on $klass file $f"
+            fi
             continue
         fi
+
         if ! role_allowed_for_class "$role" "$qual" "$klass"; then
-            # R4 for tool-bridge on a non-allowlisted class;
+            # R4 for tech-lead:<qualifier> on a non-allowlisted class;
             # R3 for everyone else.
-            if [ "$role" = "tool-bridge" ]; then
-                emit "$sha" "R4" "tool-bridge:$qual on $klass file $f"
+            if [ "$role" = "tech-lead" ]; then
+                emit "$sha" "R4" "tech-lead:$qual on $klass file $f"
             else
                 emit "$sha" "R3" "$role not allowed on $klass file $f"
             fi
@@ -483,12 +593,15 @@ Routed-Through: software-engineer
 "
     ) || { rm -rf "$tmproot"; return 1; }
 
-    # Helper: make_case <case-id> <file-path> <content> <trailer-or-NONE>
+    # Helper: make_case <case-id> <file-path> <content> <trailer-or-NONE> [extra-trailer]
     # Creates the file at the given relative path inside the tmp repo
     # and commits it with the given trailer (or no trailer when NONE).
+    # If a fifth arg is supplied it is appended as a second trailer
+    # line on the same trailer block (used for On-Behalf-Of cases).
     # Echoes the resulting commit SHA on stdout.
     make_case() {
         cid="$1"; fpath="$2"; content="$3"; trailer="$4"
+        extra="${5:-}"
         (
             cd "$tmproot" || exit 1
             mkdir -p "$(dirname -- "$fpath")" 2>/dev/null || :
@@ -498,6 +611,14 @@ Routed-Through: software-engineer
                 git commit -q -m "case $cid
 
 body
+"
+            elif [ -n "$extra" ]; then
+                git commit -q -m "case $cid
+
+body
+
+$trailer
+$extra
 "
             else
                 git commit -q -m "case $cid
@@ -524,11 +645,16 @@ $trailer
     sha_A=$(make_case A "scripts/foo.sh" "echo A" "Routed-Through: software-engineer")
     sha_B=$(make_case B "scripts/foo.sh" "echo B" "Routed-Through: architect")
     sha_C=$(make_case C "scripts/foo.sh" "echo C" "NONE")
-    sha_D=$(make_case D "docs/OPEN_QUESTIONS.md" "x" "Routed-Through: tool-bridge:agent-push")
-    sha_E=$(make_case E "scripts/foo.sh" "echo E" "Routed-Through: tool-bridge:agent-push")
-    sha_F=$(make_case F "docs/OPEN_QUESTIONS.md" "y" "Routed-Through: tool-bridge:rebase")
+    sha_D=$(make_case D "docs/OPEN_QUESTIONS.md" "x" "Routed-Through: tech-lead:agent-push")
+    sha_E=$(make_case E "scripts/foo.sh" "echo E" "Routed-Through: tech-lead:agent-push")
+    sha_F=$(make_case F "docs/OPEN_QUESTIONS.md" "y" "Routed-Through: tech-lead:rebase")
     sha_G=$(make_case G "CUSTOMER_NOTES.md" "note" "Routed-Through: researcher")
     sha_H=$(make_case H "CUSTOMER_NOTES.md" "note2" "Routed-Through: software-engineer")
+    # New cases (B2: On-Behalf-Of: parsing per FW-ADR-0011).
+    sha_I=$(make_case I "docs/OPEN_QUESTIONS.md" "i" "Routed-Through: tech-lead:agent-push")
+    sha_J=$(make_case J "CUSTOMER_NOTES.md" "j" "Routed-Through: tech-lead:agent-push" "On-Behalf-Of: researcher")
+    sha_K=$(make_case K "docs/OPEN_QUESTIONS.md" "k" "Routed-Through: tech-lead:rebase" "On-Behalf-Of: researcher")
+    sha_L=$(make_case L "scripts/foo.sh" "echo L" "Routed-Through: tech-lead:agent-push" "On-Behalf-Of: software-engineer")
 
     # Run lint_commit per case into independent report files so we can
     # assert on each commit's findings individually.
@@ -557,11 +683,16 @@ $trailer
     check_case A "$sha_A" "PASS"   # software-engineer on scripts/foo.sh
     check_case B "$sha_B" "R3"     # architect on scripts/foo.sh
     check_case C "$sha_C" "R1"     # no trailer
-    check_case D "$sha_D" "PASS"   # tool-bridge:agent-push on OPEN_QUESTIONS.md
-    check_case E "$sha_E" "R4"     # tool-bridge:agent-push on scripts/foo.sh
-    check_case F "$sha_F" "PASS"   # tool-bridge:rebase (zero-net-content)
+    check_case D "$sha_D" "R2"     # tech-lead:agent-push WITHOUT On-Behalf-Of (B2)
+    check_case E "$sha_E" "R2"     # tech-lead:agent-push WITHOUT On-Behalf-Of (B2)
+    check_case F "$sha_F" "PASS"   # tech-lead:rebase (zero-net-content)
     check_case G "$sha_G" "PASS"   # researcher on CUSTOMER_NOTES.md
     check_case H "$sha_H" "R5"     # software-engineer on CUSTOMER_NOTES.md
+    # B2 additions:
+    check_case I "$sha_I" "R2"     # tech-lead:agent-push on OPEN_QUESTIONS.md, no On-Behalf-Of
+    check_case J "$sha_J" "PASS"   # tech-lead:agent-push + On-Behalf-Of: researcher on CUSTOMER_NOTES.md
+    check_case K "$sha_K" "R2"     # tech-lead:rebase + extraneous On-Behalf-Of
+    check_case L "$sha_L" "PASS"   # tech-lead:agent-push + On-Behalf-Of: software-engineer on scripts/foo.sh (cascade)
 
     # Restore.
     REPO_ROOT="$SAVED_REPO_ROOT"
