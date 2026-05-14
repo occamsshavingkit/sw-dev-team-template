@@ -32,7 +32,7 @@ export LANG LC_ALL
 # future MINOR-boundary Release. When this constant is set to a real
 # 40-char SHA the linter switches to hard-gate exit-code behaviour for
 # files/lines committed after that SHA.
-HARDGATE_AFTER_SHA="DEFERRED_SET_AT_HARDGATE_PR"
+HARDGATE_AFTER_SHA="fcd3e2e71c415755b5a79a7b73c21eea318f67de"
 
 SUMMARY=0
 SINCE_SHA=""

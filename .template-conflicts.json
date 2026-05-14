@@ -1,8 +1,9 @@
 {
   "schema": 1,
-  "generated": "2026-05-14T07:16:28Z",
-  "template_version": "v1.0.0-rc10",
+  "generated": "2026-05-14T12:58:38Z",
+  "template_version": "v1.0.0-rc11",
   "entries": [
+    {"path": "docs/DECISIONS.md", "classified": "local_only_kept", "baseline_sha": "2169afd1564444cd5b861a2db44ba1f6987712ff69f3cd5f487381b5481fb316", "upstream_sha": "2169afd1564444cd5b861a2db44ba1f6987712ff69f3cd5f487381b5481fb316", "project_sha": "cb99d3ba9121039d49a3432a9902b9ef4d8d750d6b736fdae6c1b262c0b26667"},
     {"path": "docs/templates/pm/TOKEN_LEDGER-template.md", "classified": "accepted_local", "baseline_sha": "e3187d8e72ac40676c078527e57068c6a194e5f3075f004ef8f1501bfa49ae9a", "upstream_sha": "e3187d8e72ac40676c078527e57068c6a194e5f3075f004ef8f1501bfa49ae9a", "project_sha": "7ee12f39993c521a659bd08f8f1e777755bc29538ff3ad032ad283183e73be46"},
     {"path": "docs/templates/scoping-questions-template.md", "classified": "accepted_local", "baseline_sha": "451b4f734c28a89248918d61dbc2c7f42262dbec6139c479d2e515121e4bca50", "upstream_sha": "451b4f734c28a89248918d61dbc2c7f42262dbec6139c479d2e515121e4bca50", "project_sha": "525b0d3e777afec49f88ca38ba42e376b2db19fe1de0e802b4e08b0462811346"}
   ]

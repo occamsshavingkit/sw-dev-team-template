@@ -25,6 +25,7 @@ Project-authored content lives in
 | `scripts/lib/manifest.sh` | Shared helpers for `TEMPLATE_MANIFEST.lock` (write / verify / ship-files enumeration / SHA256). Sourced by `upgrade.sh` and `scaffold.sh`. Per FW-ADR-0002. |
 | `scripts/lib/first-actions.sh` | Shared FIRST ACTIONS detection helpers for session-start and upgrade warnings when Step-0 issue-feedback opt-in is missing. |
 | `scripts/smoke-test.sh` | End-to-end sanity check on scaffold + version-check + upgrade + manifest verify contracts. Template-maintenance tool; not shipped to downstream projects. |
+| `scripts/pre-release-gate.sh` | Pre-release upgrade-regression gate orchestrator (spec 007). Runs every registered sub-gate with fail-all semantics; precondition for tagging an annotated `v*` per FR-010. Pair with `.git-hooks/pre-push` for scoped-strict enforcement at push time. See `docs/pm/pre-release-gate-overrides.md` for the bypass audit log. |
 | `scripts/agent-health.sh` | Assembles a health-check packet for a named teammate (ground-truth snapshot + fixed prompt). Per `docs/agent-health-contract.md` § 3. |
 | `scripts/respawn.sh` | Stubs a handover-brief file and prints the respawn checklist. Per `docs/agent-health-contract.md` § 4. |
 | `docs/templates/handover-template.md` | Shape of a respawn handover brief. |

@@ -1,0 +1,32 @@
+# tests/release-gate/advisory-allowlist.txt
+#
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
+# Allowlist for the `advisory-pointers` sub-gate (FR-006). Each non-comment
+# non-empty line is a path that the scanner finds inside operator-facing
+# strings but that legitimately does NOT exist in the candidate tree.
+# Reasons fall into two classes:
+#
+#   1. Paths CREATED by the script at runtime in downstream projects (e.g.,
+#      docs/intake-log.md is seeded by scripts/upgrade.sh into the project,
+#      not into the template).
+#   2. Example / placeholder filenames inside doc-comment narratives (e.g.,
+#      "merge docs/PART_A.md and docs/PART_B.md into docs/COMBINED.md").
+#
+# Format: one path per line. Comments start with `#`.
+#
+# Maintenance: add a row when a new legitimate dangling reference appears;
+# delete the row when the path becomes real in-tree. The gate trusts the
+# allowlist contents; review changes via code-reviewer.
+
+# Class 1: runtime-created downstream targets
+docs/intake-log.md
+
+# Class 2: doc-comment placeholders inside scripts/upgrade.sh
+docs/COMBINED.md
+docs/GLOSSARY.md
+docs/OLD_NAME.md
+docs/PART_A.md
+docs/PART_B.md
+docs/new/NEW_NAME.md
