@@ -8,17 +8,34 @@
 # Sourced from gate-runner.sh when present.
 
 # gate_enumerate_source_tags
-#   stdout: one tag name per line, every published tag reachable from HEAD.
-#           Tags are resolved to their current commit SHA (R-9 force-move-safe).
-#           No scope cap by track, recency, or MAJOR (Clarifications Session
-#           2026-05-14 / FR-003).
+#   stdout: one tag name per line. Every published tag reachable from HEAD
+#           whose scripts/upgrade.sh honours the SWDT_UPSTREAM_URL env var
+#           (added in v0.16.0 and v1.0.0-rc3). Pre-v0.16.0 and v1.0.0-rc1/rc2
+#           tags hardcode the GitHub URL and therefore cannot be exercised
+#           against a local candidate fixture — they would always clone from
+#           the published remote, bypassing the gate's local fixture. Those
+#           tags are out-of-scope for the gate by technical constraint
+#           (Q-0017 / customer answer A on 2026-05-14, supersedes the
+#           Clarifications Session 2026-05-14 Q2=D "every published tag"
+#           ruling for this specific class of pre-SWDT_UPSTREAM_URL tags).
+#
+#   The scope cap is implemented by enumerating every reachable v* tag and
+#   inspecting each tag's scripts/upgrade.sh for the SWDT_UPSTREAM_URL
+#   literal — robust to any future regression that drops the env-var
+#   support, and self-correcting if a missing tag is added back.
+#
+#   Tags resolved to their current commit SHA at run start (R-9 force-move-safe).
 gate_enumerate_source_tags() {
     cd "$GATE_CANDIDATE_TREE" || return 1
-    # `git tag --merged HEAD` enumerates tags reachable from current HEAD.
-    # Filter to v* annotated/lightweight tags; exclude HEAD-equivalent tags
-    # only via the per-round-trip same-sha shortcut below, NOT here, so
-    # every published tag still produces a row.
-    git tag --list 'v*' --merged HEAD 2>/dev/null
+    git tag --list 'v*' --merged HEAD 2>/dev/null | while IFS= read -r tag; do
+        [ -z "$tag" ] && continue
+        # Inspect each tag's upgrade.sh; skip tags that don't honour
+        # SWDT_UPSTREAM_URL.
+        if git show "$tag:scripts/upgrade.sh" 2>/dev/null \
+            | grep -q 'SWDT_UPSTREAM_URL'; then
+            printf '%s\n' "$tag"
+        fi
+    done
 }
 
 # gate_setup_upgrade_fixture
@@ -85,9 +102,17 @@ gate_run_one_round_trip() {
     fi
 
     # Step 2: upgrade from the scaffolded fixture to the candidate sentinel.
+    # Detect whether the source's upgrade.sh honours --target (added in
+    # v0.17.0 and v1.0.0-rc3). If not, omit the flag — the upstream
+    # fixture's HEAD is the candidate sentinel by construction, so the
+    # default upgrade target resolves to it.
+    upgrade_args=()
+    if grep -q -- '--target' "$target_dir/scripts/upgrade.sh" 2>/dev/null; then
+        upgrade_args=(--target "$GATE_CANDIDATE_TAG")
+    fi
     (
         cd "$target_dir" || exit 1
-        SWDT_UPSTREAM_URL="$GATE_UPSTREAM_FIXTURE" ./scripts/upgrade.sh --target "$GATE_CANDIDATE_TAG" >/dev/null 2>&1
+        SWDT_UPSTREAM_URL="$GATE_UPSTREAM_FIXTURE" ./scripts/upgrade.sh "${upgrade_args[@]}" >/dev/null 2>&1
     ) >>"$log" 2>&1
     upgrade_rc=$?
     if [ "$upgrade_rc" -ne 0 ]; then
