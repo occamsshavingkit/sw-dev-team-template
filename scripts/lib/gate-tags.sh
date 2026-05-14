@@ -194,9 +194,28 @@ gate_subgate_upgrade-paths() {
         failing_tags=$(grep '^FAIL:' "$GATE_TEMP_ROOT/upgrade-paths.results" | sed 's/^FAIL://' | tr '\n' ' ')
     fi
 
+    # Partition failing tags by allowlist (Q-0017 answer B 2026-05-14).
+    # Allowlisted failures are logged but don't block the sub-gate.
+    allowlist="$GATE_CANDIDATE_TREE/tests/release-gate/upgrade-paths-allowlist.txt"
+    blocking_fail=0
+    blocking_tags=""
+    allowlisted_tags=""
+    for t in $failing_tags; do
+        [ -z "$t" ] && continue
+        if [ -f "$allowlist" ] && grep -Fxq "$t" "$allowlist"; then
+            allowlisted_tags="$allowlisted_tags $t"
+        else
+            blocking_tags="$blocking_tags $t"
+            blocking_fail=$((blocking_fail + 1))
+        fi
+    done
+
     echo "$pass/$n_tags round-trips passed"
-    if [ "$fail" -gt 0 ]; then
-        echo "  failing source tags: $failing_tags"
+    if [ -n "$allowlisted_tags" ]; then
+        echo "  allowlisted failures (logged, not blocking):$allowlisted_tags"
+    fi
+    if [ "$blocking_fail" -gt 0 ]; then
+        echo "  failing source tags:$blocking_tags"
         return 1
     fi
     return 0
