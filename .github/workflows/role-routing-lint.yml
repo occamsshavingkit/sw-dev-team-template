@@ -1,0 +1,32 @@
+# Role-routing lint (Hard Rule #8).
+#
+# Runs lint-routing.sh on every PR and push to main. The script is
+# warning-only until HARDGATE_AFTER_SHA is recorded at a future MINOR
+# release, and becomes a hard gate after that SHA; this workflow blocks
+# the PR on whatever the script's exit code is.
+#
+# Read-only check; default GITHUB_TOKEN permissions (contents: read) are
+# sufficient.
+
+name: role-routing-lint
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  role-routing-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run lint-routing.sh (hard-gated per HARDGATE_AFTER_SHA on commits after the cutoff)
+        run: ./scripts/lint-routing.sh --since HARDGATE_AFTER_SHA --summary
