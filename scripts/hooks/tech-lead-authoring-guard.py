@@ -319,20 +319,28 @@ def _is_customer_notes_path(path: str) -> bool:
 # ---------------------------------------------------------------------------
 
 
+# Table-driven path-to-role mapping. Order is significant: the first
+# matching rule wins, so more-specific prefixes (e.g. `docs/adr/`,
+# `docs/security/`) MUST precede the broader `docs/` fallback. Each
+# entry is (predicate, role); the predicate is a callable taking the
+# normalised path. Refactored from a long if/elif chain (Codacy
+# cyclomatic-complexity finding on PR #173); behaviour and role mapping
+# are unchanged.
+_OWNERSHIP_RULES = (
+    (lambda p: p.startswith("docs/adr/"), "architect"),
+    (lambda p: p.startswith("tests/"), "qa-engineer"),
+    (lambda p: p.startswith(".github/workflows/"), "release-engineer"),
+    (lambda p: p.startswith("docs/security/"), "security-engineer"),
+    (lambda p: p.startswith("scripts/") or p.startswith("src/"), "software-engineer"),
+    (lambda p: p == "CHANGELOG.md" or p.startswith("docs/"), "tech-writer"),
+)
+
+
 def _owning_specialist(path: str) -> str:
     norm = _normalise(path)
-    if norm.startswith("docs/adr/"):
-        return "architect"
-    if norm.startswith("tests/"):
-        return "qa-engineer"
-    if norm.startswith(".github/workflows/"):
-        return "release-engineer"
-    if norm.startswith("docs/security/"):
-        return "security-engineer"
-    if norm.startswith("scripts/") or norm.startswith("src/"):
-        return "software-engineer"
-    if norm == "CHANGELOG.md" or norm.startswith("docs/"):
-        return "tech-writer"
+    for predicate, role in _OWNERSHIP_RULES:
+        if predicate(norm):
+            return role
     return "the appropriate specialist"
 
 

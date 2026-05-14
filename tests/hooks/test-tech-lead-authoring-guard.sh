@@ -345,6 +345,43 @@ run_case "deny: tee -a allow-listed THEN off-list" "" \
     deny
 
 # ---------------------------------------------------------------------------
+# Path-to-role mapping coverage — every branch of _owning_specialist.
+#
+# After the table-driven refactor (Codacy MEDIUM-RISK on PR #173) we
+# assert the deny payload names the exact role for one path per rule,
+# plus the fallback. Six rules + fallback = 7 cases.
+# ---------------------------------------------------------------------------
+
+# expect_role <name> <path> <expected-role-string>
+expect_role() {
+    local name=$1
+    local path=$2
+    local role=$3
+    local payload
+    payload=$(printf '{"tool_input":{"file_path":"%s","content":"x"}}' "$path" \
+        | env -u SWDT_AGENT_PUSH python3 "$HOOK")
+    if printf '%s' "$payload" | grep -q "Dispatch '$role'"; then
+        pass=$((pass + 1))
+        echo "PASS  $name (-> $role)"
+    else
+        fail=$((fail + 1))
+        failures+=("$name expected role=$role payload=$payload")
+        echo "FAIL  $name expected role=$role"
+        echo "      payload: $payload"
+    fi
+}
+
+expect_role "owning: docs/adr/foo.md"          "docs/adr/foo.md"          "architect"
+expect_role "owning: tests/foo.sh"             "tests/foo.sh"             "qa-engineer"
+expect_role "owning: .github/workflows/ci.yml" ".github/workflows/ci.yml" "release-engineer"
+expect_role "owning: docs/security/x.md"       "docs/security/x.md"       "security-engineer"
+expect_role "owning: scripts/foo.sh"           "scripts/foo.sh"           "software-engineer"
+expect_role "owning: src/foo.py"               "src/foo.py"               "software-engineer"
+expect_role "owning: CHANGELOG.md"             "CHANGELOG.md"             "tech-writer"
+expect_role "owning: docs/random.md"           "docs/random.md"           "tech-writer"
+expect_role "owning: fallback README-top"      "weird-top-level-file.bin" "the appropriate specialist"
+
+# ---------------------------------------------------------------------------
 # Summary.
 # ---------------------------------------------------------------------------
 

@@ -35,7 +35,9 @@
 #   R1 — missing Routed-Through: trailer in commit body
 #   R2 — malformed trailer (unknown role; bad / missing qualifier on
 #        tech-lead; qualifier on a non-tech-lead role; missing /
-#        extraneous / malformed On-Behalf-Of)
+#        extraneous / malformed On-Behalf-Of; multiple `Routed-Through:`
+#        trailers in one commit — exactly one is required per
+#        FW-ADR-0011 §"Trailer grammar")
 #   R3 — trailer / file-class mismatch (see file-class table below)
 #   R4 — tech-lead:<qualifier> trailer on a file class the qualifier's
 #        whitelist does not cover
@@ -395,21 +397,27 @@ emit() {
     printf '%s: %s: %s\n' "$short" "$pid" "$detail" >> "$REPORTFILE"
 }
 
-# Extract the Routed-Through: trailer value (last occurrence wins) from
-# a commit message body. Echoes the value on stdout, or empty if absent.
+# Extract the Routed-Through: trailer count + value from a commit
+# message body. Echoes a single line of the form "<count>\t<value>" on
+# stdout, where <count> is the number of `Routed-Through:` trailer lines
+# observed and <value> is the LAST occurrence's value (empty when count
+# is 0). Per FW-ADR-0011 §"Trailer grammar" line 255-256, exactly one
+# trailer is required; the caller treats count > 1 as R2 and count == 0
+# as R1.
 extract_trailer() {
     sha="$1"
     git -C "$REPO_ROOT" log -1 --format=%B "$sha" 2>/dev/null \
         | awk '
-            BEGIN { val = "" }
+            BEGIN { val = ""; n = 0 }
             /^[Rr]outed-[Tt]hrough:[[:space:]]*/ {
                 v = $0
                 sub(/^[Rr]outed-[Tt]hrough:[[:space:]]*/, "", v)
                 # Trim trailing whitespace / CR.
                 sub(/[[:space:]]+$/, "", v)
                 val = v
+                n = n + 1
             }
-            END { print val }
+            END { printf "%d\t%s\n", n, val }
         '
 }
 
@@ -451,9 +459,20 @@ lint_commit() {
         return 0
     fi
 
-    trailer=$(extract_trailer "$sha")
-    if [ -z "$trailer" ]; then
+    trailer_raw=$(extract_trailer "$sha")
+    # extract_trailer returns "<count>\t<value>"; split on the literal tab.
+    trailer_count="${trailer_raw%%	*}"
+    trailer="${trailer_raw#*	}"
+    # Empty count defensively maps to 0 (extract_trailer always prints
+    # something, but guard against `git log` returning nothing).
+    [ -n "$trailer_count" ] || trailer_count=0
+
+    if [ "$trailer_count" -eq 0 ]; then
         emit "$sha" "R1" "missing Routed-Through: trailer"
+        return 0
+    fi
+    if [ "$trailer_count" -gt 1 ]; then
+        emit "$sha" "R2" "multiple Routed-Through: trailers; expected exactly one"
         return 0
     fi
 
@@ -655,6 +674,9 @@ $trailer
     sha_J=$(make_case J "CUSTOMER_NOTES.md" "j" "Routed-Through: tech-lead:agent-push" "On-Behalf-Of: researcher")
     sha_K=$(make_case K "docs/OPEN_QUESTIONS.md" "k" "Routed-Through: tech-lead:rebase" "On-Behalf-Of: researcher")
     sha_L=$(make_case L "scripts/foo.sh" "echo L" "Routed-Through: tech-lead:agent-push" "On-Behalf-Of: software-engineer")
+    # N3: multiple Routed-Through: trailers in one commit (FW-ADR-0011
+    # §"Trailer grammar" line 255-256 — exactly one required).
+    sha_M=$(make_case M "scripts/foo.sh" "echo M" "Routed-Through: software-engineer" "Routed-Through: architect")
 
     # Run lint_commit per case into independent report files so we can
     # assert on each commit's findings individually.
@@ -693,6 +715,7 @@ $trailer
     check_case J "$sha_J" "PASS"   # tech-lead:agent-push + On-Behalf-Of: researcher on CUSTOMER_NOTES.md
     check_case K "$sha_K" "R2"     # tech-lead:rebase + extraneous On-Behalf-Of
     check_case L "$sha_L" "PASS"   # tech-lead:agent-push + On-Behalf-Of: software-engineer on scripts/foo.sh (cascade)
+    check_case M "$sha_M" "R2"     # multiple Routed-Through: trailers (N3 / FW-ADR-0011 line 255-256)
 
     # Restore.
     REPO_ROOT="$SAVED_REPO_ROOT"
