@@ -508,3 +508,136 @@ new `Gate` column (option A). No sibling file.
 behaviour, #172 migration scope, #170/#163 sequencing).
 
 **Recorded by:** researcher (via tech-lead).
+
+## 2026-05-14 — Hard Rule #8 enforcement: Routed-Through trailer scope (turn: pending — flagged to tech-lead)
+
+**Context.** Hard Rule #8 enforcement design (architect `architect-hr8`,
+design completed 2026-05-14) proposes a `Routed-Through:` commit-message
+trailer plus a lint script (`scripts/lint-routing.sh`) to enforce that
+non-orchestration commits past `HARDGATE_AFTER_SHA` carry a specialist
+trailer. Customer directive 2026-05-14 framing the design: "it isn't
+about doing things fast. we are trying to do them right. we need
+stronger enforcement." Open decision on the scope of the trailer
+requirement: every commit, or only commits whose changed files match
+the architect's classification table.
+
+**Question (from architect, relayed by tech-lead):**
+> The Hard Rule #8 enforcement design proposes a `Routed-Through:`
+> commit-message trailer plus a lint script. Should the trailer be
+> required on every commit past `HARDGATE_AFTER_SHA`, or only on
+> commits whose changed files match the architect's classification
+> table (code/ADRs/CHANGELOG/CUSTOMER_NOTES/tests/workflows/security
+> docs)?
+> A) Required on every commit past the cutoff.
+> B) Required only on commits whose changed files match the
+>    classification table.
+
+**Customer answer (verbatim):**
+> A
+
+**Ruling.** `Routed-Through:` trailer required on every commit past
+`HARDGATE_AFTER_SHA` (option A). Includes one-line typo fixes,
+intake-log appends, and all routine orchestration commits — no
+classification-based exemption.
+
+**Implications:**
+- No file-pattern carve-out; lint applies uniformly to every commit
+  past the cutoff.
+- Tool-bridge / orchestration commits still satisfy the trailer
+  requirement via the qualifier set (see companion ruling 7).
+- Lint script (`scripts/lint-routing.sh`, forthcoming) enforces
+  presence of `Routed-Through:` on every commit past the cutoff
+  without inspecting changed-file paths to gate the requirement.
+
+**Cross-refs:** → FW-ADR-NNNN (architect `architect-hr8` drafting in
+parallel); `scripts/lint-routing.sh` (forthcoming); Hard Rule #8 in
+`sw-dev-team-template/CLAUDE.md`; customer directive 2026-05-14
+("stronger enforcement").
+
+**Recorded by:** researcher (via tech-lead).
+
+## 2026-05-14 — Hard Rule #8 enforcement: tool-bridge qualifier enumeration (turn: pending — flagged to tech-lead)
+
+**Context.** Hard Rule #8 enforcement design (architect `architect-hr8`,
+design completed 2026-05-14) defines a tool-bridge qualifier set for
+`Routed-Through:` trailers covering commits that `tech-lead` performs
+as a tool bridge rather than as authored work. Initial qualifier set:
+`agent-push`, `orchestration`, `ci-fixup`, `merge`, `revert`. Open
+decision on whether git history operations `rebase` and `cherry-pick`
+join the set.
+
+**Question (from architect, relayed by tech-lead):**
+> Should the tool-bridge qualifier set (`agent-push`, `orchestration`,
+> `ci-fixup`, `merge`, `revert`) also include git history operations
+> `rebase` and `cherry-pick`?
+> A) Yes — add `rebase` and `cherry-pick` to the qualifier set.
+> B) No — keep the set as proposed; rebase/cherry-pick commits need
+>    a specialist trailer.
+
+**Customer answer (verbatim):**
+> A
+
+**Ruling.** Add `rebase` and `cherry-pick` to the tool-bridge qualifier
+set (option A). Tech-lead can use the tool-bridge qualifier for
+PR-cleanup operations (rebases, cherry-picks) without those commits
+needing a specialist trailer.
+
+**Implications:**
+- Final tool-bridge qualifier set: `agent-push`, `orchestration`,
+  `ci-fixup`, `merge`, `revert`, `rebase`, `cherry-pick`.
+- `tech-lead` PR-cleanup workflows (interactive rebases, cherry-picks
+  during conflict resolution or branch curation) ship under the
+  tool-bridge qualifier without specialist routing.
+- Qualifier list lives in `scripts/lint-routing.sh` as the
+  allowed-values check; expanding the set later requires a fresh
+  customer ruling or an ADR amendment.
+
+**Cross-refs:** → FW-ADR-NNNN (architect `architect-hr8` drafting in
+parallel); `scripts/lint-routing.sh` allowed-values check; companion
+ruling 2026-05-14 (Routed-Through trailer scope).
+
+**Recorded by:** researcher (via tech-lead).
+
+## 2026-05-14 — Hard Rule #8 enforcement: R5 CUSTOMER_NOTES.md cutoff (turn: pending — flagged to tech-lead)
+
+**Context.** Hard Rule #8 enforcement design (architect `architect-hr8`,
+design completed 2026-05-14) defines pattern R5 in the lint's pattern
+table: commits touching `CUSTOMER_NOTES.md` with a non-`researcher`
+trailer fail the lint, because `CUSTOMER_NOTES.md` is sole-owned by
+`researcher`. The general lint cutoff (`HARDGATE_AFTER_SHA`)
+grandfathers pre-cutoff history. Open decision on whether R5 is
+hard-gated from day one (ignoring the grandfather) or follows the
+general cutoff.
+
+**Question (from architect, relayed by tech-lead):**
+> `CUSTOMER_NOTES.md` is sole-owned by `researcher`. Pattern R5
+> catches commits touching it with non-`researcher` trailer. Should R5
+> be hard-gated from day one (ignoring HARDGATE_AFTER_SHA grandfather),
+> or follow the general cutoff?
+> A) Hard-gate R5 from day one (ignore the grandfather).
+> B) R5 follows the general cutoff — symmetric with all other file
+>    classes.
+
+**Customer answer (verbatim):**
+> B
+
+**Ruling.** R5 follows the general `HARDGATE_AFTER_SHA` cutoff (option
+B). `CUSTOMER_NOTES.md` is treated symmetric with all other file
+classes — no special early-gate. Pre-cutoff commits touching
+`CUSTOMER_NOTES.md` without a `researcher` trailer are grandfathered.
+
+**Implications:**
+- R5 enforcement starts at `HARDGATE_AFTER_SHA` like every other
+  pattern; no asymmetric early-gate.
+- Pre-cutoff history with `CUSTOMER_NOTES.md` touches under
+  non-`researcher` trailers (or no trailer at all) remains valid
+  history and does not need backfill.
+- Symmetry preserved across the pattern table: one cutoff governs
+  all file classes.
+
+**Cross-refs:** → FW-ADR-NNNN (architect `architect-hr8` drafting in
+parallel); `scripts/lint-routing.sh` §"Pattern IDs" (R5 row);
+companion 2026-05-14 rulings (Routed-Through trailer scope, tool-bridge
+qualifier enumeration).
+
+**Recorded by:** researcher (via tech-lead).
