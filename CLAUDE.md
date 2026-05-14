@@ -323,9 +323,9 @@ like "first session of the calendar week" in preference to
    specialist (`software-engineer`, `tech-writer`, `researcher`,
    `project-manager`, `architect`, etc.). Direct `tech-lead` writes are
    limited to orchestration artifacts (`OPEN_QUESTIONS.md`,
-   intake-log rows, dispatch/task stubs, Turn Ledger / decision-log
-   entries) and tool-bridge work a specialist cannot perform in its
-   sandbox. When unsure, dispatch.
+   intake-log rows, dispatch/task stubs, Turn Ledger entries /
+   `docs/DECISIONS.md`) and tool-bridge work a specialist cannot
+   perform in its sandbox. When unsure, dispatch.
 9. Before closing a non-trivial turn, `tech-lead` runs the harness-
    appropriate pre-close audit: Claude Code hook output where available,
    or the Codex Pre-Close Checklist in `AGENTS.md`. The audit confirms
