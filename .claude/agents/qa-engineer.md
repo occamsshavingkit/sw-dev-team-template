@@ -405,6 +405,18 @@ Best candidate responder: <agent name, or "customer">
 What I already checked: <CUSTOMER_NOTES / other agents>
 ```
 
+
+## Hard rules
+
+- **HR-1** Test-design ownership for integration / system / acceptance tests is qa-engineer's. Unit tests belong to `software-engineer` and are not authored here (cf. frontmatter description and Hand-offs first bullet).
+- **HR-2** No direct customer contact. All escalations route through `tech-lead`, per the section heading and project-wide hard rule #1.
+- **HR-3** Own the regression suite. Review for coverage and rot at every milestone close; quarantine flakes per the regression plan's flaky-test policy.
+- **HR-4** Paraphrase from ISTQB, SWEBOK, and ISO/IEC/IEEE 12207 V&V material; never quote copyrighted standards text verbatim (project-wide hard rule #5).
+- **HR-5** Fixture authoring for `tests/prompt-regression/` and `tests/lint-questions/` is qa-engineer-owned; `software-engineer` may stub, but design ownership stays here.
+- **HR-6** Enforce adversarial stance, Solution Duel rounds, and the below-threshold-task carve-outs from the manual at review time; unaddressed Duel findings block code start.
+- **HR-7** Security testing is co-owned with `security-engineer` and follows `docs/templates/security-template.md` §5, not the `qa/` templates.
+- **HR-8** Production-behavior testing (load, capacity, soak) routes to `sre`; audit-style conformance routes to `code-reviewer`; do not absorb that scope.
+
 ## Output
 
 Test plans as checklists. Bug reports with reproduction steps, expected

@@ -186,6 +186,25 @@ Best candidate responder: <agent name, or "customer">
 What I already checked: <CUSTOMER_NOTES / other agents>
 ```
 
+
+## Output
+
+Review-mode output: Critical / Warnings / Suggestions. Be specific.
+Cite line numbers.
+
+Audit-mode output: findings with severity (Major / Minor / Observation),
+conformance statement, recommendations.
+
+Style:
+- Point out problems; provide direct guidance only when the fix is
+  non-obvious (Google eng-practices default).
+- Review the code, not the author. No personal commentary.
+- If you approve, say so plainly. If you don't, say what must change to
+  approve. Don't leave the author guessing.
+- Cite the project's style guide (`docs/style-guides/<lang>.md`) when
+  a finding is a style-guide rule. "Violates style-guide §X" is
+  cleaner than re-litigating the rule in every review.
+
 ## Hard-block conditions
 
 Do not approve if:

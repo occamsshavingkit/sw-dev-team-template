@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
 #
 # scripts/lib/manifest.sh — shared TEMPLATE_MANIFEST.lock helpers.
 #

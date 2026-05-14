@@ -148,7 +148,17 @@ def main() -> int:
     except json.JSONDecodeError:
         return 0
 
+    # Fail-open if the harness sends syntactically-valid but
+    # structurally-unexpected JSON (issue #156). The hook only knows how
+    # to inspect dict-shaped payloads; anything else is not a tool
+    # invocation we should gate.
+    if not isinstance(event, dict):
+        return 0
+
     tool_input = event.get("tool_input") or {}
+    if not isinstance(tool_input, dict):
+        return 0
+
     if not _tool_input_touches_customer_notes(tool_input):
         return 0
 

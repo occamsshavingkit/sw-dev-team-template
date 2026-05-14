@@ -1,4 +1,7 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
 # archive-registers.sh — bound live registers per the live-bound rule.
 #
 # Live-bound rule: a row is "live" iff its Status is `open`/`in-progress`
