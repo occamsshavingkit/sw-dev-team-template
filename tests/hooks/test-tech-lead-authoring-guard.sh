@@ -529,6 +529,126 @@ run_case "tightening#4: open(p, buffering=0, mode='w') denies" "" \
     deny
 
 # ---------------------------------------------------------------------------
+# Upstream issue #179 — inline SWDT_AGENT_PUSH= must anchor to LEADING
+# command position. Forms after `&&`, `||`, `;`, `|` MUST deny.
+# ---------------------------------------------------------------------------
+
+run_case "issue#179: post-&& SWDT_AGENT_PUSH= denies" "" \
+    '{"tool_input":{"command":"cd foo && SWDT_AGENT_PUSH=architect echo y > docs/adr/foo.md"}}' \
+    deny
+
+run_case "issue#179: post-|| SWDT_AGENT_PUSH= denies" "" \
+    '{"tool_input":{"command":"false || SWDT_AGENT_PUSH=architect echo y > docs/adr/foo.md"}}' \
+    deny
+
+run_case "issue#179: post-pipe SWDT_AGENT_PUSH= denies" "" \
+    '{"tool_input":{"command":"echo a | SWDT_AGENT_PUSH=architect cat > docs/adr/foo.md"}}' \
+    deny
+
+run_case "issue#179: post-semicolon SWDT_AGENT_PUSH= denies" "" \
+    '{"tool_input":{"command":"cd foo; SWDT_AGENT_PUSH=architect echo y > docs/adr/foo.md"}}' \
+    deny
+
+run_case "issue#179: post-&& export SWDT_AGENT_PUSH= denies" "" \
+    '{"tool_input":{"command":"cd foo && export SWDT_AGENT_PUSH=architect; echo y > docs/adr/foo.md"}}' \
+    deny
+
+# Leading-position forms still proceed (#176 carve-out preserved).
+run_case "issue#179: leading SWDT_AGENT_PUSH= still proceeds" "" \
+    '{"tool_input":{"command":"SWDT_AGENT_PUSH=architect echo y > docs/adr/foo.md"}}' \
+    proceed \
+    "SWDT_AGENT_PUSH=architect"
+
+run_case "issue#179: leading-with-whitespace SWDT_AGENT_PUSH= still proceeds" "" \
+    '{"tool_input":{"command":"   SWDT_AGENT_PUSH=architect echo y > docs/adr/foo.md"}}' \
+    proceed \
+    "SWDT_AGENT_PUSH=architect"
+
+run_case "issue#179: leading export SWDT_AGENT_PUSH= still proceeds" "" \
+    '{"tool_input":{"command":"export SWDT_AGENT_PUSH=architect; echo y > docs/adr/foo.md"}}' \
+    proceed \
+    "SWDT_AGENT_PUSH=architect"
+
+# Leading SWDT_AGENT_PUSH= chained with && still proceeds (the leading
+# assignment applies to the chained command's environment).
+run_case "issue#179: leading SWDT_AGENT_PUSH= with && chained command proceeds" "" \
+    '{"tool_input":{"command":"SWDT_AGENT_PUSH=architect echo y && echo z > docs/adr/foo.md"}}' \
+    proceed \
+    "SWDT_AGENT_PUSH=architect"
+
+# ---------------------------------------------------------------------------
+# Upstream issue #180 — heredoc-body redirect detector must not fire on
+# prose containing `>` (Option C: skip redirect detection inside heredoc
+# bodies AND non-shell `-c` / `-e` bodies; rely on `open(..., mode)` for
+# real writes inside those bodies).
+# ---------------------------------------------------------------------------
+
+# Case 1: prose with `>` inside a heredoc body fed to an allow-listed
+# target via opener-line redirect. Was: deny on phantom 'y'. Now: proceed.
+run_case "issue#180: heredoc body prose with > does not phantom-deny" "" \
+    '{"tool_input":{"command":"cat <<EOF >> docs/OPEN_QUESTIONS.md\nIf x > y then we win\nEOF"}}' \
+    proceed
+
+# Case 2: git commit -m with a heredoc-quoted commit body containing `>`
+# in prose. Was: deny on phantom 'stderr.log'. Now: proceed.
+#
+# Single-quote-protected JSON literal so the shell does not expand `$(...)`.
+# shellcheck disable=SC2016
+run_case "issue#180: git commit -m heredoc body with > prose proceeds" "" \
+    '{"tool_input":{"command":"git commit -m \"$(cat <<EOF\nfix: route stdout > stderr.log handling\nEOF\n)\""}}' \
+    proceed
+
+# Case 3: python -c "print('stdout > stderr ...')" — quoted python string
+# containing `>` is data, not a redirect. Was: deny on phantom 'stderr'.
+# Now: proceed.
+run_case "issue#180: python3 -c print('a > b') proceeds" "" \
+    '{"tool_input":{"command":"python3 -c \"print('"'"'stdout > stderr means redirect'"'"')\""}}' \
+    proceed
+
+run_case "issue#180: node -e console.log with > in string proceeds" "" \
+    '{"tool_input":{"command":"node -e \"console.log('"'"'a > b'"'"')\""}}' \
+    proceed
+
+run_case "issue#180: ruby -e puts with > in string proceeds" "" \
+    '{"tool_input":{"command":"ruby -e \"puts '"'"'a > b'"'"'\""}}' \
+    proceed
+
+# Regression: real writes inside heredocs and -c bodies must still deny.
+
+# Opener-line redirect into off-list target still denies (the opener-line
+# `>>` is real shell, not heredoc body).
+run_case "issue#180 regression: cat <<EOF >> scripts/foo.sh still denies" "" \
+    '{"tool_input":{"command":"cat <<EOF >> scripts/foo.sh\nIf x > y then we win\nEOF"}}' \
+    deny
+
+# `cat > FILE <<EOF` form: redirect is BEFORE the heredoc opener — still denies.
+run_case "issue#180 regression: cat > src/foo.py <<EOF still denies" "" \
+    '{"tool_input":{"command":"cat > src/foo.py <<EOF\nx=1\nEOF"}}' \
+    deny
+
+# Real write-mode open() inside a heredoc body still denies (interpreter
+# inline-target scan picks it up via the open() pattern, not the redirect).
+run_case "issue#180 regression: python <<EOF open(..., 'w') still denies" "" \
+    '{"tool_input":{"command":"python3 <<EOF\nopen('"'"'src/foo.py'"'"','"'"'w'"'"').write('"'"'x'"'"')\nEOF"}}' \
+    deny
+
+# bash -c is a SHELL interpreter — its -c body IS shell, so redirects
+# inside that body must still trigger.
+run_case "issue#180 regression: bash -c redirect to scripts/foo.sh denies" "" \
+    '{"tool_input":{"command":"bash -c \"echo x > scripts/foo.sh\""}}' \
+    deny
+
+run_case "issue#180 regression: sh -c redirect to scripts/foo.sh denies" "" \
+    '{"tool_input":{"command":"sh -c \"echo x > scripts/foo.sh\""}}' \
+    deny
+
+# Write-mode open() inside python -c body still denies (was the existing
+# #175 path; re-asserted to ensure the body scan is still active).
+run_case "issue#180 regression: python3 -c open(..., 'w') still denies" "" \
+    '{"tool_input":{"command":"python3 -c \"open('"'"'src/foo.py'"'"','"'"'w'"'"').write('"'"'x'"'"')\""}}' \
+    deny
+
+# ---------------------------------------------------------------------------
 # Summary.
 # ---------------------------------------------------------------------------
 
