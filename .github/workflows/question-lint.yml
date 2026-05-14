@@ -25,11 +25,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Install check-jsonschema
         run: pipx install check-jsonschema==0.37.2
-      - name: Run lint-questions.sh (default file set, warning-only or hard-gated per HARDGATE_AFTER_SHA)
-        run: ./scripts/lint-questions.sh --summary
+      - name: Run lint-questions.sh (hard-gated per HARDGATE_AFTER_SHA on lines added after the cutoff)
+        run: ./scripts/lint-questions.sh --since HARDGATE_AFTER_SHA --summary

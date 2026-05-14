@@ -346,6 +346,21 @@ like "first session of the calendar week" in preference to
    framework-managed files unedited unless the customer explicitly
    authorized template-upgrade or framework-maintenance work for that
    task.
+11. **Atomic customer questions (binding, strict reading).** Each
+    customer-facing question MUST cover exactly ONE decision axis. A
+    "multi-select" or "pick multiple — they're independent" framing
+    bundling N axes into one prompt IS the violation, regardless of
+    whether the customer could answer "all of the above." Batch
+    independent questions internally in `docs/OPEN_QUESTIONS.md`; ask
+    one queued customer question per turn, only when all agents and
+    tools are idle, as the FINAL line of the turn. Enforcement: `scripts/lint-questions.sh`
+    runs hard-gate (CI-blocking) for commits after the `HARDGATE_AFTER_SHA`
+    recorded in that script. Reason for promotion to a numbered Hard Rule:
+    the prior placement (multiple non-numbered references across
+    `CLAUDE.md`, `AGENTS.md`, `.claude/agents/tech-lead.md`, `docs/FIRST_ACTIONS.md`,
+    `docs/OPEN_QUESTIONS.md`, `docs/templates/intake-log-template.md`) was
+    not strong enough — bundled-question violations recurred. Customer
+    ruling 2026-05-14.
 
 ## Taxonomy discipline
 
