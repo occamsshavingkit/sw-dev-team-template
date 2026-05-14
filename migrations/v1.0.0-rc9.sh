@@ -45,6 +45,16 @@ export LANG LC_ALL
 
 : "${PROJECT_ROOT:?PROJECT_ROOT is required}"
 
+# Visibility for degraded-mode operation (issue #159). If WORKDIR_NEW is
+# empty/unset OR doesn't contain an upstream .claude/agents/ tree, the
+# migration still runs but uses TODO placeholders instead of canonical
+# upstream section bodies. Surface that condition on stderr so operators
+# can re-run with a proper upstream clone if they want canonical content.
+# Non-fatal: placeholder fallback is a valid degraded path.
+if [ -z "${WORKDIR_NEW:-}" ] || [ ! -d "${WORKDIR_NEW:-}/.claude/agents" ]; then
+    printf 'WARN: WORKDIR_NEW=%s is not a usable upstream clone; this migration will fall back to TODO placeholders instead of upstream-canonical section bodies. Set WORKDIR_NEW to an extracted rc9+ upstream tree to backfill from canonical content.\n' "${WORKDIR_NEW:-}" >&2
+fi
+
 agents_dir="$PROJECT_ROOT/.claude/agents"
 decisions_log="$PROJECT_ROOT/docs/DECISIONS.md"
 
