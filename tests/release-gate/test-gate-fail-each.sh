@@ -97,6 +97,40 @@ else
     echo "  SKIP: 05-lint-fail — $victim missing or lacks ## Hard rules"
 fi
 
+# ----- Fixture 03: dangling advisory pointer → advisory-pointers --------
+# Append a string to scripts/upgrade.sh that references a non-existent path
+# the advisory scanner will catch. Don't pick a path on the allowlist.
+victim_script="$repo_root/scripts/upgrade.sh"
+backup_script="$victim_script.bak-$$"
+cp "$victim_script" "$backup_script"
+register_revert "mv '$backup_script' '$victim_script'"
+printf '\necho "# fixture-03: see migrations/v9.9.9-fixture-fake.sh for context"\n' >> "$victim_script"
+assert_subgate_fails "03-dangling-advisory" "advisory-pointers"
+mv "$backup_script" "$victim_script"
+revert_actions=()
+
+# ----- Fixture 06: migration writes placeholder body → migrations-standalone --
+# Create a one-shot stub migration that writes the placeholder marker into
+# a canonical agent file. The gate's per-migration scan will find it.
+stub_mig="$repo_root/migrations/v0.0.1-fixture-06.sh"
+cat > "$stub_mig" <<'STUB'
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Fixture 06 — deliberately writes the placeholder marker so the gate's
+# migrations-standalone sub-gate flags it.
+: "${PROJECT_ROOT:?}"
+target="$PROJECT_ROOT/.claude/agents/architect.md"
+if [ -f "$target" ]; then
+    printf '\n## Fixture stub\n- **TODO**: the rc9 agent-contract schema requires this section.\n' >> "$target"
+fi
+exit 0
+STUB
+chmod +x "$stub_mig"
+register_revert "rm -f '$stub_mig'"
+assert_subgate_fails "06-migration-placeholder" "migrations-standalone"
+rm -f "$stub_mig"
+revert_actions=()
+
 echo
 echo "------------------------------------------------------------"
 echo "test-gate-fail-each: $pass passed, $fail failed"
