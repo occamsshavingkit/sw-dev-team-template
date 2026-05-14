@@ -39,6 +39,40 @@ set -euo pipefail
 : "${PROJECT_ROOT:?PROJECT_ROOT is required}"
 : "${WORKDIR_NEW:?WORKDIR_NEW is required}"
 
+# Pre-bootstrap: atomic-replace project's scripts/upgrade.sh + scripts/lib/*
+# with the candidate's versions BEFORE the calling v0.x upgrade.sh's sync
+# loop runs. Pre-v0.15.0 upgrade.sh lacks self-bootstrap, so its sync loop
+# would otherwise `cp` over scripts/upgrade.sh while bash is reading it —
+# corrupting the running script and producing arbitrary crashes mid-loop
+# (observed as `line N: y: command not found`-style errors picked up from
+# the byte offset of a comment in the candidate). Atomic mv-rename leaves
+# the parent bash's open fd on the original (now-unlinked) inode, so the
+# running v0.x script reads its original content to EOF without seeing the
+# replacement; the sync loop then sees cmp-equal between $new_path and
+# $proj_path and skips the cp altogether.
+#
+# Idempotent: runs every time this migration runs, no harm if the files
+# are already identical.
+if [ -f "$WORKDIR_NEW/scripts/upgrade.sh" ] && [ -f "$PROJECT_ROOT/scripts/upgrade.sh" ]; then
+    if ! cmp -s "$WORKDIR_NEW/scripts/upgrade.sh" "$PROJECT_ROOT/scripts/upgrade.sh"; then
+        cp "$WORKDIR_NEW/scripts/upgrade.sh" "$PROJECT_ROOT/scripts/upgrade.sh.tmp.$$"
+        mv "$PROJECT_ROOT/scripts/upgrade.sh.tmp.$$" "$PROJECT_ROOT/scripts/upgrade.sh"
+        echo "  pre-bootstrapped scripts/upgrade.sh to candidate (cross-MAJOR safe)"
+    fi
+fi
+if [ -d "$WORKDIR_NEW/scripts/lib" ]; then
+    mkdir -p "$PROJECT_ROOT/scripts/lib"
+    for lib in "$WORKDIR_NEW/scripts/lib"/*.sh; do
+        [ -f "$lib" ] || continue
+        lib_name=$(basename "$lib")
+        proj_lib="$PROJECT_ROOT/scripts/lib/$lib_name"
+        if [ ! -f "$proj_lib" ] || ! cmp -s "$lib" "$proj_lib"; then
+            cp "$lib" "$proj_lib.tmp.$$"
+            mv "$proj_lib.tmp.$$" "$proj_lib"
+        fi
+    done
+fi
+
 manifest="$PROJECT_ROOT/TEMPLATE_MANIFEST.lock"
 
 if [[ -f "$manifest" ]]; then
