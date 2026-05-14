@@ -98,7 +98,15 @@ def _load_customer_notes_guard():
     module = importlib.util.module_from_spec(spec)
     try:
         spec.loader.exec_module(module)
-    except Exception:
+    except (ImportError, SyntaxError, AttributeError, OSError) as exc:
+        # Fail-safe-allow: log the captured exception to stderr so a broken
+        # neighbour module is visible rather than silently disabling the
+        # vendored helpers. Codacy PR #173 HIGH-RISK finding: broad except
+        # with no logging hides parse/import regressions.
+        sys.stderr.write(
+            "tech-lead-authoring-guard: failed to load customer-notes-guard "
+            f"({type(exc).__name__}: {exc}); continuing without it.\n"
+        )
         return None
     return module
 
@@ -125,7 +133,11 @@ def _extract_redirect_targets(command: str):
 
 
 def _extract_tee_targets(command: str):
-    # `tee [-a] FILE [FILE ...]` — first non-option token after `tee`.
+    # `tee [-a] FILE [FILE ...]` — ALL non-option tokens after `tee` are
+    # write targets (tee fans output to every listed file). Do NOT break
+    # after the first match; an attacker can otherwise stage
+    # `tee <allow-listed> <off-list>` and bypass the guard on the trailing
+    # targets (HIGH-RISK bypass — Codacy PR #173 finding).
     targets = []
     for m in re.finditer(r"\btee\b((?:\s+-[a-zA-Z]+)*)\s+([^|;&]+)", command):
         tail = m.group(2).strip()
@@ -136,7 +148,6 @@ def _extract_tee_targets(command: str):
             token = token.strip("'\"")
             if token and not re.match(r"^[|;&<>]", token):
                 targets.append(token)
-            break
     return targets
 
 
@@ -442,6 +453,39 @@ def _decide_for_command(command: str):
     return _deny_output(first, "Bash target"), None
 
 
+def _collect_target_paths(tool_input: dict):
+    """Collect every file-target path the tool invocation may write to.
+
+    Per the Claude Code tool spec, ``MultiEdit`` carries a single
+    top-level ``file_path`` plus an ``edits`` array applying multiple
+    edits to that one file — so a strict reading says only ``file_path``
+    matters. Codacy PR #173 nonetheless flagged a HIGH-RISK bypass on
+    the assumption that ``edits`` (or a ``files``/``changes`` array)
+    might carry per-entry ``file_path`` fields on some tools or future
+    revisions. We close the door defensively: collect the top-level
+    ``file_path``/``path`` AND walk any list value under ``tool_input``
+    for per-entry ``file_path``/``path`` strings. If ANY collected path
+    is off the allow-list, the call is denied.
+    """
+    paths = []
+    top = tool_input.get("file_path") or tool_input.get("path") or ""
+    if isinstance(top, str) and top:
+        paths.append(top)
+
+    # Iterate every list value under tool_input and pull file_path/path
+    # entries. Arrays we have seen named: edits, changes, files.
+    for value in tool_input.values():
+        if not isinstance(value, list):
+            continue
+        for entry in value:
+            if not isinstance(entry, dict):
+                continue
+            candidate = entry.get("file_path") or entry.get("path") or ""
+            if isinstance(candidate, str) and candidate:
+                paths.append(candidate)
+    return paths
+
+
 def main() -> int:
     try:
         event = json.load(sys.stdin)
@@ -455,17 +499,33 @@ def main() -> int:
     if not isinstance(tool_input, dict):
         return 0
 
-    file_path = tool_input.get("file_path") or tool_input.get("path") or ""
+    target_paths = _collect_target_paths(tool_input)
     command = tool_input.get("command") or ""
 
     decision = None
     audit = None
 
-    if isinstance(file_path, str) and file_path:
-        decision, audit = _decide_for_path(file_path)
+    # Check EVERY collected target path. If any one denies, deny the call.
+    # The first matching decision (deny or audited-override) wins so the
+    # surfaced diagnostic names a concrete path; the loop short-circuits on
+    # deny but continues past silent proceeds to find any off-list entry.
+    for path in target_paths:
+        path_decision, path_audit = _decide_for_path(path)
+        if path_decision is not None:
+            decision, audit = path_decision, path_audit
+            break
+        if path_audit is not None and audit is None:
+            # Remember the first override-audit so we still log it even if
+            # later paths are silently allowed.
+            audit = path_audit
 
     if decision is None and isinstance(command, str) and command:
-        decision, audit = _decide_for_command(command)
+        cmd_decision, cmd_audit = _decide_for_command(command)
+        if cmd_decision is not None:
+            decision = cmd_decision
+            audit = cmd_audit
+        elif cmd_audit is not None and audit is None:
+            audit = cmd_audit
 
     if audit is not None:
         audit()

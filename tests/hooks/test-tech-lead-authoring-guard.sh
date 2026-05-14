@@ -19,6 +19,12 @@ fail=0
 failures=()
 
 # run_case <name> <env-line> <stdin-json> <expect-decision: proceed|deny> [<expect-stderr-substr>]
+#
+# <env-line> is a single whitespace-delimited string of KEY=VALUE pairs (or
+# empty). It is split on whitespace into a bash array so each KEY=VALUE
+# token reaches `env` as a separate argv element. The previous unquoted
+# `$env_line` expansion (Codacy PR #173 HIGH-RISK shell-injection) is gone:
+# unquoted expansion is susceptible to glob expansion and IFS surprises.
 run_case() {
     local name=$1
     local env_line=$2
@@ -32,8 +38,17 @@ run_case() {
     tmp_err=$(mktemp)
 
     if [ -n "$env_line" ]; then
-        # shellcheck disable=SC2086
-        printf '%s' "$stdin" | env $env_line python3 "$HOOK" >"$tmp_out" 2>"$tmp_err"
+        # Word-split env_line into an array with explicit IFS scope, then
+        # pass the array elements as separate args to `env`. Quoting the
+        # array expansion prevents glob/IFS surprises while still letting
+        # multiple KEY=VAL tokens through as distinct argv elements.
+        local -a env_args=()
+        local _old_ifs=$IFS
+        IFS=' 	'
+        # shellcheck disable=SC2206  # intentional word-split of env_line
+        env_args=( $env_line )
+        IFS=$_old_ifs
+        printf '%s' "$stdin" | env "${env_args[@]}" python3 "$HOOK" >"$tmp_out" 2>"$tmp_err"
     else
         # Explicitly clear the escape hatch so it can't leak in from the
         # caller's environment.
@@ -280,6 +295,54 @@ run_case "fail-open: malformed JSON" "" "not json" proceed
 run_case "fail-open: empty stdin" "" "" proceed
 run_case "fail-open: non-dict event" "" '[]' proceed
 run_case "fail-open: missing tool_input" "" '{}' proceed
+
+# ---------------------------------------------------------------------------
+# Regression: Codacy PR #173 HIGH-RISK bypass cases.
+# ---------------------------------------------------------------------------
+
+# Bug 1 — MultiEdit / multi-target tool_input.
+#
+# Per the Claude Code tool spec, MultiEdit is single-file (one top-level
+# `file_path` plus an `edits` array of {old_string, new_string} pairs
+# applied to that one file). Codacy assumed multi-file, so we cover both
+# readings: the spec-correct case (MultiEdit on an allow-listed file
+# proceeds) AND the defense-in-depth case (off-list `file_path` inside any
+# nested array entry must deny, in case a future tool revision actually
+# carries per-entry paths).
+run_case "allow: MultiEdit single-file on docs/OPEN_QUESTIONS.md (spec shape)" "" \
+    '{"tool_input":{"file_path":"docs/OPEN_QUESTIONS.md","edits":[{"old_string":"a","new_string":"b"},{"old_string":"c","new_string":"d"}]}}' \
+    proceed
+
+run_case "deny: MultiEdit-style multi-file (top allow-listed, nested entry off-list)" "" \
+    '{"tool_input":{"file_path":"docs/OPEN_QUESTIONS.md","edits":[{"file_path":"scripts/evil.sh","old_string":"x","new_string":"y"}]}}' \
+    deny
+
+run_case "deny: changes array with off-list entry" "" \
+    '{"tool_input":{"changes":[{"file_path":"docs/OPEN_QUESTIONS.md"},{"file_path":"scripts/evil.sh"}]}}' \
+    deny
+
+run_case "deny: files array with off-list entry" "" \
+    '{"tool_input":{"files":[{"path":"scripts/evil.sh","content":"x"}]}}' \
+    deny
+
+# Bug 2 — tee multi-target loop must NOT break after first allow-listed
+# file. Operator could otherwise prefix an allow-listed target to smuggle
+# off-list writes.
+run_case "deny: tee allow-listed THEN off-list (first allow-listed bypass)" "" \
+    '{"tool_input":{"command":"echo x | tee docs/OPEN_QUESTIONS.md scripts/evil.sh"}}' \
+    deny
+
+run_case "deny: tee off-list THEN allow-listed" "" \
+    '{"tool_input":{"command":"echo x | tee scripts/evil.sh docs/OPEN_QUESTIONS.md"}}' \
+    deny
+
+run_case "proceed: tee with two allow-listed targets" "" \
+    '{"tool_input":{"command":"echo x | tee docs/OPEN_QUESTIONS.md docs/intake-log.md"}}' \
+    proceed
+
+run_case "deny: tee -a allow-listed THEN off-list" "" \
+    '{"tool_input":{"command":"echo x | tee -a docs/OPEN_QUESTIONS.md scripts/evil.sh"}}' \
+    deny
 
 # ---------------------------------------------------------------------------
 # Summary.
