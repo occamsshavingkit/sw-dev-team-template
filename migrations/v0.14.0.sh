@@ -55,8 +55,7 @@ set -euo pipefail
 # are already identical.
 if [ -f "$WORKDIR_NEW/scripts/upgrade.sh" ] && [ -f "$PROJECT_ROOT/scripts/upgrade.sh" ]; then
     if ! cmp -s "$WORKDIR_NEW/scripts/upgrade.sh" "$PROJECT_ROOT/scripts/upgrade.sh"; then
-        cp "$WORKDIR_NEW/scripts/upgrade.sh" "$PROJECT_ROOT/scripts/upgrade.sh.tmp.$$"
-        mv "$PROJECT_ROOT/scripts/upgrade.sh.tmp.$$" "$PROJECT_ROOT/scripts/upgrade.sh"
+        install -m 0755 "$WORKDIR_NEW/scripts/upgrade.sh" "$PROJECT_ROOT/scripts/upgrade.sh"
         echo "  pre-bootstrapped scripts/upgrade.sh to candidate (cross-MAJOR safe)"
     fi
 fi
@@ -67,8 +66,14 @@ if [ -d "$WORKDIR_NEW/scripts/lib" ]; then
         lib_name=$(basename "$lib")
         proj_lib="$PROJECT_ROOT/scripts/lib/$lib_name"
         if [ ! -f "$proj_lib" ] || ! cmp -s "$lib" "$proj_lib"; then
-            cp "$lib" "$proj_lib.tmp.$$"
-            mv "$proj_lib.tmp.$$" "$proj_lib"
+            # Preserve the source's mode bits (executable scripts stay
+            # executable; sourced libs stay 0644) so candidate intent
+            # carries through the bootstrap.
+            if [ -x "$lib" ]; then
+                install -m 0755 "$lib" "$proj_lib"
+            else
+                install -m 0644 "$lib" "$proj_lib"
+            fi
         fi
     done
 fi
