@@ -346,7 +346,7 @@ like "first session of the calendar week" in preference to
    framework-managed files unedited unless the customer explicitly
    authorized template-upgrade or framework-maintenance work for that
    task.
-11. **Atomic customer questions (binding, strict reading).** Each customer-facing question MUST cover at most ONE decision axis (split multi-axis questions; queue the extras in `docs/OPEN_QUESTIONS.md`). A
+11. **Atomic customer questions (binding, strict reading).** Each customer-facing question MUST cover at most ONE decision axis (when a question is multi-axis, ask one axis per turn and queue the extras in `docs/OPEN_QUESTIONS.md`). A
     "multi-select" or "pick multiple — they're independent" framing
     bundling N axes into one prompt IS the violation, regardless of
     whether the customer could answer "all of the above." Batch
