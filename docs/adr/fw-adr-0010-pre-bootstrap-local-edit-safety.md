@@ -357,13 +357,31 @@ re-using the existing file rather than spinning up a sibling:
 - The cost of overloading: the existing table header
   (`Date | Commit SHA | Tag pushed | Operator | Reason | Sub-gates`)
   does not exactly fit a pre-bootstrap event (no `Tag pushed`, no
-  `Sub-gates`). Mitigation: extend the table with a `Gate` column
+  `Sub-gates`). Mitigation per customer ruling 2026-05-14 (option A,
+  "overload one register with a discriminator column"): extend the
+  table with a `Gate` column placed immediately after `Date`,
   distinguishing `pre-release` from `pre-bootstrap` rows; leave
-  `Tag pushed` / `Sub-gates` empty for pre-bootstrap rows; document
-  the column extension in the file's header block. This is a
-  schema bump on a single project-filled register file, not a
-  framework-managed file, so the change is in-scope for the
-  rc12 follow-up branch.
+  `Tag pushed` and `Sub-gates that would have run` empty for
+  pre-bootstrap rows; document the column extension in the file's
+  header block. The new schema header is:
+
+  ```
+  | Date | Gate | Commit SHA | Tag pushed | Operator | Reason | Sub-gates that would have run |
+  ```
+
+  This is a schema bump (v2) on a single project-filled register
+  file, not a framework-managed file, so the change is in-scope for
+  the rc12 follow-up branch. Rows that predate the schema bump have
+  an empty `Gate` cell; readers MUST treat empty as `pre-release` for
+  back-compat. `.git-hooks/pre-push` writes `pre-release` into the
+  new column for `SKIP_PRE_RELEASE_GATE=1` bypasses;
+  `scripts/upgrade.sh` and `migrations/v0.14.0.sh` write
+  `pre-bootstrap` for `SWDT_PREBOOTSTRAP_FORCE=1` bypasses. Rejected
+  alternatives — option B "two registers" (splits the tamper-evidence
+  surface across two files) and option C "single register, no
+  discriminator column" (relies on free-text `Reason` to disambiguate
+  event type, fragile to machine-parse) — were considered and
+  rejected.
 
 If the audit log is unwritable, pre-bootstrap refuses the override
 (same posture as the pre-release-gate hook). The operator's
