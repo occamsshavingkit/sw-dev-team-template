@@ -348,7 +348,7 @@ like "first session of the calendar week" in preference to
    task.
 11. **Atomic customer questions (binding, strict reading).**
 
-    Each question MUST cover at most ONE axis; ask `tech-writer` to reword multi-axis ones; queue in `docs/OPEN_QUESTIONS.md`.
+    Ask the user one decision axis per turn; ask `tech-writer` to reword multi-axis questions; queue extras in `docs/OPEN_QUESTIONS.md`.
 
     A "multi-select" or "pick multiple — they're independent" framing
     bundling N axes into one prompt IS the violation, regardless of
