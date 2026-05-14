@@ -199,30 +199,124 @@ def _extract_mutation_targets(command: str):
     return targets
 
 
-def _extract_interpreter_inline_targets(command: str):
-    # python -c '...', node -e '...', ruby -e, perl -e, bash <<EOF, etc.
-    # We scan the entire command string for path-looking tokens inside the
-    # interpreter argument. Conservative: extract any path-looking token
-    # from the whole command when an interpreter inline is detected, and
-    # let the caller's allow-list filter pick the off-list ones.
-    if not re.search(
-        rf"\b{_INTERPRETER_RE}\b[^|;&]*(?:-c\b|-e\b|<<[-~]?\s*['\"]?\w+)",
-        command,
-    ):
+# Positional form: ``open('path', 'w')`` / ``open('path', 'wb')`` / etc.
+# The mode capture allows any chars (so 'wb', 'rb+', 'a+' all match) as long
+# as it contains at least one write-mode char.
+_OPEN_WRITE_RE = re.compile(
+    r"""open\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]*[waxA+][^'"]*)['"]"""
+)
+
+# Kwarg form: ``open('path', mode='w')`` / ``open('path', buffering=0, mode='wb')``.
+# Path captured from first positional; mode captured from the kwarg. The gap
+# between the path and the ``mode=`` token allows any non-paren chars (so
+# additional kwargs like ``buffering=`` or ``encoding=`` don't block the
+# match). Code-reviewer tightening #4: positional form alone let the kwarg
+# spelling slip through as a read-only call.
+_OPEN_WRITE_KWARG_RE = re.compile(
+    r"""open\(\s*['"]([^'"]+)['"][^)]*\bmode\s*=\s*['"]([^'"]*[waxA+][^'"]*)['"]"""
+)
+
+
+def _extract_write_targets_from_body(body: str):
+    """Extract write-target paths from an interpreter / heredoc body.
+
+    Only flags paths that appear in a real write context:
+
+      - ``open('path', 'w'|'a'|'x'|'+'...)`` — positional mode contains
+        a write char (covers binary ``'wb'`` / ``'ab'`` too).
+      - ``open('path', mode='w')`` — kwarg mode contains a write char.
+      - shell-style redirects ``> path`` / ``>> path`` inside the body
+        (covers ``-c "... > file"`` and shell heredocs).
+
+    Read-only ``open('foo.json')``, ``open('foo','r')``, and
+    ``open('foo', mode='r')`` do NOT match. Quoted path tokens that are
+    not the first arg of a write-mode open do NOT match. This is the
+    core fix for issue #175; the kwarg branch closes the bypass flagged
+    in code-reviewer tightening #4.
+    """
+    if not body:
         return []
-    # Find string-literal-looking path tokens: anything containing '/' or
-    # ending in a common file extension.
     targets = []
-    for token_match in re.finditer(
-        r"""['"]([^'"|;&<>\s]+\.(?:md|py|sh|json|yaml|yml|toml|txt|js|ts|rs|go|html|css))['"]""",
+    for regex in (_OPEN_WRITE_RE, _OPEN_WRITE_KWARG_RE):
+        for m in regex.finditer(body):
+            path, mode = m.group(1), m.group(2)
+            # Require an actual write-mode char (not just '+' which could
+            # theoretically appear in a weird mode; but 'r+' is a write so
+            # '+' alone is a write signal too).
+            if any(ch in mode for ch in ("w", "a", "x", "A", "+")):
+                targets.append(path)
+    # Shell redirects inside the body.
+    targets.extend(_extract_redirect_targets(body))
+    return targets
+
+
+def _find_matching_quote(command: str, start: int, quote: str) -> int:
+    """Return the index of the closing quote, or len(command) if unterminated."""
+    i = start
+    while i < len(command):
+        c = command[i]
+        if c == "\\" and i + 1 < len(command):
+            i += 2
+            continue
+        if c == quote:
+            return i
+        i += 1
+    return len(command)
+
+
+def _extract_interpreter_inline_targets(command: str):
+    """Extract write targets from `-c` / `-e` inline arguments and heredocs.
+
+    Issue #175 fix shape:
+
+      - For ``-c`` / ``-e`` inline strings: parse the quoted body and only
+        flag paths in write-context (``open(..., 'w')`` or shell redirect).
+        Read-only ``open('foo.json')`` no longer trips.
+      - For heredoc forms (``<<EOF ... EOF``): the heredoc DELIMITER token
+        (``EOF`` etc.) is never a path. Apply the same write-context
+        detector to the heredoc body. A ``cat <<EOF`` body containing a
+        quoted path token is data, not a write — the redirect / open
+        detector finds no match and proceeds. A ``python <<EOF`` body that
+        actually opens a file for write is still caught.
+
+    Heredoc form is intentionally permissive: only the body is scanned,
+    never the trigger line itself or the rest of the command. The real
+    ``cat > FILE <<EOF`` write case is caught by the top-level redirect
+    extractor independently of this function.
+    """
+    targets = []
+
+    # 1. Inline `-c` / `-e` arguments.
+    for m in re.finditer(
+        rf"\b{_INTERPRETER_RE}\b[^|;&]*?(?:-c\b|-e\b)\s*(['\"])",
         command,
     ):
-        targets.append(token_match.group(1))
-    # Also bare paths with a slash.
-    for token_match in re.finditer(
-        r"""['"]([^'"|;&<>\s]*/[^'"|;&<>\s]+)['"]""", command
+        quote = m.group(1)
+        start = m.end()
+        end = _find_matching_quote(command, start, quote)
+        body = command[start:end]
+        targets.extend(_extract_write_targets_from_body(body))
+
+    # 2. Heredocs (any command, not just `_INTERPRETER_RE`). Capture the
+    # delimiter, then scan the body up to the matching delimiter line.
+    # Delimiter quoting and the `-`/`~` prefix affect how the shell
+    # processes the body but not where it ends.
+    for m in re.finditer(
+        r"<<[-~]?\s*(?P<q>['\"]?)(?P<delim>[A-Za-z_][A-Za-z0-9_]*)(?P=q)",
+        command,
     ):
-        targets.append(token_match.group(1))
+        delim = m.group("delim")
+        body_start = m.end()
+        # End is the delimiter on its own line (or at end-of-string).
+        end_match = re.search(
+            rf"(?m)^\s*{re.escape(delim)}\s*$", command[body_start:]
+        )
+        if end_match:
+            body = command[body_start : body_start + end_match.start()]
+        else:
+            body = command[body_start:]
+        targets.extend(_extract_write_targets_from_body(body))
+
     return targets
 
 
@@ -349,6 +443,29 @@ def _owning_specialist(path: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _validate_role(value: str):
+    """Return value if it is a canonical role or matches sme-*, else None.
+
+    Semantic note: the escape hatch is tool-bridge work *on behalf of a
+    different specialist*. A ``tech-lead`` self-push defeats the entire
+    guard (the guard exists to keep tech-lead from authoring production
+    artifacts), so it is rejected explicitly before the canonical-roles
+    check — even though ``tech-lead`` is itself in CANONICAL_ROLES for
+    other vocabulary purposes. Code-reviewer tightening #2.
+    """
+    if not value:
+        return None
+    if value == "tech-lead":
+        # Self-push is never legitimate: the role this guard exists to
+        # restrain cannot widen its own allow-list.
+        return None
+    if value in CANONICAL_ROLES:
+        return value
+    if SME_ROLE_RE.match(value):
+        return value
+    return None
+
+
 def _agent_push_role():
     """Return the SWDT_AGENT_PUSH role if valid, else None.
 
@@ -357,12 +474,30 @@ def _agent_push_role():
     raising — the hook fails closed by applying the allow-list.
     """
     value = os.environ.get("SWDT_AGENT_PUSH", "").strip()
-    if not value:
+    return _validate_role(value)
+
+
+# Inline form of the escape hatch: a user (or wrapper) may prefix a Bash
+# command with `SWDT_AGENT_PUSH=<role>` or `export SWDT_AGENT_PUSH=<role>;`.
+# Upstream issue #176: the natural reading of the deny message is that
+# setting the env var inline should work, but Claude Code's Bash tool
+# spawns a fresh shell so HARNESS env is required. Behavioural fix:
+# detect the inline assignment and honour it as an escape hatch for that
+# invocation. We accept the role only if it validates; unrecognised
+# values fall through to the harness-env check (and ultimately deny).
+_INLINE_AGENT_PUSH_RE = re.compile(
+    r"(?:^|[\s;&|]|\bexport\s+)SWDT_AGENT_PUSH=(['\"]?)([a-zA-Z][a-zA-Z0-9_-]*)\1"
+)
+
+
+def _inline_agent_push_role(command: str):
+    """Return the inline SWDT_AGENT_PUSH role from a Bash command, else None."""
+    if not command:
         return None
-    if value in CANONICAL_ROLES:
-        return value
-    if SME_ROLE_RE.match(value):
-        return value
+    for m in _INLINE_AGENT_PUSH_RE.finditer(command):
+        role = _validate_role(m.group(2).strip())
+        if role is not None:
+            return role
     return None
 
 
@@ -454,7 +589,7 @@ def _decide_for_command(command: str):
         return None, None
 
     first = off_list[0]
-    role = _agent_push_role()
+    role = _agent_push_role() or _inline_agent_push_role(command)
     if role is not None:
         return None, lambda: _audit_override(first, role, "Bash target")
 

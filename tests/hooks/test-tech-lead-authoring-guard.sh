@@ -382,6 +382,153 @@ expect_role "owning: docs/random.md"           "docs/random.md"           "tech-
 expect_role "owning: fallback README-top"      "weird-top-level-file.bin" "the appropriate specialist"
 
 # ---------------------------------------------------------------------------
+# Regression: upstream issues #175 / #176 — false-positive over-block and
+# inline SWDT_AGENT_PUSH carve-out.
+# ---------------------------------------------------------------------------
+
+# #175 bug 1: heredoc body containing arbitrary path-looking tokens (e.g.
+# a path mentioned in a commit-message body) is data, not a write target.
+# The heredoc detector previously fired on ANY interpreter+heredoc pattern
+# and extracted every quoted path token from the entire command.
+run_case "issue#175: heredoc body with quoted path token (no write)" "" \
+    '{"tool_input":{"command":"bash -c \"echo hi\" <<EOF\nthis mentions '"'"'src/file.py'"'"' which is fine\nEOF"}}' \
+    proceed
+
+# Literal JSON test payload below: the $() is data fed to the hook on
+# stdin, not a shell expansion. Single quotes are intentional.
+# shellcheck disable=SC2016
+run_case "issue#175: git commit -m with heredoc-quoted path token" "" \
+    '{"tool_input":{"command":"git commit -m \"$(cat <<'"'"'EOF'"'"'\nfix(scripts/foo.sh): tidy\nEOF\n)\""}}' \
+    proceed
+
+# #175 bug 2: read-only open() inside `-c` argument is not a write.
+run_case "issue#175: python3 -c read-only open allows" "" \
+    '{"tool_input":{"command":"python3 -c \"import json; json.load(open('"'"'foo.json'"'"'))\""}}' \
+    proceed
+
+run_case "issue#175: node -e read-only fs call allows" "" \
+    '{"tool_input":{"command":"node -e \"require('"'"'fs'"'"').readFileSync('"'"'src/foo.js'"'"')\""}}' \
+    proceed
+
+# Preserve the real protection: write-mode open() inside `-c` still denies.
+run_case "issue#175: python3 -c open(...,'w') still denies" "" \
+    '{"tool_input":{"command":"python3 -c \"open('"'"'src/foo.py'"'"','"'"'w'"'"').write('"'"'x'"'"')\""}}' \
+    deny
+
+run_case "issue#175: python3 -c open(...,'a') still denies" "" \
+    '{"tool_input":{"command":"python3 -c \"open('"'"'src/foo.py'"'"','"'"'a'"'"').write('"'"'x'"'"')\""}}' \
+    deny
+
+# Heredoc fed to an interpreter that performs a real write still denies.
+run_case "issue#175: python <<EOF write open still denies" "" \
+    '{"tool_input":{"command":"python3 <<EOF\nopen('"'"'src/foo.py'"'"','"'"'w'"'"').write('"'"'x'"'"')\nEOF"}}' \
+    deny
+
+# Heredoc fed to an interpreter that only reads is now permitted.
+run_case "issue#175: python <<EOF read-only allows" "" \
+    '{"tool_input":{"command":"python3 <<EOF\nopen('"'"'src/foo.py'"'"').read()\nEOF"}}' \
+    proceed
+
+# #176: inline SWDT_AGENT_PUSH=role on the same Bash command honors the
+# escape hatch (behavioural fix; matches natural reading of the deny
+# diagnostic).
+run_case "issue#176: inline SWDT_AGENT_PUSH=role allows write" "" \
+    '{"tool_input":{"command":"SWDT_AGENT_PUSH=release-engineer echo x > src/foo.py"}}' \
+    proceed \
+    "SWDT_AGENT_PUSH=release-engineer"
+
+run_case "issue#176: inline export SWDT_AGENT_PUSH=role allows write" "" \
+    '{"tool_input":{"command":"export SWDT_AGENT_PUSH=software-engineer; echo x > src/foo.py"}}' \
+    proceed \
+    "SWDT_AGENT_PUSH=software-engineer"
+
+run_case "issue#176: inline SWDT_AGENT_PUSH=sme-brewing allowed" "" \
+    '{"tool_input":{"command":"SWDT_AGENT_PUSH=sme-brewing echo x > src/foo.py"}}' \
+    proceed \
+    "SWDT_AGENT_PUSH=sme-brewing"
+
+run_case "issue#176: inline SWDT_AGENT_PUSH=not-a-role still denies" "" \
+    '{"tool_input":{"command":"SWDT_AGENT_PUSH=not-a-role echo x > src/foo.py"}}' \
+    deny
+
+# Real-write protection regression: `cat > FILE <<EOF ... EOF` still denies
+# because the top-level redirect extractor catches the `> FILE`.
+run_case "regression: cat > off-list <<EOF still denies" "" \
+    '{"tool_input":{"command":"cat > src/foo.py <<EOF\nx=1\nEOF"}}' \
+    deny
+
+# ---------------------------------------------------------------------------
+# Code-reviewer tightening #2: tech-lead self-push must NOT escape-hatch.
+# The guard exists to restrain tech-lead; a self-push defeats it. Both the
+# env-form and the inline-form must deny.
+# ---------------------------------------------------------------------------
+
+run_case "tightening#2: env-form SWDT_AGENT_PUSH=tech-lead denies" \
+    "SWDT_AGENT_PUSH=tech-lead" \
+    '{"tool_input":{"file_path":"scripts/foo.py","content":"x"}}' \
+    deny
+
+run_case "tightening#2: env-form SWDT_AGENT_PUSH=tech-lead denies bash write" \
+    "SWDT_AGENT_PUSH=tech-lead" \
+    '{"tool_input":{"command":"echo x > scripts/foo.py"}}' \
+    deny
+
+run_case "tightening#2: inline SWDT_AGENT_PUSH=tech-lead denies" "" \
+    '{"tool_input":{"command":"SWDT_AGENT_PUSH=tech-lead echo x > scripts/foo.py"}}' \
+    deny
+
+run_case "tightening#2: inline export SWDT_AGENT_PUSH=tech-lead denies" "" \
+    '{"tool_input":{"command":"export SWDT_AGENT_PUSH=tech-lead; echo x > scripts/foo.py"}}' \
+    deny
+
+# ---------------------------------------------------------------------------
+# Code-reviewer tightening #4: kwarg mode= form must be caught.
+# Positional ``open('path', 'w')`` was already covered; the kwarg spelling
+# ``open('path', mode='w')`` previously slipped through as read-only.
+# Also verifies positional binary modes (``'wb'``) still deny.
+# ---------------------------------------------------------------------------
+
+run_case "tightening#4: python3 -c open(p, mode='w') denies" "" \
+    '{"tool_input":{"command":"python3 -c \"open('"'"'src/foo.py'"'"', mode='"'"'w'"'"').write('"'"'x'"'"')\""}}' \
+    deny
+
+run_case "tightening#4: python3 -c open(p, mode='a') denies" "" \
+    '{"tool_input":{"command":"python3 -c \"open('"'"'src/foo.py'"'"', mode='"'"'a'"'"').write('"'"'x'"'"')\""}}' \
+    deny
+
+run_case "tightening#4: python3 -c open(p, mode='r') allows (read-only kwarg)" "" \
+    '{"tool_input":{"command":"python3 -c \"open('"'"'src/foo.py'"'"', mode='"'"'r'"'"').read()\""}}' \
+    proceed
+
+run_case "tightening#4: python <<EOF open(p, mode='w') denies (heredoc body)" "" \
+    '{"tool_input":{"command":"python3 <<EOF\nopen('"'"'src/foo.py'"'"', mode='"'"'w'"'"').write('"'"'x'"'"')\nEOF"}}' \
+    deny
+
+run_case "tightening#4: python <<EOF open(p, mode='r') allows (read-only heredoc)" "" \
+    '{"tool_input":{"command":"python3 <<EOF\nopen('"'"'src/foo.py'"'"', mode='"'"'r'"'"').read()\nEOF"}}' \
+    proceed
+
+# Binary write modes (positional) must also deny — confirms 'wb' / 'ab' /
+# 'xb' / 'wb+' all still trip the existing positional regex (the mode
+# capture allows non-write chars alongside the write-mode char).
+run_case "tightening#4: python3 -c open(p, 'wb') denies (positional binary)" "" \
+    '{"tool_input":{"command":"python3 -c \"open('"'"'src/foo.py'"'"', '"'"'wb'"'"').write(b'"'"'x'"'"')\""}}' \
+    deny
+
+run_case "tightening#4: python3 -c open(p, 'ab') denies (positional binary append)" "" \
+    '{"tool_input":{"command":"python3 -c \"open('"'"'src/foo.py'"'"', '"'"'ab'"'"').write(b'"'"'x'"'"')\""}}' \
+    deny
+
+run_case "tightening#4: python3 -c open(p, mode='wb') denies (kwarg binary)" "" \
+    '{"tool_input":{"command":"python3 -c \"open('"'"'src/foo.py'"'"', mode='"'"'wb'"'"').write(b'"'"'x'"'"')\""}}' \
+    deny
+
+# kwarg ordering with extra kwargs between path and mode= must still trip.
+run_case "tightening#4: open(p, buffering=0, mode='w') denies" "" \
+    '{"tool_input":{"command":"python3 -c \"open('"'"'src/foo.py'"'"', buffering=0, mode='"'"'w'"'"').write('"'"'x'"'"')\""}}' \
+    deny
+
+# ---------------------------------------------------------------------------
 # Summary.
 # ---------------------------------------------------------------------------
 
