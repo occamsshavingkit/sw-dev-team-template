@@ -358,3 +358,113 @@ projects.
 - Core rule: Spec Kit may generate; `tech-lead` must govern.
 
 **Recorded by:** researcher.
+
+## 2026-05-14 — #170 escape hatch policy (turn: pending — flagged to tech-lead)
+
+**Context.** Post-PR-#162 triage: architect proposed hybrid design for
+pre-bootstrap edited-file protection (#170). Open decision: knowing-override
+mechanism for operators who intentionally want to overwrite a customised
+file.
+
+**Question (from architect, relayed by tech-lead):**
+> knowing-override path: `SWDT_PREBOOTSTRAP_FORCE=1` env var, or operator must `rm`-then-re-run?
+
+**Customer answer (verbatim):**
+> A
+
+**Ruling.** `SWDT_PREBOOTSTRAP_FORCE=1` env var is the escape hatch (option A).
+
+**Implications:**
+- Pre-bootstrap edited-file check honours `SWDT_PREBOOTSTRAP_FORCE=1` as
+  the explicit operator override; no `rm`-then-re-run required.
+- ADR-NNNN (in flight by architect on `feat/rc12-followup-triage`)
+  documents the design.
+
+**Cross-refs:** → ADR-NNNN (architect in flight); issue #170.
+
+**Recorded by:** researcher (via tech-lead).
+
+## 2026-05-14 — #170 baseline-unreachable behaviour (turn: pending — flagged to tech-lead)
+
+**Context.** Post-PR-#162 triage: open decision on the pre-bootstrap
+edited-file protection (#170) for the case where the baseline SHA is
+unreachable (e.g., shallow clone, missing ref, force-pushed history).
+
+**Question (from architect, relayed by tech-lead):**
+> when baseline SHA is unreachable, refuse-all-edited-files or fall back to silent-overwrite-with-warning?
+
+**Customer answer (verbatim):**
+> refuse the upgrade and make the user run it as a retrofit.
+
+**Ruling.** When the baseline SHA is unreachable, the upgrade is refused;
+the operator must re-run the flow as a retrofit. No silent-overwrite
+fallback.
+
+**Implications:**
+- Upgrade path hard-fails on unreachable baseline rather than degrading
+  to a warning-only mode.
+- Retrofit flow (the agent-workflow form documented 2026-04-23) is the
+  prescribed fallback when baseline comparison cannot be performed.
+- ADR-NNNN (in flight by architect on `feat/rc12-followup-triage`)
+  documents the design.
+
+**Cross-refs:** → ADR-NNNN (architect in flight); issue #170; retrofit
+flow ruling 2026-04-23.
+
+**Recorded by:** researcher (via tech-lead).
+
+## 2026-05-14 — #172 migration scope (turn: pending — flagged to tech-lead)
+
+**Context.** Post-PR-#162 triage: open decision on the scope of the
+schema-backfill migration (#172, `migrations/v1.0.0-rc9.sh`).
+
+**Question (from architect, relayed by tech-lead):**
+> widen to all canonical agents only, or also include `*-local.md` supplements?
+
+**Customer answer (verbatim):**
+> b
+
+**Ruling.** Include `*-local.md` supplements in the migration scope
+(option b).
+
+**Boundary note.** This crosses the framework/project boundary per
+`docs/framework-project-boundary.md` (canonical framework files vs
+project-owned `*-local.md` supplements). The customer's ruling
+explicitly accepts the boundary cross for this specific migration
+(schema-backfill); not a general precedent.
+
+**Implications:**
+- `migrations/v1.0.0-rc9.sh` operates on both canonical agent files and
+  project-owned `*-local.md` supplements when backfilling schema.
+- Boundary-cross is one-off and ruling-specific; future migrations must
+  re-decide scope explicitly.
+
+**Cross-refs:** → issue #172; `migrations/v1.0.0-rc9.sh`;
+`docs/framework-project-boundary.md`.
+
+**Recorded by:** researcher (via tech-lead).
+
+## 2026-05-14 — #170/#163 sequencing (turn: pending — flagged to tech-lead)
+
+**Context.** Post-PR-#162 triage: open decision on the relative ordering
+of #170 (pre-bootstrap edited-file protection, ADR-gated) and #163
+(customisation-marker hotfix).
+
+**Question (from architect, relayed by tech-lead):**
+> #170-first-then-#163, or #163-as-hotfix-now?
+
+**Customer answer (verbatim):**
+> A
+
+**Ruling.** #170 ships first as ADR-gated work; #163's customisation-marker
+follows (option A). No #163 hotfix ahead of #170.
+
+**Implications:**
+- #170 ADR drafting (architect, in flight on `feat/rc12-followup-triage`)
+  is on the critical path; #163 work queues behind it.
+- Customisation-marker design in #163 can be informed by the #170 ADR
+  rather than retrofitted around an in-flight hotfix.
+
+**Cross-refs:** → issue #170; issue #163.
+
+**Recorded by:** researcher (via tech-lead).
