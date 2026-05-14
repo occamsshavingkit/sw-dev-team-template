@@ -68,6 +68,8 @@ gate_run_one() {
     : > "$diag_file"
     start_ms=$(date +%s%N 2>/dev/null || echo 0)
     if [ "$start_ms" = "0" ]; then
+        # Arithmetic expansion $((...)) cannot word-split inner $(date +%s); false positive.
+        # nosemgrep: bash.lang.correctness.unquoted-expansion.unquoted-command-substitution-in-command
         start_ms=$(($(date +%s) * 1000000000))
     fi
     rc=0
@@ -76,6 +78,8 @@ gate_run_one() {
     ( "gate_subgate_${name}" ) >"$diag_file" 2>&1 || rc=$?
     end_ms=$(date +%s%N 2>/dev/null || echo 0)
     if [ "$end_ms" = "0" ]; then
+        # Arithmetic expansion $((...)) cannot word-split inner $(date +%s); false positive.
+        # nosemgrep: bash.lang.correctness.unquoted-expansion.unquoted-command-substitution-in-command
         end_ms=$(($(date +%s) * 1000000000))
     fi
     dur_ms=$(( (end_ms - start_ms) / 1000000 ))
@@ -267,14 +271,14 @@ gate_register readme-current   regression    "README.md mentions current VERSION
 # when those phases land; the source lines below are guarded so the file can
 # still be sourced before those libraries exist.
 if [ -f "${GATE_LIB_DIR:-$(dirname "$0")}/gate-tags.sh" ]; then
-    # shellcheck disable=SC1090
+    # shellcheck disable=SC1090,SC1091
     . "${GATE_LIB_DIR:-$(dirname "$0")}/gate-tags.sh"
 fi
 if [ -f "${GATE_LIB_DIR:-$(dirname "$0")}/gate-advisory-scan.sh" ]; then
-    # shellcheck disable=SC1090
+    # shellcheck disable=SC1090,SC1091
     . "${GATE_LIB_DIR:-$(dirname "$0")}/gate-advisory-scan.sh"
 fi
 if [ -f "${GATE_LIB_DIR:-$(dirname "$0")}/gate-migrations.sh" ]; then
-    # shellcheck disable=SC1090
+    # shellcheck disable=SC1090,SC1091
     . "${GATE_LIB_DIR:-$(dirname "$0")}/gate-migrations.sh"
 fi

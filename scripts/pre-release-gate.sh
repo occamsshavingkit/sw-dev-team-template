@@ -89,6 +89,8 @@ if [ -n "$GATE_ONLY" ]; then
     done
     if [ "$found" -eq 0 ]; then
         echo "pre-release-gate: --only '$GATE_ONLY' is not a registered sub-gate" >&2
+        # IFS is set inside $(...) subshell; reset on subshell exit, never affects parent.
+        # nosemgrep: bash.lang.security.ifs-tampering.ifs-tampering
         printf 'Known sub-gates: %s\n' "$(IFS=,; printf '%s' "${GATE_NAMES[*]}")" >&2
         exit 2
     fi

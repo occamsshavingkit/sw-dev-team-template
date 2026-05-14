@@ -164,7 +164,6 @@ gate_subgate_upgrade-paths() {
     }
 
     pass=0
-    fail=0
     failing_tags=""
 
     # Iterate over each source tag.
@@ -190,7 +189,6 @@ gate_subgate_upgrade-paths() {
     # Aggregate results (subshell-safe by reading the recorded file).
     if [ -f "$GATE_TEMP_ROOT/upgrade-paths.results" ]; then
         pass=$(grep -c '^PASS:' "$GATE_TEMP_ROOT/upgrade-paths.results")
-        fail=$(grep -c '^FAIL:' "$GATE_TEMP_ROOT/upgrade-paths.results")
         failing_tags=$(grep '^FAIL:' "$GATE_TEMP_ROOT/upgrade-paths.results" | sed 's/^FAIL://' | tr '\n' ' ')
     fi
 

@@ -64,6 +64,9 @@ else
 fi
 
 # 4) Command substitution captures stderr; $? is the gate's exit directly.
+# Capture is intentionally unused: the point is to force command-substitution
+# context so we can confirm $? reflects the gate's exit, not the capture's.
+# shellcheck disable=SC2034
 out=$("$gate" 2>&1); rc=$?
 if [ "$rc" -ne 0 ]; then
     echo "  PASS: command substitution propagates non-zero ($rc)"
