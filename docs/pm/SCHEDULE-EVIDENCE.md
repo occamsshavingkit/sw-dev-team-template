@@ -187,3 +187,39 @@ Non-blocking residual risks (in RISKS.md):
 - R-9 (workflow_dispatch input injection): low blast radius (write-access required to invoke); Phase-3+ adds a one-line numeric validator.
 
 Customer approval condition: per FR-032 + spec clarification 2, the v1.0.0 final tag (G9) requires customer sign-off in CUSTOMER_NOTES.md. M7's security sign-off is the Hard-Rule-#7 pre-condition; customer approval is deferred to G9.
+
+## M8 — Pre-release upgrade-regression gate
+
+Gate sign-off: G8 signed by `code-reviewer` (audit T049, accept-with-changes; 5 non-blocking findings resolved before tag) + `qa-engineer` (audit T050, 7 sub-gates × ≥1 negative fixture completeness verified) + `architect` (2026-05-14 contract amendment Style A perturbation default with four guarantees) + `release-engineer` (gate implementation + green-run on the rc12 candidate worktree) + `project-manager` (this row) on 2026-05-14, at the `v1.0.0-rc12` tag.
+
+Milestone goal (per `specs/007-pre-release-upgrade/spec.md`, FR-001..FR-013): ship a pre-release upgrade-regression gate that runs at every release-candidate tag, exercises real upgrades across every published tag, and fails the release on any regression. Customer-authorised at the 2026-05-14 `/speckit-specify` invocation ("a new release test before committing").
+
+Acceptance criteria evidence (per source plan §M8 + spec FR-001..FR-013):
+
+- Gate green at the `v1.0.0-rc12` tag: 7/7 sub-gates PASS post-commit (staged run shows 6/7 with only `worktree-clean` red because staged≠committed; clears on commit per `gate-runner.sh:203` semantics). Wall-clock 127s; `upgrade-paths` dominates at ~110s.
+- Per-sub-gate results on the staged candidate worktree: worktree-clean PASS post-commit; lint-contracts PASS (9.4s); check-spdx PASS (0.2s); readme-current PASS (0.0s); upgrade-paths PASS (109.7s); advisory-pointers PASS (1.4s); migrations-standalone PASS (6.4s).
+- Spec clarifications 2026-05-14 shaped the scope: fail-all severity (any sub-gate red → release fails), every-published-tag scope (no allowlist except the rc3 cross-MAJOR allowlist below), and strict-on-`v*`-tag hook severity.
+- FW-ADR-0010 Gate column ruling (2026-05-14, audit-log surface): gate-runner is the canonical surface for upgrade-regression evidence; SCHEDULE-EVIDENCE entries reference gate runs by tag, not by run-log SHA.
+- Customer ruling 2026-05-14 (rc3 cross-MAJOR round-trip allowlisted): frozen-tag defect surfaced during rc3 gate-runs; fix shipped in rc4. Allowlist entry retained for historical-tag coverage; gate continues to fail on any new occurrence.
+- Architect contract amendment 2026-05-14 (Style A perturbation default) lands the four guarantees: PID-scoped markers (no cross-run collision), revert verification (every perturbation reversed and verified), dirty-tree hard-fail (no partial-state runs), sanitiser hook (catches missed reverts before gate exit).
+- qa-engineer T050: each of the 7 sub-gates has ≥1 negative fixture under `tests/upgrade-gate/`; completeness verified by enumeration against `gate-runner.sh` sub-gate list.
+- code-reviewer T049: accept-with-changes; all 5 non-blocking findings resolved before tag (no debt carried into rc12).
+- T048 first-green attestation: this M8 block IS the T048 attestation per the architect's earlier note that SCHEDULE-EVIDENCE.md uses prose milestone-closure blocks rather than a row-per-task table.
+
+Cross-references: PR-16 (spec 007 implementation: gate-runner + 7 sub-gate scripts + fixtures + lint integration), at the `v1.0.0-rc12` tag.
+
+Notable deferrals (none carried as debt into rc12):
+
+- 5 T049 non-blocking findings — all resolved before tag; no deferred-issue rows opened.
+- 2 deferred-doc nits in upstream issue #24 — explicitly post-rc12 (cosmetic; do not block the gate or the release-candidate). Recorded for the next doc pass.
+
+Owners ledger (M8 window):
+
+- `tech-lead` — orchestration, dispatch, customer-question gating, Turn Ledger entries.
+- `release-engineer` — gate-runner.sh + 7 sub-gate scripts implementation; staged gate-runs on the rc12 candidate worktree; VERSION bump + README touch (tag-cut step 1).
+- `qa-engineer` — T050 fixture-coverage review across all 7 sub-gates.
+- `code-reviewer` — T049 accept-with-changes audit and re-verification of the 5 non-blocking resolutions.
+- `architect` — 2026-05-14 contract amendment (Style A perturbation default + four guarantees); FW-ADR-0010 Gate column ruling.
+- `tech-writer` — contract / spec edits: spec.md clarifications, FR-001..FR-013 wording, FW-ADR-0010 Gate column.
+- `researcher` — CUSTOMER_NOTES.md ruling capture (Clarifications 2026-05-14, rc3 allowlist, FW-ADR-0010 Gate column).
+- `project-manager` (this row) — M8 closure block and SCHEDULE.md status flip.

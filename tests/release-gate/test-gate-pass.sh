@@ -44,6 +44,34 @@ if ! printf '%s' "$out" | grep -qE '^PASS  —'; then
 fi
 
 echo "  PASS: gate exits 0 on clean candidate"
+
+# T013 / T027 lightweight positive-coverage assertions (Style A; no
+# static fixture dir per architect's amended sub-gate contract
+# 2026-05-14). T013's original intent was a positive "clean-tree
+# baseline" fixture for the worktree-clean sub-gate; T027's was a
+# positive round-trips fixture for upgrade-paths. Both reduce to
+# "this sub-gate reports PASS in the orchestrator's per-sub-gate
+# detail blocks when run against the live clean candidate." Asserting
+# the line shape `[<name>] PASS (<Ns>)` exists is sufficient — it
+# catches the failure mode where the orchestrator's overall PASS
+# summary fires but a specific sub-gate quietly disappeared from the
+# registry (e.g., gate_register call deleted in a refactor).
+#
+# No static fixture directory needed: the live clean candidate IS the
+# positive fixture, by the same Style-A logic the negative-fixture
+# contract uses. Style B (static fixture dir) is reserved for future
+# sub-gates whose positive-coverage demands a multi-file structural
+# tree that the live candidate cannot represent.
+for subgate in worktree-clean upgrade-paths; do
+    if ! printf '%s' "$out" | grep -qE "^\[${subgate}\] PASS \([0-9.]+s\)$"; then
+        echo "  FAIL: expected '[$subgate] PASS (<Ns>)' line missing from gate output"
+        echo "       (T013/T027 positive-coverage assertion)"
+        printf '%s\n' "$out"
+        exit 1
+    fi
+done
+echo "  PASS: worktree-clean + upgrade-paths sub-gates surface as PASS (T013/T027 coverage)"
+
 echo "  duration: ${dur_s}s"
 
 if [ "$dur_s" -gt 600 ]; then
