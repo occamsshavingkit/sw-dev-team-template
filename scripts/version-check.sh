@@ -15,38 +15,27 @@
 
 set -u
 
-semver_sort_tags() {
-  awk '
-    function prerelease_key(pre, ids, n, i, id, key) {
-      if (pre == "") {
-        return "1"
-      }
-      n = split(pre, ids, ".")
-      key = "0"
-      for (i = 1; i <= n; i++) {
-        id = ids[i]
-        if (id ~ /^[0-9]+$/) {
-          key = key ".1.0." sprintf("%010d", length(id)) "." id
-        } else {
-          key = key ".1.1." id
-        }
-      }
-      return key ".0"
-    }
-    /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/ {
-      tag = $0
-      rest = substr(tag, 2)
-      prerelease = ""
-      dash = index(rest, "-")
-      if (dash > 0) {
-        prerelease = substr(rest, dash + 1)
-        rest = substr(rest, 1, dash - 1)
-      }
-      split(rest, parts, ".")
-      printf "%010d.%010d.%010d.%s\t%s\n", parts[1], parts[2], parts[3], prerelease_key(prerelease), tag
-    }
-  ' | LC_ALL=C sort -t "$(printf '\t')" -k1,1 | cut -f2-
-}
+# SemVer tag sort lives in scripts/lib/semver.sh — single source of
+# truth shared with scripts/upgrade.sh and scripts/stepwise-smoke.sh
+# (issue #108). version-check.sh historically carried an inline copy
+# that drifted: it kept the pre-#108 alphanumeric-only prerelease key
+# generator and therefore mis-sorted legacy `rcN` tags (rc10 < rc8 <
+# rc9 < rc11 lexically), masking upgrade banners for projects pinned
+# at v1.0.0-rcN once rc10+ shipped (issues #168, #161). Source the
+# canonical lib instead.
+#
+# version-check.sh is invoked from the SessionStart hook so the lookup
+# must stay offline-tolerant. If the lib is missing (older scaffold,
+# corrupted tree) stay silent and exit 0 — matching the existing
+# graceful-failure paths below.
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+semver_lib="$script_dir/lib/semver.sh"
+if [[ ! -f "$semver_lib" ]]; then
+  exit 0
+fi
+# shellcheck source=scripts/lib/semver.sh
+# shellcheck disable=SC1091
+source "$semver_lib"
 
 upstream="${SWDT_UPSTREAM_URL:-https://github.com/occamsshavingkit/sw-dev-team-template}"
 # Allow token-auth for private upstream without persisting credentials.

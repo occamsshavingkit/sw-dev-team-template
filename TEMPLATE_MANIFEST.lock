@@ -1,5 +1,5 @@
 # TEMPLATE_MANIFEST.lock — per FW-ADR-0002
-# Generated 2026-05-14T12:58:38Z
+# Generated 2026-05-14T20:30:43Z
 # Format: <sha256>  <project-relative path>
 # Paths from upstream ship_files; SHAs from project tree.
 # Files in .template-customizations are omitted by design.
@@ -12,7 +12,7 @@ d0f3f27a4b022c77a6bfcc2d49388ae7ec0b05783ea518848e96d78f436f0037  .claude/agents
 dafdd559e904e6ce516203bed618b2568d95997347f269b495362dc22d9b1656  .claude/agents/sme-template.md
 e065ca43907b359840d0757b0c0b4b2474c8f738bc273efac6a9494e8dfe26cc  .claude/agents/sre.md
 7a335fb270f5658c190b17269dc7649da514413afb3b8ce4b69cf208283c8a02  .claude/agents/tech-writer.md
-1557e7980e2790a305ad97fbbd9ecac3f7d0c5678fd8fa7e00adf6620fac9e99  .git-hooks/pre-push
+f3a6cffdc3f7ea2222a6f05bec7df35bbb5a9e82973ed8774b3c6d53814f0907  .git-hooks/pre-push
 c132e013b3b4688250159931e80ed694309d2ff6db0c6834fb30b7faca297d30  .opencode/agents/architect.md
 ca9befdc879ff987cbba8e604990e645336deaf4e1b2528dca012591dc23854b  .opencode/agents/code-reviewer.md
 a2e9273ee41115337897c1c79475ff532dca124c6b97b36f1fec52058f5eefe4  .opencode/agents/onboarding-auditor.md
@@ -43,6 +43,9 @@ b27c3c0edb979ee451c4079d0376d45b6013e347fb23d5e32e475db3a306a97b  docs/TEMPLATE_
 74bf6e6aa8d355ccede28e75c5a79da39ac8c823dc2c23d10e3c06cd22fdc561  docs/adr/fw-adr-0007-external-reference-adoption.md
 bc86d7a23d6c7f04d8aaa1279b56f4047c674e5b250bed1a7bef5fc5a6f6d8f4  docs/adr/fw-adr-0008-tech-lead-orchestration-boundary.md
 3ccdc2becb107fb82df551f98dfb52096d4275c2e4997d042fa31c2ad729176f  docs/adr/fw-adr-0009-opencode-harness-adapter.md
+1a3b8bb5c96bc852fac7f8cfbb4d755f31a88baee6c8bd4485ddf2dd4a8a350a  docs/adr/fw-adr-0010-pre-bootstrap-local-edit-safety.md
+32c93646a75a76443c40873955e3dd19f73847c3794bb49f191bb8f5680de7f1  docs/adr/fw-adr-0011-routed-through-trailer.md
+65e1eec3434e8ac8853e1a2ed0225d0c40f27fe4521487e04ae7313cff79f159  docs/adr/fw-adr-0012-tech-lead-authoring-guard.md
 749a1db0fc60bc0bbee659202a82337d02cb831d56816d2a015e7881c8a20f33  docs/agent-health-contract.md
 fdc8f9d72b37bb574e53f15903d84791d43adf2e0ab4bd5df9499b165b4807aa  docs/agents/manual/README.md
 7c5c68243a6008c4243d47caf1ca42850334205a7a3a2993646bb36882127723  docs/agents/manual/code-reviewer-manual.md
@@ -75,6 +78,7 @@ dad3ebbe98cdd6312741c0a9390b44974ebadaa937ee2fd141f3d87b50a03fd6  docs/style-gui
 1e9871743fc2d164c57ea0275efb2e8c16376d23f9ee4d616f134299f1ac3de0  docs/style-guides/python.md
 4ff9e288482ca373eac8bb3336e6845a92328708c8b33b9567b16d4b5df2bc4d  docs/style-guides/rust.md
 3cb6b307e50224472224800d297ebe80eff2b4d42d0fc9119dd42fd3ffe340e7  docs/style-guides/typescript.md
+b3aa95220f8e6929fbee993899bd0f4ce142051f92b6bd201169a0867b229bd5  docs/tech-lead/README.md
 9b14c340cec4b1d4973d80b65e1150842202eba85cd80a527e9e5ca2092dda14  docs/templates/adr-template.md
 7e6e2aae05e5ab543dd4381b270584ea07e00273213dbea509e54324801bdf1a  docs/templates/architecture-template-bare.md
 e586b16d54e3873ebb4ea35c097c70789e774ab599bc03ef016d90d67817651f  docs/templates/architecture-view-template-bare.md
@@ -127,17 +131,21 @@ ce621b42d830268a26c67e38ad7cd8047b3eedc652b9defbdac6f60b572b6d26  scripts/compil
 05c864b7be1f1738efa12e6d141ec53c80469190d3174b422b6f05739cbb9806  scripts/gen-toc.sh
 f69033e57e2364054822cbd832cfa4c260b88b27562ee6bc51bf411d4357e118  scripts/hooks/atomic-question-reminder.sh
 2a8d9a634b8b119ec9f8c77c9b6fc2623af6a36402b34ad5342e089cd2dce7fe  scripts/hooks/customer-notes-guard.py
+da870a101524894bc9aaef96465bbaebb047925c1bff4307926d6dcfeedda362  scripts/hooks/post-compact-refresh.sh
+bfa9ed9342a5937e168596e0e48e4fd40545f1ff014dc7b68a4fc174d5a6ae7c  scripts/hooks/role-routing-reminder.sh
+53fb75a3910eaabaa414d02a0e1537cb10a86a8b6d458012b995d72886c07803  scripts/hooks/tech-lead-authoring-guard.py
 292f176df379edc9a94a6566fdf905728a271b4c346a7b203af89027d6eacf8f  scripts/intake-show.sh
 01e2016b237b2a732d5439d2beb888e71322df00c5e7e4fd0d2443cf2e2e2053  scripts/lib/check-jsonschema-version
 72b230b56ea1ecbd2d018e547b855ac78cd6f807e8440fde0bd0ffd38ebfb118  scripts/lib/first-actions.sh
 836a3d32d1db51b9d260ceef22bc7145bd1272fed274fcc1acd6318cc8eebb28  scripts/lib/gate-advisory-scan.sh
-430081f948901caa890829f1c9c9d703767593430c8a13f237b99da54ac4b4a7  scripts/lib/gate-migrations.sh
+a5b82eab79624b58d36d6f764c2ba2fec3bd0b462e4a23ba1300a635a54ecefa  scripts/lib/gate-migrations.sh
 e5976477bae07720efbb86c65bf288ffaf4cabc751a02be0617752a5c16128db  scripts/lib/gate-runner.sh
 2cbd6ee5430ede007f4abe1d463a69fa66036f5c3478b311f72dabdf4e3ddba7  scripts/lib/gate-tags.sh
 8e32e202eca00a0dafb16a1b16325424dd1d6f9e35f06982b3d9bea1ff383de8  scripts/lib/manifest.sh
 43a05f3a161a6520616f401cfd1eca3d139f04d58ebfb8c3bd8fb7bdb1ac3fce  scripts/lib/semver.sh
 88f5ea16e0224a8b8badfad9160ea9510212185c6bed1613b5eaac53cad08803  scripts/lint-agent-contracts.sh
 83fe161100653838bccc5b70dddd85d22fc6fcc32ae550aed6995933cb88616a  scripts/lint-questions.sh
+02faef7e9ba3cbdd9c09cff0fe34ad7e26cdcdd584945628aa7cbb61d88a1ae0  scripts/lint-routing.sh
 9c43ffc21c9c3b14c2ad5376da4ee22bda6f8e76a562d1c3f0d7938b95d37937  scripts/log-fallback.sh
 b993f83ba143236995f81a2850e54e8a11ac7e83661e49efd0c8f523fcf6ae57  scripts/pre-release-gate.sh
 8fc12c83d781f76d3e14b8177812a2ba898581cc6a9ac000f4b4cdb554f51a10  scripts/repair-in-place.sh
@@ -145,8 +153,9 @@ b993f83ba143236995f81a2850e54e8a11ac7e83661e49efd0c8f523fcf6ae57  scripts/pre-re
 f563308c6f8a77bc752e6933370bdc303f259f4b934379735712ba5e159d1f19  scripts/scaffold.sh
 0f80cac515b394372ec23fd4ac01d9bee6d6626f6b963c3fd77d93e69d39d7f9  scripts/setup-github-labels.sh
 6d8e9e7fa4a10f4d14b456160a3d5f0af3ec5bdcb8c72b620d164b1942e1b40c  scripts/stepwise-smoke.sh
-6075745303f28336a62670d57e37fab7cd2bebd3897c68429e731e59d1977e40  scripts/upgrade.sh
-5d0bcf6f25b64e8cde5d9ded17b76c4dc96f176659ec340f3c3adcefe2b09beb  scripts/version-check.sh
+551eee7ab27dd2817cdfa15d1f5b12d99f1d188b13eac491f336366353a978b1  scripts/upgrade.sh
+ec83f2bf67f35e18735b3f939d6208f12643b364bc5231ac96b6b94f46908497  scripts/version-check.sh
+c875033798a5cbb3cbe0485a91f11486f94f6de1d4db2c006a506b8387d1beab  tests/hooks/test-tech-lead-authoring-guard.sh
 16dceb4c20bd811302118515f05eef1d37c44356d0a35d129e2f4e84e5377e79  tests/lint-questions/README.md
 ce6d9e91714923a54015ab1bce011f8bdc1ff33056966a1596bfe8a7760209f3  tests/lint-questions/pattern-1-compound-seed/bad.md
 5e26a038a4b930b41da1de3a7053ade7891b30c541da9e86181fc2226704b837  tests/lint-questions/pattern-1-compound-seed/good.md
@@ -174,15 +183,16 @@ dd599124d538180a84d00d7b125390c4139c1fc50a36c88e0485cbf4ffa7f33d  tests/prompt-r
 95730ed408d4b6a6996c12be5950391946c8fbab498d0ae309d9b942c160a931  tests/prompt-regression/tech-lead/queued-agent-slot.yaml
 9a620e188db57801a9a4c1fe11a845054f934f6be436af97598aa021321c37bb  tests/prompt-regression/tech-lead/specialist-owned-work.yaml
 670c3e4dcf7ef368e74f9cd7dce623bf0085deb0ed6ea1ae73947b248da40049  tests/release-gate/advisory-allowlist.txt
-0c966069393fa3c1a4391c73519dedeaf58096bcbc5cbffeb274efb7e7a1aff1  tests/release-gate/test-gate-fail-each.sh
+4b998719d15424aa73d78993291d9a87fa8901af30b5ebfe44a85a0e8c9cba98  tests/release-gate/fixtures/README.md
+54ded7be8fd26d8e3349eb8e9e42ff0cdfa5a8ecd1a2f75b33febe8e01f0acc6  tests/release-gate/test-gate-fail-each.sh
 4573db1dd3815b799933e682f4c95a507104a9204ece2aa7abeb8d38564284a5  tests/release-gate/test-gate-force-moved-tag.sh
-f430e044db23a6473ab13bc6d13aa10f0a822d3159611bcc3fc616c3751b38bb  tests/release-gate/test-gate-pass.sh
+aafa3085ddfb8fbc80d146851e46b1eb20ef650bad058c88f20abc022d9a11cc  tests/release-gate/test-gate-pass.sh
 15aaf7c4559268a1769ec3dc45c46fe948303dc00f17bc2edfcb4ac132127f06  tests/release-gate/test-gate-wrapper.sh
 a234db322da0eaad068738c830b342c2c36bfc83d38e5266bda9174ce3223a91  tests/release-gate/test-hook-advisory.sh
 4b11e08683801e37e5b4afdd165f08090ee806789257afe294ad492ead6a2e69  tests/release-gate/test-hook-bypass-unwritable.sh
 ef33bc2fffd9e2a8f52d6be505e3a45342497ecfc6c8a3fc20251af7e12bbcbc  tests/release-gate/test-hook-bypass.sh
 c97e74f3fcd1bfbfc8bcb23c3929ae6dc9202b38c1e07796786b7c26b283b7aa  tests/release-gate/test-hook-strict-fail.sh
-ec3596ca0651fd6678aa8082300a251adc27c9792625b743c6aa89a1a342554b  tests/release-gate/upgrade-paths-allowlist.txt
+6072731a2c44f25c7db2cc849f12ef44d56a4317e687c6668348fe8abdc63dd0  tests/release-gate/upgrade-paths-allowlist.txt
 c3642d153a91dda327d205df04d0f918e26a4ca9a107620b2ffa22816483d480  tests/workflows/fixtures/customer-truth-no-proposal.diff
 0521be3891b34ba8eb34d9ce04e316671eb6be18f7485b0fbf0beecbfe6bb719  tests/workflows/fixtures/customer-truth-with-proposal.diff
 e85f00a1ffec45c60610b343d18e6f3b1c15f784d9f9603150ad4e66da7d1e66  tests/workflows/fixtures/oversize-files.diff

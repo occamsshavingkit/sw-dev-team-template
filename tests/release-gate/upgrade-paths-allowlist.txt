@@ -17,6 +17,21 @@
 # annotated with a follow-up issue or commit reference so reviewers can
 # trace the decision.
 
+# v1.0.0-rc3 — frozen-tag self-bootstrap defect: at rc3
+# scripts/pre-release-gate.sh line 188 executed `exec bash "$0" "$@"` AFTER
+# a prior `shift 2` had already consumed `--target <tag>` from the positional
+# argv. The re-exec therefore ran the candidate orchestrator with no
+# `--target` flag, which causes the self-bootstrap to auto-select the
+# highest pre-release tag on the branch (rc11) instead of staying on rc3.
+# The resulting "candidate at HEAD vs candidate via re-exec" mismatch
+# trips the upgrade-paths round-trip even though rc3's own logic was
+# fine at the time it was cut. Fixed in rc4 by saving the original argv
+# into `original_args=("$@")` before the `shift` and re-execing with
+# `exec bash "$0" "${original_args[@]}"`. Allowlisted because the defect
+# lives in the frozen rc3 tag and cannot be retro-patched; the fix
+# shipped in rc4 and forward.
+v1.0.0-rc3
+
 # v0.16.0 — scripts/upgrade.sh is a 3-way conflict between v0.16.0 (baseline),
 # the current candidate (upstream), and the pre-bootstrapped project copy
 # (the migrations/v0.14.0.sh pre-bootstrap landed modern upgrade.sh in the

@@ -77,7 +77,10 @@ if [ "$strict" -eq 1 ]; then
             | awk '/^Registered sub-gates:/,0 { if ($0 ~ /^  [a-z]/) print $1 }' \
             | tr '\n' ',' | sed 's/,$//')
 
-        row="| $date_iso | $sha_short | $strict_tag | $operator | $reason | $subgates |"
+        # Gate column added by FW-ADR-0010 (2026-05-14): pre-release rows
+        # carry "pre-release"; pre-bootstrap rows (written by upgrade.sh /
+        # migrations/v0.14.0.sh) carry "pre-bootstrap".
+        row="| $date_iso | pre-release | $sha_short | $strict_tag | $operator | $reason | $subgates |"
         printf '%s\n' "$row" >> "$override_log"
 
         printf '\npre-release-gate: bypass via SKIP_PRE_RELEASE_GATE=1\n' >&2

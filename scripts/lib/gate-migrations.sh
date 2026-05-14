@@ -113,10 +113,22 @@ gate_subgate_migrations-standalone() {
         fi
 
         # Run the migration with full env.
+        #
+        # WORKDIR_OLD must be exported alongside WORKDIR_NEW to match production
+        # upgrade.sh semantics (scripts/upgrade.sh:858-859 exports both when the
+        # baseline is reachable). The migration's pre-bootstrap 3-way compare
+        # (FW-ADR-0010) and the v0.14.0 manifest synthesis both consult
+        # WORKDIR_OLD to decide whether a bootstrap-critical file's project copy
+        # is unchanged-since-scaffold vs. carries a local edit vs. has no
+        # reachable baseline. Without WORKDIR_OLD set, every project file falls
+        # into the "no baseline" branch and gets flagged baseline-unreachable,
+        # which is wrong for the standalone gate because $src_worktree IS the
+        # prior-tag checkout (the same role $workdir/old plays in production).
         (
             cd "$fixture_dir" || exit 1
             PROJECT_ROOT="$fixture_dir" \
             WORKDIR_NEW="$workdir_new" \
+            WORKDIR_OLD="$src_worktree" \
             OLD_VERSION="$prior" \
             NEW_VERSION="$target" \
             TARGET_VERSION="$target" \
