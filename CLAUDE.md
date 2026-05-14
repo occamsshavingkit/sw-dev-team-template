@@ -347,7 +347,8 @@ like "first session of the calendar week" in preference to
    authorized template-upgrade or framework-maintenance work for that
    task.
 11. **Atomic customer questions (binding, strict reading).** Each
-    customer-facing question MUST cover exactly ONE decision axis. A
+    customer-facing question MUST cover at most ONE decision axis; if a
+    question seems multi-axis, split and queue the extras. A
     "multi-select" or "pick multiple — they're independent" framing
     bundling N axes into one prompt IS the violation, regardless of
     whether the customer could answer "all of the above." Batch
