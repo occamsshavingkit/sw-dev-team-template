@@ -99,6 +99,7 @@ HARDGATE_AFTER_SHA="DEFERRED_SET_AT_HARDGATE_PR"
 SUMMARY=0
 SINCE_SHA=""
 FILES_ARG=""
+SELF_CHECK_MODE=0
 
 # Self-test mode is requested via env var (mirrors the
 # `semver_sort_tags_self_test` pattern in scripts/lib/semver.sh).
@@ -124,6 +125,10 @@ Modes:
 
 Flags:
   --summary          emit a final 'lint-routing: <N> warnings, <M> errors' line
+  --self-check       validate the lint's own rule table, sentinel state,
+                     and trailer-regex patterns without scanning any
+                     repo history; exit 0 on PASS, non-zero on FAIL
+                     (one diagnostic line per failed check). Issue #177.
   -h | --help        this help
 
 Exit codes:
@@ -136,6 +141,7 @@ EOF
 while [ $# -gt 0 ]; do
     case "$1" in
         --summary) SUMMARY=1; shift ;;
+        --self-check) SELF_CHECK_MODE=1; shift ;;
         --since)
             [ $# -ge 2 ] || { usage; exit 2; }
             SINCE_SHA="$2"
@@ -733,6 +739,197 @@ $trailer
 
 if [ "$SELF_TEST_MODE" -eq 1 ]; then
     _self_test
+    exit $?
+fi
+
+# ----- Self-check ---------------------------------------------------------
+#
+# Fast, non-repo-mutating validation suite for the lint's own rule table,
+# sentinel state, and trailer-regex patterns. Filed as upstream issue
+# #177 (rc12 review). Distinct from `_self_test` above:
+#
+#   --self-check          (this function): static-only validation.
+#                         No tmp repo, no git plumbing. Exercises rule
+#                         loaders, the sentinel state, the trailer-line
+#                         regex shape against canonical positive +
+#                         negative samples, and a classify_path smoke.
+#   LINT_ROUTING_SELF_TEST: regression suite against a throwaway repo
+#                         with hand-crafted commits.
+#
+# Self-check is what CI / pre-commit hooks reach for to confirm the
+# script can run at all; the env-var self-test is the heavier
+# end-to-end harness.
+
+_self_check() {
+    sc_fails=0
+    sc_total=0
+    _sc_pass() {
+        sc_total=$((sc_total + 1))
+        printf 'OK  %s\n' "$1"
+    }
+    _sc_fail() {
+        sc_total=$((sc_total + 1))
+        sc_fails=$((sc_fails + 1))
+        printf 'FAIL %s\n' "$1" >&2
+    }
+
+    # ---- Check 1: FIXED_ROLES is non-empty and every non-tech-lead
+    #               entry parses as a valid bare role token. `tech-lead`
+    #               is exempt from the bare-token loop because
+    #               validate_role_token requires a tool-bridge qualifier
+    #               on it (per FW-ADR-0011 §"Trailer grammar"); it is
+    #               instead exercised via the TOOLBRIDGE_QUALS pairing
+    #               check below.
+    if [ -z "$FIXED_ROLES" ]; then
+        _sc_fail "rule-table: FIXED_ROLES is empty"
+    else
+        bad=""
+        for r in $FIXED_ROLES; do
+            [ "$r" = "tech-lead" ] && continue
+            if ! validate_role_token "$r" >/dev/null 2>&1; then
+                bad="$bad $r"
+            fi
+        done
+        if [ -n "$bad" ]; then
+            _sc_fail "rule-table: FIXED_ROLES contains invalid token(s):$bad"
+        else
+            _sc_pass "rule-table: FIXED_ROLES (14 expected) parses cleanly"
+        fi
+    fi
+
+    # ---- Check 2: TOOLBRIDGE_QUALS is non-empty and each qualifier
+    #               pairs cleanly with `tech-lead:` via validate_role_token.
+    if [ -z "$TOOLBRIDGE_QUALS" ]; then
+        _sc_fail "rule-table: TOOLBRIDGE_QUALS is empty"
+    else
+        bad=""
+        for q in $TOOLBRIDGE_QUALS; do
+            if ! validate_role_token "tech-lead:$q" >/dev/null 2>&1; then
+                bad="$bad $q"
+            fi
+        done
+        if [ -n "$bad" ]; then
+            _sc_fail "rule-table: TOOLBRIDGE_QUALS contains invalid qualifier(s):$bad"
+        else
+            _sc_pass "rule-table: TOOLBRIDGE_QUALS pairs cleanly with tech-lead:"
+        fi
+    fi
+
+    # ---- Check 3: HARDGATE_AFTER_SHA sentinel state. Report whether the
+    #               linter is in warning-only (placeholder) mode or hard-
+    #               gate-eligible mode (real 40-char SHA). Both are valid
+    #               states; this check just surfaces them so operators do
+    #               not have to grep the source.
+    case "$HARDGATE_AFTER_SHA" in
+        DEFERRED_SET_AT_HARDGATE_PR)
+            _sc_pass "sentinel: HARDGATE_AFTER_SHA=DEFERRED_SET_AT_HARDGATE_PR (warning-only mode)"
+            ;;
+        "")
+            _sc_fail "sentinel: HARDGATE_AFTER_SHA is empty (expected placeholder or 40-char SHA)"
+            ;;
+        *)
+            # Real SHAs are 40 lowercase hex chars.
+            if printf '%s' "$HARDGATE_AFTER_SHA" \
+               | awk '{ exit !($0 ~ /^[0-9a-f]{40}$/) }'; then
+                _sc_pass "sentinel: HARDGATE_AFTER_SHA pinned (hard-gate-eligible mode)"
+            else
+                _sc_fail "sentinel: HARDGATE_AFTER_SHA=\"$HARDGATE_AFTER_SHA\" is neither placeholder nor 40-char SHA"
+            fi
+            ;;
+    esac
+
+    # ---- Check 4: Routed-Through: trailer-line regex matches a canonical
+    #               positive sample and rejects a canonical negative.
+    #
+    # The regex lives inside extract_trailer's awk body (the
+    # `/^[Rr]outed-[Tt]hrough:[[:space:]]*/` pattern). We exercise the
+    # same pattern shape here without needing a git repo.
+    pos="Routed-Through: software-engineer"
+    neg="X-Routed-Through: software-engineer"
+    pos_hit=$(printf '%s\n' "$pos" | awk '/^[Rr]outed-[Tt]hrough:[[:space:]]*/ { print "Y" }')
+    neg_hit=$(printf '%s\n' "$neg" | awk '/^[Rr]outed-[Tt]hrough:[[:space:]]*/ { print "Y" }')
+    if [ "$pos_hit" = "Y" ] && [ -z "$neg_hit" ]; then
+        _sc_pass "regex: Routed-Through: trailer pattern (positive + negative)"
+    else
+        _sc_fail "regex: Routed-Through: trailer pattern broke (pos=$pos_hit neg=$neg_hit)"
+    fi
+
+    # ---- Check 5: On-Behalf-Of: trailer-line regex matches positive +
+    #               rejects negative.
+    pos="On-Behalf-Of: researcher"
+    neg="behalf-of researcher"
+    pos_hit=$(printf '%s\n' "$pos" | awk '/^[Oo]n-[Bb]ehalf-[Oo]f:[[:space:]]*/ { print "Y" }')
+    neg_hit=$(printf '%s\n' "$neg" | awk '/^[Oo]n-[Bb]ehalf-[Oo]f:[[:space:]]*/ { print "Y" }')
+    if [ "$pos_hit" = "Y" ] && [ -z "$neg_hit" ]; then
+        _sc_pass "regex: On-Behalf-Of: trailer pattern (positive + negative)"
+    else
+        _sc_fail "regex: On-Behalf-Of: trailer pattern broke (pos=$pos_hit neg=$neg_hit)"
+    fi
+
+    # ---- Check 6: validate_role_token canonical positive + negative
+    #               samples (covers the role-token regex implicitly).
+    if validate_role_token "software-engineer" >/dev/null 2>&1; then
+        :
+    else
+        _sc_fail "role-token: software-engineer rejected (expected accept)"
+        return_early=1
+    fi
+    if validate_role_token "tech-lead:agent-push" >/dev/null 2>&1; then
+        :
+    else
+        _sc_fail "role-token: tech-lead:agent-push rejected (expected accept)"
+        return_early=1
+    fi
+    if validate_role_token "sme-brewing" >/dev/null 2>&1; then
+        :
+    else
+        _sc_fail "role-token: sme-brewing rejected (expected accept)"
+        return_early=1
+    fi
+    if validate_role_token "tech-lead" >/dev/null 2>&1; then
+        _sc_fail "role-token: bare tech-lead accepted (expected reject; qualifier required)"
+    fi
+    if validate_role_token "architect:agent-push" >/dev/null 2>&1; then
+        _sc_fail "role-token: architect:agent-push accepted (expected reject; non-tech-lead with qualifier)"
+    fi
+    if validate_role_token "made-up-role" >/dev/null 2>&1; then
+        _sc_fail "role-token: made-up-role accepted (expected reject; unknown role)"
+    fi
+    if validate_role_token "tech-lead:nope" >/dev/null 2>&1; then
+        _sc_fail "role-token: tech-lead:nope accepted (expected reject; unknown qualifier)"
+    fi
+    # Restore globals validate_role_token writes to (defensive — keeps
+    # any later callers in the same process clean).
+    ROLE_BASE=""; ROLE_QUAL=""
+    _sc_pass "role-token: validate_role_token positive + negative samples"
+
+    # ---- Check 7: classify_path smoke (one positive per class).
+    cp_fail=0
+    [ "$(classify_path scripts/foo.sh)"            = "code" ]            || cp_fail=1
+    [ "$(classify_path docs/adr/fw-adr-0011.md)"   = "adr" ]             || cp_fail=1
+    [ "$(classify_path README.md)"                 = "docs" ]            || cp_fail=1
+    [ "$(classify_path CUSTOMER_NOTES.md)"         = "customer_notes" ]  || cp_fail=1
+    [ "$(classify_path docs/security/policy.md)"   = "security" ]        || cp_fail=1
+    [ "$(classify_path .github/workflows/ci.yml)"  = "ci" ]              || cp_fail=1
+    [ "$(classify_path docs/OPEN_QUESTIONS.md)"    = "orchestration" ]   || cp_fail=1
+    [ "$(classify_path tests/foo.sh)"              = "tests" ]           || cp_fail=1
+    if [ "$cp_fail" -eq 0 ]; then
+        _sc_pass "classify_path: one positive per class"
+    else
+        _sc_fail "classify_path: one or more class assignments wrong"
+    fi
+
+    # ---- Summary line + exit.
+    if [ "$sc_fails" -eq 0 ]; then
+        printf 'lint-routing self-check: PASS (%s checks)\n' "$sc_total"
+        return 0
+    fi
+    printf 'lint-routing self-check: FAIL (%s/%s failed)\n' "$sc_fails" "$sc_total" >&2
+    return 1
+}
+
+if [ "$SELF_CHECK_MODE" -eq 1 ]; then
+    _self_check
     exit $?
 fi
 
