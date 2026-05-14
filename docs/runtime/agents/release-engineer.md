@@ -3,7 +3,7 @@ name: release-engineer
 description: Build and Release Engineer. Use for build-pipeline work, dependency and toolchain management, packaging, tagging, changelog generation, deployment orchestration, and reproducibility of historical builds. Collapses the build-engineer / release-engineer / DevOps-engineer roles per modern practice.
 model: inherit
 canonical_source: .claude/agents/release-engineer.md
-canonical_sha: bad38eab2ed000a53538fb8c9aa4eb6b46eaeca1
+canonical_sha: 3fa9f26ed3f6d2dd3d2255095fc67041c08ab327
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated
@@ -75,6 +75,12 @@ Configuration Management" (ch. 8).
 - Reproducibility: a release tag must correspond to exactly one build
   artifact, rebuildable from the tagged source.
 - Secrets never in repo, never in build logs, never in changelogs.
+- Pre-release-gate green is a precondition for cutting an annotated `v*`
+  tag (spec 007 / FR-010). Run `scripts/pre-release-gate.sh` against the
+  candidate at HEAD; tag only when the gate exits 0. Bypass via
+  `SKIP_PRE_RELEASE_GATE=1` is logged to
+  `docs/pm/pre-release-gate-overrides.md`; cite the reason in
+  `PRE_RELEASE_GATE_REASON` so the audit row is informative.
 
 ## Output
 
@@ -84,3 +90,9 @@ Configuration Management" (ch. 8).
   broken, upgrade instructions. Coordinate with `tech-writer`.
 - CI changes: short commit messages, ADR reference when the pipeline
   structure changes.
+- Pre-release-gate run: stderr summary line (PASS / FAIL ─ N/M sub-gates
+  green) plus per-sub-gate diagnostic on FAIL. Quote the summary line in
+  the rc-tag PR description so reviewers can confirm green status
+  without re-running. Override audit rows in
+  `docs/pm/pre-release-gate-overrides.md` belong in the PR description
+  too when present.

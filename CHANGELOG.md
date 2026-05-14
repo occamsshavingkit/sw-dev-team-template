@@ -18,6 +18,42 @@ filed upstream include that version.
 
 ---
 
+## Unreleased
+
+### Added
+
+- **Pre-release upgrade-regression gate** (spec 007). New
+  `scripts/pre-release-gate.sh` orchestrator with seven v1 sub-gates:
+  `worktree-clean`, `lint-contracts`, `check-spdx`, `upgrade-paths`
+  (one round-trip per published source tag, no track / recency /
+  MAJOR cap per FR-003), `advisory-pointers` (scans operator-facing
+  path references against the candidate tree per FR-006),
+  `migrations-standalone` (per-migration scaffold + standalone run +
+  placeholder detection per FR-007), and `readme-current` (README.md
+  mentions current VERSION or was modified since last v* tag —
+  customer ask 2026-05-14). Fail-all semantics: every
+  registered sub-gate runs to completion regardless of earlier
+  failures, and the orchestrator's exit code is the maximum
+  sub-gate exit. Strict exit-code propagation through wrappers
+  (FR-002, R-5).
+- **Scoped-strict pre-push hook** at `.git-hooks/pre-push`: blocks
+  pushes that include an annotated `v*` tag unless the gate passes
+  at HEAD; advisory (WARN-only) on all other pushes. Bypass via
+  `SKIP_PRE_RELEASE_GATE=1` appends an audit row to the new
+  `docs/pm/pre-release-gate-overrides.md` append-only log; refuses
+  the bypass if the log is unwritable.
+- 7 release-gate tests under `tests/release-gate/`: positive e2e,
+  5-fixture fail-each, wrapper-masking exit-code propagation, four
+  hook semantics tests (strict-fail / bypass / unwritable-log /
+  advisory), and a force-moved-tag regression (T047a / R-9).
+
+### Changed
+
+- `.claude/agents/release-engineer.md` gains pre-release-gate
+  guidance in `## Constraints` and `## Output` sections.
+- `docs/v1.0.0-final-checklist.md` updated to make the gate run a
+  numbered precondition for tagging.
+
 ## v1.0.0-rc8 — 2026-05-06
 
 Release candidate carrying upgrade-flow correctness fixes, hook
