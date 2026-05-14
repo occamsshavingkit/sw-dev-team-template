@@ -510,9 +510,17 @@ bogus_rc=$(run_capture "$tmp/upgrade-bogus.log" \
 check "upgrade.sh with unknown flag exits 2"              bash -c "[ $bogus_rc -eq 2 ]"
 check "upgrade.sh unknown-flag prints ERROR"              bash -c "grep -q '^ERROR: unknown flag' '$tmp/upgrade-bogus.log'"
 
-echo "-- version-check (scaffolded project should be up-to-date) --"
+echo "-- version-check (scaffolded project produces recognised output) --"
 # Run version-check in the scaffolded project. It requires network — if unavailable,
 # skip the assertion rather than fail.
+#
+# The strict "up to date" assertion only holds when the LOCAL repo state matches
+# the published remote (i.e., commits have landed on main; the PR branch HEAD is
+# at remote main's HEAD). On PR branches whose HEAD is past remote main,
+# version-check correctly reports "Template upgrade available" because the
+# scaffolded project's stamp differs from the remote's latest released tag.
+# Both outcomes are valid "version-check is working" signals; only a crash or
+# unrecognised output is a real failure.
 probe_url="https://github.com/occamsshavingkit/sw-dev-team-template"
 [[ -n "${GH_TOKEN:-}" ]] && probe_url="https://${GH_TOKEN}@github.com/occamsshavingkit/sw-dev-team-template"
 if timeout 5 git ls-remote --tags --refs "$probe_url" >/dev/null 2>&1; then
@@ -520,11 +528,11 @@ if timeout 5 git ls-remote --tags --refs "$probe_url" >/dev/null 2>&1; then
     cd "$target"
     GH_TOKEN="${GH_TOKEN:-}" ./scripts/version-check.sh 2>&1 || true
   )"
-  if echo "$vc_output" | grep -q "up to date"; then
-    echo "  PASS: version-check reports up to date"
+  if echo "$vc_output" | grep -qE "up to date|Template upgrade available"; then
+    echo "  PASS: version-check produced recognised output"
     pass=$((pass + 1))
   else
-    echo "  FAIL: version-check did not report up to date"
+    echo "  FAIL: version-check produced unrecognised output (crash or unexpected pattern)"
     echo "        got: $vc_output"
     fail=$((fail + 1))
   fi
