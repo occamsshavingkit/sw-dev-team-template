@@ -394,6 +394,9 @@ run_case "issue#175: heredoc body with quoted path token (no write)" "" \
     '{"tool_input":{"command":"bash -c \"echo hi\" <<EOF\nthis mentions '"'"'src/file.py'"'"' which is fine\nEOF"}}' \
     proceed
 
+# Literal JSON test payload below: the $() is data fed to the hook on
+# stdin, not a shell expansion. Single quotes are intentional.
+# shellcheck disable=SC2016
 run_case "issue#175: git commit -m with heredoc-quoted path token" "" \
     '{"tool_input":{"command":"git commit -m \"$(cat <<'"'"'EOF'"'"'\nfix(scripts/foo.sh): tidy\nEOF\n)\""}}' \
     proceed
