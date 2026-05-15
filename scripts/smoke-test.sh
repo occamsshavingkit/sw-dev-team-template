@@ -199,7 +199,7 @@ check "docs/intake-log.md is non-empty" \
 check "docs/intake-log.md carries canonical question-batching rule" \
   bash -c "grep -q 'Batch questions internally in docs/OPEN_QUESTIONS.md' '$target/docs/intake-log.md'"
 check "docs/intake-log.md substitutes project name in title" \
-  bash -c "head -1 '$target/docs/intake-log.md' | grep -q 'Acme Smoke Test'"
+  bash -c "grep -qE '^# Intake Log .* Acme Smoke Test' '$target/docs/intake-log.md'"
 check "docs/intake-log.md listed in .template-customizations" \
   bash -c "grep -qE '^docs/intake-log\\.md\$' '$target/.template-customizations'"
 check "docs/glossary/ENGINEERING.md"      test -f "$target/docs/glossary/ENGINEERING.md"
@@ -373,7 +373,7 @@ guard_bash_output="$(
 check "CUSTOMER_NOTES guard asks on Bash notes command" \
   bash -c "echo '$guard_bash_output' | grep -q 'permissionDecision.*ask'"
 guard_bash_stdin_output="$(
-  printf '%s\n' '{"tool_name":"Bash","tool_input":{"command":"python3 - <<'\''PY'\''\nfrom pathlib import Path\nPath('\''CUSTOMER_NOTES.md'\'').write_text('\''x'\'')\nPY"}}' \
+  printf '%s\n' '{"tool_name":"Bash","tool_input":{"command":"python3 - <<'\''PY'\''\nopen('\''CUSTOMER_NOTES.md'\'', '\''w'\'').write('\''x'\'')\nPY"}}' \
     | python3 "$target/scripts/hooks/customer-notes-guard.py"
 )"
 check "CUSTOMER_NOTES guard asks on interpreter stdin notes command" \

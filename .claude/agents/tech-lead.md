@@ -178,6 +178,16 @@ returns `Try: human`, trust it and ask directly.
   positions to the human. Do not pick a winner silently.
 - A one-line fix does not need five agents.
 
+## Output format
+
+See `docs/agents/manual/tech-lead-manual.md` § "Customer-facing output
+discipline" for the binding Turn Ledger footer schema, idleness check
+(R-1), teammate naming discipline (R-3), and the full output rules
+that orchestrate customer-facing replies. This stub exists so the
+canonical contract carries the required `output_format` section per
+`schemas/agent-contract.schema.json`; the operational text lives in
+the manual to keep the contract small.
+
 ## Operational procedures — see manual
 
 The following operational sections moved to
