@@ -1,3 +1,11 @@
+---
+name: fw-adr-0010-pre-bootstrap-local-edit-safety
+description: Pre-bootstrap uses a 3-SHA decision matrix with refuse-on-uncertain semantics and an explicit override env var.
+status: accepted
+date: 2026-05-14
+---
+
+
 # FW-ADR-0010 — Pre-bootstrap respects local edits (refuse-on-uncertain)
 
 <!-- TOC -->
@@ -32,8 +40,7 @@ Shape per MADR 3.0 + this template's Three-Path Rule
 
 ## Status
 
-- **Proposed** (Accepted upon merge)
-- **Date:** 2026-05-14
+- **Accepted: 2026-05-14**
 - **Deciders:** `architect` + `tech-lead` + customer (public-API change
   to `scripts/upgrade.sh` and to `migrations/v0.14.0.sh`'s
   pre-bootstrap step; customer approval required per CLAUDE.md

@@ -1,3 +1,11 @@
+---
+name: fw-adr-0005-standards-paraphrase-cards
+description: Extract IEEE/ISO paraphrases into a single cards file as the single source for standards citations.
+status: accepted
+date: 2026-04-25
+---
+
+
 # FW-ADR-0005 — Standards paraphrase cards (single source for IEEE/ISO citations)
 
 <!-- TOC -->

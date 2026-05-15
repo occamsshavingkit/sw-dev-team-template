@@ -1,3 +1,10 @@
+---
+name: requirements-template
+description: Guided ISO/IEC/IEEE 29148:2018-shaped requirements template with per-requirement IDs, acceptance criteria, and traceability.
+template_class: requirements
+---
+
+
 # Requirements — <project name>
 
 <!-- TOC -->

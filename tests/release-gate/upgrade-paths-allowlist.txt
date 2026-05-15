@@ -3,19 +3,23 @@
 # SPDX-License-Identifier: MIT
 # Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
 #
-# Allowlist for the `upgrade-paths` sub-gate (FR-003). Each non-comment
-# non-empty line is a source-tag name whose scaffold → upgrade → verify
-# round-trip is documented-broken against the current candidate. The gate
-# still attempts the round-trip and logs the result, but a fail against an
-# allowlisted source does NOT block the sub-gate.
+# Allowlist for the `upgrade-paths` sub-gate (spec 007 FR-003, extended
+# by spec 008 FR-004). Each non-comment non-empty line names a pair
+# whose scaffold → upgrade → verify round-trip is documented-broken
+# against the current candidate. The gate still attempts the round-trip
+# and logs the result, but a fail against an allowlisted pair does NOT
+# block the sub-gate.
 #
 # Maintenance: add a row only when (a) the failure mode is understood and
 # documented, and (b) fixing it is out of scope for the current rc cut.
 # Delete rows as their upgrade paths are fixed.
 #
-# Format: one tag per line; comments start with `#`. Each entry SHOULD be
-# annotated with a follow-up issue or commit reference so reviewers can
-# trace the decision.
+# Format: one entry per line; comments start with `#`. Two row shapes:
+#   <tag>             — allowlist every variant of this source-rc (back-
+#                       compat with spec-007's tag-only allowlist).
+#   <tag>:<variant>   — allowlist just this (source-rc, variant) pair.
+# Each entry SHOULD be annotated with a follow-up issue or commit
+# reference so reviewers can trace the decision.
 
 # v1.0.0-rc3 — frozen-tag self-bootstrap defect: at rc3
 # scripts/pre-release-gate.sh line 188 executed `exec bash "$0" "$@"` AFTER

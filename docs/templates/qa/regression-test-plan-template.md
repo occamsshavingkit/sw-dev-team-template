@@ -1,3 +1,10 @@
+---
+name: regression-test-plan-template
+description: ISTQB Regression-testing plus IEEE 829 template; runs every CI invocation and before every release.
+template_class: regression-test-plan
+---
+
+
 # Regression Test Plan — <project name>
 
 Shape per ISTQB "Regression testing" + IEEE 829. Owned by

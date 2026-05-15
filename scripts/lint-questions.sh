@@ -145,6 +145,20 @@ emit_to() {
 }
 
 # ----- Pattern detectors --------------------------------------------------
+#
+# Template-prose suppression (shared by patterns 1, 2, 3): the `?` in a
+# question-shaped line should only count when the line is a real
+# customer-facing question. We strip `?` characters that live in
+# template-prose contexts — inline code spans (`...?...`), double-quoted
+# prose ("...?..."), markdown table-HEADER cells (`Header?`), and
+# checklist-prompt prefixes (`- [ ] ...?`). After stripping, if no `?`
+# remains in the line, the line is not a customer-facing question and
+# the pattern does not fire.
+#
+# Implementation note: each pattern's awk inlines the strip helper so the
+# script remains POSIX-sh + single-file. See the `strip_template_prose`
+# block at the top of each `awk -v F=...` invocation below; keep the
+# bodies in sync.
 
 # Pattern 1: Compound seed question.
 #   Heuristic per spec:
@@ -159,26 +173,80 @@ emit_to() {
 check_pattern1() {
     f="$1"
     awk -v F="$f" '
-    BEGIN { count = 0 }
+    # Strip template-prose `?`s (backticks, double-quoted, table cells,
+    # checkbox-prefixed). Returns the cleaned line. `is_checkbox_cont`
+    # is set by the main loop when the previous bullet was a checkbox
+    # and this line is an indented continuation.
+    function strip_template_prose(s, is_checkbox_cont,    out, i, c, in_bt, in_dq) {
+        # Checkbox-prefixed lines (and their indented continuations) are
+        # UI prompts, not customer-facing questions. Strip all `?`s.
+        if (s ~ /^[[:space:]]*-[[:space:]]*\[[ xX]\][[:space:]]/ || is_checkbox_cont) {
+            gsub(/\?/, "", s)
+            return s
+        }
+        # Markdown table rows (` ^| ... | ... | `): treat `?`s inside
+        # cells as table prose (header labels like `Applies?` or
+        # row-data placeholders). Customer-facing questions live in
+        # bullets/numbered items, not table cells.
+        if (s ~ /^[[:space:]]*\|/) {
+            gsub(/\?/, "", s)
+            return s
+        }
+        # Multi-line quote close: a `?"` near the start of the line is a
+        # closing of a quote that opened on a prior line. Treat that `?`
+        # as template prose.
+        if (s ~ /^[[:space:]]+[^"`]*\?"/) {
+            tmp = s
+            sub(/\?"/, "\"", tmp)
+            s = tmp
+        }
+        # Walk char-by-char; suppress `?` inside `` `...` `` or `"..."`.
+        out = ""
+        in_bt = 0
+        in_dq = 0
+        for (i = 1; i <= length(s); i++) {
+            c = substr(s, i, 1)
+            if (c == "`" && !in_dq) { in_bt = !in_bt; out = out c; continue }
+            if (c == "\"" && !in_bt) { in_dq = !in_dq; out = out c; continue }
+            if (c == "?" && (in_bt || in_dq)) continue
+            out = out c
+        }
+        return out
+    }
+    BEGIN { count = 0; in_checkbox = 0 }
     {
         line = $0
         # Skip code fences and HTML comments crudely.
         if (line ~ /^[[:space:]]*```/) { in_code = !in_code; next }
         if (in_code) next
+
+        # Track checkbox-bullet continuation state. A checkbox starts on
+        # `- [ ]` / `- [x]`; continuations are indented lines without a
+        # new bullet/heading. Reset on blank, new bullet, or heading.
+        is_checkbox_cont = 0
+        if (line ~ /^[[:space:]]*$/) { in_checkbox = 0 }
+        else if (line ~ /^[[:space:]]*-[[:space:]]*\[[ xX]\][[:space:]]/) { in_checkbox = 1 }
+        else if (line ~ /^[[:space:]]*-[[:space:]]/ || line ~ /^[[:space:]]*[0-9]+\./ || line ~ /^#/) { in_checkbox = 0 }
+        else if (in_checkbox && line ~ /^[[:space:]]+/) { is_checkbox_cont = 1 }
+        else { in_checkbox = 0 }
+
         if (line !~ /\?/) next
 
-        # Count `?` characters in the line.
-        tmp = line; qs = 0
+        eff = strip_template_prose(line, is_checkbox_cont)
+        if (eff !~ /\?/) next
+
+        # Count `?` characters in the (cleaned) line.
+        tmp = eff; qs = 0
         n = gsub(/\?/, "?", tmp)
         qs = n
 
         # Trigger A: ends with `?` and contains ", and " before the final `?`.
         triggerA = 0
-        if (line ~ /, and [^?]*\?[[:space:]]*$/ || line ~ /, and [^?]*\? *\|/) triggerA = 1
+        if (eff ~ /, and [^?]*\?[[:space:]]*$/ || eff ~ /, and [^?]*\? *\|/) triggerA = 1
 
         # Trigger B: `; ` separating two `?`-bearing clauses.
         triggerB = 0
-        if (qs >= 2 && line ~ /\?[^?]*; [^?]*\?/) triggerB = 1
+        if (qs >= 2 && eff ~ /\?[^?]*; [^?]*\?/) triggerB = 1
 
         # Trigger C: more than one `?` in the row.
         triggerC = (qs >= 2) ? 1 : 0
@@ -194,15 +262,44 @@ check_pattern1() {
 # Pattern 2: Multi-numbered customer question.
 #   A paragraph that contains `^\s*[0-9]+\.\s` more than once before the next `?`.
 #   "Paragraph" = run of non-blank lines.
+#
+# Refinement (issue: false-positive on tight numbered-list-of-questions):
+# `saw_question` is set whenever ANY `?` appears in the paragraph,
+# regardless of fire. That way pattern-2 only fires when the FIRST `?`
+# of the paragraph is preceded by ≥2 numbered items (true compound
+# multi-axis shape), not when each numbered item is itself a separate
+# question whose `?` happens to come after subsequent items.
 check_pattern2() {
     f="$1"
     awk -v F="$f" '
+    # Shared template-prose strip (mirrors pattern 1; see there for prose).
+    function strip_template_prose(s, is_checkbox_cont,    out, i, c, in_bt, in_dq) {
+        if (s ~ /^[[:space:]]*-[[:space:]]*\[[ xX]\][[:space:]]/ || is_checkbox_cont) {
+            gsub(/\?/, "", s)
+            return s
+        }
+        if (s ~ /^[[:space:]]*\|/) {
+            gsub(/\?/, "", s)
+            return s
+        }
+        if (s ~ /^[[:space:]]+[^"`]*\?"/) {
+            tmp = s
+            sub(/\?"/, "\"", tmp)
+            s = tmp
+        }
+        out = ""; in_bt = 0; in_dq = 0
+        for (i = 1; i <= length(s); i++) {
+            c = substr(s, i, 1)
+            if (c == "`" && !in_dq) { in_bt = !in_bt; out = out c; continue }
+            if (c == "\"" && !in_bt) { in_dq = !in_dq; out = out c; continue }
+            if (c == "?" && (in_bt || in_dq)) continue
+            out = out c
+        }
+        return out
+    }
     BEGIN {
         para_start = 0; numbered_count = 0; saw_question = 0;
-        first_num_line = 0; in_code = 0
-    }
-    function flush(   p_start) {
-        # No-op: emission happens when we detect the trigger condition.
+        first_num_line = 0; in_code = 0; in_checkbox = 0
     }
     {
         line = $0
@@ -215,8 +312,17 @@ check_pattern2() {
             numbered_count = 0
             saw_question = 0
             first_num_line = 0
+            in_checkbox = 0
             next
         }
+
+        # Track checkbox continuation state.
+        is_checkbox_cont = 0
+        if (line ~ /^[[:space:]]*-[[:space:]]*\[[ xX]\][[:space:]]/) { in_checkbox = 1 }
+        else if (line ~ /^[[:space:]]*-[[:space:]]/ || line ~ /^[[:space:]]*[0-9]+\./ || line ~ /^#/) { in_checkbox = 0 }
+        else if (in_checkbox && line ~ /^[[:space:]]+/) { is_checkbox_cont = 1 }
+        else { in_checkbox = 0 }
+
         if (para_start == 0) {
             para_start = NR
         }
@@ -224,11 +330,15 @@ check_pattern2() {
             numbered_count += 1
             if (first_num_line == 0) first_num_line = NR
         }
-        if (line ~ /\?/) {
+        eff = strip_template_prose(line, is_checkbox_cont)
+        if (eff ~ /\?/) {
             if (numbered_count > 1 && !saw_question) {
                 printf "P2\t%d\tpattern-2-multi-numbered\t%s\n", first_num_line, line
-                saw_question = 1
             }
+            # Always mark the paragraph as having seen a `?`, so a list-
+            # of-questions (one `?` per numbered item) does not later
+            # trip the multi-numbered trigger.
+            saw_question = 1
         }
     }
     ' "$f"
@@ -241,6 +351,31 @@ check_pattern2() {
 check_pattern3() {
     f="$1"
     awk -v F="$f" '
+    # Shared template-prose strip (mirrors pattern 1; see there for prose).
+    function strip_template_prose(s, is_checkbox_cont,    out, i, c, in_bt, in_dq) {
+        if (s ~ /^[[:space:]]*-[[:space:]]*\[[ xX]\][[:space:]]/ || is_checkbox_cont) {
+            gsub(/\?/, "", s)
+            return s
+        }
+        if (s ~ /^[[:space:]]*\|/) {
+            gsub(/\?/, "", s)
+            return s
+        }
+        if (s ~ /^[[:space:]]+[^"`]*\?"/) {
+            tmp = s
+            sub(/\?"/, "\"", tmp)
+            s = tmp
+        }
+        out = ""; in_bt = 0; in_dq = 0
+        for (i = 1; i <= length(s); i++) {
+            c = substr(s, i, 1)
+            if (c == "`" && !in_dq) { in_bt = !in_bt; out = out c; continue }
+            if (c == "\"" && !in_bt) { in_dq = !in_dq; out = out c; continue }
+            if (c == "?" && (in_bt || in_dq)) continue
+            out = out c
+        }
+        return out
+    }
     BEGIN {
         WIN = 25; in_code = 0
     }
@@ -255,9 +390,24 @@ check_pattern3() {
             if (code_toggle[i]) c = 1 - c
             incode[i] = c
         }
+        # Pre-compute checkbox-continuation state per line.
+        in_cb = 0
+        for (i = 1; i <= NR; i++) {
+            L = lines[i]
+            cb_cont[i] = 0
+            if (L ~ /^[[:space:]]*$/) { in_cb = 0; continue }
+            if (L ~ /^[[:space:]]*-[[:space:]]*\[[ xX]\][[:space:]]/) { in_cb = 1; continue }
+            if (L ~ /^[[:space:]]*-[[:space:]]/ || L ~ /^[[:space:]]*[0-9]+\./ || L ~ /^#/) { in_cb = 0; continue }
+            if (in_cb && L ~ /^[[:space:]]+/) { cb_cont[i] = 1; continue }
+            in_cb = 0
+        }
         for (i = 1; i <= NR; i++) {
             if (incode[i]) continue
             if (lines[i] !~ /\?/) continue
+            # Skip lines whose `?` characters are all template prose
+            # (backticks, double-quoted, table cell, checkbox continuation).
+            eff = strip_template_prose(lines[i], cb_cont[i])
+            if (eff !~ /\?/) continue
             # Count option-set blocks in the window [i-WIN, i+WIN].
             lo = i - WIN; if (lo < 1) lo = 1
             hi = i + WIN; if (hi > NR) hi = NR

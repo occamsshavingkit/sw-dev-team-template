@@ -260,12 +260,29 @@ gate_subgate_readme-current() {
     return 1
 }
 
+# mirror-current (regression). Per spec 010 D-6: runs
+# `scripts/strip-toc.sh --all --dry-run`, which walks every in-scope
+# Markdown file and verifies every `<!-- TOC --> ... <!-- /TOC -->`
+# fence pair parses without writing any mirror. Fails on unpaired
+# fences (FATAL exit 2) or unreadable in-scope files. CI does not
+# inspect the on-disk gitignored mirror; per-operator staleness is
+# caught by the post-commit / post-checkout hooks (D-1, D-8).
+gate_subgate_mirror-current() {
+    cd "$GATE_CANDIDATE_TREE" || return 1
+    if [ ! -x ./scripts/strip-toc.sh ]; then
+        echo "mirror-current: scripts/strip-toc.sh missing or not executable" >&2
+        return 1
+    fi
+    ./scripts/strip-toc.sh --all --dry-run --quiet
+}
+
 # ----- Registration -----------------------------------------------------------
 
 gate_register worktree-clean   precondition  "Worktree clean against git status (FR-008)."
 gate_register lint-contracts   regression    "Canonical agent contracts schema (FR-004)."
 gate_register check-spdx       regression    "SPDX-License-Identifier headers (FR-005)."
 gate_register readme-current   regression    "README.md mentions current VERSION or was modified since last v* tag (customer ask 2026-05-14)."
+gate_register mirror-current   regression    "TOC fence pairs in in-scope Markdown sources parse cleanly (spec 010 D-6)."
 
 # Sub-gates contributed by US2 / US3 are sourced from their dedicated libraries
 # when those phases land; the source lines below are guarded so the file can
@@ -281,4 +298,8 @@ fi
 if [ -f "${GATE_LIB_DIR:-$(dirname "$0")}/gate-migrations.sh" ]; then
     # shellcheck disable=SC1090,SC1091
     . "${GATE_LIB_DIR:-$(dirname "$0")}/gate-migrations.sh"
+fi
+if [ -f "${GATE_LIB_DIR:-$(dirname "$0")}/gate-hook-negative-corpus.sh" ]; then
+    # shellcheck disable=SC1090,SC1091
+    . "${GATE_LIB_DIR:-$(dirname "$0")}/gate-hook-negative-corpus.sh"
 fi

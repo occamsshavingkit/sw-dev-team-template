@@ -1,3 +1,10 @@
+---
+name: integration-test-plan-template
+description: ISTQB Integration-testing plus IEEE 829 Level Test Plan template for interface-boundary coverage.
+template_class: integration-test-plan
+---
+
+
 # Integration Test Plan — <project or subsystem>
 
 Shape per ISTQB "Integration testing" + IEEE 829 Level Test Plan.

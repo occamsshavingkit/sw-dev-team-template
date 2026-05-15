@@ -1,3 +1,11 @@
+---
+name: fw-adr-0012-tech-lead-authoring-guard
+description: PreToolUse allow-list hook is the primary preventive enforcement for Hard Rule 8; supersedes FW-ADR-0011's primary-enforcement framing.
+status: accepted
+date: 2026-05-14
+---
+
+
 # FW-ADR-0012 — PreToolUse authoring guard for Hard Rule #8
 
 <!-- TOC -->
@@ -39,13 +47,12 @@ defense-in-depth tooling. See [Migration notes](#migration-notes).
 
 ## Status
 
-- **Proposed** (Accepted upon merge). Supersedes FW-ADR-0011's
+- **Accepted: 2026-05-14**. Supersedes FW-ADR-0011's
   primary-enforcement framing. FW-ADR-0011 is **not** deprecated;
   its trailer convention and `scripts/lint-routing.sh` lint remain
   in place as defense-in-depth audit tooling (prong 2). The
   CI workflow (`.github/workflows/role-routing-lint.yml`) is
   retired by this ADR.
-- **Date:** 2026-05-14
 - **Deciders:** `architect` + `tech-lead` + customer (this ADR
   changes the primary preventive mechanism for Hard Rule #8;
   customer rejected the CI-blocking + reviewer-return shape in
@@ -486,6 +493,139 @@ context. Reasons:
   failure mode (the flag goes stale and silently widens
   the gate). An env var that vanishes between turns is
   self-cleaning.
+
+#### Addendum 2026-05-14 — inline form (issues #176, #179, #180)
+
+The v1 framing above describes the **harness-env** form of
+the escape hatch only. Two PRs landed on 2026-05-14 extended
+the contract; this addendum records the resulting binding
+shape so the ADR matches the hook in `scripts/hooks/tech-lead-authoring-guard.py`.
+
+**Two supported forms (binding).** The hook now honours the
+escape hatch in either of the following shapes; both widen
+the allow-list for exactly one tool invocation.
+
+1. **Harness-env (canonical, unchanged from v1).**
+   `SWDT_AGENT_PUSH=<role>` is set in the Claude Code session
+   environment — via `.claude/settings.json`'s `env` block,
+   shell-startup (`~/.bashrc`, `~/.zshenv`, etc.), an
+   external launcher wrapping the harness, or any other
+   mechanism that puts the variable into the harness's
+   process environment before the tool call runs. Preferred
+   for multi-command sessions where the same role is
+   pushing several writes.
+
+2. **Inline-on-Bash (added by PR #178, tightened by commit
+   85d9e4a / issue #179).** A Bash command prefixed with
+   either `SWDT_AGENT_PUSH=<role> <command>` or
+   `export SWDT_AGENT_PUSH=<role>; <command>` honours the
+   hatch for that single Bash invocation. The prefix MUST
+   appear in the **leading position** of the command — i.e.
+   the assignment is the first non-whitespace token, with
+   only optional `export ` ahead of it. Forms placed
+   mid-chain (after `&&`, `||`, `;`, or `|`) are explicitly
+   NOT honoured by the hook; from a shell-semantics
+   standpoint the assignment would scope to a subshell that
+   has nothing to do with the outer command, and naming it
+   "the escape hatch for the whole command" is misleading.
+   The leading-position anchor in `_INLINE_AGENT_PUSH_RE`
+   is the mechanical floor for this rule.
+
+The inline form was added because the deny diagnostic's
+natural reading — "set `SWDT_AGENT_PUSH=<role>`" — suggested
+inline assignment should work, and Claude Code's `Bash` tool
+spawns a fresh shell per call, which made the bare inline
+prefix silently inert before PR #178. Issue #176 surfaced
+the ambiguity; the inline parser closes it. Harness-env
+remains preferred when the operator is pushing more than one
+write under the same role; inline is the right form for
+one-off tool-bridge calls where editing durable session
+config is friction the operator does not want to absorb.
+
+**Threat model (refined).** The escape hatch trusts the
+command-string author by definition: anyone with the ability
+to author a command string can prefix it with whatever they
+want. Two specific abuse vectors were tightened during
+PR #178 review and commit 85d9e4a:
+
+- **`tech-lead` self-push is rejected in both forms.** The
+  guard exists to prevent `tech-lead` from authoring
+  production artifacts; allowing `SWDT_AGENT_PUSH=tech-lead`
+  (harness-env or inline) to widen the allow-list defeats
+  that purpose. `_validate_role()` rejects `tech-lead`
+  explicitly before the canonical-roles check. Code-
+  reviewer's PR #178 finding #2.
+- **Leading-position anchoring (issue #179).** Before commit
+  85d9e4a the inline regex matched the assignment anywhere
+  in the command, which meant patterns like
+  `cd foo && SWDT_AGENT_PUSH=architect echo y > path/x.md`
+  silently widened the allow-list even though the
+  assignment, in a real shell, would only have taken effect
+  for a subshell that did not include the preceding `cd`.
+  The tightened regex requires the assignment to be the
+  leading token of the command string. Forms that the
+  shell would actually have interpreted as command-prefix
+  variables (i.e. assignment immediately before the command
+  that performs the write) are still honoured; chained
+  forms hidden in command pipelines no longer match.
+
+Accepted role vocabulary is unchanged: the canonical roster
+plus `sme-<slug>` matching `^sme-[a-z][a-z0-9_-]*$`.
+`tech-lead` is in the roster for other vocabulary purposes
+but is rejected as an escape-hatch value in both forms.
+
+**Heredoc-body redirect handling (issue #180, commit
+85d9e4a).** Adjacent to the escape-hatch tightening, commit
+85d9e4a fixed an over-block in the Bash write-pattern
+detector: heredoc bodies were being scanned as if they were
+shell syntax, and prose containing `>` (e.g. `"If x > y …"`,
+`"stdout > stderr.log"`, or a `python -c` string with
+`print('a > b')`) was tripping the redirect regex on phantom
+paths. The fix treats heredoc bodies and non-shell-
+interpreter inline bodies as DATA for the shell-redirect
+scanner; real `open(..., 'w'|'a'|…)` writes inside an
+interpreter body are still caught by
+`_extract_interpreter_inline_targets`. This is detector-side
+tightening, not escape-hatch surface, but it lands in the
+same commit and is documented here for cross-reference; see
+issue #180 for the test cases the corpus pins.
+
+**Verification responsibility (forward reference).** Future
+hooks that introduce an escape-hatch surface MUST verify the
+hatch fires under every harness mode the hook can be invoked
+from — at minimum: the Claude Code `Bash` tool, the
+inline-bang `!`-bash form, the Codex shell, command-
+substitution wrappers, and heredoc-fed shells. The
+hook-negative-corpus convention captured in `specs/009-hook-negative-corpus/contract.md`
+(once that spec lands) is the canonical contract for this
+discipline; it grew out of the same process-auditor R-B
+audit that surfaced issues #175 / #176 / #179 / #180. Until
+spec 009 is merged, treat the test script at
+`tests/hooks/test-tech-lead-authoring-guard.sh` as the
+provisional shape and mirror it for new hooks.
+
+**Cross-references for this addendum:**
+
+- Issue #175 — over-block on read-only operations against
+  paths whose names contain a literal write-pattern string
+  (closed by PR #178).
+- Issue #176 — inline escape-hatch was documented as
+  permitted by the deny diagnostic but not honoured by the
+  hook (closed by PR #178; the inline parser added by that
+  PR is the binding mechanism above).
+- Issue #179 — leading-position anchoring for the inline
+  form (closed by commit 85d9e4a; reflected in the
+  threat-model and binding shape above).
+- Issue #180 — heredoc-body and non-shell-interpreter-body
+  redirect over-block on prose containing `>` (closed by
+  commit 85d9e4a; detector-side tightening described
+  above).
+- Issue #181 — this addendum (ADR amendment recording the
+  inline-form contract and leading-position anchor that
+  PR #178 + commit 85d9e4a landed).
+- Spec 009 (`specs/009-hook-negative-corpus/contract.md`) —
+  forthcoming negative-corpus contract; binding once
+  merged.
 
 ### Scaffold-time exception (binding)
 

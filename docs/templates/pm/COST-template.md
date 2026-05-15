@@ -1,3 +1,10 @@
+---
+name: cost-template
+description: PMBOK Planning/Monitoring cost/effort baseline template; single unit (currency, hours, or points).
+template_class: cost
+---
+
+
 # Cost / Effort Baseline — <project name>
 
 PMBOK Planning / Monitoring artifact. Owned by `project-manager`.

@@ -217,7 +217,7 @@ _OPEN_WRITE_KWARG_RE = re.compile(
 )
 
 
-def _extract_write_targets_from_body(body: str):
+def _extract_write_targets_from_body(body: str, *, scan_redirects: bool = True):
     """Extract write-target paths from an interpreter / heredoc body.
 
     Only flags paths that appear in a real write context:
@@ -226,13 +226,25 @@ def _extract_write_targets_from_body(body: str):
         a write char (covers binary ``'wb'`` / ``'ab'`` too).
       - ``open('path', mode='w')`` — kwarg mode contains a write char.
       - shell-style redirects ``> path`` / ``>> path`` inside the body
-        (covers ``-c "... > file"`` and shell heredocs).
+        (covers ``-c "... > file"`` and shell heredocs) — only when
+        ``scan_redirects=True``.
 
     Read-only ``open('foo.json')``, ``open('foo','r')``, and
     ``open('foo', mode='r')`` do NOT match. Quoted path tokens that are
     not the first arg of a write-mode open do NOT match. This is the
     core fix for issue #175; the kwarg branch closes the bypass flagged
     in code-reviewer tightening #4.
+
+    ``scan_redirects=False`` is used for heredoc bodies (issue #180):
+    a heredoc body is data, not shell syntax. Lines like prose with
+    ``stdout > stderr`` or quoted strings containing ``>`` previously
+    tripped the redirect regex on phantom path targets. Real writes
+    via shell-redirect inside a heredoc body would require the body
+    to be re-executed as a subshell command, which is unusual; the
+    ``open(..., mode)`` detector still catches the common case of an
+    interpreter-fed heredoc that opens a file for write. The top-level
+    ``cat > FILE <<EOF`` redirect is caught by the command-level
+    extractor independently of the heredoc-body scan.
     """
     if not body:
         return []
@@ -245,8 +257,10 @@ def _extract_write_targets_from_body(body: str):
             # '+' alone is a write signal too).
             if any(ch in mode for ch in ("w", "a", "x", "A", "+")):
                 targets.append(path)
-    # Shell redirects inside the body.
-    targets.extend(_extract_redirect_targets(body))
+    # Shell redirects inside the body. Skipped for heredoc bodies — see
+    # docstring (issue #180 false-positive on prose containing ``>``).
+    if scan_redirects:
+        targets.extend(_extract_redirect_targets(body))
     return targets
 
 
@@ -286,21 +300,37 @@ def _extract_interpreter_inline_targets(command: str):
     """
     targets = []
 
-    # 1. Inline `-c` / `-e` arguments.
-    for m in re.finditer(
-        rf"\b{_INTERPRETER_RE}\b[^|;&]*?(?:-c\b|-e\b)\s*(['\"])",
-        command,
-    ):
-        quote = m.group(1)
+    # 1. Inline `-c` / `-e` arguments. For shell interpreters (bash, sh),
+    # the body IS shell syntax — keep redirect detection. For other
+    # interpreters (python, node, ruby, perl, php, lua, Rscript), the body
+    # is the interpreter's own language, not shell; quoted strings or
+    # comments containing ``>`` are data, not redirects (issue #180).
+    # Rely on ``open(..., 'w'|'a'|...)`` patterns there instead.
+    shell_interpreters = {"bash", "sh"}
+    interp_re = re.compile(
+        rf"\b(?P<interp>{_INTERPRETER_RE})\b[^|;&]*?(?:-c\b|-e\b)\s*(?P<quote>['\"])"
+    )
+    for m in interp_re.finditer(command):
+        quote = m.group("quote")
+        interp = m.group("interp")
         start = m.end()
         end = _find_matching_quote(command, start, quote)
         body = command[start:end]
-        targets.extend(_extract_write_targets_from_body(body))
+        scan = interp in shell_interpreters
+        targets.extend(
+            _extract_write_targets_from_body(body, scan_redirects=scan)
+        )
 
     # 2. Heredocs (any command, not just `_INTERPRETER_RE`). Capture the
     # delimiter, then scan the body up to the matching delimiter line.
     # Delimiter quoting and the `-`/`~` prefix affect how the shell
     # processes the body but not where it ends.
+    #
+    # Issue #180: heredoc bodies are DATA, not shell syntax. Prose lines
+    # containing `>` (e.g. "If x > y then we win", "stdout > stderr.log",
+    # a python `print('a > b')`) previously tripped the shell-redirect
+    # regex on phantom path targets. Skip redirect detection for heredoc
+    # bodies; rely on the `open(..., mode)` detector for real writes.
     for m in re.finditer(
         r"<<[-~]?\s*(?P<q>['\"]?)(?P<delim>[A-Za-z_][A-Za-z0-9_]*)(?P=q)",
         command,
@@ -315,9 +345,112 @@ def _extract_interpreter_inline_targets(command: str):
             body = command[body_start : body_start + end_match.start()]
         else:
             body = command[body_start:]
-        targets.extend(_extract_write_targets_from_body(body))
+        targets.extend(_extract_write_targets_from_body(body, scan_redirects=False))
 
     return targets
+
+
+def _strip_non_shell_interpreter_bodies(command: str) -> str:
+    """Return ``command`` with non-shell ``-c`` / ``-e`` body regions blanked.
+
+    For interpreters whose ``-c`` / ``-e`` argument is NOT shell syntax
+    (python, python3, node, ruby, perl, php, lua, Rscript), the quoted
+    body is the interpreter's own language. Quoted strings or prose
+    inside that body containing ``>`` would otherwise trip the top-level
+    shell-redirect scanner (issue #180: ``python3 -c "print('a > b')"``
+    flagged ``b`` as a redirect target).
+
+    The body region between the opening quote and its matching close
+    is replaced with same-length space padding so byte offsets are
+    preserved (in case any caller relies on them) and so the surrounding
+    shell syntax remains scannable. The body itself is still scanned
+    for write-mode ``open()`` calls by
+    ``_extract_interpreter_inline_targets`` which sees the unmodified
+    command.
+
+    Shell interpreters (``bash``, ``sh``) are deliberately excluded:
+    their ``-c`` body IS shell syntax, so e.g.
+    ``bash -c "echo x > scripts/foo.sh"`` must still trip the redirect
+    scanner.
+    """
+    non_shell = r"(?:python|python3|node|ruby|perl|php|lua|Rscript)"
+    pattern = re.compile(rf"\b{non_shell}\b[^|;&]*?(?:-c\b|-e\b)\s*(['\"])")
+    out = list(command)
+    for m in pattern.finditer(command):
+        quote = m.group(1)
+        start = m.end()
+        end = _find_matching_quote(command, start, quote)
+        # Blank the body chars (preserve any newlines so line-anchored
+        # regex elsewhere don't get confused).
+        for k in range(start, end):
+            if out[k] != "\n":
+                out[k] = " "
+    return "".join(out)
+
+
+def _strip_heredoc_bodies(command: str) -> str:
+    """Return ``command`` with heredoc body regions removed.
+
+    Each ``<<DELIM`` (or ``<<-DELIM`` / ``<<~DELIM`` / ``<<"DELIM"``)
+    opener has its body — from the end of the opener line up to and
+    including the closing ``DELIM`` line — replaced with a single
+    newline. Shell-level write-pattern extractors (redirect, tee, dd,
+    in-place, mutation) then run only over actual shell syntax, not
+    over heredoc data.
+
+    Issue #180: prose inside a heredoc body containing ``>`` previously
+    tripped the top-level ``_extract_redirect_targets`` on phantom
+    targets (``> y``, ``> stderr.log``, ``> stderr``). Stripping the
+    body region before shell-level scans removes the false positive
+    while leaving real writes intact: the ``cat > FILE <<EOF`` form
+    still has its ``> FILE`` before the stripped body, and any
+    interpreter-fed heredoc that performs real I/O via ``open(..., 'w')``
+    is still caught by ``_extract_interpreter_inline_targets`` which
+    scans the body separately for write-mode open() calls.
+    """
+    if "<<" not in command:
+        return command
+    out = []
+    i = 0
+    opener_re = re.compile(
+        r"<<[-~]?\s*(?P<q>['\"]?)(?P<delim>[A-Za-z_][A-Za-z0-9_]*)(?P=q)"
+    )
+    while i < len(command):
+        m = opener_re.search(command, i)
+        if m is None:
+            out.append(command[i:])
+            break
+        delim = m.group("delim")
+        # The body starts at the next newline after the opener (the rest
+        # of the opener line — including any post-opener redirect like
+        # `<<EOF >> path` — is still real shell and must be preserved
+        # for the redirect scanner). If there is no newline, the heredoc
+        # is malformed / single-line; preserve everything up to and
+        # including the opener match and stop.
+        nl = command.find("\n", m.end())
+        if nl == -1:
+            out.append(command[i:])
+            break
+        # Keep up to and including the newline that ends the opener line
+        # (so `cat <<EOF >> scripts/foo.sh\n...` still has `>> scripts/foo.sh`
+        # visible, and `cat > FILE <<EOF\n...` still has `> FILE` visible).
+        out.append(command[i : nl + 1])
+        body_start = nl + 1
+        end_match = re.search(
+            rf"(?m)^\s*{re.escape(delim)}\s*$", command[body_start:]
+        )
+        if end_match is None:
+            # Unterminated heredoc — drop the rest.
+            break
+        # Skip past the closing-delimiter line.
+        # `end_match.end()` is the offset just after the delimiter token
+        # within the body slice; advance one more to consume the newline
+        # if present, so subsequent shell text (e.g. `)`) is preserved.
+        skip_to = body_start + end_match.end()
+        if skip_to < len(command) and command[skip_to] == "\n":
+            skip_to += 1
+        i = skip_to
+    return "".join(out)
 
 
 def _extract_write_targets_from_command(command: str):
@@ -325,13 +458,23 @@ def _extract_write_targets_from_command(command: str):
 
     The list may include duplicates and unrelated tokens; the caller filters
     against the allow-list. Empty list means "no detectable writes".
+
+    Shell-level extractors run over a heredoc-body-stripped AND
+    non-shell-interpreter-body-blanked copy of the command (issue #180:
+    prose inside a heredoc body or quoted python/node/ruby/perl/lua/Rscript
+    string containing ``>`` previously tripped phantom redirect targets).
+    The interpreter-inline-targets extractor still sees the full command
+    so it can scan heredoc bodies and ``-c`` / ``-e`` bodies for
+    write-mode ``open()`` calls.
     """
     targets = []
-    targets.extend(_extract_redirect_targets(command))
-    targets.extend(_extract_tee_targets(command))
-    targets.extend(_extract_dd_targets(command))
-    targets.extend(_extract_in_place_targets(command))
-    targets.extend(_extract_mutation_targets(command))
+    shell_view = _strip_heredoc_bodies(command)
+    shell_view = _strip_non_shell_interpreter_bodies(shell_view)
+    targets.extend(_extract_redirect_targets(shell_view))
+    targets.extend(_extract_tee_targets(shell_view))
+    targets.extend(_extract_dd_targets(shell_view))
+    targets.extend(_extract_in_place_targets(shell_view))
+    targets.extend(_extract_mutation_targets(shell_view))
     targets.extend(_extract_interpreter_inline_targets(command))
     return targets
 
@@ -485,20 +628,36 @@ def _agent_push_role():
 # detect the inline assignment and honour it as an escape hatch for that
 # invocation. We accept the role only if it validates; unrecognised
 # values fall through to the harness-env check (and ultimately deny).
+#
+# Issue #179: the inline form MUST be the leading command. A pattern
+# like ``cd foo && SWDT_AGENT_PUSH=architect echo y > docs/adr/foo.md``
+# previously matched (env-var-prefix after `&&`) and silently widened
+# the allow-list, which is not the natural reading of the deny
+# diagnostic. Strict anchor: the assignment is the first non-whitespace
+# token of the command, OR it is preceded only by ``export\s+``. Forms
+# after ``&&``, ``||``, ``;``, ``|`` no longer match.
 _INLINE_AGENT_PUSH_RE = re.compile(
-    r"(?:^|[\s;&|]|\bexport\s+)SWDT_AGENT_PUSH=(['\"]?)([a-zA-Z][a-zA-Z0-9_-]*)\1"
+    r"\A\s*(?:export\s+)?SWDT_AGENT_PUSH=(['\"]?)([a-zA-Z][a-zA-Z0-9_-]*)\1"
 )
 
 
 def _inline_agent_push_role(command: str):
-    """Return the inline SWDT_AGENT_PUSH role from a Bash command, else None."""
+    """Return the inline SWDT_AGENT_PUSH role from a Bash command, else None.
+
+    Only honours the assignment when it is the leading command (issue
+    #179). The regex is anchored to the start of the string with
+    optional leading whitespace and an optional ``export`` prefix.
+    Assignments after ``&&``/``||``/``;``/``|`` do not widen the
+    allow-list — they would only take effect for the subshell the
+    operator chains them into, and naming a post-chain assignment as
+    an escape hatch for the whole command is misleading.
+    """
     if not command:
         return None
-    for m in _INLINE_AGENT_PUSH_RE.finditer(command):
-        role = _validate_role(m.group(2).strip())
-        if role is not None:
-            return role
-    return None
+    m = _INLINE_AGENT_PUSH_RE.match(command)
+    if m is None:
+        return None
+    return _validate_role(m.group(2).strip())
 
 
 # ---------------------------------------------------------------------------

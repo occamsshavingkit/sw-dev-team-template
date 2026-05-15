@@ -1,3 +1,11 @@
+---
+name: fw-adr-0003-bare-template-variants
+description: Ship a guided plus bare pair per template family so fluent authors can use the structure-only form.
+status: accepted
+date: 2026-04-25
+---
+
+
 # FW-ADR-0003 — Bare variants of structural templates
 
 <!-- TOC -->

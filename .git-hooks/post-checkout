@@ -1,0 +1,41 @@
+#!/usr/bin/env sh
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
+# .git-hooks/post-checkout — regenerate the gitignored .model-view/ mirror
+# tree after `git clone` and `git checkout <branch>`.
+#
+# Per specs/010-toc-build-time-strip/spec.md D-1, D-8.
+# Opt-in: install via `git config core.hooksPath .git-hooks`.
+#
+# Post-checkout protocol: $1=prev_head $2=new_head $3=branch_checkout_flag
+#   $3 = 1 → branch checkout (run); 0 → file checkout (skip).
+
+prev_head="${1:-}"
+new_head="${2:-}"
+branch_flag="${3:-1}"
+
+# File checkouts (git checkout <path>) don't change branches; skip.
+if [ "$branch_flag" != "1" ]; then
+    exit 0
+fi
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"
+[ -z "$repo_root" ] && exit 0
+
+strip="$repo_root/scripts/strip-toc.sh"
+if [ ! -x "$strip" ]; then
+    # Script missing — graceful degradation per D-8: model-side consumers
+    # tolerate a missing mirror.
+    exit 0
+fi
+
+# Fast path: if prev_head == new_head (initial clone reports zeroes), still
+# regenerate; the operator just landed and wants a fresh mirror.
+"$strip" --all --quiet >&2 || {
+    printf 'post-checkout: strip-toc.sh exited non-zero; mirror may be incomplete.\n' >&2
+    # Non-fatal: a malformed source file should not block branch checkout.
+    exit 0
+}
+
+exit 0

@@ -1,3 +1,10 @@
+---
+name: stakeholders-template
+description: PMBOK Initiating/Planning stakeholder-register template; supersede rather than delete.
+template_class: stakeholders
+---
+
+
 # Stakeholder Register — <project name>
 
 PMBOK Initiating / Planning artifact. Owned by `project-manager`.
