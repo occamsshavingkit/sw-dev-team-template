@@ -80,8 +80,8 @@ future posture that has not been agreed.
   function (lines 497-499) sources `template.version` from
   `TEMPLATE_VERSION` line 1 and `template.ref` from line 2 — the current
   three-line stamp's semver / SHA / date order. The ADR does not pin which
-  format `template.version` must hold (semver? rc tag? branch name?). For
-  schema v1.0.0, a free string is fine, but a future MINOR may want to
+  format `template.version` must hold — whether semver, rc tag, or branch
+  name. For schema v1.0.0, a free string is fine, but a future MINOR may want to
   validate it. Worth a one-line note that v1.0.0 leaves `template.version`
   unvalidated by intent.
 
@@ -144,7 +144,7 @@ cases the dispatch brief raised:
   paths with embedded whitespace; paths with shell metacharacters; UTF-8
   BOMs; CRLF line endings; entries that are themselves directories not
   files. The migration function shape is silent on whether these are
-  tolerated (skip with warn?) or fatal (abort like malformed `TEMPLATE_VERSION`?).
+  tolerated via skip-with-warn, or fatal — aborting like malformed `TEMPLATE_VERSION`.
   Pick a posture and pin it. Recommendation: tolerate-with-WARN for
   comment/blank/BOM/CRLF noise; abort for unparseable lines that look
   like paths but aren't. This matters because the migration runs ONCE per

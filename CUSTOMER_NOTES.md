@@ -430,3 +430,71 @@ Q-0023 (architect's queued question Q1).
 **Supersedes:** none (first ruling on the schema-version
 upgrade-on-read axis).
 **Recorded by:** researcher
+
+## 2026-05-15 — Ruling 10: Pivot back to in-tree rc-cycle; ship rc13 for known fleet (turn: pre-intake — to be reconciled with docs/intake-log.md)
+
+> **Note on numbering gap (Rulings 7-9):** Rulings 7, 8, and 9 exist
+> on the archived `feat/stub-model-implementation` branch and are not
+> present on this branch. They covered stub-model-specific topics
+> (stub default-target, bridge scope narrowing, soften refusal) that
+> do not apply to the rc13 lineage. They remain on that archive
+> branch as a record of the stub-model exploration. Ruling 10 follows
+> Rulings 5 + 6 (FW-ADR-0016 Q1 + Q2 above) on the rc13 lineage.
+
+**Context:** After 5 dogfood iterations on the stub-model branch
+(FW-ADR-0015..0019 architecture), structural blockers persisted: the
+bridge migration runs INSIDE the OLD driver, but the OLD driver's
+post-migration sync re-emits legacy files after the bridge removes
+them; layered pre-bootstrap pre-empts inner bridge logic; pre-rc8 OLD
+drivers crash before any new code can run. Each iteration revealed
+deeper OLD-driver behavior that fights the bridge. The customer's "is
+this a unicorn" framing became sharper with each failure.
+
+**Question (from tech-lead):**
+> Can we make the upgrade work for the repos that exist now with the versions of the template that they are currently using?
+
+**Customer answer (verbatim):**
+> "there are no other users out there. let's stop spinning and ship something that can upgrade what we know I am using, and call that good."
+
+**Follow-up customer framing (verbatim):**
+> "anyone else will start from something we know has a good upgrade path."
+
+**Ruling.** Pivot to the in-tree rc-cycle. Ship rc13 from current
+origin/main HEAD (which includes PR #197's blocker fixes + #178/#182
+hook fixes that were post-rc12 commits). Dogfood the 5 in-scope
+fixtures matching the customer's actual fleet (alpha-mid rc8,
+alpha-latest rc9, beta-latest rc8, gamma-mid rc8, gamma-latest rc8).
+If 5/5 PASS, tag rc13 on origin; customer upgrades QuackPLC +
+QuackS7 + QuackSim to rc13. Future operators scaffold from rc13+
+which by construction has a tested upgrade path forward.
+
+**Disposition of stub-model work (FW-ADR-0015..0019 +
+feat/stub-model-implementation):**
+- FW-ADR-0015..0019 stay `status: accepted` on origin/main (audit
+  trail; design preparation for a hypothetical v2.0 cycle).
+- `feat/stub-model-implementation` branch parks on origin as archive
+  (not merged, not deleted). Final HEAD `e4b180e` carries all SE
+  pieces + 5 dogfood attempt evidence + rulings 7-9 + the
+  soften-refusal fix-up.
+- The bridging migration code + retrofit playbook + stub + runner
+  code remain on that branch for future revisitation.
+- FW-ADR-0019's trigger condition (rc15 lineage lands clean) never
+  fires under the pivoted plan; FW-ADR-0010 + FW-ADR-0013 stay
+  operative as the current pre-bootstrap pattern.
+
+**Implication for v1.0.0 final:** the customer's standing "upgrade
+is always buggy" frame remains at the strategic level. v1.0.0 final
+ships when the customer judges the rc-cycle upgrade-bug pattern has
+stabilised. Today's 5-iteration stub-model result is an honest data
+point: the in-tree model has limits; a future cycle may revisit the
+stub-model design. For now, "what works for the fleet I have" is the
+bar.
+
+**Cross-refs:** FW-ADR-0015..0019 (parked); `feat/stub-model-implementation`
+branch (archive); Rulings 1-6 (current branch); Rulings 7-9
+(archive-only, on stub-model branch); upcoming VERSION bump rc12 →
+rc13 + dogfood.
+
+**Supersedes:** none (first ruling on the in-tree rc-cycle pivot
+axis after the stub-model exploration).
+**Recorded by:** researcher
