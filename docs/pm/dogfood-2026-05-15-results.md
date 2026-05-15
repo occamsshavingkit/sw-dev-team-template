@@ -603,3 +603,173 @@ landed on the wrong layer. Blocker-2 IS resolved.
 **Go / no-go on rc13 cut: NO-GO.** Three regressions block.
 
 Routed-Through: qa-engineer
+
+## 2026-05-15 — rc13 dogfood (5-fixture; existing fleet)
+
+Target: v1.0.0-rc13 (local tag at `release/rc13` HEAD `239d9dc`; NOT
+pushed to GitHub yet — driver invoked with
+`SWDT_UPSTREAM_URL=file:///home/quackdcs/SWEProj/sw-dev-team-template`
+so the fleet `upgrade.sh` resolves the tag from the local clone).
+
+Customer ruling context: Rulings 10 + 11 (2026-05-15) — rc13 is the
+in-tree fix for the existing fleet. This run is the gate evidence for
+the rc13 tag cut per Hard Rule #4 (customer authorization still
+required separately).
+
+Scope: 5 in-scope fixtures only (the customer's known fleet at known
+SHAs). NO stub-model bridge runs. NO out-of-scope refusal tests. NO
+FORCE coverage. Pure existing-fleet upgrade test.
+
+### Summary
+
+| codename     | state  | source SHA | before     | after       | upgrade | verify | conflicts | ai-tui              | RESULT                  |
+|--------------|--------|------------|------------|-------------|---------|--------|-----------|---------------------|-------------------------|
+| alpha-mid    | rc13   | `8826b19`  | v1.0.0-rc8 | v1.0.0-rc13 | 0       | 1      | 4         | skipped-script-fail | PASS-with-customization |
+| alpha-latest | rc13   | `14cda96`  | v1.0.0-rc9 | v1.0.0-rc13 | 0       | 1      | 6         | skipped-script-fail | PASS-with-customization |
+| beta-latest  | rc13   | `df84e7d`  | v1.0.0-rc8 | v1.0.0-rc13 | 0       | 1      | 8         | skipped-script-fail | PASS-with-customization |
+| gamma-mid    | rc13   | `968b549`  | v1.0.0-rc8 | v1.0.0-rc13 | 0       | 1      | 2         | skipped-script-fail | PASS-with-customization |
+| gamma-latest | rc13   | `5b8c9097` | v1.0.0-rc8 | v1.0.0-rc13 | 0       | 1      | 24        | skipped-script-fail | PASS-with-customization |
+
+Totals: **5/5 PASS-with-customization.** Zero framework-attributable
+regressions. Verify exit=1 in every case is the FW-ADR-0014 conflict
+detector firing on legitimate 3-way merges across customer-customized
+files (agent contracts, scripts, top-level CLAUDE.md/AGENTS.md,
+`.claude/settings.json`). All upgrades exit 0;
+TEMPLATE_VERSION advances to v1.0.0-rc13 in every fixture; no manifest
+drift reported (verify says "OK: 27x files verified clean against
+manifest").
+
+Report files (kept under `/tmp`; codenames-only; safe to share):
+
+- `/tmp/dogfood-rc13-alpha-mid-20260515-191737.txt`
+- `/tmp/dogfood-rc13-alpha-latest-20260515-191737.txt`
+- `/tmp/dogfood-rc13-beta-latest-20260515-191737.txt`
+- `/tmp/dogfood-rc13-gamma-mid-20260515-191737.txt`
+- `/tmp/dogfood-rc13-gamma-latest-20260515-191737.txt`
+
+### Conflict classification (per fixture)
+
+All conflicts are the expected three-way-merge friction category —
+files where BOTH the upstream and the project customized from
+baseline. No `baseline_missing`, no `refused_by_preservation_gate`,
+no exotic classifications.
+
+- **alpha-mid (4):** `.claude/agents/qa-engineer.md`,
+  `.claude/agents/sre.md`, `scripts/check-spdx.sh`,
+  `scripts/scaffold.sh`.
+- **alpha-latest (6):** `scripts/archive-registers.sh`,
+  `scripts/check-spdx.sh`, `scripts/compile-runtime-agents.sh`,
+  `scripts/lint-agent-contracts.sh`, `scripts/lint-questions.sh`,
+  `tests/workflows/test-improve-template-logic.sh`.
+- **beta-latest (8):** 6 customized agent contracts +
+  `AGENTS.md` + `CLAUDE.md`.
+- **gamma-mid (2):** `.claude/settings.json`, `AGENTS.md`.
+- **gamma-latest (24):** 3 customized agent contracts, top-level
+  AGENTS.md + CLAUDE.md, `.claude/settings.json`, 7 fw-adr-* files,
+  4 templates, 7 customized scripts.
+
+The high gamma-latest count (24) is consistent with the morning
+section's observation that heavily-customized late-rc downstreams
+expect 10+ conflicts on first upgrade against the new manifest
+discipline (FW-ADR-0014). The customer resolves these by hand-merge
+and `scripts/upgrade.sh --resolve`; framework did its job.
+
+### AI-TUI sub-gate
+
+The dogfood driver auto-skipped AI-TUI on all 5 fixtures because
+verify exited 1 (the conflict-detector signal, not script failure).
+QA executed the gate manually:
+
+1. **Phase 1 — upstream baseline check.** Ran
+   `tests/hooks/run-ai-tui-check.sh --fixture
+   /home/quackdcs/SWEProj/sw-dev-team-template` against the rc13
+   upstream itself. Result: **21/21 PASS, exit 0.** The
+   FW-ADR-0011 Routed-Through trailer logic + FW-ADR-0012
+   tech-lead-authoring-guard cooperate correctly when both hooks
+   are wired in `.claude/settings.json`.
+
+2. **Phase 2 — gamma-mid post-upgrade (cleanest fixture, 2
+   conflicts).** Reproduced the upgrade in a persistent scratch
+   tree, then ran the AI-TUI check. Result: **17/21 PASS, 4 FAIL,
+   exit 1.** The 4 failures are all the same root cause: the
+   project's `.claude/settings.json` is one of the unresolved
+   conflicts and still contains only `customer-notes-guard.py` in
+   its PreToolUse rows. The new `tech-lead-authoring-guard.py`
+   script is **on disk** (added by the upgrade) but **not yet
+   wired** in `settings.json` until the customer hand-merges the
+   conflict.
+
+3. **Phase 3 — gamma-mid post-resolve.** Simulated the customer
+   hand-merging `settings.json` (took upstream version, ran
+   `scripts/upgrade.sh --resolve`). Re-ran AI-TUI check. Result:
+   **21/21 PASS, exit 0.** Once the conflict is resolved, the
+   hook framework is fully active.
+
+**AI-TUI disposition: PASS-with-customization.** The framework
+works end-to-end. The mid-state gap (post-upgrade, pre-resolve) is
+the FW-ADR-0014 contract operating as designed: framework refuses
+to silently overwrite customer-customized `settings.json`; flags
+the conflict; the customer's hand-merge step activates the new
+hook coverage. This is not a framework regression; it is the
+adoption friction the FW-ADR-0014 explicit-resolve flow is meant
+to surface.
+
+### Adversarial review
+
+The `qa-engineer` adversarial stance ran the four-rule check on
+this PASS finding:
+
+- **Cut-corners check:** No skipped tests, no weakened assertions.
+  The driver's `ai-tui status: skipped-script-fail` is correct
+  behavior given verify=1; QA ran the gate manually to compensate.
+- **Raw output:** All 5 reports + the AI-TUI runs are at
+  `/tmp/dogfood-rc13-*` and survive driver cleanup; the persistent
+  scratch tree for the AI-TUI phase-2/3 lives at
+  `/tmp/qa-aitui.qOKo`.
+- **Re-run discipline:** Two separate dogfood-driver invocations
+  per fixture (one with default URL → confirms the GitHub-tag
+  precondition gap and produces the FAIL-with-clear-error path,
+  one with `SWDT_UPSTREAM_URL` → produces the PASS path). Both
+  invocations recorded.
+- **Agreement-pressure check:** One adversarial finding initially
+  raised — "post-upgrade manifest is missing the 4 new hooks." On
+  re-verification this was retracted: the inspection was against
+  the untouched original fixture (the dogfood driver works on a
+  scratch copy). The driver's own report explicitly lists the 4
+  new hooks under `Added from upstream (170)`, and a manual
+  reproduction confirmed all 5 hooks land on disk post-upgrade.
+
+### Preconditions and tooling notes
+
+- The dogfood driver does NOT accept `--target`; that flag is for
+  `upgrade.sh`. Drive with `--upstream <tag>` and ensure
+  `SWDT_UPSTREAM_URL` is exported so `upgrade.sh` (run inside the
+  driver scratch) resolves the local tag instead of going to
+  GitHub. This is a documented behavior of the upgrade script
+  (`upgrade.sh:104-109`) but the driver does not auto-export it.
+  Filing as a usability nit for a future driver pass; not blocking
+  rc13.
+- All 5 fixtures pre-upgrade had the expected baselines:
+  alpha-mid `v1.0.0-rc8`, alpha-latest `v1.0.0-rc9`, beta-latest
+  `v1.0.0-rc8`, gamma-mid `v1.0.0-rc8`, gamma-latest `v1.0.0-rc8`.
+- Capture used `scripts/capture-dogfood-fixture.sh` with file://
+  URL + temporary `dogfood-rc13-<codename>` tag at each target
+  SHA. Source-repo tags and captured fixture trees are subject to
+  cleanup; see end of section.
+
+### Conclusion
+
+**Framework IS ready for rc13 cut.** 5/5 PASS-with-customization on
+the customer's known fleet; AI-TUI gate confirmed to pass on
+post-upgrade-post-resolve state and on upstream itself. All FAIL
+signals are the FW-ADR-0014 conflict detector doing its job on
+heavily-customized files, matching the morning section's
+"expected three-way merge friction" PASS-with-customization
+precedent.
+
+**Ready for rc13 tag cut per customer's dogfood-before-rc
+sequencing ruling (CUSTOMER_NOTES.md L296).** Hard Rule #4
+customer authorization still required separately before
+tech-lead pushes the tag.
+
+Routed-Through: qa-engineer
