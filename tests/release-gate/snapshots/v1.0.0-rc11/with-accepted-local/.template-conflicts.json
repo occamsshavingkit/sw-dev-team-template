@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "generated": "2026-05-15T00:00:00Z",
+  "template_version": "v1.0.0-rc11",
+  "entries": [
+    {"path": ".claude/agents/researcher.md", "classified": "accepted_local", "baseline_sha": "a8a84447d9ce0a07f0a06c71c863d6038d7a988c", "upstream_sha": "dfa9b80a08f7d2bfff9bf25be136453eda850e0e", "project_sha": "8c518e4113e9f0c254b4a2da43baf7ba9dcaf170"},
+    {"path": ".claude/agents/architect.md", "classified": "local_only_kept", "baseline_sha": "0340acb0f58b86642ad932d286f1f44af3c92988", "upstream_sha": "969cca35b3da6a43f9a3fc6804d022fdf21b3f7c", "project_sha": "709b8c384851714b79dafbfd3235b47b7ff482d5"}
+  ]
+}

@@ -1,0 +1,31 @@
+# tests/release-gate/upgrade-paths-allowlist.txt
+#
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
+# Allowlist for the `upgrade-paths` sub-gate (FR-003). Each non-comment
+# non-empty line is a source-tag name whose scaffold → upgrade → verify
+# round-trip is documented-broken against the current candidate. The gate
+# still attempts the round-trip and logs the result, but a fail against an
+# allowlisted source does NOT block the sub-gate.
+#
+# Maintenance: add a row only when (a) the failure mode is understood and
+# documented, and (b) fixing it is out of scope for the current rc cut.
+# Delete rows as their upgrade paths are fixed.
+#
+# Format: one tag per line; comments start with `#`. Each entry SHOULD be
+# annotated with a follow-up issue or commit reference so reviewers can
+# trace the decision.
+
+# v0.16.0 — scripts/upgrade.sh is a 3-way conflict between v0.16.0 (baseline),
+# the current candidate (upstream), and the pre-bootstrapped project copy
+# (the migrations/v0.14.0.sh pre-bootstrap landed modern upgrade.sh in the
+# project, so v0.16.0's sync sees both upstream and project diverged from
+# baseline). v0.16.0 is a single-version sliver between v0.15.x and v0.17.0
+# with negligible expected downstream presence; the fix is to teach v0.x
+# scaffold's conflict-detection to recognize pre-bootstrapped helpers as
+# accepted-local-merge. Deferred to a follow-up issue (Q-0017 customer
+# answer B on 2026-05-14). The pre-bootstrap fix itself (commit 19e39bc)
+# remains correct for the real-world v0.x → modern upgrade path; only the
+# gate's automated round-trip sees this as a "failure."
+v0.16.0

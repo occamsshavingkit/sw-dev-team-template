@@ -1,0 +1,101 @@
+#!/usr/bin/env sh
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
+# .git-hooks/pre-push — pre-release-gate adapter with scoped-strict semantics.
+#
+# Per specs/007-pre-release-upgrade/contracts/pre-push-hook.contract.md.
+# Per spec FR-011: strict (block) when the push includes an annotated v* tag;
+# advisory (WARN only) on all other pushes.
+#
+# Install: `git config core.hooksPath .git-hooks` or symlink into .git/hooks/.
+
+# Pre-push protocol: $1=remote_name, $2=remote_url, stdin = refspec lines.
+#
+# stdin format (one per line):
+#   <local_ref> <local_sha> <remote_ref> <remote_sha>
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -z "$repo_root" ]; then
+    # Not a git repo — nothing to do.
+    exit 0
+fi
+
+gate="$repo_root/scripts/pre-release-gate.sh"
+override_log="$repo_root/docs/pm/pre-release-gate-overrides.md"
+
+# Detect strict mode: any refspec pushes a refs/tags/v* whose local object is
+# an annotated tag.
+strict=0
+strict_tag=""
+strict_sha=""
+while read -r local_ref local_sha remote_ref _; do
+    [ -z "$local_ref" ] && continue
+    case "$remote_ref" in
+        refs/tags/v[0-9]*)
+            obj_type=$(git cat-file -t "$local_sha" 2>/dev/null || echo "")
+            if [ "$obj_type" = "tag" ]; then
+                strict=1
+                strict_tag="${remote_ref#refs/tags/}"
+                strict_sha=$(git rev-parse "$local_sha^{commit}" 2>/dev/null || echo "$local_sha")
+                break
+            fi
+            ;;
+    esac
+done
+
+# ----- Strict mode ----------------------------------------------------------
+if [ "$strict" -eq 1 ]; then
+    if [ ! -x "$gate" ]; then
+        printf 'pre-push hook: %s missing or not executable; cannot enforce strict gate\n' "$gate" >&2
+        exit 1
+    fi
+
+    gate_rc=0
+    "$gate" >&2 || gate_rc=$?
+
+    if [ "$gate_rc" -eq 0 ]; then
+        exit 0
+    fi
+
+    # Gate failed. Check for explicit bypass.
+    if [ "${SKIP_PRE_RELEASE_GATE:-0}" = "1" ]; then
+        # Refuse to bypass if audit log is unwritable.
+        if [ ! -w "$override_log" ]; then
+            printf '\npre-push hook: SKIP_PRE_RELEASE_GATE=1 set, but %s is unwritable.\n' "$override_log" >&2
+            printf 'Refusing to bypass without an audit row. Fix permissions on the override log and re-push.\n' >&2
+            exit 1
+        fi
+
+        # Build the audit row.
+        date_iso=$(date -u +%Y-%m-%d)
+        sha_short=$(git rev-parse --short "$strict_sha" 2>/dev/null || echo "$strict_sha")
+        operator=$(git config user.email 2>/dev/null || echo "${USER:-unknown}@$(hostname 2>/dev/null || echo unknown)")
+        reason="${PRE_RELEASE_GATE_REASON:-unspecified}"
+        # Sub-gates that would have run: discover from --help output (parse "Registered sub-gates:" block).
+        subgates=$("$gate" --help 2>/dev/null \
+            | awk '/^Registered sub-gates:/,0 { if ($0 ~ /^  [a-z]/) print $1 }' \
+            | tr '\n' ',' | sed 's/,$//')
+
+        # Gate column added by FW-ADR-0010 (2026-05-14): pre-release rows
+        # carry "pre-release"; pre-bootstrap rows (written by upgrade.sh /
+        # migrations/v0.14.0.sh) carry "pre-bootstrap".
+        row="| $date_iso | pre-release | $sha_short | $strict_tag | $operator | $reason | $subgates |"
+        printf '%s\n' "$row" >> "$override_log"
+
+        printf '\npre-release-gate: bypass via SKIP_PRE_RELEASE_GATE=1\n' >&2
+        printf 'override appended to %s:\n  %s\n' "$override_log" "$row" >&2
+        exit 0
+    fi
+
+    printf '\npre-release-gate failed; push blocked.\n' >&2
+    printf 'Override with SKIP_PRE_RELEASE_GATE=1 git push ... (audit-logged).\n' >&2
+    exit "$gate_rc"
+fi
+
+# ----- Advisory mode --------------------------------------------------------
+# Optionally check a one-shot cache. v1 keeps this simple: always WARN if no
+# recent confirmed run is recorded. The cache file convention is documented
+# in the contract; v1 does NOT enforce the cache so this is always a WARN.
+printf 'pre-release-gate not run against HEAD; push proceeding (advisory mode).\n' >&2
+exit 0

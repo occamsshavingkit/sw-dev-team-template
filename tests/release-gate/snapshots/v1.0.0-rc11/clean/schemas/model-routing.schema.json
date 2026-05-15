@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sw-dev-team-template/schemas/model-routing.schema.json",
+  "title": "Model routing configuration",
+  "description": "Validates the JSON representation of docs/model-routing-guidelines.md's per-agent default-class table, fallback policy, and (optionally) a project-local override supplement. Extraction is done by the lint script before validation.",
+  "type": "object",
+  "required": ["version", "agents", "fallback"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Routing-table semver; bumped when defaults change"
+    },
+    "binding": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the file is the binding default (true) or a project-local override (false). Per spec clarification 5, the upstream table is binding for fresh scaffolds."
+    },
+    "agents": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Per-agent default model-class assignment",
+      "items": {
+        "type": "object",
+        "required": ["agent", "default_class"],
+        "additionalProperties": false,
+        "properties": {
+          "agent": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,63}$"
+          },
+          "default_class": {
+            "type": "string",
+            "enum": [
+              "claude-opus",
+              "claude-sonnet",
+              "claude-haiku",
+              "gemini-pro",
+              "gemini-flash",
+              "openai-frontier",
+              "openai-coding",
+              "openai-mini"
+            ]
+          },
+          "frontier_only_when": {
+            "type": "string",
+            "minLength": 5,
+            "description": "Plain-language predicate for when this agent escalates to the frontier tier"
+          }
+        }
+      }
+    },
+    "fallback": {
+      "type": "object",
+      "required": ["triggers", "substitution_policy", "log_path"],
+      "additionalProperties": false,
+      "properties": {
+        "triggers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "credit_exhausted",
+              "provider_unavailable_5xx",
+              "provider_timeout",
+              "provider_rate_limit"
+            ]
+          },
+          "description": "Per spec clarification 8: credit exhaustion OR provider unavailability"
+        },
+        "substitution_policy": {
+          "type": "string",
+          "enum": ["closest-peer-then-one-tier-down"],
+          "description": "Per spec clarification 8; closest peer in same class first, then one tier down"
+        },
+        "log_path": {
+          "type": "string",
+          "pattern": "^docs/pm/fallback-log\\.jsonl$",
+          "description": "Live JSONL log path (FR-020); monthly rollover handled by archive-registers.sh"
+        }
+      }
+    },
+    "project_local_override_marker": {
+      "type": "string",
+      "description": "Required when binding == false; identifies the file as a project-local override per spec clarification 5"
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"binding": {"const": false}}, "required": ["binding"]},
+      "then": {"required": ["project_local_override_marker"]}
+    }
+  ]
+}

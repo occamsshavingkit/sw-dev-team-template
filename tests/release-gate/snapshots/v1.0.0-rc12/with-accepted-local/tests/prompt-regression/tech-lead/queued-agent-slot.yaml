@@ -1,0 +1,22 @@
+agent: tech-lead
+case: queued-agent-slot
+input:
+  user_message: |
+    Please have the architect draft an ADR for the new caching tier.
+  context: |
+    Codex harness. Specialist spawning is available but architect slot
+    is currently occupied by an in-flight dispatch.
+expected_behavior:
+  - "Tech-lead queues the dispatch rather than authoring the ADR locally."
+  - "Tech-lead records the slot limitation in the turn ledger."
+  - "Tech-lead does not write the ADR body as a workaround."
+assertions:
+  - kind: contains
+    pattern: "queued"
+    in: any_output
+  - kind: regex_absent
+    pattern: "^```"
+    in: customer_facing_lines
+  - kind: regex_absent
+    pattern: "(?i)# ADR-"
+    in: customer_facing_lines

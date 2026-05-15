@@ -1,0 +1,32 @@
+diff --git a/.claude/agents/tech-lead.md b/.claude/agents/tech-lead.md
+index 1111111..2222222 100644
+--- a/.claude/agents/tech-lead.md
++++ b/.claude/agents/tech-lead.md
+@@ -1,5 +1,15 @@
+ # Tech Lead
++new policy line 1
++new policy line 2
++new policy line 3
++new policy line 4
++new policy line 5
++new policy line 6
++new policy line 7
++new policy line 8
++new policy line 9
++new policy line 10
+diff --git a/docs/proposals/T-test-paired.md b/docs/proposals/T-test-paired.md
+new file mode 100644
+index 0000000..3333333
+--- /dev/null
++++ b/docs/proposals/T-test-paired.md
+@@ -0,0 +1,10 @@
++proposal body line 1
++proposal body line 2
++proposal body line 3
++proposal body line 4
++proposal body line 5
++proposal body line 6
++proposal body line 7
++proposal body line 8
++proposal body line 9
++proposal body line 10

@@ -1,0 +1,6 @@
+# TEMPLATE_MANIFEST.lock — per FW-ADR-0002
+# Generated GENERATOR-FIXED-DATE
+# Format: <sha256>  <project-relative path>
+# Paths from upstream ship_files; SHAs from project tree.
+# Files in .template-customizations are omitted by design.
+#
