@@ -18,6 +18,46 @@ filed upstream include that version.
 
 ---
 
+## v1.0.0-rc13 (forthcoming)
+
+Release candidate carrying PR #197 blocker fixes, post-rc12 hook fixes
+from #178 / #182, and PR #186's untagged-target feature. Per customer
+ruling 10 (2026-05-15 pivot back to in-tree rc-cycle).
+
+### Added
+
+- **FW-ADR-0010** — pre-bootstrap local-edit safety: surface for
+  detecting and refusing unsafe local edits before bootstrap runs.
+- **FW-ADR-0011** — `Routed-Through:` commit trailer convention for
+  specialist dispatch attribution.
+- **FW-ADR-0012** — tech-lead-authoring-guard: hook surface that flags
+  direct tech-lead writes outside the Hard Rule #8 allow-list.
+- **FW-ADR-0013** — rc-to-rc pre-bootstrap migration shape.
+- **FW-ADR-0014** — preservation-vs-manifest reconciliation rules.
+- **Untagged-target support in `scripts/upgrade.sh`** (carried forward
+  from PR #186, already on `main`): upgrade may target an untagged
+  ref under documented conditions.
+
+### Fixed
+
+- **Hook fix from #178** — inline `SWDT_AGENT_PUSH` carrier widening
+  (post-rc12 commit on `main`; rc12 tag missed it).
+- **Hook fix from #182** — read-only interpreter reads of
+  `CUSTOMER_NOTES.md` (post-rc12 commit on `main`; rc12 tag missed it).
+
+### Notes
+
+- Tag `v1.0.0-rc13` is **not cut** in this commit. Customer's
+  dogfood-before-rc rule (CUSTOMER_NOTES.md 2026-05-15 ruling 1) gates
+  the tag.
+- **Stub-model design (FW-ADR-0015..0019) accepted on this branch but
+  not implemented.** Implementation parks on
+  `feat/stub-model-implementation` (origin) as archive per Ruling 10;
+  a future framework cycle may revisit.
+- **Rulings 7-9** (stub default-target, scope narrowing, soften
+  refusal) are stub-model-specific and remain on the archive branch;
+  they do not apply to rc13.
+
 ## Unreleased
 
 ### Added
