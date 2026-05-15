@@ -1043,8 +1043,12 @@ should_preserve() {
   fi
 
   # Divergence is real. Now check the destination manifest's fresh-write
-  # declaration.
-  if manifest_declares_fresh_write "$path" "$wnew" "$wold"; then
+  # declaration. Pass the project root so the helper consults the
+  # project's `.template-customizations`: preserved paths are excluded
+  # from the destination manifest by design and therefore cannot be
+  # "declared fresh-write" for this project (PR #197 / dogfood-2026-05-15
+  # fix for scaffold-canonical stub-fills).
+  if manifest_declares_fresh_write "$path" "$wnew" "$wold" "$proot"; then
     echo "refuse-conflict"
   else
     echo "preserve"
