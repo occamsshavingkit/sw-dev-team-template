@@ -187,9 +187,15 @@ gate_run_one_round_trip() {
 
     snapshot_dir="$GATE_CANDIDATE_TREE/tests/release-gate/snapshots/$src_tag/$variant"
     if [ ! -d "$snapshot_dir" ]; then
-        echo "round-trip $src_tag/$variant: snapshot missing at $snapshot_dir" >>"$log"
-        echo "  Run scripts/generate-fixture-snapshots.sh to produce it." >>"$log"
-        cat "$log" >&2
+        # Snapshots are gitignored (per customer ruling 2026-05-15); regenerate
+        # locally via the generator. Emit a clear diagnostic so the failure
+        # mode is self-explanatory.
+        {
+            echo "ERROR: tests/release-gate/snapshots/$src_tag/$variant/ is missing."
+            echo "Snapshots are gitignored; regenerate with:"
+            echo "  bash scripts/generate-fixture-snapshots.sh --all"
+            echo "(See tests/release-gate/snapshots/README.md.)"
+        } | tee -a "$log" >&2
         rm -rf "$target_dir"
         return 1
     fi

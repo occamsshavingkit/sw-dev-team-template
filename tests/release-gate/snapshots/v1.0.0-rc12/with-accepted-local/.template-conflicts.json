@@ -1,9 +1,0 @@
-{
-  "schema": 1,
-  "generated": "2026-05-15T00:00:00Z",
-  "template_version": "v1.0.0-rc12",
-  "entries": [
-    {"path": ".claude/agents/researcher.md", "classified": "accepted_local", "baseline_sha": "d63c838a6bc20845e405f123d942f7c5f91c7b19", "upstream_sha": "2a65fa0bf75007534e7844b9f088366effcd65af", "project_sha": "82bee58f426f5e852938e2a6805540f738f53c99"},
-    {"path": ".claude/agents/architect.md", "classified": "local_only_kept", "baseline_sha": "4c51d3f61080c362c9e41b0ec4b835ecd3739ded", "upstream_sha": "a5b7b34da9810ecb18795908fe6d3b01fb5a8d65", "project_sha": "cea7479a5fe395916f529c8f394bce18ad236851"}
-  ]
-}

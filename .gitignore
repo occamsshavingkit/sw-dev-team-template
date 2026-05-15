@@ -37,3 +37,8 @@ __pycache__/
 dist/
 build/
 target/
+
+# spec 008 fixture snapshots are gitignored + regenerated per clone
+# via scripts/generate-fixture-snapshots.sh --all (see snapshots/README.md)
+tests/release-gate/snapshots/*
+!tests/release-gate/snapshots/README.md
