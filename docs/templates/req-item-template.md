@@ -1,3 +1,10 @@
+---
+name: req-item-template
+description: Guided per-requirement file template per FW-ADR-0004 satisfying ISO/IEC/IEEE 29148 characteristics.
+template_class: requirement-item
+---
+
+
 # Requirement — <ID> — <one-line title>
 
 One file per requirement per FW-ADR-0004. Each requirement satisfies

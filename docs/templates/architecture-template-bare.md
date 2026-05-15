@@ -1,3 +1,10 @@
+---
+name: architecture-template-bare
+description: Bare ISO/IEC/IEEE 42010:2022 plus arc42 plus C4 architecture template; structure only.
+template_class: architecture
+---
+
+
 # Architecture — <project name>
 
 <!-- TOC -->

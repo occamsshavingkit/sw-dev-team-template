@@ -1,3 +1,10 @@
+---
+name: risks-template
+description: PMBOK Planning/Monitoring risk-register template; one row per risk, close not delete.
+template_class: risks
+---
+
+
 # Risk Register — <project name>
 
 PMBOK Planning / Monitoring artifact. Owned by `project-manager`. One

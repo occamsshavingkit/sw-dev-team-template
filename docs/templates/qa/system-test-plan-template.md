@@ -1,3 +1,10 @@
+---
+name: system-test-plan-template
+description: ISTQB System-testing plus IEEE 829 Level Test Plan template; end-to-end against requirements.
+template_class: system-test-plan
+---
+
+
 # System Test Plan — <project name>
 
 Shape per ISTQB "System testing" + IEEE 829 Level Test Plan.
