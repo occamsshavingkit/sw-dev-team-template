@@ -4,8 +4,8 @@
 
 - [Scope](#scope)
 - [Deterministic rules](#deterministic-rules)
-- [Pending customer decisions](#pending-customer-decisions)
 - [Not standardized (reader preference)](#not-standardized-reader-preference)
+- [Resolved decisions](#resolved-decisions)
 
 <!-- /TOC -->
 
@@ -38,6 +38,13 @@ Outliers should converge to these on next touch; no mass rewrite.
   Acronyms keep their case (`## ADR index`, `## SemVer rules`).
   File-root canonical headings that are themselves acronyms or
   proper nouns stay capitalized (`CHANGELOG`, `ROADMAP`).
+- `CHANGELOG.md` uses sentence case for all multi-word `###`
+  sub-headings; single-word Keep-a-Changelog labels (`### Added`,
+  `### Fixed`, etc.) are sentence-case-compatible and conform by
+  default.
+- **Exception:** `AGENTS.md` (Codex adapter) uses Title Case for
+  section headings as a Codex-side convention. Do not normalize to
+  sentence case. All other root canonical files use sentence case.
 
 **Lists.**
 
@@ -94,11 +101,26 @@ Outliers should converge to these on next touch; no mass rewrite.
 
 **Frontmatter.**
 
-- Required: `.claude/agents/*.md` (Claude Code subagent schema:
-  `name`, `description`, `tools`, `model`).
-- Forbidden: `docs/templates/*.md`, root `*.md`, `docs/adr/*.md`,
-  `specs/**/*.md`. Don't add YAML to documents that don't already
-  carry it.
+Required on the file classes below with the minimum fields shown.
+Existing files predating this rule are exempt; backfill is a
+separate work-item. New files in these classes MUST land with
+frontmatter from creation.
+
+- `.claude/agents/*.md` — `name`, `description`, `tools`, `model`.
+- Memory files (`~/.claude/projects/.../memory/*.md`) — `name`,
+  `description`, `metadata.type`.
+- ADRs (`docs/adr/*.md`) — `name`, `description`, `status`
+  (`proposed` | `accepted` | `superseded` | `superseded-in-part`),
+  `date`.
+- Templates (`docs/templates/*.md`) — `name`, `description`,
+  `template_class` (e.g., `requirements`, `architecture`, `phase`,
+  `task`).
+- Spec files (`specs/*/spec.md`, `specs/*/contracts/*.md`) —
+  `name`, `description`, `status` (`draft` | `active` |
+  `resolved`), `created_date`.
+
+Other documents (root `*.md`, free-form `docs/**/*.md` prose) do
+not carry YAML.
 
 **Whitespace.**
 
@@ -130,10 +152,12 @@ Outliers should converge to these on next touch; no mass rewrite.
 
 **File naming.**
 
-- Root canonical bindings: `SCREAMING_SNAKE.md` (`CLAUDE.md`,
-  `AGENTS.md`, `CHANGELOG.md`, `CUSTOMER_NOTES.md`, `ROADMAP.md`,
-  `LICENSE`, `VERSION`, `TEMPLATE_VERSION`,
-  `SW_DEV_ROLE_TAXONOMY.md`).
+- Root canonical bindings MUST use `SCREAMING_SNAKE.md` — this is a
+  deterministic rule, no exceptions. The enumerated set is:
+  `CLAUDE.md`, `AGENTS.md`, `CHANGELOG.md`, `CUSTOMER_NOTES.md`,
+  `ROADMAP.md`, `LICENSE`, `VERSION`, `TEMPLATE_VERSION`,
+  `SW_DEV_ROLE_TAXONOMY.md`. Adding a new root canonical binding
+  requires `tech-lead` consensus and an entry in this list.
 - Everything else: `kebab-case.md`
   (`docs/templates/adr-template.md`,
   `docs/framework-project-boundary.md`,
@@ -141,21 +165,6 @@ Outliers should converge to these on next touch; no mass rewrite.
 - ADR slugs: `kebab-case`, lowercase. Filenames follow
   `fw-adr-NNNN-<slug>.md` (framework) or `NNNN-<slug>.md`
   (project), per FW-ADR-0007.
-
-## Pending customer decisions
-
-Surface these to `tech-lead`; they aren't deterministic from the
-existing corpus alone:
-
-- **CHANGELOG.md heading style.** Sub-headings use Title Case
-  (`### Added`, `### Changed`) per Keep-a-Changelog convention,
-  which is the only file that breaks the sentence-case rule.
-  Decision: keep CHANGELOG aligned to Keep-a-Changelog (recommend),
-  or normalize to sentence case (breaks convention)?
-- **Frontmatter on memory files** (user-private,
-  `~/.claude/projects/.../memory/*.md`). Currently uses YAML
-  (`name`, `description`, `type`). Out of scope for this guide
-  unless customer wants it in scope.
 
 ## Not standardized (reader preference)
 
@@ -170,3 +179,21 @@ readability or diffability:
   topic sentence.
 - Whether numbered ordered lists restart at 1 inside subsections
   or continue from the parent.
+
+## Resolved decisions
+
+Customer rulings that moved items out of "Pending customer
+decisions" into the deterministic-rules sections above.
+
+- **2026-05-15 — CHANGELOG heading case.** Normalize to sentence
+  case; Keep-a-Changelog single-word labels conform by default.
+  Bulk-normalize pass same day was a no-op.
+- **2026-05-15 — YAML frontmatter expansion.** Tighten — require
+  frontmatter on memory files, ADRs, templates, and spec files
+  per the Frontmatter rule. Backfill is a separate work-item.
+- **2026-05-15 — SCREAMING_SNAKE for root canonical files.** Keep
+  as a deterministic rule, no exceptions; new bindings require
+  `tech-lead` consensus and an entry in the enumerated list.
+- **2026-05-15 — AGENTS.md Title Case sections.** Keep as a
+  Codex-side convention. `AGENTS.md` uses Title Case; do not
+  normalize. All other root canonical files use sentence case.
