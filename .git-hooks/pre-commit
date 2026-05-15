@@ -1,0 +1,46 @@
+#!/usr/bin/env sh
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
+# .git-hooks/pre-commit — run the hook negative-corpus driver before any
+# commit. Spec 009 §Verification (a): catches missing / regressing corpus
+# at commit time (shift-left counterpart to the pre-release-gate sub-gate).
+#
+# Install: `git config core.hooksPath .git-hooks` (mirrors pre-push install).
+#
+# Bypass: `SKIP_HOOK_NEGATIVE_CORPUS=1 git commit ...` for emergencies.
+# Bypass is intentionally not audit-logged here; the release-gate sub-gate
+# catches drift before tag.
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -z "$repo_root" ]; then
+    exit 0
+fi
+
+if [ "${SKIP_HOOK_NEGATIVE_CORPUS:-0}" = "1" ]; then
+    printf 'pre-commit: SKIP_HOOK_NEGATIVE_CORPUS=1 set; skipping hook-negative-corpus driver.\n' >&2
+    exit 0
+fi
+
+driver="$repo_root/tests/hooks/run-negative-corpus.sh"
+if [ ! -x "$driver" ]; then
+    # Driver missing or not executable — fail open with a warning so the
+    # hook never blocks commits on infrastructure absence. The release gate
+    # is the hard backstop.
+    printf 'pre-commit: %s missing or not executable; skipping (advisory).\n' "$driver" >&2
+    exit 0
+fi
+
+# Run silently on PASS; surface the driver's diagnostic block on FAIL.
+out_file=$(mktemp 2>/dev/null || echo /tmp/pre-commit-negcorpus.$$)
+rc=0
+"$driver" --all >"$out_file" 2>&1 || rc=$?
+
+if [ "$rc" -ne 0 ]; then
+    printf 'pre-commit: hook-negative-corpus regression — commit blocked.\n' >&2
+    cat "$out_file" >&2
+    printf '\nOverride (rare): SKIP_HOOK_NEGATIVE_CORPUS=1 git commit ...\n' >&2
+fi
+
+rm -f "$out_file"
+exit "$rc"

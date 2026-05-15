@@ -1,0 +1,219 @@
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
+# Negative corpus for scripts/hooks/customer-notes-guard.py.
+# Spec 009 — Hook detector negative-corpus convention.
+#
+# Every entry is a tool_input payload the hook MUST pass through silently
+# (no permissionDecision: ask). If the hook fires `ask` on any entry, the
+# driver reports it as a false-positive regression.
+#
+# Each entry shape:
+#   - label:     human-readable test name
+#   - category:  1-6 per spec 009 §Negative-corpus categories
+#   - harness:   (cat-6 only) claude-bash | inline-bang | codex-shell |
+#                heredoc | command-substitution
+#   - rationale: one-line justification
+#   - regression: (optional) upstream issue ID
+#   - payload:   the JSON tool_input that the hook reads on stdin
+#                (wrapped here as {"tool_input": {...}}). Stored as a
+#                string so YAML doesn't try to interpret the inner JSON.
+#   - expected:  always "pass" — this is a negative corpus
+#
+# Hook semantics being negative-tested (customer-notes-guard.py):
+# A command triggers the ask gate ONLY if it BOTH mentions CUSTOMER_NOTES.md
+# AND carries a write marker (redirect into the file, in-place edit, mv/cp/rm,
+# interpreter -c / heredoc that names the file). Read-only ops + prose + data
+# tokens must NOT fire.
+
+entries:
+
+  # =====================================================================
+  # Category 1 — Read-only ops mentioning the protected target.
+  # =====================================================================
+
+  - label: "cat1.1: grep CUSTOMER_NOTES.md (search, no write)"
+    category: 1
+    rationale: "grep reads, never writes; #111 regression."
+    regression: "#111"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"grep -n researcher CUSTOMER_NOTES.md"}}
+
+  - label: "cat1.2: wc -l on CUSTOMER_NOTES.md (count, no write)"
+    category: 1
+    rationale: "wc reads only; #111 regression."
+    regression: "#111"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"wc -l CUSTOMER_NOTES.md"}}
+
+  - label: "cat1.3: diff two files where CUSTOMER_NOTES.md is operand"
+    category: 1
+    rationale: "diff is read-only; #111."
+    regression: "#111"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"diff -u a CUSTOMER_NOTES.md"}}
+
+  # =====================================================================
+  # Category 2 — Prose / docs / comments carrying path-shaped tokens.
+  # =====================================================================
+
+  - label: "cat2.1: git commit message body mentioning CUSTOMER_NOTES.md"
+    category: 2
+    rationale: "commit message body is prose, not a write to the file."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"git commit -m 'docs(notes): mention CUSTOMER_NOTES.md in body'"}}
+
+  - label: "cat2.2: shell comment referencing CUSTOMER_NOTES.md"
+    category: 2
+    rationale: "comment after `#` is not a write."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"echo hello  # see CUSTOMER_NOTES.md for the ruling"}}
+
+  - label: "cat2.3: ls listing with CUSTOMER_NOTES.md in result"
+    category: 2
+    rationale: "ls names the file but does not write it."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"ls -la CUSTOMER_NOTES.md docs/"}}
+
+  # =====================================================================
+  # Category 3 — Quoted strings in print / log statements.
+  # =====================================================================
+
+  - label: "cat3.1: python3 -c print mentioning CUSTOMER_NOTES.md as data"
+    category: 3
+    rationale: "print() body containing the path string is data, not a write."
+    regression: "#175"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"python3 -c \"print('reads CUSTOMER_NOTES.md')\""}}
+
+  - label: "cat3.2: python3 -c read-only open(CUSTOMER_NOTES.md)"
+    category: 3
+    rationale: "open() without write mode is a read."
+    regression: "#175"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"python3 -c \"import json; json.load(open('CUSTOMER_NOTES.md'))\""}}
+
+  - label: "cat3.3: node -e console.log with CUSTOMER_NOTES.md token"
+    category: 3
+    rationale: "console.log string is data, not a write."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"node -e \"console.log('opening CUSTOMER_NOTES.md')\""}}
+
+  # =====================================================================
+  # Category 4 — Heredoc bodies that do not write.
+  # =====================================================================
+
+  - label: "cat4.1: cat <<EOF body mentioning CUSTOMER_NOTES.md (data)"
+    category: 4
+    rationale: "heredoc body text without a write target is data."
+    regression: "#175"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"cat <<EOF\nthis mentions CUSTOMER_NOTES.md but writes nowhere\nEOF"}}
+
+  - label: "cat4.2: git commit -m with heredoc-quoted CUSTOMER_NOTES.md path"
+    category: 4
+    rationale: "heredoc inside $() is commit-message data; #175."
+    regression: "#175"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"git commit -m \"$(cat <<'EOF'\ndocs: note that CUSTOMER_NOTES.md exists\nEOF\n)\""}}
+
+  - label: "cat4.3: bash -c heredoc where body reads CUSTOMER_NOTES.md"
+    category: 4
+    rationale: "read-only heredoc body is not a write."
+    regression: "#175"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"python3 <<EOF\nopen('CUSTOMER_NOTES.md').read()\nEOF"}}
+
+  # =====================================================================
+  # Category 5 — Inline-bash / escape-hatch carriers.
+  # NOTE: customer-notes-guard.py has no escape hatch (it asks rather than
+  # denies), so the prefix is treated as plain Bash. The protected case
+  # remains "do not fire on read-only ops even when SWDT_AGENT_PUSH is
+  # set." These entries verify the prefix carrier does not interfere with
+  # the read-only/write distinction.
+  # =====================================================================
+
+  - label: "cat5.1: SWDT_AGENT_PUSH prefix + read-only grep"
+    category: 5
+    rationale: "escape-hatch carrier in front of a read; still a read."
+    regression: "#176"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"SWDT_AGENT_PUSH=software-engineer grep researcher CUSTOMER_NOTES.md"}}
+
+  - label: "cat5.2: export SWDT_AGENT_PUSH then read"
+    category: 5
+    rationale: "export carrier + read; not a write."
+    regression: "#176"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"export SWDT_AGENT_PUSH=software-engineer; cat CUSTOMER_NOTES.md"}}
+
+  - label: "cat5.3: SWDT_AGENT_PUSH prefix + wc"
+    category: 5
+    rationale: "carrier + wc reads only."
+    regression: "#176"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"SWDT_AGENT_PUSH=researcher wc -l CUSTOMER_NOTES.md"}}
+
+  # =====================================================================
+  # Category 6 — Cross-harness invocation shapes.
+  # The hook reads tool_input as JSON regardless of the harness; these
+  # entries record representative payloads per harness mode so the corpus
+  # stays forward-compatible if shapes diverge.
+  # Modes: claude-bash | inline-bang | codex-shell | heredoc |
+  # command-substitution
+  # =====================================================================
+
+  - label: "cat6.1: claude-bash — grep CUSTOMER_NOTES.md"
+    category: 6
+    harness: claude-bash
+    rationale: "Default Claude Code Bash tool shape; read-only."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"grep -c '^' CUSTOMER_NOTES.md"}}
+
+  - label: "cat6.2: inline-bang — !-prefixed read"
+    category: 6
+    harness: inline-bang
+    rationale: "User-entered `! grep ...` invocation; the hook still sees the same tool_input shape but the corpus records inline-bang for forward compatibility."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"! grep researcher CUSTOMER_NOTES.md"}}
+
+  - label: "cat6.3: codex-shell — read via bare grep"
+    category: 6
+    harness: codex-shell
+    rationale: "Codex `shell` tool issues a tool_input.command shape; a bare read command (no interpreter -c) must pass. NOTE: customer-notes-guard.py intentionally asks on `sh -c` or interpreter-stdin shapes that mention the file (it errs conservative when an interpreter could write); those shapes belong to the hook's positive-fixture surface, not the negative corpus."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"head -5 CUSTOMER_NOTES.md"}}
+
+  - label: "cat6.4: heredoc — non-interpreter heredoc with file token in body"
+    category: 6
+    harness: heredoc
+    rationale: "Heredoc fed to a non-interpreter (cat) whose body mentions the file is data, not a write. NOTE: heredoc fed to python/sh/perl that names the file is intentionally asked by customer-notes-guard.py (conservative read-vs-write); that shape is positive-fixture surface, not negative-corpus."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"cat <<'EOF'\nrefer to CUSTOMER_NOTES.md for details\nEOF"}}
+
+  - label: "cat6.5: command-substitution — $(...) wrapping read"
+    category: 6
+    harness: command-substitution
+    rationale: "Command substitution wraps a read; outer command does not write."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"echo \"$(wc -l CUSTOMER_NOTES.md)\""}}
