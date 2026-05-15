@@ -25,7 +25,10 @@ signal or contributes a target path. Concretely: regex / substring
 path-extraction, interpreter-inline and heredoc body scanners,
 mutation-command detectors, write-mode classifiers, escape-hatch
 parsers. Out of scope: JSON-structure validation, tool-name
-routing.
+routing. Issues #133 (relative-path resolution) and #156 (fail-open
+on malformed payload) are different failure classes (path-handling
++ graceful-degradation respectively); not covered by this
+convention. They warrant separate hook-correctness audit work.
 
 ## Negative-corpus categories (binding)
 
@@ -40,7 +43,10 @@ floor is 3. Total floor per new detector: 18 entries (6 categories ×
    CUSTOMER_NOTES.md`. (#111, #175.)
 2. **Prose / docs / comments carrying path-shaped tokens.** A
    docstring `"writes to CUSTOMER_NOTES.md"`, a comment `# see
-   scripts/foo.py`, a markdown link.
+   scripts/foo.py`, a markdown link. Note: prose/comments is a
+   wide-variety surface; per-hook authors are encouraged to extend N
+   beyond 3 for this category when the hook uses broad regex
+   matching.
 3. **Quoted strings in print / log statements.** `print("opening
    foo.txt")`, `logger.info("loaded CUSTOMER_NOTES.md")` — data, not
    write.
@@ -73,6 +79,12 @@ For each `scripts/hooks/<name>.py`:
    ID).
 2. Positive fixtures continue to live in
    `tests/hooks/test-<name>.sh`; the negative corpus is a sibling.
+   The positive-fixture surface for `tech-lead-authoring-guard.py`
+   continues to live in
+   `tests/hooks/test-tech-lead-authoring-guard.sh` (84/0
+   self-tests); the negative corpus at
+   `tests/hooks/fixtures/tech-lead-authoring-guard.yml` is its
+   sibling — they do not duplicate cases.
 3. Adding a detector without simultaneously adding or extending the
    corpus is a `code-reviewer` review-block.
 
@@ -80,7 +92,10 @@ For each `scripts/hooks/<name>.py`:
 
 **Both surfaces ship.** Defence-in-depth: pre-commit catches the
 single-commit miss early; release-gate catches drift accumulated
-across a multi-commit branch.
+across a multi-commit branch. Pre-commit lint catches at author
+time (earlier-shifted); release-gate sub-gate catches at rc-cut
+time (later-shifted but covers drift across multi-commit
+branches).
 
 (a) **Pre-commit lint.** `scripts/lint-hook-corpora.sh` checks every
 hook has a peer fixture covering all six categories with N>=3.
@@ -120,33 +135,19 @@ fixture entries minimum.
 
 Customer rulings 2026-05-15:
 
-1. **N per category = 3** (qa-engineer's recommendation). Total
-   floor per new detector: 18 entries. Per-hook author may extend
-   upward.
-2. **Migration M-A retroactive.** `software-engineer` authors
-   corpora for both existing hooks
-   (`scripts/hooks/customer-notes-guard.py` and
-   `scripts/hooks/tech-lead-authoring-guard.py`) immediately upon
-   contract landing.
-3. **Cross-harness scope.** Category 6 × every harness mode
-   (Claude `Bash`, inline `!`-bash, Codex shell, heredoc,
-   command-substitution). Categories 1–5 stay single-harness
-   (Claude `Bash`).
+1. **N per category = 3** (qa-engineer's recommendation).
+2. **Migration M-A retroactive** (see §Migration).
+3. **Cross-harness scope.** Category 6 × every harness mode;
+   categories 1–5 single-harness.
 4. **Verification surface.** BOTH pre-commit lint AND release-gate
-   sub-gate (`hook-negative-corpus` in
-   `scripts/pre-release-gate.sh`).
-5. **Fixture format.** YAML project-wide. Driver supports YAML
-   only. Per-hook fixture files at
-   `tests/hooks/fixtures/<hook-name>.yml`.
+   sub-gate.
+5. **Fixture format.** YAML project-wide.
 
 ## Effort (adoption, existing hooks)
 
-**Medium.** Two hooks × six categories × 3 entries = 36 fixture
-entries minimum (category 6 expands with harness-mode count). Plus
-a YAML-aware driver (~80 lines, mirrors
-`test-tech-lead-authoring-guard.sh`) and the pre-commit lint (~40
-lines). M-A retroactive is bound, so both existing hooks are in
-scope immediately.
+**Medium.** Fixture floor per §Migration plus a YAML-aware driver
+(~80 lines, mirrors `test-tech-lead-authoring-guard.sh`) and the
+pre-commit lint (~40 lines).
 
 ## Relationship to other artefacts
 
@@ -175,4 +176,4 @@ scope immediately.
   pattern; negative driver mirrors its shape.
 - `specs/007-pre-release-upgrade/contracts/sub-gate.contract.md`
   §Negative-fixture contract — sibling discipline.
-- Issues: #111, #119, #122, #124, #133, #156, #175, #176.
+- Issues: #111, #119, #122, #124, #175, #176.
