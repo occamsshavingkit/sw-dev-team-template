@@ -45,10 +45,20 @@
 #   --help, -h         Print this help and exit.
 #
 # Exit codes:
-#   0  PASS — upgrade ran, --verify clean, no unresolved conflicts
-#   1  FAIL — upgrade non-zero exit, verify non-zero, or .template-
-#      conflicts.json contains an entry classified "conflict"
+#   0  PASS — upgrade ran, --verify clean, no unresolved conflicts,
+#      AI TUI check passed (or was legitimately skipped because the
+#      fixture has no hooks)
+#   1  FAIL — upgrade non-zero exit, verify non-zero, .template-
+#      conflicts.json contains an entry classified "conflict", or
+#      AI TUI check caught a session-shape regression
 #   2  Argument or fixture validation error
+#
+# Phases (run in order; later phases skip if earlier ones fail):
+#   1. upgrade.sh --target <ref>   (script-level upgrade)
+#   2. upgrade.sh --verify         (script-level verification)
+#   3. AI TUI check                (session-shape payloads through
+#                                   the upgraded fixture's hooks;
+#                                   driver: tests/hooks/run-ai-tui-check.sh)
 #
 # Safety:
 #   - The fixture is rsync-copied to a mktemp scratch dir; the
@@ -301,12 +311,72 @@ if [ -f "$CONFLICTS_PATH" ]; then
     CONFLICT_BODY="$(cat "$CONFLICTS_PATH" 2>/dev/null || echo '<read-failed>')"
 fi
 
+# ---- AI TUI check phase ----------------------------------------------
+#
+# After script-level checks pass, exercise the UPGRADED fixture's
+# hook set against the session-shape corpus. Script-level PASS proves
+# upgrade.sh ran cleanly; AI TUI check proves the resulting hooks
+# don't break Claude Code / Codex session workflow (commit-message
+# HEREDOCs, inline SWDT_AGENT_PUSH escape hatch, specialist dispatch,
+# read-only inspections). See feedback-dogfood-needs-tui-check.
+#
+# Phase is activated when the upgraded fixture carries a
+# .claude/settings.json with PreToolUse hooks. If absent, the driver
+# emits a NOTE and treats the phase as skipped (not a regression).
+#
+# Driver path: tests/hooks/run-ai-tui-check.sh (sibling of this
+# script). Resolved relative to this driver's own location so the
+# dogfood driver works when invoked from any cwd.
+
+AI_TUI_RC=-1
+AI_TUI_LOG="$SCRATCH/ai-tui.log"
+AI_TUI_DRIVER="$(cd "$(dirname "$0")/../.." && pwd)/tests/hooks/run-ai-tui-check.sh"
+AI_TUI_STATUS="not-run"
+
+# Only run the AI TUI check if script-level upgrade + verify passed.
+# Running it on a broken upgrade adds noise without signal.
+if [ "$UPGRADE_RC" -eq 0 ] && [ "$VERIFY_RC" -eq 0 ]; then
+    if [ -x "$AI_TUI_DRIVER" ]; then
+        AI_TUI_RC=0
+        "$AI_TUI_DRIVER" --fixture "$SCRATCH_TREE" >"$AI_TUI_LOG" 2>&1 || AI_TUI_RC=$?
+        case "$AI_TUI_RC" in
+            0) AI_TUI_STATUS="pass" ;;
+            1) AI_TUI_STATUS="fail" ;;
+            2) AI_TUI_STATUS="invocation-error" ;;
+            3) AI_TUI_STATUS="pyyaml-missing" ;;
+            4) AI_TUI_STATUS="skipped-no-hooks" ;;
+            *) AI_TUI_STATUS="unknown-rc=${AI_TUI_RC}" ;;
+        esac
+    else
+        AI_TUI_STATUS="driver-missing"
+        printf 'run-ai-tui-check driver missing: %s\n' "$AI_TUI_DRIVER" >"$AI_TUI_LOG"
+    fi
+else
+    AI_TUI_STATUS="skipped-script-fail"
+    printf 'AI TUI check skipped: script-level upgrade/verify did not pass.\n' >"$AI_TUI_LOG"
+fi
+
 # ---- pass/fail classification ----------------------------------------
 
 # PASS requires:
 #   - upgrade exited 0
 #   - verify exited 0
 #   - no .template-conflicts.json entries classified "conflict"
+#   - AI TUI check passed OR was legitimately skipped (no hooks /
+#     driver missing / script-fail upstream)
+#
+# AI TUI check statuses that BLOCK PASS:
+#   - fail               (real regression caught)
+#   - invocation-error   (driver invoked wrong; needs investigation)
+#   - pyyaml-missing     (env regression; fix the env)
+#   - unknown-rc=N       (driver crashed; investigate)
+#
+# AI TUI check statuses that DO NOT block PASS:
+#   - pass               (clean)
+#   - skipped-no-hooks   (fixture has no hooks → nothing to check)
+#   - skipped-script-fail (upstream block already counted)
+#   - driver-missing     (sibling script absent; phase couldn't run)
+#   - not-run            (never set; should not happen)
 RESULT="PASS"
 REASONS=""
 if [ "$UPGRADE_RC" -ne 0 ]; then
@@ -321,6 +391,12 @@ if [ "$CONFLICT_COUNT" -gt 0 ]; then
     RESULT="FAIL"
     REASONS="${REASONS}conflicts=${CONFLICT_COUNT}; "
 fi
+case "$AI_TUI_STATUS" in
+    fail|invocation-error|pyyaml-missing|unknown-rc=*)
+        RESULT="FAIL"
+        REASONS="${REASONS}ai-tui-check=${AI_TUI_STATUS}; "
+        ;;
+esac
 
 # ---- emit report -----------------------------------------------------
 
@@ -343,6 +419,7 @@ fi
     printf 'verify exit:     %s\n' "$VERIFY_RC"
     printf 'conflicts file:  %s\n' "$CONFLICTS_PRESENT"
     printf 'conflict count:  %s\n' "$CONFLICT_COUNT"
+    printf 'ai-tui status:   %s\n' "$AI_TUI_STATUS"
     if [ -n "$CONFLICT_PARSE_NOTE" ]; then
         printf '%s\n' "$CONFLICT_PARSE_NOTE"
     fi
@@ -371,6 +448,13 @@ fi
     printf '\n'
     printf '%s\n' "---- upgrade.sh --verify stdout/stderr ----"
     cat "$VERIFY_LOG"
+    printf '\n'
+    printf '%s\n' "---- ai-tui check stdout/stderr ----"
+    if [ -f "$AI_TUI_LOG" ]; then
+        cat "$AI_TUI_LOG"
+    else
+        printf '%s\n' "(no log)"
+    fi
     printf '\n'
     printf '%s\n' "================================================================"
     if [ "$RESULT" = "PASS" ]; then

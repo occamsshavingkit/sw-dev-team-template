@@ -1,0 +1,35 @@
+{
+  "_comment": "SPDX-License-Identifier: MIT. Fixture-only settings: mirrors canonical template's PreToolUse hook wiring so tests/hooks/run-ai-tui-check.sh can exercise the AI TUI check phase against this fixture. Not consumed by Claude Code at runtime — only by the dogfood driver's AI TUI check.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {"type": "command", "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py\"", "timeout": 5},
+          {"type": "command", "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/tech-lead-authoring-guard.py\"", "timeout": 5}
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {"type": "command", "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py\"", "timeout": 5},
+          {"type": "command", "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/tech-lead-authoring-guard.py\"", "timeout": 5}
+        ]
+      },
+      {
+        "matcher": "MultiEdit",
+        "hooks": [
+          {"type": "command", "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py\"", "timeout": 5},
+          {"type": "command", "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/tech-lead-authoring-guard.py\"", "timeout": 5}
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {"type": "command", "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py\"", "timeout": 5},
+          {"type": "command", "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/tech-lead-authoring-guard.py\"", "timeout": 5}
+        ]
+      }
+    ]
+  }
+}

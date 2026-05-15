@@ -25,8 +25,9 @@ up.
 | Path | Role |
 |---|---|
 | `scripts/capture-dogfood-fixture.sh` | Operator-only. Clones a downstream repo, strips `.git/` + git/CI metadata, stores the content tree under `${HOME}/ref/dogfood/<codename>/<rc>/`. |
-| `tests/release-gate/dogfood-downstream.sh` | Driver. Replays a stored fixture through `scripts/upgrade.sh --target <ref>` + `--verify` in a scratch clone; emits a PASS/FAIL report. |
-| `tests/release-gate/dogfood-examples/` | Synthetic minimal fixtures (alpha / beta / gamma) for smoke-testing the driver itself. Stubs are symlinks into `_shared/`. |
+| `tests/release-gate/dogfood-downstream.sh` | Driver. Replays a stored fixture through `scripts/upgrade.sh --target <ref>` + `--verify` in a scratch clone; runs an AI TUI check phase against the upgraded fixture's hooks; emits a PASS/FAIL report. |
+| `tests/hooks/run-ai-tui-check.sh` | AI TUI check sub-driver. Feeds session-shape payloads (`tests/hooks/fixtures/session-shapes.yml`) through the upgraded fixture's PreToolUse hooks (per its `.claude/settings.json`). Catches hook regressions that script-level checks miss (e.g. blocking commit-message HEREDOCs). |
+| `tests/release-gate/dogfood-examples/` | Synthetic minimal fixtures (alpha / beta / gamma / delta) for smoke-testing the driver. Stubs are symlinks into `_shared/`. The delta fixture additionally ships hook scripts + `.claude/settings.json` so the AI TUI phase exercises its full path during driver smoke tests. |
 
 ## Requirements
 
@@ -54,6 +55,10 @@ tests/release-gate/dogfood-downstream.sh  ← scratch-clones the fixture
         │                                   runs upgrade.sh + --verify
         │                                   captures git status + diffstat
         │                                   classifies conflicts
+        │                                   runs AI TUI check on the
+        │                                     upgraded fixture's hooks
+        │                                     (skipped if fixture has
+        │                                      no .claude/settings.json)
         ▼
 /tmp/dogfood-<codename>-<ts>.txt          ← PASS/FAIL report; safe to share
 ```

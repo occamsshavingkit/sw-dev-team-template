@@ -30,6 +30,8 @@ dogfood-examples/
 └── delta/rc11/
     ├── TEMPLATE_VERSION
     ├── .template-conflicts.json   — pre-placed; 1 accepted_local + 1 conflict
+    ├── .claude/settings.json      — PreToolUse hook wiring for AI TUI check
+    ├── scripts/hooks/             — customer-notes-guard.py + tech-lead-authoring-guard.py
     └── scripts/upgrade.sh         → symlink ../../../_shared/upgrade.sh
 ```
 
@@ -69,6 +71,15 @@ writer and the snapshot fixture at
 branch — which alpha/beta/gamma do not, since the stub never writes
 that file. Expected driver verdict for delta: FAIL with
 `conflicts=1`, exit 1.
+
+`delta/rc11/` further ships `.claude/settings.json` plus copies of
+`customer-notes-guard.py` and `tech-lead-authoring-guard.py` under
+`scripts/hooks/`. This exercises the dogfood driver's AI TUI check
+phase (`tests/hooks/run-ai-tui-check.sh`): the phase runs
+session-shape payloads through the upgraded fixture's hook set and
+reports `ai-tui status: pass` in the report. The script-level
+`conflicts=1` failure still drives the overall verdict; AI TUI is
+reported alongside it.
 
 The stub deliberately does **not** accept `--dry-run`. The driver
 never invokes it; the real `scripts/upgrade.sh` covers `--dry-run`
