@@ -1,3 +1,11 @@
+---
+name: sub-gate-contract
+description: Sub-gate contract; every release-blocking check the orchestrator runs must implement this interface.
+status: resolved
+created_date: 2026-05-14
+---
+
+
 # Contract: Sub-gate
 
 **Owner**: `release-engineer` (registry); per-sub-gate logic co-owned by `qa-engineer` / `code-reviewer` / `software-engineer` as appropriate.

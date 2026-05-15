@@ -1,3 +1,11 @@
+---
+name: fw-adr-0002-upgrade-content-verification
+description: Hash-manifest-primary upgrade content verification written at scaffold/upgrade with self-verify.
+status: accepted
+date: 2026-04-25
+---
+
+
 # FW-ADR-0002 — Upgrade content verification (hash-based, manifest-primary)
 
 <!-- TOC -->

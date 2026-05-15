@@ -1,3 +1,11 @@
+---
+name: pre-push-hook-contract
+description: Pre-push hook adapter contract; scoped-strict for annotated v* tags, WARN-only otherwise.
+status: resolved
+created_date: 2026-05-14
+---
+
+
 # Contract: `.git-hooks/pre-push` adapter
 
 **Owner**: `release-engineer`

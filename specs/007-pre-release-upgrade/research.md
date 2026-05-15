@@ -1,3 +1,11 @@
+---
+name: pre-release-upgrade-research
+description: Phase 0 research notes for the pre-release upgrade-regression gate; plan-level open questions only.
+status: resolved
+created_date: 2026-05-14
+---
+
+
 # Phase 0 Research: Pre-release upgrade-regression gate
 
 **Feature**: `007-pre-release-upgrade`

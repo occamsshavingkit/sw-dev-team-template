@@ -1,3 +1,11 @@
+---
+name: toc-build-time-strip-spec
+description: Feature specification for TOC build-time strip; TOC blocks stripped model-side, preserved repo-side.
+status: active
+created_date: 2026-05-15
+---
+
+
 # Feature Specification: TOC source-vs-model divergence (build-time strip)
 
 **Feature Branch**: `010-toc-build-time-strip`

@@ -1,3 +1,11 @@
+---
+name: fw-adr-0012-tech-lead-authoring-guard
+description: PreToolUse allow-list hook is the primary preventive enforcement for Hard Rule 8; supersedes FW-ADR-0011's primary-enforcement framing.
+status: accepted
+date: 2026-05-14
+---
+
+
 # FW-ADR-0012 — PreToolUse authoring guard for Hard Rule #8
 
 <!-- TOC -->

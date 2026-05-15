@@ -1,3 +1,11 @@
+---
+name: fw-adr-0008-tech-lead-orchestration-boundary
+description: Tech-lead orchestrates; production artifacts and customer-truth records route to owning specialists.
+status: accepted
+date: 2026-05-03
+---
+
+
 # FW-ADR-0008 — Tech-Lead Orchestration Boundary
 
 ## Status

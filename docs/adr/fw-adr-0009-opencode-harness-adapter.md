@@ -1,3 +1,11 @@
+---
+name: fw-adr-0009-opencode-harness-adapter
+description: Classify OpenCode as a harness/provider adapter; it must not redefine roles, escalation, source-of-truth, or customer interface.
+status: accepted
+date: 2026-05-13
+---
+
+
 # ADR fw-adr-0009: OpenCode harness-adapter
 
 **Status**: Accepted

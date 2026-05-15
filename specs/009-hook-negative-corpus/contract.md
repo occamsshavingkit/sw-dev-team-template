@@ -1,3 +1,11 @@
+---
+name: hook-negative-corpus-contract
+description: Convention for hook-detector negative (false-positive) test corpora; complements positive WRITE-path tests.
+status: active
+created_date: 2026-05-14
+---
+
+
 # Contract: Hook detector negative-corpus convention
 
 **Feature Branch**: `009-hook-negative-corpus`

@@ -1,3 +1,11 @@
+---
+name: variant-catalog-contract
+description: Variant-catalog contract; names each customisation shape, its canned mutations, and the rc-cycle failure it would catch.
+status: active
+created_date: 2026-05-14
+---
+
+
 # Contract: Upgrade-matrix variant catalog
 
 **Owner**: `qa-engineer` (variants); `release-engineer` (generator integration).

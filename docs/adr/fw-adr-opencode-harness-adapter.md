@@ -1,3 +1,11 @@
+---
+name: fw-adr-opencode-harness-adapter
+description: Earlier draft classifying OpenCode as a harness adapter; superseded by fw-adr-0009 with the assigned number and updated text.
+status: superseded
+date: 2026-05-12
+---
+
+
 # FW-ADR — OpenCode Harness Adapter
 
 ## Status

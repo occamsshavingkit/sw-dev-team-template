@@ -1,3 +1,11 @@
+---
+name: pre-release-upgrade-data-model
+description: Phase 1 data model for the pre-release gate; transient fixtures plus the override-audit log.
+status: resolved
+created_date: 2026-05-14
+---
+
+
 # Phase 1 Data Model: Pre-release upgrade-regression gate
 
 **Feature**: `007-pre-release-upgrade`

@@ -1,3 +1,11 @@
+---
+name: fw-adr-0007-external-reference-adoption
+description: Adopt LIB-0015 through LIB-0018 in the INVENTORY register using a URL-only shape.
+status: accepted
+date: 2026-04-25
+---
+
+
 # FW-ADR-0007 — External reference adoption (LIB-0015 through LIB-0018)
 
 <!-- TOC -->

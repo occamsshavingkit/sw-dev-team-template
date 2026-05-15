@@ -1,3 +1,11 @@
+---
+name: fw-adr-0001-context-memory-strategy
+description: Adopt claude-mem as the prior-session memory layer; do not adopt ruflo-class orchestration frameworks.
+status: accepted
+date: 2026-04-24
+---
+
+
 # FW-ADR-0001 — Context-memory strategy: adopt `claude-mem`, do not adopt `ruflo`-class orchestration frameworks
 
 <!-- TOC -->

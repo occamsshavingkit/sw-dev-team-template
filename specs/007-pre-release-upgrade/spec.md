@@ -1,3 +1,11 @@
+---
+name: pre-release-upgrade-spec
+description: Feature specification for the pre-release upgrade-regression gate that fails-all over every published prior tag.
+status: resolved
+created_date: 2026-05-14
+---
+
+
 # Feature Specification: Pre-release upgrade-regression gate
 
 **Feature Branch**: `007-pre-release-upgrade`

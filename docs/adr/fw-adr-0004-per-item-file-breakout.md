@@ -1,3 +1,11 @@
+---
+name: fw-adr-0004-per-item-file-breakout
+description: Break requirements and architecture views into per-item files with a thin index.
+status: accepted
+date: 2026-04-25
+---
+
+
 # FW-ADR-0004 — Per-item / per-view file breakout for requirements and architecture
 
 <!-- TOC -->

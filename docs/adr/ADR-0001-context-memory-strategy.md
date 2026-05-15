@@ -1,3 +1,11 @@
+---
+name: adr-0001-context-memory-strategy
+description: Meta-project ADR adopting claude-mem and rejecting ruflo, mirroring FW-ADR-0001 for this repo.
+status: accepted
+date: 2026-04-24
+---
+
+
 # ADR-0001 — Context-memory strategy: adopt `claude-mem`, do not adopt `ruflo`
 
 - **Status:** Accepted

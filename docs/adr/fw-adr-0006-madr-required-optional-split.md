@@ -1,3 +1,11 @@
+---
+name: fw-adr-0006-madr-required-optional-split
+description: Split adr-template.md sections into MADR required, project required, and optional.
+status: accepted
+date: 2026-04-25
+---
+
+
 # FW-ADR-0006 — MADR required-vs-optional split in adr-template.md
 
 <!-- TOC -->

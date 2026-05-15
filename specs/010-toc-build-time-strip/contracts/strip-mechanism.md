@@ -1,3 +1,11 @@
+---
+name: toc-strip-mechanism-contract
+description: Behavioural contract for scripts/strip-toc.sh; idempotent removal of TOC blocks from compiled model-side artifacts.
+status: active
+created_date: 2026-05-15
+---
+
+
 # Contract: TOC strip mechanism
 
 **Owner**: `release-engineer` (script + hook + CI sub-gate).

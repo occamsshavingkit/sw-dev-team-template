@@ -1,3 +1,11 @@
+---
+name: pre-release-upgrade-requirements-checklist
+description: Specification quality checklist for the pre-release upgrade-regression gate; pre-planning gate.
+status: resolved
+created_date: 2026-05-14
+---
+
+
 # Specification Quality Checklist: Pre-release upgrade-regression gate
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning

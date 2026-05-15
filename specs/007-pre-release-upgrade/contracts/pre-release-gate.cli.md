@@ -1,3 +1,11 @@
+---
+name: pre-release-gate-cli-contract
+description: CLI contract for scripts/pre-release-gate.sh; flags, exit codes, output discipline.
+status: resolved
+created_date: 2026-05-14
+---
+
+
 # Contract: `scripts/pre-release-gate.sh` CLI
 
 **Owner**: `release-engineer`

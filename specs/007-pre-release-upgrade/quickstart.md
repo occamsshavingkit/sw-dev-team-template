@@ -1,3 +1,11 @@
+---
+name: pre-release-upgrade-quickstart
+description: Quickstart for the pre-release gate; before-tagging and developer workflows.
+status: resolved
+created_date: 2026-05-14
+---
+
+
 # Quickstart: Pre-release upgrade-regression gate
 
 **Feature**: `007-pre-release-upgrade`

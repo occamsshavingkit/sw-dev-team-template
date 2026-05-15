@@ -1,3 +1,11 @@
+---
+name: pre-release-upgrade-plan
+description: Implementation plan for the pre-release upgrade-regression gate; orchestrator plus scoped-strict pre-push hook.
+status: resolved
+created_date: 2026-05-14
+---
+
+
 # Implementation Plan: Pre-release upgrade-regression gate
 
 **Branch**: `007-pre-release-upgrade` | **Date**: 2026-05-14 | **Spec**: [spec.md](spec.md)

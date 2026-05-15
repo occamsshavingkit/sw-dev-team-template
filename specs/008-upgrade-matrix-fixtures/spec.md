@@ -1,3 +1,11 @@
+---
+name: upgrade-matrix-fixtures-spec
+description: Feature specification for the upgrade-matrix fixture set extending the upgrade-paths sub-gate beyond clean scaffolds.
+status: active
+created_date: 2026-05-14
+---
+
+
 # Feature Specification: Upgrade-matrix fixture set for `upgrade-paths` sub-gate
 
 **Feature Branch**: `008-upgrade-matrix-fixtures`
