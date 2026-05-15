@@ -41,3 +41,8 @@ target/
 # Build-time TOC strip mirror (spec 010 D-1, D-5). Regenerated locally by
 # scripts/strip-toc.sh; never committed.
 .model-view/
+
+# spec 008 fixture snapshots are gitignored + regenerated per clone
+# via scripts/generate-fixture-snapshots.sh --all (see snapshots/README.md)
+tests/release-gate/snapshots/*
+!tests/release-gate/snapshots/README.md

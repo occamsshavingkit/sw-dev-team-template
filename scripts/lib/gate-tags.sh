@@ -67,45 +67,169 @@ gate_setup_upgrade_fixture() {
     return 0
 }
 
-# gate_run_one_round_trip <source_tag>
-#   Run one scaffold + upgrade + verify cycle.
+# gate_enumerate_matrix_pairs
+#   stdout: one "<source-rc>\t<variant>" line per pair in scope.
+#
+#   Default-on matrix (FR-005 spec 008):
+#     - clean: every source-rc enumerated by gate_enumerate_source_tags.
+#     - with-customizations: latest two v1.0.0-* source-rcs.
+#     - with-accepted-local: latest two v1.0.0-* source-rcs.
+#
+#   GATE_EXTENDED_MATRIX=1 widens the non-baseline variants to the full
+#   eligible source-rc set, AND admits the optional variants
+#   (with-pre-bootstrap-conflict, with-mid-version-sha) when their
+#   mutation scripts exist. Optional-variant mutation scripts are NOT
+#   shipped in v1; under extended matrix they are silently skipped if
+#   absent so adding them later requires no gate code change.
+gate_enumerate_matrix_pairs() {
+    cd "$GATE_CANDIDATE_TREE" || return 1
+    all_tags=$(gate_enumerate_source_tags)
+    [ -z "$all_tags" ] && return 0
+
+    # Compute latest-two v1 tags (POSIX awk; mirrors generate-fixture-snapshots.sh).
+    latest_two=$(
+        printf '%s\n' "$all_tags" | awk '
+            function prerelease_key(pre, ids, n, i, id, key, m, alpha, num) {
+                if (pre == "") return "1"
+                n = split(pre, ids, ".")
+                key = "0"
+                for (i = 1; i <= n; i++) {
+                    id = ids[i]
+                    if (id ~ /^[0-9]+$/) {
+                        key = key ".1.0." sprintf("%010d", length(id)) "." id
+                    } else if (match(id, /^[A-Za-z][A-Za-z]*[0-9]+$/)) {
+                        m = match(id, /[0-9]+$/)
+                        alpha = substr(id, 1, m - 1); num = substr(id, m)
+                        key = key ".1.1." alpha "." sprintf("%010d", length(num)) "." num
+                    } else {
+                        key = key ".1.1." id ".0000000000.0"
+                    }
+                }
+                return key ".0"
+            }
+            /^v1\.0\.0(-[0-9A-Za-z.-]+)?$/ {
+                tag = $0; rest = substr(tag, 2); pre = ""
+                dash = index(rest, "-")
+                if (dash > 0) { pre = substr(rest, dash + 1); rest = substr(rest, 1, dash - 1) }
+                split(rest, parts, ".")
+                printf "%010d.%010d.%010d.%s\t%s\n", parts[1], parts[2], parts[3], prerelease_key(pre), tag
+            }
+        ' | LC_ALL=C sort -t"$(printf '\t')" -k1,1 | tail -2 | awk -F'\t' '{print $2}' | tr '\n' ' '
+    )
+
+    # Emit pairs.
+    printf '%s\n' "$all_tags" | while IFS= read -r tag; do
+        [ -z "$tag" ] && continue
+        # clean always applies.
+        printf '%s\t%s\n' "$tag" "clean"
+
+        # with-customizations + with-accepted-local: latest-two by default,
+        # full range under extended matrix.
+        non_baseline_match=0
+        if [ "${GATE_EXTENDED_MATRIX:-0}" = "1" ]; then
+            non_baseline_match=1
+        else
+            case " $latest_two " in
+                *" $tag "*) non_baseline_match=1 ;;
+            esac
+        fi
+        if [ "$non_baseline_match" = "1" ]; then
+            printf '%s\t%s\n' "$tag" "with-customizations"
+            printf '%s\t%s\n' "$tag" "with-accepted-local"
+        fi
+
+        # Optional variants — only under extended matrix, only if the
+        # mutation script exists. (v1 ships none; default-off per FR-005.)
+        if [ "${GATE_EXTENDED_MATRIX:-0}" = "1" ]; then
+            for v in with-pre-bootstrap-conflict with-mid-version-sha; do
+                if [ -x "$GATE_CANDIDATE_TREE/tests/release-gate/mutations/$v.mutation.sh" ]; then
+                    printf '%s\t%s\n' "$tag" "$v"
+                fi
+            done
+        fi
+    done
+}
+
+# gate_pair_in_list <pair-key> <listfile>
+#   Returns 0 if the pair (or its bare-tag form) is listed in the file.
+#   Handles two row shapes:
+#     <tag>             — matches every variant of that tag
+#     <tag>:<variant>   — matches just that pair
+gate_pair_in_list() {
+    pair_key="$1"
+    listfile="$2"
+    [ -f "$listfile" ] || return 1
+    tag_only="${pair_key%%:*}"
+    # Strip comments + blank lines + leading/trailing whitespace.
+    matches=$(grep -v '^[[:space:]]*#' "$listfile" 2>/dev/null \
+        | sed 's/[[:space:]]*$//' \
+        | grep -Fx -e "$pair_key" -e "$tag_only" 2>/dev/null \
+        || true)
+    [ -n "$matches" ]
+}
+
+# gate_run_one_round_trip <source_tag> <variant>
+#   Run one snapshot-load + upgrade + verify cycle.
 #   Returns 0 on success, non-zero on any step failure.
 #   stderr captures the diagnostic.
+#
+#   Snapshot-based: copies tests/release-gate/snapshots/<src>/<variant>/
+#   into the round-trip dir instead of running scripts/scaffold.sh fresh.
+#   Snapshots are produced by scripts/generate-fixture-snapshots.sh and
+#   committed to the repo (spec 008 FR-003 + Q-008d ruling).
 gate_run_one_round_trip() {
     src_tag="$1"
-    target_dir="$GATE_TEMP_ROOT/upgrade-paths/$src_tag"
+    variant="$2"
+    safe_pair=$(printf '%s' "${src_tag}__${variant}" | tr '/' '_')
+    target_dir="$GATE_TEMP_ROOT/upgrade-paths/$safe_pair"
     log="$target_dir.log"
     mkdir -p "$target_dir"
 
-    # Step 1: scaffold from the source tag's tree using the source tag's scaffold.sh.
-    # We have to run scripts/scaffold.sh from the source-tag worktree because
-    # different rcs have different scaffold behaviour.
-    src_worktree=$(mktemp -d "$GATE_TEMP_ROOT/src-${src_tag//\//_}.XXXXXX")
-    git -C "$GATE_UPSTREAM_FIXTURE" worktree add --quiet --detach "$src_worktree" "$src_tag" >>"$log" 2>&1 || {
-        echo "round-trip $src_tag: git worktree add failed" >>"$log"
+    snapshot_dir="$GATE_CANDIDATE_TREE/tests/release-gate/snapshots/$src_tag/$variant"
+    if [ ! -d "$snapshot_dir" ]; then
+        # Snapshots are gitignored (per customer ruling 2026-05-15); regenerate
+        # locally via the generator. Emit a clear diagnostic so the failure
+        # mode is self-explanatory.
+        {
+            echo "ERROR: tests/release-gate/snapshots/$src_tag/$variant/ is missing."
+            echo "Snapshots are gitignored; regenerate with:"
+            echo "  bash scripts/generate-fixture-snapshots.sh --all"
+            echo "(See tests/release-gate/snapshots/README.md.)"
+        } | tee -a "$log" >&2
+        rm -rf "$target_dir"
+        return 1
+    fi
+
+    # Copy snapshot into the round-trip dir. cp -a preserves modes;
+    # we want a writable tree so upgrade.sh can mutate it.
+    cp -a "$snapshot_dir/." "$target_dir/" >>"$log" 2>&1 || {
+        echo "round-trip $src_tag/$variant: cp snapshot failed" >>"$log"
         cat "$log" >&2
         rm -rf "$target_dir"
         return 1
     }
 
+    # Initialise a git repo inside the fixture so upgrade.sh's
+    # manifest-and-merge logic has a real worktree to operate on
+    # (scaffold.sh would normally do this; the generator strips .git
+    # to keep snapshots deterministic, so re-initialise here).
     (
-        cd "$src_worktree" || exit 1
-        ./scripts/scaffold.sh "$target_dir" "gate-fixture-$src_tag" >/dev/null 2>&1
-    ) >>"$log" 2>&1
-    scaffold_rc=$?
-    if [ "$scaffold_rc" -ne 0 ]; then
-        echo "round-trip $src_tag: scaffold exit $scaffold_rc" >>"$log"
-        tail -20 "$log" >&2
-        git -C "$GATE_UPSTREAM_FIXTURE" worktree remove --force "$src_worktree" >/dev/null 2>&1
+        cd "$target_dir" || exit 1
+        git init -b main -q
+        git config user.email "gate@example.invalid"
+        git config user.name "pre-release gate"
+        git add . >/dev/null 2>&1
+        git commit -q -m "fixture" --allow-empty >/dev/null 2>&1
+    ) >>"$log" 2>&1 || {
+        echo "round-trip $src_tag/$variant: git-init failed" >>"$log"
+        cat "$log" >&2
         rm -rf "$target_dir"
         return 1
-    fi
+    }
 
-    # Step 2: upgrade from the scaffolded fixture to the candidate sentinel.
+    # Step 2: upgrade from the fixture to the candidate sentinel.
     # Detect whether the source's upgrade.sh honours --target (added in
-    # v0.17.0 and v1.0.0-rc3). If not, omit the flag — the upstream
-    # fixture's HEAD is the candidate sentinel by construction, so the
-    # default upgrade target resolves to it.
+    # v0.17.0 and v1.0.0-rc3). If not, omit the flag.
     upgrade_args=()
     if grep -q -- '--target' "$target_dir/scripts/upgrade.sh" 2>/dev/null; then
         upgrade_args=(--target "$GATE_CANDIDATE_TAG")
@@ -116,9 +240,8 @@ gate_run_one_round_trip() {
     ) >>"$log" 2>&1
     upgrade_rc=$?
     if [ "$upgrade_rc" -ne 0 ]; then
-        echo "round-trip $src_tag: upgrade exit $upgrade_rc" >>"$log"
+        echo "round-trip $src_tag/$variant: upgrade exit $upgrade_rc" >>"$log"
         tail -20 "$log" >&2
-        git -C "$GATE_UPSTREAM_FIXTURE" worktree remove --force "$src_worktree" >/dev/null 2>&1
         rm -rf "$target_dir"
         return 1
     fi
@@ -130,12 +253,10 @@ gate_run_one_round_trip() {
     ) >>"$log" 2>&1
     verify_rc=$?
 
-    # Cleanup BEFORE returning (whether pass or fail).
-    git -C "$GATE_UPSTREAM_FIXTURE" worktree remove --force "$src_worktree" >/dev/null 2>&1
     rm -rf "$target_dir"
 
     if [ "$verify_rc" -ne 0 ]; then
-        echo "round-trip $src_tag: verify exit $verify_rc" >>"$log"
+        echo "round-trip $src_tag/$variant: verify exit $verify_rc" >>"$log"
         tail -20 "$log" >&2
         return 1
     fi
@@ -143,15 +264,17 @@ gate_run_one_round_trip() {
     return 0
 }
 
-# gate_subgate_upgrade-paths (regression). FR-003.
+# gate_subgate_upgrade-paths (regression). FR-003 (spec 007) + FR-004
+# (spec 008). Iterates over (source-rc, variant) pairs in the matrix
+# instead of just source-rc.
 gate_subgate_upgrade-paths() {
     cd "$GATE_CANDIDATE_TREE" || return 1
 
-    # Enumerate source tags.
-    tags=$(gate_enumerate_source_tags)
-    n_tags=$(printf '%s' "$tags" | grep -c .)
+    # Enumerate matrix pairs.
+    pairs=$(gate_enumerate_matrix_pairs)
+    n_pairs=$(printf '%s' "$pairs" | grep -c .)
 
-    if [ "$n_tags" -eq 0 ]; then
+    if [ "$n_pairs" -eq 0 ]; then
         # FR-003 edge case "Brand-new rc with no prior tags": clean pass.
         echo "0 rounds (no prior tags)"
         return 0
@@ -163,64 +286,101 @@ gate_subgate_upgrade-paths() {
         return 1
     }
 
-    pass=0
-    failing_tags=""
+    allowlist="$GATE_CANDIDATE_TREE/tests/release-gate/upgrade-paths-allowlist.txt"
+    skipfile="$GATE_CANDIDATE_TREE/tests/release-gate/upgrade-matrix-skip.txt"
+    results="$GATE_TEMP_ROOT/upgrade-paths.results"
+    : > "$results"
 
-    # Iterate over each source tag.
-    printf '%s\n' "$tags" | while IFS= read -r src_tag; do
+    # Iterate over each (source-rc, variant) pair.
+    printf '%s\n' "$pairs" | while IFS='	' read -r src_tag variant; do
         [ -z "$src_tag" ] && continue
-        # Skip same-SHA shortcut: a tag pointing at HEAD is a no-op upgrade.
-        src_sha=$(git -C "$GATE_CANDIDATE_TREE" rev-parse "$src_tag^{commit}" 2>/dev/null || echo "")
-        candidate_sha=$(git -C "$GATE_CANDIDATE_TREE" rev-parse HEAD 2>/dev/null || echo "")
-        if [ -n "$src_sha" ] && [ "$src_sha" = "$candidate_sha" ]; then
-            printf '%s\n' "PASS:$src_tag" >> "$GATE_TEMP_ROOT/upgrade-paths.results"
+        pair_key="$src_tag:$variant"
+
+        # FR-006: skip-file excludes pairs from execution entirely.
+        if gate_pair_in_list "$pair_key" "$skipfile"; then
+            printf '%s\n' "SKIP:$pair_key" >> "$results"
             continue
         fi
 
-        gate_run_one_round_trip "$src_tag"
+        # Same-SHA shortcut: source tag at HEAD is a no-op upgrade.
+        src_sha=$(git -C "$GATE_CANDIDATE_TREE" rev-parse "$src_tag^{commit}" 2>/dev/null || echo "")
+        candidate_sha=$(git -C "$GATE_CANDIDATE_TREE" rev-parse HEAD 2>/dev/null || echo "")
+        if [ -n "$src_sha" ] && [ "$src_sha" = "$candidate_sha" ]; then
+            printf '%s\n' "PASS:$pair_key" >> "$results"
+            continue
+        fi
+
+        gate_run_one_round_trip "$src_tag" "$variant"
         rt_rc=$?
         if [ "$rt_rc" -eq 0 ]; then
-            printf '%s\n' "PASS:$src_tag" >> "$GATE_TEMP_ROOT/upgrade-paths.results"
+            printf '%s\n' "PASS:$pair_key" >> "$results"
         else
-            printf '%s\n' "FAIL:$src_tag" >> "$GATE_TEMP_ROOT/upgrade-paths.results"
+            printf '%s\n' "FAIL:$pair_key" >> "$results"
         fi
     done
 
-    # Aggregate results (subshell-safe by reading the recorded file).
-    if [ -f "$GATE_TEMP_ROOT/upgrade-paths.results" ]; then
-        pass=$(grep -c '^PASS:' "$GATE_TEMP_ROOT/upgrade-paths.results")
-        failing_tags=$(grep '^FAIL:' "$GATE_TEMP_ROOT/upgrade-paths.results" | sed 's/^FAIL://' | tr '\n' ' ')
+    pass=0
+    skipped=0
+    failing_pairs=""
+    if [ -f "$results" ]; then
+        pass=$(grep -c '^PASS:' "$results" || true)
+        skipped=$(grep -c '^SKIP:' "$results" || true)
+        failing_pairs=$(grep '^FAIL:' "$results" | sed 's/^FAIL://' | tr '\n' ' ')
     fi
 
-    # Partition failing tags by allowlist (Q-0017 answer B 2026-05-14).
-    # Allowlisted failures are logged but don't block the sub-gate.
-    allowlist="$GATE_CANDIDATE_TREE/tests/release-gate/upgrade-paths-allowlist.txt"
+    # Partition failing pairs by allowlist (extended to <tag>:<variant>
+    # rows; bare <tag> rows still allowlist every variant — FR-004).
     blocking_fail=0
-    blocking_tags=""
-    allowlisted_tags=""
-    for t in $failing_tags; do
-        [ -z "$t" ] && continue
-        if [ -f "$allowlist" ] && grep -Fxq "$t" "$allowlist"; then
-            allowlisted_tags="$allowlisted_tags $t"
+    blocking_pairs=""
+    allowlisted_pairs=""
+    for p in $failing_pairs; do
+        [ -z "$p" ] && continue
+        if gate_pair_in_list "$p" "$allowlist"; then
+            allowlisted_pairs="$allowlisted_pairs $p"
         else
-            blocking_tags="$blocking_tags $t"
+            blocking_pairs="$blocking_pairs $p"
             blocking_fail=$((blocking_fail + 1))
         fi
     done
 
-    echo "$pass/$n_tags round-trips passed"
-    if [ -n "$allowlisted_tags" ]; then
-        echo "  allowlisted failures (logged, not blocking):$allowlisted_tags"
+    n_attempted=$((n_pairs - skipped))
+    echo "$pass/$n_attempted round-trips passed (matrix: $n_pairs pairs, $skipped skipped)"
+    if [ -n "$allowlisted_pairs" ]; then
+        echo "  allowlisted failures (logged, not blocking):$allowlisted_pairs"
     fi
     if [ "$blocking_fail" -gt 0 ]; then
-        echo "  failing source tags:$blocking_tags"
+        echo "  failing pairs:$blocking_pairs"
         return 1
     fi
     return 0
 }
 
-# Register the sub-gate. The runner's source-time guard ensures we only
+# gate_subgate_upgrade-matrix-fresh (regression). Spec 008 FR-007.
+#   Recovery procedure: re-run the generator in --check mode and fail
+#   the gate if any committed snapshot diverges from a fresh regen.
+#   Bounded by upgrade-paths' ~8 min budget (FR-005); the --check path
+#   uses the same scaffold-and-mutate pipeline as a generation run.
+gate_subgate_upgrade-matrix-fresh() {
+    cd "$GATE_CANDIDATE_TREE" || return 1
+    generator="$GATE_CANDIDATE_TREE/scripts/generate-fixture-snapshots.sh"
+    if [ ! -x "$generator" ]; then
+        echo "upgrade-matrix-fresh: $generator missing or not executable"
+        return 1
+    fi
+    # Run --check; capture stderr (the generator's diagnostic surface).
+    if "$generator" --check 2>&1; then
+        return 0
+    fi
+    echo "  Snapshot drift detected. Classify each pair as:"
+    echo "    (a) legitimate generator fix — regenerate + commit affected snapshots;"
+    echo "    (b) accidental drift (hand-edit / force-pushed tag) — revert, investigate."
+    echo "  See spec 008 FR-007."
+    return 1
+}
+
+# Register the sub-gates. The runner's source-time guard ensures we only
 # register if gate-runner.sh's gate_register function is defined.
 if command -v gate_register >/dev/null 2>&1; then
-    gate_register upgrade-paths regression "Scaffold+upgrade+verify round-trip from every prior tag (FR-003)."
+    gate_register upgrade-paths regression "Scaffold+upgrade+verify round-trip from every (source-rc, variant) pair (spec 007 FR-003 + spec 008 FR-004)."
+    gate_register upgrade-matrix-fresh regression "Verify on-disk upgrade-matrix snapshots match a fresh generator run (spec 008 FR-007)."
 fi
