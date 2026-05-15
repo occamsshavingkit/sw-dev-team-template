@@ -770,6 +770,74 @@ EOF
   check "rc-track final migration ran" \
     test -f "$target_rc_track/docs/glossary/FINAL-MIGRATION-SMOKE.md"
 
+  # 2026-05-15: --target accepts non-tag refs (branch / SHA). Cases:
+  #   1. Branch target → succeeds, TEMPLATE_VERSION carries untagged-<short>.
+  #   2. Short SHA target → same.
+  #   3. Invalid ref → fails with "is not a known tag, branch, or commit".
+  #   4. version-check.sh recognises untagged state and emits WARN.
+  echo "-- upgrade --target accepts non-tag refs (branch / SHA) --"
+  bootstrap_default_branch="$(git -C "$bootstrap_upstream" symbolic-ref --short HEAD 2>/dev/null || echo main)"
+  bootstrap_head_sha="$(git -C "$bootstrap_upstream" rev-parse HEAD)"
+  bootstrap_head_short="${bootstrap_head_sha:0:7}"
+
+  target_branch="$tmp/target-untagged-branch"
+  ./scripts/scaffold.sh "$target_branch" "Untagged Branch Smoke" >/dev/null
+  printf '%s\nunknown\n2026-01-01\n' "$stable_fixture_version" > "$target_branch/TEMPLATE_VERSION"
+  branch_upgrade_rc=0
+  (
+    cd "$target_branch"
+    SWDT_UPSTREAM_URL="$bootstrap_upstream" ./scripts/upgrade.sh --target "$bootstrap_default_branch"
+  ) > "$tmp/upgrade-untagged-branch.log" 2>&1 || branch_upgrade_rc=$?
+  check "branch target upgrade exits 0" \
+    bash -c "[ $branch_upgrade_rc -eq 0 ]"
+  check "branch target log notes branch resolution" \
+    bash -c "grep -q 'Pinning upgrade to --target $bootstrap_default_branch (branch' '$tmp/upgrade-untagged-branch.log'"
+  check "branch target log notes conservative full-walk migrations" \
+    bash -c "grep -q 'conservative full-walk' '$tmp/upgrade-untagged-branch.log'"
+  branch_post_version="$(head -1 "$target_branch/TEMPLATE_VERSION" | tr -d '[:space:]')"
+  check "branch target stamps untagged-<short-sha>" \
+    bash -c "[ '$branch_post_version' = 'untagged-$bootstrap_head_short' ]"
+
+  target_sha="$tmp/target-untagged-sha"
+  ./scripts/scaffold.sh "$target_sha" "Untagged SHA Smoke" >/dev/null
+  printf '%s\nunknown\n2026-01-01\n' "$stable_fixture_version" > "$target_sha/TEMPLATE_VERSION"
+  sha_upgrade_rc=0
+  (
+    cd "$target_sha"
+    SWDT_UPSTREAM_URL="$bootstrap_upstream" ./scripts/upgrade.sh --target "$bootstrap_head_short"
+  ) > "$tmp/upgrade-untagged-sha.log" 2>&1 || sha_upgrade_rc=$?
+  check "short-SHA target upgrade exits 0" \
+    bash -c "[ $sha_upgrade_rc -eq 0 ]"
+  check "short-SHA target log notes commit resolution" \
+    bash -c "grep -q 'Pinning upgrade to --target $bootstrap_head_short (commit' '$tmp/upgrade-untagged-sha.log'"
+  sha_post_version="$(head -1 "$target_sha/TEMPLATE_VERSION" | tr -d '[:space:]')"
+  check "short-SHA target stamps untagged-<short-sha>" \
+    bash -c "[ '$sha_post_version' = 'untagged-$bootstrap_head_short' ]"
+
+  target_bogus="$tmp/target-untagged-bogus"
+  ./scripts/scaffold.sh "$target_bogus" "Untagged Bogus Smoke" >/dev/null
+  printf '%s\nunknown\n2026-01-01\n' "$stable_fixture_version" > "$target_bogus/TEMPLATE_VERSION"
+  bogus_target_rc=0
+  (
+    cd "$target_bogus"
+    SWDT_UPSTREAM_URL="$bootstrap_upstream" ./scripts/upgrade.sh --target no-such-ref-xyz
+  ) > "$tmp/upgrade-untagged-bogus.log" 2>&1 || bogus_target_rc=$?
+  check "invalid --target exits 2" \
+    bash -c "[ $bogus_target_rc -eq 2 ]"
+  check "invalid --target prints tag/branch/commit error" \
+    bash -c "grep -q 'is not a known tag, branch, or commit' '$tmp/upgrade-untagged-bogus.log'"
+
+  # version-check.sh: untagged state surfaces the WARN line and skips
+  # the tag-comparison block entirely (no network probe).
+  vc_untagged_output="$(
+    cd "$target_branch"
+    SWDT_UPSTREAM_URL="$bootstrap_upstream" ./scripts/version-check.sh 2>&1 || true
+  )"
+  check "version-check WARNs on untagged state" \
+    bash -c "echo '$vc_untagged_output' | grep -q 'WARN: Meta-project is on an untagged template state'"
+  check "version-check WARN names the untagged version" \
+    bash -c "echo '$vc_untagged_output' | grep -q 'untagged-$bootstrap_head_short'"
+
   # v0.14.3 / issue #63: atomic_install via tmp+mv must not leave
   # stale .tmp.* files after upgrade.
   check "no stale .tmp.* files after upgrade"               bash -c "[ \"\$(find '$target' -name '*.tmp.*' 2>/dev/null | wc -l)\" -eq 0 ]"

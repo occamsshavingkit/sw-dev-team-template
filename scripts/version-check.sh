@@ -100,6 +100,24 @@ fi
 
 local_version="$(head -1 "$tv" 2>/dev/null | tr -d '[:space:]')"
 
+# Untagged-state surfaceing (2026-05-15).
+#
+# When upgrade.sh --target was given a non-tag ref (branch / SHA), the
+# TEMPLATE_VERSION first line is stamped "untagged-<short-sha>" instead
+# of a semver tag. Surface this prominently so operators know they are
+# not on a stable release cut. Skip the tag-comparison block entirely
+# afterward — semver comparison against a synthetic label is undefined.
+if [[ "$local_version" == untagged-* ]]; then
+  cat <<EOF
+====================================================================
+WARN: Meta-project is on an untagged template state ($local_version);
+      not a stable release. Re-run scripts/upgrade.sh --target <tag>
+      once a stable tag is available to return to a known release cut.
+====================================================================
+EOF
+  exit 0
+fi
+
 # Short timeout — don't stall the session on flaky network.
 all_tags="$(timeout 5 git ls-remote --tags --refs "$upstream_auth" 2>/dev/null \
              | awk '{print $2}' | sed 's|refs/tags/||' \
