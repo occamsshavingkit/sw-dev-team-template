@@ -25,13 +25,15 @@ A `with-accepted-local` variant carries a `.template-conflicts.json` whose entri
 
 ### US-3 — Bounded wall-clock cost (P2)
 
-The expanded matrix completes within the gate's wall-clock budget (FR-012 of spec-007 = 5 min) on a typical workstation, or is partitioned into a default-on subset plus an opt-in extended-matrix run.
+The expanded default-on matrix completes within the sub-gate's wall-clock budget (~8 min per FR-005, waiving spec-007 FR-012's 5-min limit for this sub-gate only) on a typical workstation. The opt-in extended matrix (`GATE_EXTENDED_MATRIX=1`) carries no wall-clock guarantee and is intended for pre-cut manual runs and CI.
 
 ## Requirements
 
 ### FR-001 — Fixture layout
 
 Fixtures live at `tests/fixtures/downstream-snapshots/<source-rc>/<variant>/` where `<source-rc>` enumerates published-prior tags eligible per FR-003 (spec-007 + Q-0017 cap + rc12 allowlist), and `<variant>` is one of the v1 variant catalog (FR-002).
+
+**Cross-MAJOR scope**: this sub-gate's source-rc enumeration uses `gate_enumerate_source_tags` from `scripts/lib/gate-tags.sh`, which excludes pre-v0.16.0 + rc1/rc2 by design per Q-0017 ans A. Matrix expansion stays v1.0.0-only for all variants (required and optional). No v0.x source tags are admitted, including for the `clean` baseline variant.
 
 ### FR-002 — Variant catalog (v1)
 
@@ -60,9 +62,13 @@ Meta-tests: `qa-engineer` owns regression tests for the `_mutations.sh` scripts 
 
 ### FR-005 — Wall-clock budget
 
-Spec-007 FR-012 = 5 min for ~15 source tags × 1 fixture = ~20s/round-trip. Adding three required variants triples the matrix: ~45 round-trips × 20s = 15 min. To stay inside budget, two mechanisms apply:
+Wall-clock budget for the default-on matrix is ~8 min (waives spec-007 FR-012's 5-min limit for the `upgrade-paths` sub-gate). All three default-on variants (`clean`, `with-customizations`, `with-accepted-local`) run in full across every source-rc in scope (per FR-001 cross-MAJOR ruling: v1.0.0-only source-rc enumeration via `gate_enumerate_source_tags`).
 
-- **Default-on subset.** Default matrix = `clean` for every source-rc + `with-customizations` and `with-accepted-local` only for the latest two source-rcs on the current MAJOR. Estimated wall-clock: ~6-7 min — this exceeds the 5-min limit, and the constraint is real: the only way to fit 5 min without dropping a default-on variant is to narrow the `clean` source-rc range, which loses coverage. Q-008a names the trade-off honestly: drop a default-on variant vs. loosen the limit to ~8 min.
+Note: spec 007 FR-012 (5-min hard gate limit) is waived for the `upgrade-paths` sub-gate when the matrix expansion is active. Other sub-gates retain the 5-min limit.
+
+Spec-007 FR-012 sizing reference: ~15 source tags × 1 fixture = ~20s/round-trip = ~5 min. Tripling to three required variants across the full source-rc range projects to ~45 round-trips × 20s = ~15 min worst case; the ~8 min budget assumes the default-on subset scoping below (latest-two-source-rcs for the two non-baseline variants) plus measured generator-cache reuse.
+
+- **Default-on subset.** Default matrix = `clean` for every source-rc in scope + `with-customizations` and `with-accepted-local` for the latest two source-rcs on the current MAJOR. Estimated wall-clock fits inside the ~8 min budget.
 - **Opt-in extended matrix.** `GATE_EXTENDED_MATRIX=1` runs every required variant for every source-rc plus the two optional variants. No wall-clock guarantee; intended for pre-cut manual runs and CI. Optional variants (`with-pre-bootstrap-conflict`, `with-mid-version-sha`) stay default-off in v1 — promoting either to default-on requires a measured wall-clock impact number, deferred until rc14+ once Class A regression frequency is observable against the v1 matrix.
 
 ### FR-006 — Per-variant skip mechanism
@@ -85,19 +91,19 @@ The generator exposes a `--check` mode that re-runs the pipeline in-memory and c
 3. rc13 implementation sub-task: `gate_subgate_upgrade-paths` rewired to iterate the matrix; allowlist + skip formats extended.
 4. Canonical: every rc cut from rc14 forward refreshes the snapshot for the newly-published tag before tagging the next rc. Adding a new source-rc to the matrix is a documented step in the rc-cut checklist.
 
-## Customer-facing decisions (queue to `tech-lead` before rc13 implementation)
+## Resolved decisions
 
-Each is one decision axis; ask separately per Hard Rule #11.
+No pending customer-facing decisions remain for this spec.
 
-- **Q-008a** — Wall-clock budget for the default-on matrix. The three-required-variant subset (FR-005) projects to ~6-7 min, which exceeds spec-007 FR-012's 5-min limit. Two honest options: (A) drop one default-on variant (narrow `with-customizations` or `with-accepted-local` to only the single latest source-rc, or restrict `clean` to a shorter source-rc tail) to fit 5 min; (B) loosen the limit to ~8 min and run all three default-on variants across the documented source-rc range.
-- **Q-008b** — Cross-MAJOR scope: the existing FR-003 already excludes pre-`SWDT_UPSTREAM_URL` tags by technical constraint. Does the matrix expansion stay v1.0.0-only for the required variants, or include v0.x source tags for `clean` only?
+- **Q-008a (resolved 2026-05-15)** — Wall-clock budget for the default-on matrix. Ruling: LOOSEN to ~8 min. Run all three default-on variants (`clean`, `with-customizations`, `with-accepted-local`) in full across the documented source-rc range. Waives spec-007 FR-012's 5-min limit for the `upgrade-paths` sub-gate only. Reflected in FR-005.
+- **Q-008b (resolved 2026-05-15)** — Cross-MAJOR scope. Ruling: STAY v1.0.0-only for all variants. Pre-v0.16.0 + rc1/rc2 remain out-of-scope per Q-0017 ans A; matches existing `gate_enumerate_source_tags` enumeration cap in `scripts/lib/gate-tags.sh`. Reflected in FR-001.
 
-Decisions made in-spec (no customer question): optional-variant default-off in v1 (FR-005, revisit after rc14+ once frequency data exists); snapshots committed to the repo (FR-003, regenerate-on-demand only revisited if Q-008a resolves toward strict 5-min AND fixture trees become too large to git-diff).
+Decisions made in-spec (no customer question): optional-variant default-off in v1 (FR-005, revisit after rc14+ once frequency data exists); snapshots committed to the repo (FR-003, regenerate-on-demand only revisited if fixture trees become too large to git-diff).
 
 ## Success criteria
 
 - **SC-001** — Reproducing any rc7..rc12 Class A regression against the matrix fixtures causes the gate to fail with a diagnostic naming the offending `(source-rc, variant)` pair.
-- **SC-002** — Default-on matrix run completes within the agreed wall-clock budget (Q-008a outcome) on a typical Linux workstation.
+- **SC-002** — Default-on matrix run completes within the ~8 min wall-clock budget (FR-005) on a typical Linux workstation.
 - **SC-003** — Adding a source-rc or variant requires editing exactly one place (the generator's source-rc list or variant registry); no per-rc copy-paste of round-trip orchestration.
 
 ## Out of scope

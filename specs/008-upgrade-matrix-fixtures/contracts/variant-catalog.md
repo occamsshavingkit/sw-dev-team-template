@@ -72,7 +72,7 @@ The generator script (rc13 implementation) reads a registry at `tests/fixtures/d
 2. Author the mutation script (`_mutations.sh`) — deterministic, idempotent, uses no external network.
 3. Run the generator against every eligible source-rc; commit the resulting snapshots.
 4. Add a row to this catalog naming the mutation, the rc-cycle issue it catches, and the source-rc range.
-5. Document the wall-clock impact; if it pushes the default-on matrix past the Q-008a budget, mark default-off.
+5. Document the wall-clock impact; if it pushes the default-on matrix past the FR-005 ~8 min budget, mark default-off.
 
 ## Removing a variant
 
