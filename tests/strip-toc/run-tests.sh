@@ -64,7 +64,7 @@ strip_fixture() {
 # Run a positive case: assert exit 0 + mirror equals expected file.
 case_positive() {
     local name="$1" fixname="$2" expname="$3"
-    local actual exp_subst exp
+    local actual exp_subst
     actual=$(strip_fixture "$fixname")
     local rc=$?
     exp_subst=$(sed "s|FIXTURE_PATH|docs/$fixname|g" "$FIXDIR/$expname")

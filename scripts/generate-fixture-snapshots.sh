@@ -297,13 +297,6 @@ scaffold_and_mutate() {
     return 0
 }
 
-# diff_trees <a> <b>: emit a brief diff, or nothing if identical.
-# Returns 0 if identical, 1 if different.
-diff_trees() {
-    diff -rq "$1" "$2" 2>&1 || return 1
-    return 0
-}
-
 # ----- Main -------------------------------------------------------------------
 
 # Resolve which tags are eligible.
@@ -327,7 +320,6 @@ if [ -n "$RESTRICT_SOURCE_RC" ]; then
 fi
 
 # Build the (source-rc, variant) pair list.
-pairs=""
 printf '%s\n' "$ALL_TAGS" | while IFS= read -r tag; do
     [ -z "$tag" ] && continue
     variants_for_source_rc "$tag" | while IFS= read -r variant; do

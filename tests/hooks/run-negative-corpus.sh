@@ -102,7 +102,6 @@ fi
 
 total_pass=0
 total_fail=0
-total_skip=0
 failing_lines=""
 
 run_fixture() {

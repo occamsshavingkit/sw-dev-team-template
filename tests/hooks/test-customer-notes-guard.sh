@@ -121,6 +121,9 @@ run_cmd_case "prose: cat heredoc body mentioning file" \
 this mentions CUSTOMER_NOTES.md but writes nowhere
 EOF' proceed
 
+# Single-quoted literal payload — `$(cat <<EOF ...)` is data fed to the
+# guard under test, not a shell expansion.
+# shellcheck disable=SC2016
 run_cmd_case "prose: git commit -m with heredoc body mentioning file" \
     'git commit -m "$(cat <<EOF
 docs: ref CUSTOMER_NOTES.md

@@ -872,19 +872,16 @@ _self_check() {
         :
     else
         _sc_fail "role-token: software-engineer rejected (expected accept)"
-        return_early=1
     fi
     if validate_role_token "tech-lead:agent-push" >/dev/null 2>&1; then
         :
     else
         _sc_fail "role-token: tech-lead:agent-push rejected (expected accept)"
-        return_early=1
     fi
     if validate_role_token "sme-brewing" >/dev/null 2>&1; then
         :
     else
         _sc_fail "role-token: sme-brewing rejected (expected accept)"
-        return_early=1
     fi
     if validate_role_token "tech-lead" >/dev/null 2>&1; then
         _sc_fail "role-token: bare tech-lead accepted (expected reject; qualifier required)"
