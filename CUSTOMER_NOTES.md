@@ -252,3 +252,121 @@ pre-bootstrap, proposed 2026-05-15); forthcoming FW-ADR-0014
 **Supersedes:** none (first explicit customer framing of the v1.0.0-final
 blocker).
 **Recorded by:** researcher
+
+## 2026-05-15 — out-of-tree orchestrator (upgrade-flow foundation) (turn: pre-intake — to be reconciled with docs/intake-log.md)
+
+**Question (from tech-lead, relayed):**
+> Should `scripts/upgrade.sh` on a downstream project become a stable stub that fetches a fresh runner per invocation (out-of-tree orchestrator), or stay as a project-shipped file the framework keeps trying to harden against self-mutation (in-tree, strictly-weaker fallback path)?
+
+**Customer answer (verbatim):**
+> "yes, let's make it a stub."
+
+**Implication (paraphrase, not customer text):**
+The framework's upgrade flow architecture pivots. Foundation work
+proceeds as FW-ADR-0015 (forthcoming). The stub is sub-100 lines,
+stable across the v1.x line, project-owned; its only job is fetch +
+exec the upstream runner. The runner is fresh per invocation, knows
+the full target's migration set by file presence (not tag
+enumeration), and writes `TEMPLATE_STATE.json` (consolidates
+`TEMPLATE_VERSION` + `TEMPLATE_MANIFEST.lock` + `.template-customizations`).
+
+**Context (paraphrase, not customer text):** Architect + process-auditor
+independently converged on the same conceptual mistake (per
+`docs/pm/upgrade-flow-conceptual-mistake-2026-05-15.md` and
+`docs/pm/upgrade-flow-process-debt-2026-05-15.md`): `scripts/upgrade.sh`
+is treated as a project-shipped file when structurally it's a runtime
+the project hosts. Every recurring upgrade-class failure
+(self-overwrite, pre-bootstrap-as-workaround, --target fragmentation,
+manifest-vs-preserve-list race, rc-cliff accumulation) traces to this
+conflation.
+
+**Cross-refs:** Q-0019 (foundation question, blocks all follow-up ADRs);
+forthcoming FW-ADR-0015 / 0016 / 0017 / 0018 / 0019 per architect's
+outline in `docs/pm/upgrade-flow-conceptual-mistake-2026-05-15.md`.
+Supersedes FW-ADR-0013 (rc-to-rc pre-bootstrap; the cliff that ADR
+addressed dissolves under the stub model). Modifies FW-ADR-0014
+(preservation-vs-manifest; folds into `TEMPLATE_STATE.json` schema, no
+separate gate needed).
+
+**Supersedes:** none (first ruling on the stub-vs-in-tree foundation
+question; supersession of FW-ADR-0013 / modification of FW-ADR-0014
+is at the ADR layer, not the customer-notes layer).
+**Recorded by:** researcher
+
+## 2026-05-15 — migration path for currently-deployed downstreams = Option S (turn: pre-intake — to be reconciled with docs/intake-log.md)
+
+**Question (from tech-lead, relayed):**
+> How should we fix previous versions (downstreams already on rc2..rc12 with the in-tree self-mutating `upgrade.sh`)? Three architect-outlined paths: M (one-time hand retrofit), S (transitional runner / "last in-tree upgrade"), C (vNext MAJOR scaffold-fresh).
+
+**Customer answer (verbatim):**
+> "S"
+
+**Implication (paraphrase, not customer text):**
+One more in-tree rc gets cut. Its `upgrade.sh` has the special job of
+installing the new stub + synthesizing `TEMPLATE_STATE.json` in place
+during that rc's migration. After that rc, all future upgrades use the
+stub-fetches-runner path. The transitional rc still needs
+pre-bootstrap-class machinery to handle sources at rc8 or older (no
+FW-ADR-0010 bootstrap support yet); for sources at rc11+ the transition
+is clean.
+
+**Cross-refs:** Q-0020 (queued by architect); forthcoming FW-ADR-0018.
+Pre-bootstrap class retires AFTER the S transitional rc lands
+(FW-ADR-0019). Customer's standing dogfood-before-rc rule still applies
+— the transitional rc must PASS dogfood vs `main` (or vs the
+transitional ref) before its tag is cut.
+
+**Supersedes:** none (first ruling on the deployed-downstream migration
+path).
+**Recorded by:** researcher
+
+## 2026-05-15 — air-gapped operators out of scope for FW-ADR-0015 (turn: pre-intake — to be reconciled with docs/intake-log.md)
+
+**Question (from architect, relayed by tech-lead):**
+> Does the framework's downstream population include operators on segmented networks where `curl https://github.com/...` at upgrade time is not allowed? If yes, offline-mode design (pre-fetched runner archive + `SWDT_PRESTAGED_RUNNER` path, OR internal-mirror URL via `SWDT_UPSTREAM_URL`) becomes a hard requirement on FW-ADR-0015-impl rather than a documentation footnote.
+
+**Customer answer (verbatim):**
+> "air gapped operators will have to figure it out on their own. the only current user of this template is me."
+
+**Implication (paraphrase, not customer text):**
+FW-ADR-0015 implementation targets the online / GitHub-reachable case
+as the baseline. Offline-mode patterns (pre-fetched archive, internal
+mirror) get a documentation footnote noting they're
+operator-implementable but not framework-supported. Network failure
+during runner fetch is operator-actionable per the stub's failure-mode
+contract. `SWDT_UPSTREAM_URL` still functions for operators who want
+to point at a private mirror — that's a separate axis from air-gap
+support.
+
+**Cross-refs:** FW-ADR-0015 (forthcoming acceptance pass); Q-0021
+(architect's queued question, now answered).
+
+**Supersedes:** none (first ruling on the air-gap / offline-mode
+scope question).
+**Recorded by:** researcher
+
+## 2026-05-15 — security posture floor for runner fetch: TLS + checksum sufficient (turn: pre-intake — to be reconciled with docs/intake-log.md)
+
+**Question (from architect, relayed by tech-lead):**
+> Is TLS + per-ref checksum pinning in `TEMPLATE_STATE.json` an acceptable minimum-viable security posture for the network-fetched runner, or does the framework want a stronger posture (GPG / cosign signature on the runner) before any stub ships?
+
+**Customer answer (verbatim):**
+> "TLS and checksum will be plenty."
+
+**Implication (paraphrase, not customer text):**
+FW-ADR-0015's proposed baseline accepted. Stub verifies runner
+integrity via TLS (curl's default for HTTPS URLs) + per-ref SHA-256
+checksum recorded in `TEMPLATE_STATE.json`. First-observation pinning.
+`--no-verify` is the development opt-out with WARN log. GPG / cosign /
+signed-manifest gating deferred — not blocking the stub ship.
+`security-engineer` still reviews FW-ADR-0015 implementation before
+code lands, but the design floor is set.
+
+**Cross-refs:** FW-ADR-0015 (forthcoming acceptance pass); Q-0022
+(architect's queued question, now answered); `security-engineer` is
+still the gating reviewer on the integrity-verification section per
+FW-ADR-0015's binding interface decisions.
+
+**Supersedes:** none (first ruling on the runner-fetch security-posture
+floor).
+**Recorded by:** researcher
