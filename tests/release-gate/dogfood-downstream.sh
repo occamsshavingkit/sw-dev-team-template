@@ -202,23 +202,45 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 SCRATCH_TREE="$SCRATCH/tree"
-# Use cp -aL; rsync is not POSIX-mandatory. cp -a preserves modes,
-# timestamps; -L dereferences symlinks at copy time, turning them
-# into real files in the scratch tree. Dereferencing matters for
-# the dogfood-examples fixtures whose stub `scripts/upgrade.sh` is
-# a symlink into `dogfood-examples/_shared/` (outside the per-
-# fixture root); without -L the copy preserves the symlink but the
-# target is no longer reachable inside the scratch tree.
+# Bulk copy with cp -a (no -L): preserves modes, timestamps, AND
+# symlinks as-is. rsync is not POSIX-mandatory so we stick with cp.
 #
-# Real captured fixtures are unaffected: a git-clone content tree
-# with internal symlinks gets a slightly heavier copy (links
-# resolved to files); external symlinks that would have been
-# dangling in the original now resolve correctly — strict
-# improvement.
+# Why no -L on the bulk copy: real captured fixtures may contain
+# absolute-target symlinks pointing outside the fixture root (e.g.,
+# overlay-rootfs entries like
+# `image/overlay/rootfs/etc/runlevels/default/<svc> →
+# /etc/init.d/<svc>`). With -L, cp tries to dereference at copy
+# time and fails because the target does not exist on the host —
+# the copy crashes before the driver writes any report. With plain
+# -a, those symlinks are preserved verbatim and the upgrade.sh
+# phase proceeds.
 #
 # Trailing /. copies contents (incl. dotfiles).
 mkdir -p "$SCRATCH_TREE"
-cp -aL "$FIXTURE/." "$SCRATCH_TREE/"
+cp -a "$FIXTURE/." "$SCRATCH_TREE/"
+
+# Targeted dereference for the dogfood-examples stub case only.
+# Those fixtures ship `scripts/upgrade.sh` as a symlink into
+# `dogfood-examples/_shared/upgrade.sh` (outside the per-fixture
+# root). After the plain `cp -a` above, the symlink is preserved
+# but its (typically relative) target resolves outside
+# `$SCRATCH_TREE` and is unreachable for the upgrade phase. Detect
+# that case and replace the symlink with a real-file copy of its
+# resolved target.
+#
+# Resolution runs against the ORIGINAL `$FIXTURE` path, not the
+# scratch copy, so relative symlink targets resolve correctly
+# (relative-from-scratch lands at a nonexistent path).
+#
+# Real captured fixtures have a regular file at scripts/upgrade.sh
+# and skip this block.
+if [ -L "$SCRATCH_TREE/scripts/upgrade.sh" ]; then
+    STUB_TARGET="$(readlink -f "$FIXTURE/scripts/upgrade.sh" 2>/dev/null || true)"
+    if [ -n "$STUB_TARGET" ] && [ -f "$STUB_TARGET" ]; then
+        rm -f "$SCRATCH_TREE/scripts/upgrade.sh"
+        cp -a "$STUB_TARGET" "$SCRATCH_TREE/scripts/upgrade.sh"
+    fi
+fi
 
 # upgrade.sh runs `git rev-parse --show-toplevel`; needs a repo.
 # Initialise a throwaway one inside the scratch tree.
