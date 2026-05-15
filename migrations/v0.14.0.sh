@@ -95,11 +95,12 @@ any_block=0
 saw_local_edit=0
 saw_baseline_unreachable=0
 
-# shellcheck disable=SC2034
-oldIFS="$IFS"
-IFS='
-'
-for rel in $prebootstrap_paths; do
+# Iterate the newline-delimited path list via `while IFS= read -r` (the
+# per-command IFS prefix is local to read and does NOT modify the global
+# IFS — Semgrep ifs-tampering rule ignores it). Process substitution
+# (`< <(...)`) keeps the loop in the parent shell so variable mutations
+# propagate. Same idiom is used throughout scripts/* in this repo.
+while IFS= read -r rel; do
     [ -z "$rel" ] && continue
     proj_file="$PROJECT_ROOT/$rel"
     new_file="$WORKDIR_NEW/$rel"
@@ -145,8 +146,7 @@ retrofit:baseline-unreachable:$rel:$proj_sha::$new_sha"
             saw_baseline_unreachable=1
         fi
     fi
-done
-IFS="$oldIFS"
+done < <(printf '%s\n' "$prebootstrap_paths")
 
 prebootstrap_block_artefact="$PROJECT_ROOT/.template-prebootstrap-blocked.json"
 
@@ -169,9 +169,7 @@ if [ "$any_block" -eq 1 ]; then
         date_iso=$(date -u +%Y-%m-%d)
         operator=$(git config user.email 2>/dev/null || echo "${USER:-unknown}@$(hostname 2>/dev/null || echo unknown)")
         force_reason="${SWDT_PREBOOTSTRAP_FORCE_REASON:-unspecified}"
-        IFS='
-'
-        for entry in $blocked_list; do
+        while IFS= read -r entry; do
             [ -z "$entry" ] && continue
             # entry: action:reason:path:project_sha:baseline_sha:upstream_sha
             action=$(printf '%s' "$entry" | cut -d: -f1)
@@ -183,8 +181,7 @@ if [ "$any_block" -eq 1 ]; then
             # Promote to proceed.
             proceed_list="$proceed_list
 $path"
-        done
-        IFS="$oldIFS"
+        done < <(printf '%s\n' "$blocked_list")
         printf 'WARN: pre-bootstrap audit row(s) appended to %s\n' "$override_log" >&2
         rm -f "$prebootstrap_block_artefact"
     else
@@ -199,9 +196,7 @@ $path"
             # Sort entries by path for determinism.
             sorted_entries=$(printf '%s' "$blocked_list" | awk -F: 'NF { print $3 "|" $0 }' | LC_ALL=C sort | sed 's/^[^|]*|//')
             first=1
-            IFS='
-'
-            for entry in $sorted_entries; do
+            while IFS= read -r entry; do
                 [ -z "$entry" ] && continue
                 action=$(printf '%s' "$entry" | cut -d: -f1)
                 reason=$(printf '%s' "$entry" | cut -d: -f2)
@@ -220,23 +215,19 @@ $path"
                 printf '      "reason": "%s"\n' "$reason_field"
                 printf '    }'
                 first=0
-            done
-            IFS="$oldIFS"
+            done < <(printf '%s\n' "$sorted_entries")
             printf '\n  ]\n}\n'
         } > "$tmp_artefact"
         mv "$tmp_artefact" "$prebootstrap_block_artefact"
 
         printf '\nERROR: pre-bootstrap refused — bootstrap-critical files carry local edits or an unreachable baseline.\n' >&2
-        IFS='
-'
-        for entry in $blocked_list; do
+        while IFS= read -r entry; do
             [ -z "$entry" ] && continue
             action=$(printf '%s' "$entry" | cut -d: -f1)
             reason=$(printf '%s' "$entry" | cut -d: -f2)
             path=$(printf '%s' "$entry" | cut -d: -f3)
             printf '  %s: reason=%s\n' "$path" "$reason" >&2
-        done
-        IFS="$oldIFS"
+        done < <(printf '%s\n' "$blocked_list")
         printf '\nBlock artefact: %s\n' "$prebootstrap_block_artefact" >&2
         printf 'Recovery:\n' >&2
         printf '  - Review the listed paths; declare deliberate local edits in .template-customizations.\n' >&2
@@ -250,9 +241,7 @@ $path"
 fi
 
 # Execute the proceed list (atomic install).
-IFS='
-'
-for rel in $proceed_list; do
+while IFS= read -r rel; do
     [ -z "$rel" ] && continue
     new_file="$WORKDIR_NEW/$rel"
     proj_file="$PROJECT_ROOT/$rel"
@@ -270,8 +259,7 @@ for rel in $proceed_list; do
     if [ "$rel" = "scripts/upgrade.sh" ]; then
         echo "  pre-bootstrapped scripts/upgrade.sh to candidate (cross-MAJOR safe)"
     fi
-done
-IFS="$oldIFS"
+done < <(printf '%s\n' "$proceed_list")
 
 # Clear any stale block artefact from a prior refused run.
 rm -f "$prebootstrap_block_artefact"
