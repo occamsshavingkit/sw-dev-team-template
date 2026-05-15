@@ -367,11 +367,18 @@ Field semantics:
 - Writers MUST emit the highest MAJOR.MINOR they support.
 - MINOR bumps add fields; readers MUST tolerate unknown fields
   (forward-compat through additive evolution).
+- **Silent MINOR upgrade on next state-mutating sync.** When a
+  runner at schema v1.x reads a file at an older v1 MINOR, it
+  silently upgrades the file by re-emitting it at the runner's
+  highest supported MINOR on the next state-mutating sync. No
+  WARN log; no operator action required. The only schema-version
+  event that surfaces to the operator is the MAJOR-reject case
+  above. (Customer ruling, 2026-05-15.)
 - PATCH bumps are reserved for documentation / clarification
   changes that do not alter the wire format. Readers MUST NOT
   `WARN` on PATCH-only differences (in either direction);
-  PATCH mismatches are accepted silently. The MAJOR-reject /
-  MINOR-warn rules do not propagate to PATCH by analogy.
+  PATCH mismatches are accepted silently. The MAJOR-reject rule
+  does not propagate to PATCH by analogy.
 - A clean v2.0 migration ships with a new ADR (FW-ADR-NNNN)
   that defines the v1 → v2 migration function. The runner for
   the v2 cliff carries both readers and writes v2; older
@@ -410,12 +417,18 @@ benign for v1.0.0 acceptance but must be addressed when
 FW-ADR-0018 pins the transition mechanic.
 
 `project-owned` is **new** relative to the legacy three-file
-model. It is NOT REQUIRED in schema v1.0.0 — implementations
-MAY emit the `paths` array with only `managed` and `customised`
-rows. Including `project-owned` rows is opt-in audit metadata;
-the runner does not require them for upgrade logic. A future
-MINOR bump (1.x.0) may promote them to required if the audit
-benefit justifies the file-size growth.
+model and is **opt-in** in schema v1.0.0 (customer ruling,
+2026-05-15). The runner emits ONLY `managed` and `customised`
+rows in `paths`. The runner does not walk the project tree and
+does not synthesise `project-owned` rows. Operators MAY manually
+add `project-owned` rows for paths they want covered by audit;
+the runner preserves operator-added `project-owned` rows on
+subsequent syncs but never synthesises them. Sync-time
+complexity is bounded by manifest size, not project-tree size
+(O(manifest), not O(project-tree)); the state file stays bounded.
+A future MINOR bump (1.x.0) may promote `project-owned` rows to
+runner-emitted if the audit benefit justifies the file-size and
+tree-walk cost.
 
 ### Per-path declaration shape
 
@@ -834,9 +847,22 @@ contract; the SE implements.
   or `lockfile` from procmail; SE feature-detects and refuses
   with a clear error on absence.
 - **Schema-version reader:** the runner carries a constant
-  `SUPPORTED_SCHEMA_MAJOR=1` and implements the reject-on-newer
-  / warn-on-older / accept-on-match logic in § Schema-version
-  field semantics.
+  `SUPPORTED_SCHEMA_MAJOR=1` and implements the reject-on-newer-MAJOR
+  / silent-upgrade-on-older-MINOR / silent-on-PATCH /
+  accept-on-match logic in § Schema-version field semantics. The
+  silent-MINOR-upgrade path is a write side-effect on the next
+  state-mutating sync (no separate "migrate" command); the reader
+  records the in-memory upgraded shape and the writer emits at
+  `SUPPORTED_SCHEMA_MAJOR.<highest-supported-MINOR>.0`. No WARN
+  log, no operator-visible event.
+- **Runner emits only `managed` and `customised` rows.** The
+  runner does not walk the project tree; it does not synthesise
+  `project-owned` rows. On read, the runner preserves any
+  operator-added `project-owned` rows verbatim (passing them
+  through the schema validator) and re-emits them on write.
+  Validation rules in § Per-path declaration shape still apply
+  to operator-added `project-owned` rows (no `hash` /
+  `source_ref`; class-enum membership; unique `path`).
 - **No backwards-compat read of the legacy trio in the
   runner.** Only the bridging-rc's migration body reads them.
   Post-bridge runners read `TEMPLATE_STATE.json` only.
@@ -859,22 +885,17 @@ pin-lifecycle section before implementation lands.
 
 ## Open questions
 
-Two decision axes remain genuinely open after this ADR and
-route to the customer via `tech-lead` (queued in
-`docs/OPEN_QUESTIONS.md`):
+All decision axes that this ADR raised are closed.
 
-1. **Schema-version upgrade-on-read semantics.** When the v2.0
-   schema cliff arrives, does the v2-supporting runner perform
-   the v1 → v2 upgrade silently on read, or does it require
-   operator acknowledgement? This ADR pins MAJOR-reject /
-   MINOR-WARN / PATCH-silent reader behaviour; the v1 → v2
-   upgrade UX is the open axis. Answer drives FW-ADR-NNNN
-   (future v2 migration ADR).
-2. **`project-owned` class promotion scope.** The v1.0.0
-   schema makes `project-owned` rows opt-in audit metadata.
-   When (and on what evidence) does a future MINOR bump (1.x.0)
-   promote them to required? Answer drives the MINOR-bump
-   trigger for `project-owned`-as-required.
+- **Q1 (schema-version upgrade-on-read semantics)** and **Q2
+  (`project-owned` class promotion scope)** — closed by customer
+  rulings 2026-05-15 (see `CUSTOMER_NOTES.md`). Q1: silent MINOR
+  upgrade on next state-mutating sync (no WARN, no operator
+  action). Q2: `project-owned` is opt-in; runner never emits one;
+  operators may manually add `project-owned` rows for audit
+  coverage. Both rulings are baked into the binding interface
+  decisions above (§ Schema-version field semantics, § Path-class
+  enum, § Implementation notes for software-engineer).
 
 The dispatch brief's questions 3 (pin-history surface) and 4
 (lockfile location) are **closed** by this ADR's prose:
