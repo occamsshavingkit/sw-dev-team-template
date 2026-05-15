@@ -1,3 +1,10 @@
+---
+name: task-template
+description: INVEST plus DoR plus DoD task template for per-task work units.
+template_class: task
+---
+
+
 # Task — <ID> — <one-line title>
 
 <!-- TOC -->

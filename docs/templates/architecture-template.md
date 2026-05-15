@@ -1,3 +1,10 @@
+---
+name: architecture-template
+description: Guided ISO/IEC/IEEE 42010:2022 plus arc42 plus C4 architecture template with views, scenarios, and ADR index.
+template_class: architecture
+---
+
+
 # Architecture — <project name>
 
 <!-- TOC -->

@@ -1,3 +1,10 @@
+---
+name: req-item-template-bare
+description: Bare per-requirement file template per FW-ADR-0003 / FW-ADR-0004; structure only.
+template_class: requirement-item
+---
+
+
 # Requirement — <ID> — <one-line title>
 
 Bare variant per FW-ADR-0003. Lives at `docs/req/<ID>.md` per FW-ADR-0004.

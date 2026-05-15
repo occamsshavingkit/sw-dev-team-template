@@ -1,3 +1,10 @@
+---
+name: acceptance-test-plan-template
+description: ISTQB Acceptance-testing template with the customer as the acceptance authority.
+template_class: acceptance-test-plan
+---
+
+
 # Acceptance Test Plan — <project name>
 
 Shape per ISTQB "Acceptance testing" (User Acceptance / Operational

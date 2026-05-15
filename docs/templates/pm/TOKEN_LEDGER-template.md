@@ -1,3 +1,10 @@
+---
+name: token-ledger-template
+description: Append-only token-consumption ledger per task dispatch; populated at task closure per DoD.
+template_class: token-ledger
+---
+
+
 # Token Ledger — <project name>
 
 Append-only log of token consumption per task dispatch. Owned by

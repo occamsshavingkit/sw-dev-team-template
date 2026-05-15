@@ -1,3 +1,10 @@
+---
+name: scoping-questions-template
+description: Seed queue for Step 2 scoping intake; one question per turn with all agents idle.
+template_class: scoping-questions
+---
+
+
 # Scoping Questions (Step 2 queue)
 
 The seed queue `tech-lead` uses to open Step 2 of `CLAUDE.md` FIRST

@@ -1,3 +1,10 @@
+---
+name: intake-conformance-template
+description: QA-owned audit template for tech-lead's Step-2 intake handling against the binding scoping rules.
+template_class: intake-conformance
+---
+
+
 # Intake Flow Conformance — <project name>
 
 Owned by `qa-engineer`. Reads `docs/intake-log.md` (see

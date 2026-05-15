@@ -1,3 +1,10 @@
+---
+name: changes-template
+description: PMBOK Monitoring/Controlling append-only change-log template for scope, schedule, cost, quality, or PM-baseline changes.
+template_class: changes
+---
+
+
 # Change Log — <project name>
 
 PMBOK Monitoring / Controlling artifact. Owned by `project-manager`.

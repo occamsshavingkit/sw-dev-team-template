@@ -1,3 +1,11 @@
+---
+name: fw-adr-0011-routed-through-trailer
+description: Routed-Through commit-trailer plus lint/hook/tool-bridge carve-out enforces Hard Rule 8; primary-enforcement framing superseded by FW-ADR-0012.
+status: superseded-in-part
+date: 2026-05-14
+---
+
+
 # FW-ADR-0011 — `Routed-Through:` commit-trailer enforcement for Hard Rule #8
 
 <!-- TOC -->

@@ -1,3 +1,10 @@
+---
+name: retrofit-playbook-template
+description: Playbook for adopting sw-dev-team-template into an existing codebase; scaffold-first vs in-place paths.
+template_class: playbook
+---
+
+
 # Retrofit Playbook — adopting `sw-dev-team-template` into an existing codebase
 
 <!-- TOC -->

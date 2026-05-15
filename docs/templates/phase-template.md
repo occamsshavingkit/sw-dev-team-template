@@ -1,3 +1,10 @@
+---
+name: phase-template
+description: ISO/IEC/IEEE 12207:2017 life-cycle phase template with entry/exit criteria, V-model pairing, and gate review.
+template_class: phase
+---
+
+
 # Phase / Iteration — <identifier>
 
 <!-- TOC -->

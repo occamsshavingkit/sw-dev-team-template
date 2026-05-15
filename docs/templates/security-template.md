@@ -1,3 +1,10 @@
+---
+name: security-template
+description: SWEBOK V4 ch. 13 Software Security assurance template; per security-boundary subsystem or project-wide.
+template_class: security-assurance
+---
+
+
 # Security Assurance — <project or subsystem>
 
 Shape per SWEBOK V4 ch. 13 "Software Security" (library row LIB-0002).
