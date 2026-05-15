@@ -30,7 +30,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/upgrade.sh [--dry-run | --verify | --resolve | --target <ver> |
+Usage: scripts/upgrade.sh [--dry-run | --verify | --resolve | --target <ref> |
                           --self-test-semver | --help]
 
   --dry-run         Print the upgrade plan; change nothing.
@@ -49,14 +49,21 @@ Usage: scripts/upgrade.sh [--dry-run | --verify | --resolve | --target <ver> |
   --self-test-semver
                     Run the SemVer-sort regression guard for issue #108
                     and exit. No project state needed.
-  --target <ver>    Pin the upgrade to a specific upstream tag (e.g.
-                    v0.14.4). Validates the tag exists, checks it out
-                    in the upstream clone, runs migrations between
-                    current TEMPLATE_VERSION and the target, stamps
-                    target's tag. Without this flag, upgrade.sh
-                    targets the latest stable upstream tag for stable
-                    projects, or the latest upstream tag for projects
-                    already on a pre-release track. (Issues #60/#68.)
+  --target <ref>    Pin the upgrade to a specific upstream ref. Accepts:
+                      * a tag (e.g. v0.14.4)                — stamps the tag
+                      * a branch (e.g. main, feat/foo)      — stamps
+                          "untagged-<short-sha>"
+                      * a short or full commit SHA          — same
+                    Resolution priority: tags first (back-compat), then
+                    branches (refs/heads then refs/remotes/origin), then
+                    commit SHAs. For untagged targets, ALL migrations
+                    strictly greater than the project's current
+                    TEMPLATE_VERSION are run (semver progression
+                    unavailable; conservative full-walk). Without this
+                    flag, upgrade.sh targets the latest stable upstream
+                    tag for stable projects, or the latest upstream tag
+                    for projects already on a pre-release track.
+                    (Issues #60/#68; untagged refs added 2026-05-15.)
   --help, -h        Print this help and exit.
 
 With no flag, run the full upgrade. The script:
@@ -154,7 +161,7 @@ while [[ $# -gt 0 ]]; do
     "--verify")      verify_mode=1; shift ;;
     "--target")
       if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
-        echo "ERROR: --target requires a tag argument (e.g. --target v0.14.4)" >&2
+        echo "ERROR: --target requires a ref argument (tag, branch, or commit SHA — e.g. --target v0.14.4, --target main, --target b7aa9d3)" >&2
         usage >&2
         exit 2
       fi
@@ -365,19 +372,54 @@ else
 fi
 
 # --- Select upstream target before bootstrap ----------------------------------
-# Check out the intended upstream tag before any other steps run.
+# Check out the intended upstream ref before any other steps run.
 # Bootstrap, baseline-clone, and sync all see the selected target state.
-# VERSION inside the clone is the selected target's VERSION, so
-# new_version derived below picks up correctly.
+# VERSION inside the clone is the selected target's VERSION at that ref
+# — for tag targets new_version is derived from it; for untagged targets
+# (branch / SHA) we use a synthetic "untagged-<short-sha>" label instead
+# so the TEMPLATE_VERSION stamp is unambiguously distinct from semver.
+#
+# target_kind tracks how --target resolved: "tag" / "untagged" / "" (none).
+# Resolution priority for --target: tags first (back-compat), then
+# branches (refs/heads, then refs/remotes/origin/<ref>), then commit SHAs.
+target_kind=""
+target_resolved_sha=""
 if [[ -n "$target_version" ]]; then
-  if ! git -C "$workdir/new" rev-parse --verify --quiet "refs/tags/$target_version" >/dev/null; then
-    echo "ERROR: --target $target_version is not a known tag in $upstream." >&2
+  if git -C "$workdir/new" rev-parse --verify --quiet "refs/tags/$target_version" >/dev/null; then
+    target_kind="tag"
+    target_resolved_sha="$(git -C "$workdir/new" rev-parse --verify --quiet "refs/tags/$target_version^{commit}")"
+    echo "Pinning upgrade to --target $target_version (tag)" >&2
+    git -C "$workdir/new" checkout -q "$target_version"
+  elif git -C "$workdir/new" rev-parse --verify --quiet "refs/heads/$target_version" >/dev/null; then
+    target_kind="untagged"
+    target_resolved_sha="$(git -C "$workdir/new" rev-parse --verify --quiet "refs/heads/$target_version^{commit}")"
+    echo "Pinning upgrade to --target $target_version (branch → ${target_resolved_sha:0:7})" >&2
+    git -C "$workdir/new" checkout -q "$target_version"
+  elif git -C "$workdir/new" rev-parse --verify --quiet "refs/remotes/origin/$target_version" >/dev/null; then
+    target_kind="untagged"
+    target_resolved_sha="$(git -C "$workdir/new" rev-parse --verify --quiet "refs/remotes/origin/$target_version^{commit}")"
+    echo "Pinning upgrade to --target $target_version (remote branch → ${target_resolved_sha:0:7})" >&2
+    git -C "$workdir/new" checkout -q "refs/remotes/origin/$target_version"
+  elif git -C "$workdir/new" rev-parse --verify --quiet "${target_version}^{commit}" >/dev/null; then
+    # Bare SHA (short or full). Reject anything that *looks like* a tag
+    # syntactically (starts with v + digit) but did not match the tag
+    # branch above — that case is a typo, not a SHA.
+    if [[ "$target_version" =~ ^v[0-9] ]]; then
+      echo "ERROR: --target $target_version is not a known tag, branch, or commit in $upstream." >&2
+      echo "  Recent tags (last 10):" >&2
+      git -C "$workdir/new" tag -l 'v*' | semver_sort_tags | tail -10 | sed 's/^/    /' >&2
+      exit 2
+    fi
+    target_kind="untagged"
+    target_resolved_sha="$(git -C "$workdir/new" rev-parse --verify --quiet "${target_version}^{commit}")"
+    echo "Pinning upgrade to --target $target_version (commit → ${target_resolved_sha:0:7})" >&2
+    git -C "$workdir/new" checkout -q "$target_resolved_sha"
+  else
+    echo "ERROR: --target $target_version is not a known tag, branch, or commit in $upstream." >&2
     echo "  Recent tags (last 10):" >&2
     git -C "$workdir/new" tag -l 'v*' | semver_sort_tags | tail -10 | sed 's/^/    /' >&2
     exit 2
   fi
-  echo "Pinning upgrade to --target $target_version" >&2
-  git -C "$workdir/new" checkout -q "$target_version"
 else
   all_upstream_tags="$(git -C "$workdir/new" tag -l 'v*' 2>/dev/null | semver_sort_tags || true)"
   if [[ "$local_version" == *-* ]]; then
@@ -726,8 +768,17 @@ if declare -F first_actions_step0_warning >/dev/null; then
   first_actions_step0_warning "$project_root" "upgrade"
 fi
 
-new_version="$(tr -d '[:space:]' < "$workdir/new/VERSION")"
 new_sha="$(git -C "$workdir/new" rev-parse HEAD)"
+if [[ "$target_kind" == "untagged" ]]; then
+  # Synthetic version label for untagged targets (branch / SHA). The
+  # "untagged-" prefix makes the TEMPLATE_VERSION first line visually
+  # distinct from semver so operators recognise a pre-release /
+  # experimental state. version-check.sh prints a WARN line on this
+  # state. (2026-05-15.)
+  new_version="untagged-${new_sha:0:7}"
+else
+  new_version="$(tr -d '[:space:]' < "$workdir/new/VERSION")"
+fi
 
 if [[ "$local_version" == "$new_version" ]]; then
   # Stamp matches upstream. Closes the #61 bug: do not short-circuit
@@ -815,28 +866,53 @@ fi
 # project's current TEMPLATE_VERSION and less-than-or-equal-to the new one,
 # in ascending order. Migrations handle file moves / renames / reshapes that
 # the plain file-sync cannot. Most are no-ops.
+#
+# Untagged targets (branch / SHA): semver progression breaks because
+# new_version is a synthetic "untagged-<sha>" label. Run every migration
+# strictly greater than local_version (conservative full-walk). Migrations
+# are required to be idempotent per their contract, so re-running ones
+# that already applied is safe.
 all_tags=$(git -C "$workdir/new" tag -l 'v*' 2>/dev/null | semver_sort_tags || true)
 migrations_to_run=()
-past_local=0
-for tag in $all_tags; do
-  if [[ $past_local -eq 0 ]]; then
-    [[ "$tag" == "$local_version" ]] && past_local=1
-    continue
-  fi
-  migrations_to_run+=("$tag")
-  [[ "$tag" == "$new_version" ]] && break
-done
-
-# Edge case: local_version doesn't appear in the tag list (e.g., pre-release
-# or hand-stamped). In that case, past_local stays 0 and migrations_to_run is
-# empty. Fall back: run every migration ≤ new_version, letting idempotency
-# guards handle re-runs.
-if [[ $past_local -eq 0 && ${#migrations_to_run[@]} -eq 0 ]]; then
-  echo "NOTE: local_version $local_version does not match any upstream tag — running all migrations ≤ $new_version with idempotency guards." >&2
+if [[ "$target_kind" == "untagged" ]]; then
+  past_local=0
   for tag in $all_tags; do
+    if [[ $past_local -eq 0 ]]; then
+      [[ "$tag" == "$local_version" ]] && past_local=1
+      continue
+    fi
+    migrations_to_run+=("$tag")
+  done
+  # If local_version isn't a known tag (hand-stamped / itself untagged-*),
+  # walk every migration up to tip.
+  if [[ $past_local -eq 0 && ${#migrations_to_run[@]} -eq 0 ]]; then
+    for tag in $all_tags; do
+      migrations_to_run+=("$tag")
+    done
+  fi
+  echo "NOTE: Running all migrations from $local_version to $new_version (semver progression unavailable; conservative full-walk)." >&2
+else
+  past_local=0
+  for tag in $all_tags; do
+    if [[ $past_local -eq 0 ]]; then
+      [[ "$tag" == "$local_version" ]] && past_local=1
+      continue
+    fi
     migrations_to_run+=("$tag")
     [[ "$tag" == "$new_version" ]] && break
   done
+
+  # Edge case: local_version doesn't appear in the tag list (e.g., pre-release
+  # or hand-stamped). In that case, past_local stays 0 and migrations_to_run is
+  # empty. Fall back: run every migration ≤ new_version, letting idempotency
+  # guards handle re-runs.
+  if [[ $past_local -eq 0 && ${#migrations_to_run[@]} -eq 0 ]]; then
+    echo "NOTE: local_version $local_version does not match any upstream tag — running all migrations ≤ $new_version with idempotency guards." >&2
+    for tag in $all_tags; do
+      migrations_to_run+=("$tag")
+      [[ "$tag" == "$new_version" ]] && break
+    done
+  fi
 fi
 
 if [[ ${#migrations_to_run[@]} -gt 0 ]]; then
