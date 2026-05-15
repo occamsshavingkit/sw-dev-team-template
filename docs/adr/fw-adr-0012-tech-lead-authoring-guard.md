@@ -47,13 +47,12 @@ defense-in-depth tooling. See [Migration notes](#migration-notes).
 
 ## Status
 
-- **Proposed** (Accepted upon merge). Supersedes FW-ADR-0011's
+- **Accepted: 2026-05-14**. Supersedes FW-ADR-0011's
   primary-enforcement framing. FW-ADR-0011 is **not** deprecated;
   its trailer convention and `scripts/lint-routing.sh` lint remain
   in place as defense-in-depth audit tooling (prong 2). The
   CI workflow (`.github/workflows/role-routing-lint.yml`) is
   retired by this ADR.
-- **Date:** 2026-05-14
 - **Deciders:** `architect` + `tech-lead` + customer (this ADR
   changes the primary preventive mechanism for Hard Rule #8;
   customer rejected the CI-blocking + reviewer-return shape in

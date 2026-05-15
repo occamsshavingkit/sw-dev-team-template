@@ -190,6 +190,13 @@ gate_run_one_round_trip() {
         # Snapshots are gitignored (per customer ruling 2026-05-15); regenerate
         # locally via the generator. Emit a clear diagnostic so the failure
         # mode is self-explanatory.
+        #
+        # Maintenance contract: this diagnostic is mirrored verbatim in
+        # tests/release-gate/snapshots/README.md § "If you skip
+        # regeneration". The README quotes this block as the canonical
+        # gate-side error; keep them in sync. The duplication is
+        # deliberate (a code-side fix shouldn't require a README round-
+        # trip), not a refactor candidate.
         {
             echo "ERROR: tests/release-gate/snapshots/$src_tag/$variant/ is missing."
             echo "Snapshots are gitignored; regenerate with:"

@@ -194,21 +194,23 @@ entries:
     payload: |
       {"tool_input":{"command":"! grep researcher CUSTOMER_NOTES.md"}}
 
-  - label: "cat6.3: codex-shell — read via bare grep"
+  - label: "cat6.3: codex-shell — sh -c read of CUSTOMER_NOTES.md"
     category: 6
     harness: codex-shell
-    rationale: "Codex `shell` tool issues a tool_input.command shape; a bare read command (no interpreter -c) must pass. NOTE: customer-notes-guard.py intentionally asks on `sh -c` or interpreter-stdin shapes that mention the file (it errs conservative when an interpreter could write); those shapes belong to the hook's positive-fixture surface, not the negative corpus."
+    rationale: "Codex `shell` tool issues a tool_input.command shape; `sh -c` with a read-only body (cat | head) must pass. Re-promoted to the real interpreter-stdin shape after #182 closed the over-block."
+    regression: "#182"
     expected: pass
     payload: |
-      {"tool_input":{"command":"head -5 CUSTOMER_NOTES.md"}}
+      {"tool_input":{"command":"sh -c 'cat CUSTOMER_NOTES.md | head -5'"}}
 
-  - label: "cat6.4: heredoc — non-interpreter heredoc with file token in body"
+  - label: "cat6.4: heredoc — python heredoc reading CUSTOMER_NOTES.md"
     category: 6
     harness: heredoc
-    rationale: "Heredoc fed to a non-interpreter (cat) whose body mentions the file is data, not a write. NOTE: heredoc fed to python/sh/perl that names the file is intentionally asked by customer-notes-guard.py (conservative read-vs-write); that shape is positive-fixture surface, not negative-corpus."
+    rationale: "Heredoc fed to python whose body only reads (`open(...).read()`) is read-only. Re-promoted to the real interpreter-heredoc shape after #182 closed the over-block."
+    regression: "#182"
     expected: pass
     payload: |
-      {"tool_input":{"command":"cat <<'EOF'\nrefer to CUSTOMER_NOTES.md for details\nEOF"}}
+      {"tool_input":{"command":"python3 <<PY\nimport json\njson.load(open('CUSTOMER_NOTES.md'))\nPY"}}
 
   - label: "cat6.5: command-substitution — $(...) wrapping read"
     category: 6

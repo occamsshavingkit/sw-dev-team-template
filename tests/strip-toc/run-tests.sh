@@ -120,6 +120,44 @@ case_fatal() {
     printf '  PASS  %s (exit 2)\n' "$name"
 }
 
+# Skipped: file is in-scope but has no live TOC fence (e.g. all fences
+# live inside fenced code blocks per N3) — script exits 0 + writes no
+# per-file mirror. The top-level .model-view/README.md may still be
+# emitted, so we only assert the per-file mirror is absent.
+case_skipped() {
+    local name="$1" fixname="$2"
+    local sandbox
+    sandbox=$(mktemp -d "${TMPDIR:-/tmp}/strip-toc-test.XXXXXX")
+    (
+        cd "$sandbox" || exit 2
+        git init -q .
+        git config user.email "test@example.com"
+        git config user.name "test"
+        mkdir -p docs
+        cp "$FIXDIR/$fixname" "docs/$fixname"
+        git add "docs/$fixname"
+        git commit -q -m "fixture"
+        "$STRIP" --all --quiet 2>/dev/null
+        rc=$?
+        if [ "$rc" -ne 0 ]; then exit "$rc"; fi
+        if [ -f ".model-view/docs/${fixname%.md}.model.md" ]; then exit 50; fi
+        exit 0
+    )
+    local rc=$?
+    if [ "$rc" -eq 50 ]; then
+        fail=$((fail + 1))
+        failures+=("$name: per-file mirror was written despite no live fence")
+        return
+    fi
+    if [ "$rc" -ne 0 ]; then
+        fail=$((fail + 1))
+        failures+=("$name: expected exit 0, got $rc")
+        return
+    fi
+    pass=$((pass + 1))
+    printf '  PASS  %s\n' "$name"
+}
+
 # Idempotence: run twice, assert second mirror == first mirror byte-identical.
 case_idempotent() {
     local name="$1" fixname="$2"
@@ -245,19 +283,112 @@ case_dry_run_fatal() {
     printf '  PASS  %s (exit 2)\n' "$name"
 }
 
+# --check on a tree whose mirror matches: exit 0, no diagnostic.
+case_check_clean() {
+    local name="$1"
+    local sandbox
+    sandbox=$(mktemp -d "${TMPDIR:-/tmp}/strip-toc-test.XXXXXX")
+    (
+        cd "$sandbox" || exit 2
+        git init -q .
+        git config user.email "test@example.com"
+        git config user.name "test"
+        mkdir -p docs
+        cp "$FIXDIR/single-pair.md" "docs/single-pair.md"
+        git add "docs/single-pair.md"
+        git commit -q -m "fixture"
+        "$STRIP" --all --quiet 2>/dev/null || exit 90
+        "$STRIP" --all --check --quiet 2>/dev/null
+        exit $?
+    )
+    local rc=$?
+    if [ "$rc" -ne 0 ]; then
+        fail=$((fail + 1))
+        failures+=("$name: --check on clean tree expected exit 0, got $rc")
+        return
+    fi
+    pass=$((pass + 1))
+    printf '  PASS  %s\n' "$name"
+}
+
+# --check on a tree whose on-disk mirror has been mutated: exit 1 + diff.
+case_check_drift() {
+    local name="$1"
+    local sandbox
+    sandbox=$(mktemp -d "${TMPDIR:-/tmp}/strip-toc-test.XXXXXX")
+    (
+        cd "$sandbox" || exit 2
+        git init -q .
+        git config user.email "test@example.com"
+        git config user.name "test"
+        mkdir -p docs
+        cp "$FIXDIR/single-pair.md" "docs/single-pair.md"
+        git add "docs/single-pair.md"
+        git commit -q -m "fixture"
+        "$STRIP" --all --quiet 2>/dev/null || exit 90
+        # Mutate the mirror.
+        printf '\n(hand-edit: not regenerated)\n' >> ".model-view/docs/single-pair.model.md"
+        "$STRIP" --all --check --quiet 2>/dev/null
+        exit $?
+    )
+    local rc=$?
+    if [ "$rc" -ne 1 ]; then
+        fail=$((fail + 1))
+        failures+=("$name: --check on drift expected exit 1, got $rc")
+        return
+    fi
+    pass=$((pass + 1))
+    printf '  PASS  %s (exit 1)\n' "$name"
+}
+
+# --check with the on-disk mirror missing: exit 1.
+case_check_missing_mirror() {
+    local name="$1"
+    local sandbox
+    sandbox=$(mktemp -d "${TMPDIR:-/tmp}/strip-toc-test.XXXXXX")
+    (
+        cd "$sandbox" || exit 2
+        git init -q .
+        git config user.email "test@example.com"
+        git config user.name "test"
+        mkdir -p docs
+        cp "$FIXDIR/single-pair.md" "docs/single-pair.md"
+        git add "docs/single-pair.md"
+        git commit -q -m "fixture"
+        # Do NOT pre-generate the mirror; --check must report drift.
+        "$STRIP" --all --check --quiet 2>/dev/null
+        exit $?
+    )
+    local rc=$?
+    if [ "$rc" -ne 1 ]; then
+        fail=$((fail + 1))
+        failures+=("$name: --check with missing mirror expected exit 1, got $rc")
+        return
+    fi
+    pass=$((pass + 1))
+    printf '  PASS  %s (exit 1)\n' "$name"
+}
+
 printf 'strip-toc fixture harness — %s\n' "$STRIP"
 printf '  fixtures: %s\n\n' "$FIXDIR"
 
 case_positive "1. single TOC pair → strip clean"   single-pair.md   single-pair.expected.md
 case_positive "2. multi TOC pairs → all stripped"  multi-pair.md    multi-pair.expected.md
-case_positive "3. TOC inside fenced code block → not stripped (N-1)" \
-                                                    in-code-block.md in-code-block.expected.md
+case_skipped "3. TOC inside fenced code block → no mirror (N-1, N3)" \
+                                                    in-code-block.md
 case_fatal    "4. unpaired open fence → FATAL exit 2" unpaired-open.md
 case_idempotent "5. idempotence: re-run produces byte-identical mirror" single-pair.md
 case_out_of_scope "6. tests/* path skipped despite TOC fence"
 case_dry_run_clean "7. --dry-run on clean source → exit 0, no mirror"
 case_dry_run_fatal "8. --dry-run on unpaired fence → exit 2, no mirror"
 case_fatal    "9. unpaired close fence → FATAL exit 2" unpaired-close.md
+case_positive "10. adjacent TOC pairs separated by one blank line (N1)" \
+                                                    adjacent-pairs.md adjacent-pairs.expected.md
+case_skipped "11. commented-out fence inside code block → no mirror (N2)" \
+                                                    commented-fence.md
+case_check_clean "12. --check on regenerated tree → exit 0"
+case_check_drift "13. --check on hand-edited mirror → exit 1"
+case_check_missing_mirror "14. --check with missing mirror → exit 1"
 
 printf '\n----- summary -----\n'
 printf '  passed: %d\n' "$pass"

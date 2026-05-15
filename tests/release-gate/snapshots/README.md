@@ -54,7 +54,10 @@ The gate's `upgrade-paths` sub-gate fails fast with:
       bash scripts/generate-fixture-snapshots.sh --all
     (See tests/release-gate/snapshots/README.md.)
 
-See `scripts/lib/gate-tags.sh::gate_run_one_round_trip`.
+See `scripts/lib/gate-tags.sh::gate_run_one_round_trip` — that function
+emits this diagnostic. The block above is mirrored from there verbatim;
+if you change one, change the other. The duplication is deliberate (a
+code-side fix shouldn't require a README round-trip).
 
 ## References
 

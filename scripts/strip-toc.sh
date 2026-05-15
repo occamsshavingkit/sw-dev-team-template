@@ -17,7 +17,7 @@
 #   <path>       optional single-file fast path
 #   --all        force whole-tree walk
 #   --dry-run    parse + validate only; write nothing
-#   --check      regenerate to tempdir + diff on-disk mirror (v1 stub: exit 0)
+#   --check      regenerate to tempfile + diff on-disk mirror; exit 1 on drift
 #   --quiet      suppress per-file progress
 #
 # Exit codes:
@@ -92,12 +92,23 @@ in_scope_path() {
     esac
 }
 
-# Whether the file contains a TOC fence at all (cheap pre-check). Matches
-# EITHER `<!-- TOC -->` or `<!-- /TOC -->` so that stray-close files
-# (contract case 5) still enter the parse path and FATAL — not silently
-# skip. The full unpaired-fence detection lives in strip_to_stdout's awk.
+# Whether the file contains a TOC fence OUTSIDE a fenced code block.
+# Spec 010 N3: a plain grep matches fences inside `` ```...``` `` blocks
+# and yields a trivial mirror (banner + byte-identical source). The awk
+# pipeline already discriminates correctly; the pre-check must do the
+# same so an in-code-block-only file is treated as "no live fence" and
+# skipped entirely (no mirror, no banner).
+#
+# Matches EITHER `<!-- TOC -->` or `<!-- /TOC -->` so that stray-close
+# files (contract case 5) still enter the parse path and FATAL — not
+# silently skip. Full unpaired-fence detection lives in
+# strip_to_stdout's awk.
 has_toc_fence() {
-    grep -Eq '^[[:space:]]*<!-- /?TOC -->[[:space:]]*$' "$1" 2>/dev/null
+    awk '
+        /^```/ { in_code = !in_code; next }
+        !in_code && /^[[:space:]]*<!-- \/?TOC -->[[:space:]]*$/ { found = 1; exit }
+        END { exit !found }
+    ' "$1" 2>/dev/null
 }
 
 # Strip TOC blocks from $1 to stdout.
@@ -191,7 +202,7 @@ process_one() {
 
     # Parse-only modes do not need a tempfile or mirror_dir; route awk
     # output to /dev/null and rely solely on the exit status.
-    if [ "$MODE_DRY" -eq 1 ] || [ "$MODE_CHECK" -eq 1 ]; then
+    if [ "$MODE_DRY" -eq 1 ]; then
         awk_rc=0
         strip_to_stdout "$src" > /dev/null 2>/tmp/strip-toc-err.$$ || awk_rc=$?
         [ -s "/tmp/strip-toc-err.$$" ] && cat "/tmp/strip-toc-err.$$" >&2
@@ -199,17 +210,48 @@ process_one() {
         if [ "$awk_rc" -ne 0 ]; then
             return 2
         fi
-        if [ "$MODE_DRY" -eq 1 ]; then
-            [ "$QUIET" -eq 0 ] && printf '%s: dry-run ok: %s\n' "$PROG" "$src" >&2
+        [ "$QUIET" -eq 0 ] && printf '%s: dry-run ok: %s\n' "$PROG" "$src" >&2
+        return 0
+    fi
+
+    if [ "$MODE_CHECK" -eq 1 ]; then
+        # Drift detection: regenerate to a tempfile, compare against the
+        # on-disk mirror. Exit 1 on any divergence; print a truncated
+        # diff so the operator can decide whether the on-disk mirror is
+        # an intentional fix or accidental drift.
+        check_tmp=$(mktemp "${TMPDIR:-/tmp}/strip-toc-check.XXXXXX") || {
+            echo "$PROG: FATAL: cannot create --check tempfile" >&2; return 2; }
+        awk_rc=0
+        strip_to_stdout "$src" > "$check_tmp" 2>/tmp/strip-toc-err.$$ || awk_rc=$?
+        [ -s "/tmp/strip-toc-err.$$" ] && cat "/tmp/strip-toc-err.$$" >&2
+        rm -f "/tmp/strip-toc-err.$$"
+        if [ "$awk_rc" -ne 0 ]; then
+            rm -f "$check_tmp"
+            return 2
+        fi
+        if [ ! -f "$mirror_path" ]; then
+            rm -f "$check_tmp"
+            printf '%s: --check drift: mirror missing for %s (expected at %s). Run scripts/strip-toc.sh --all to regenerate.\n' \
+                "$PROG" "$src" "$mirror_path" >&2
+            return 1
+        fi
+        if cmp -s "$check_tmp" "$mirror_path"; then
+            rm -f "$check_tmp"
             return 0
         fi
-        # MODE_CHECK: v1 stub. Drift detection vs the on-disk mirror is
-        # NOT yet implemented; only fence-pair parse validation runs.
-        # Warn loudly on stderr so the operator does not mistake a clean
-        # parse for a clean mirror. Per spec contract § Exit codes,
-        # exit 0 reflects the parse result.
-        printf '%s: --check is not yet implemented; ran source-parse validation only. To regenerate the mirror, use --all.\n' "$PROG" >&2
-        return 0
+        # Drift. Emit a truncated diff. The operator distinguishes:
+        # - "legitimate fix": on-disk mirror was hand-edited as a stopgap
+        #   (rare; normally forbidden because mirrors are gitignored and
+        #   regenerated). Re-run --all to wipe.
+        # - "accidental drift": source moved on, mirror is stale because
+        #   --all was not re-run. Re-run --all to update.
+        printf '%s: --check drift: %s differs from regenerated output. Run scripts/strip-toc.sh --all to regenerate (legit fix) or audit the source change (accidental drift).\n' \
+            "$PROG" "$mirror_path" >&2
+        # 40-line cap: enough context to decide; not so much it floods CI
+        # logs across many files.
+        diff -u "$mirror_path" "$check_tmp" 2>/dev/null | head -40 >&2
+        rm -f "$check_tmp"
+        return 1
     fi
 
     # Write mode: place the tempfile INSIDE mirror_dir so that the final
@@ -217,9 +259,19 @@ process_one() {
     # the tempfile under $TMPDIR (typically tmpfs on Linux) would make
     # `mv` a cross-fs copy+unlink — NOT atomic — violating contract
     # § Output.
+    #
+    # Track whether THIS call created mirror_dir so a FATAL parse can
+    # rmdir it on the way out (N5: don't leave an empty mirror dir
+    # behind on parse failure). If mirror_dir already existed (sibling
+    # files there, or we're re-running), leave it alone.
+    created_mirror_dir=0
+    if [ ! -d "$mirror_dir" ]; then
+        created_mirror_dir=1
+    fi
     mkdir -p "$mirror_dir" || {
         echo "$PROG: FATAL: cannot mkdir $mirror_dir" >&2; return 2; }
     tmp=$(mktemp "${mirror_path}.XXXXXX") || {
+        [ "$created_mirror_dir" -eq 1 ] && rmdir "$mirror_dir" 2>/dev/null
         echo "$PROG: FATAL: cannot create tempfile in $mirror_dir" >&2; return 2; }
 
     awk_rc=0
@@ -230,6 +282,12 @@ process_one() {
 
     if [ "$awk_rc" -ne 0 ]; then
         rm -f "$tmp"
+        # N5: only remove mirror_dir if THIS call created it AND it is
+        # now empty. rmdir is a no-op on non-empty dirs so the guard is
+        # belt-and-braces but safe.
+        if [ "$created_mirror_dir" -eq 1 ]; then
+            rmdir "$mirror_dir" 2>/dev/null || true
+        fi
         return 2
     fi
 
@@ -239,11 +297,20 @@ process_one() {
 }
 
 # Emit the top-level .model-view/README.md (D-5).
+#
+# Atomic per N4: write to a tempfile inside .model-view/ (same fs as the
+# final target so `mv` is a real rename(2)) then rename. Avoids a torn
+# read if a concurrent reader (test harness, editor, post-checkout
+# hook) opens the file mid-write.
 emit_mirror_readme() {
     [ "$MODE_DRY" -eq 1 ] && return 0
     [ "$MODE_CHECK" -eq 1 ] && return 0
-    mkdir -p .model-view
-    cat > .model-view/README.md <<'EOF'
+    mkdir -p .model-view || {
+        echo "$PROG: FATAL: cannot mkdir .model-view" >&2; return 2; }
+    tmp=$(mktemp ".model-view/README.md.XXXXXX") || {
+        echo "$PROG: FATAL: cannot create README tempfile in .model-view" >&2
+        return 2; }
+    cat > "$tmp" <<'EOF'
 # .model-view/ — gitignored mirror tree
 
 This directory is **regenerated** by `scripts/strip-toc.sh`. It is
@@ -262,6 +329,10 @@ the shipped `post-checkout` and `pre-push` templates).
 
 Spec: `specs/010-toc-build-time-strip/spec.md` (D-1..D-8).
 EOF
+    mv "$tmp" .model-view/README.md || {
+        rm -f "$tmp"
+        echo "$PROG: FATAL: cannot rename README tempfile into place" >&2
+        return 2; }
 }
 
 # Build the in-scope file list. Single-file fast path uses $SINGLE iff scoped.
@@ -289,29 +360,33 @@ files=$(git ls-files -- '*.md' 2>/dev/null) || {
     echo "$PROG: FATAL: git ls-files failed" >&2; exit 2; }
 
 # Process each file. Any FATAL bumps overall_rc to 2 and we keep going so a
-# CI dry-run reports every offender; write-mode stops the file's own write
-# but continues the walk (the per-file mirror is the only thing left
-# inconsistent, and the temp was already cleaned).
+# CI dry-run reports every offender; --check drift bumps to 1; write-mode
+# stops the file's own write but continues the walk (the per-file mirror
+# is the only thing left inconsistent, and the temp was already cleaned).
+fatal_mark="${STRIP_FATAL_MARK:-/tmp/strip-toc-fatal.$$}"
+drift_mark="${STRIP_DRIFT_MARK:-/tmp/strip-toc-drift.$$}"
+rm -f "$fatal_mark" "$drift_mark"
 echo "$files" | while IFS= read -r f; do
     [ -z "$f" ] && continue
     in_scope_path "$f" || continue
     rc=0
     process_one "$f" || rc=$?
-    if [ "$rc" -gt "$overall_rc" ]; then overall_rc=$rc; fi
-    # Subshell can't propagate overall_rc to parent; use exit-on-fatal mode.
+    # Subshell can't propagate overall_rc to parent; use marker files for
+    # the two non-zero rc classes the walk surfaces.
     if [ "$rc" -eq 2 ]; then
-        # Continue the walk so CI lists every malformed file; record via stub
-        # file in tempdir.
-        printf 'F\n' >> "${STRIP_FATAL_MARK:-/tmp/strip-toc-fatal.$$}"
+        printf 'F\n' >> "$fatal_mark"
+    elif [ "$rc" -eq 1 ]; then
+        printf 'D\n' >> "$drift_mark"
     fi
 done
 
-# Read back fatal marker (subshell limitation).
-fatal_mark="${STRIP_FATAL_MARK:-/tmp/strip-toc-fatal.$$}"
+# Read back markers (subshell limitation). FATAL beats drift.
 if [ -s "$fatal_mark" ]; then
     overall_rc=2
+elif [ -s "$drift_mark" ]; then
+    overall_rc=1
 fi
-rm -f "$fatal_mark"
+rm -f "$fatal_mark" "$drift_mark"
 
 emit_mirror_readme
 
