@@ -370,3 +370,63 @@ FW-ADR-0015's binding interface decisions.
 **Supersedes:** none (first ruling on the runner-fetch security-posture
 floor).
 **Recorded by:** researcher
+
+## 2026-05-15 — FW-ADR-0016 Q2: `project-owned` class is opt-in (turn: pre-intake — to be reconciled with docs/intake-log.md)
+
+**Question (from architect, relayed by tech-lead):**
+> Should TEMPLATE_STATE.json's `project-owned` class be opt-in (runner does NOT emit these rows; operators manually add them if they want audit coverage — smaller file, faster sync, simpler runner) or required (runner walks the project tree every sync and emits a row for every non-template file — complete audit, but file-size growth + sync time scales with project size)?
+
+**Customer answer (verbatim):**
+> "Do whatever the recommendation is."
+
+**Tech-lead recommendation (recorded as the operative ruling):**
+Opt-in. Runner does NOT walk the project tree; emits no
+`project-owned` rows by default. Operators may manually add
+`project-owned` rows for paths they want covered by audit. Rationale:
+keeps sync time O(manifest) instead of O(project-tree); state file
+stays compact; framework concerns stay framework-scoped; operator
+audit needs are voluntary, not framework-imposed.
+
+**Implication (paraphrase, not customer text):**
+FW-ADR-0016 amended to bake in opt-in as the binding default. SE
+implementation in the runner will emit only `managed` and
+`customised` rows; `project-owned` is a manually-added class for
+operator audit coverage if wanted. Sync-time complexity stays
+bounded by manifest size.
+
+**Cross-refs:** FW-ADR-0016 (in flight on local main; amendment pass
+before push); Q-0024 (architect's queued question Q2).
+
+**Supersedes:** none (first ruling on the `project-owned` class
+opt-in vs. required axis).
+**Recorded by:** researcher
+
+## 2026-05-15 — FW-ADR-0016 Q1: schema-version upgrade-on-read = silent MINOR (turn: pre-intake — to be reconciled with docs/intake-log.md)
+
+**Question (from architect, relayed by tech-lead):**
+> When a runner reading schema v1.x encounters a state file with `schema_version` of an older v1 MINOR (e.g., runner supports `1.2.0`, file declares `1.0.0`), should the runner upgrade the file to its highest supported MINOR on next sync, or leave the older MINOR in place until the operator runs an explicit `--refresh-state`?
+
+**Customer answer (verbatim, via implicit delegation):**
+> "Do whatever the recommendation is."
+
+**Tech-lead recommendation (recorded as the operative ruling):**
+Silent MINOR upgrade on next sync. Rationale: semver MINOR is by
+definition backwards-compatible (additive). A reader at v1.2.x
+encountering a file at v1.0.x doesn't need operator action — it can
+silently re-emit at v1.2.x on next write. MAJOR-reject already
+guards incompatible cases. Explicit `--refresh-state` would be
+busywork for the operator with no compensating benefit.
+
+**Implication (paraphrase, not customer text):**
+Runner SILENTLY upgrades schema_version on next state-mutating sync.
+No operator action required, no WARN log. PATCH differences are also
+silent (per FW-ADR-0016 NB-6 — readers MUST NOT WARN on PATCH-only
+differences). The only schema-version event that surfaces to the
+operator is MAJOR-reject.
+
+**Cross-refs:** FW-ADR-0016 (in flight; amendment pass before push);
+Q-0023 (architect's queued question Q1).
+
+**Supersedes:** none (first ruling on the schema-version
+upgrade-on-read axis).
+**Recorded by:** researcher
