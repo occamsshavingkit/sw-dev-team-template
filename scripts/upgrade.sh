@@ -1443,12 +1443,23 @@ if [[ ${#preservation_refused_paths[@]} -gt 0 ]]; then
       # upstream bytes.
       for f_p in "${preservation_refused_paths[@]}"; do
         # Remove the path from preserved[] (rebuild without it).
+        # NB: the `[@]:-` rebuild idiom is unsafe — when the source
+        # array is empty, `("${arr[@]:-}")` yields a one-element
+        # empty-string array, not an empty array. Guard on length
+        # instead. (CR blocker B-1, branch
+        # fix/blocker-4-preservation-vs-manifest.)
         new_preserved=()
-        for q in "${preserved[@]:-}"; do
-          [[ "$q" == "$f_p" ]] && continue
-          new_preserved+=("$q")
-        done
-        preserved=("${new_preserved[@]:-}")
+        if [ "${#preserved[@]}" -gt 0 ]; then
+          for q in "${preserved[@]}"; do
+            [[ "$q" == "$f_p" ]] && continue
+            new_preserved+=("$q")
+          done
+        fi
+        if [ "${#new_preserved[@]}" -gt 0 ]; then
+          preserved=("${new_preserved[@]}")
+        else
+          preserved=()
+        fi
         # Stage upstream content via the atomic helper used by the
         # main sync loop.
         if [[ -f "$workdir/new/$f_p" ]]; then
@@ -1601,9 +1612,19 @@ EOF
         printf '    {"path": "%s", "classified": "%s", "baseline_sha": "%s", "upstream_sha": "%s", "project_sha": "%s"}' \
           "$path" "$classified" "$baseline_sha" "$upstream_sha" "$project_sha"
       }
-      for f in "${conflicts[@]:-}"; do [[ -n "$f" ]] && emit_entry "$f" "conflict"; done
-      for f in "${local_only_kept[@]:-}"; do [[ -n "$f" ]] && emit_entry "$f" "local_only_kept"; done
-      for f in "${accepted_local[@]:-}"; do [[ -n "$f" ]] && emit_entry "$f" "accepted_local"; done
+      # Avoid the `[@]:-` iteration idiom — under `set -u` on modern
+      # bash, `"${arr[@]}"` over an empty array is safe; the `[@]:-`
+      # form injects a phantom empty-string iteration. Gate on length
+      # instead. (CR blocker B-1.)
+      if [ "${#conflicts[@]}" -gt 0 ]; then
+        for f in "${conflicts[@]}"; do emit_entry "$f" "conflict"; done
+      fi
+      if [ "${#local_only_kept[@]}" -gt 0 ]; then
+        for f in "${local_only_kept[@]}"; do emit_entry "$f" "local_only_kept"; done
+      fi
+      if [ "${#accepted_local[@]}" -gt 0 ]; then
+        for f in "${accepted_local[@]}"; do emit_entry "$f" "accepted_local"; done
+      fi
       printf '\n  ]\n}\n'
     } > "$conflicts_path"
   else
@@ -1639,11 +1660,13 @@ fi
 # the 'added' list; no filtering needed here beyond the prefix match.
 # Upstream issue #36.
 new_agents=()
-for f in "${added[@]:-}"; do
-  case "$f" in
-    .claude/agents/*.md) new_agents+=("$f") ;;
-  esac
-done
+if [ "${#added[@]}" -gt 0 ]; then
+  for f in "${added[@]}"; do
+    case "$f" in
+      .claude/agents/*.md) new_agents+=("$f") ;;
+    esac
+  done
+fi
 if [[ ${#new_agents[@]} -gt 0 ]]; then
   echo "${prefix}ACTION REQUIRED: restart Claude Code to register ${#new_agents[@]} new agent(s)."
   echo "${prefix}  The agent registry is initialized at session start and does not rescan"
@@ -1781,18 +1804,20 @@ if [[ $dry_run -eq 0 ]]; then
   lint_script="$project_root/scripts/lint-agent-contracts.sh"
   if [[ -x "$lint_script" ]]; then
     preserved_canonical_agents=()
-    for pf in "${preserved[@]:-}"; do
-      case "$pf" in
-        .claude/agents/*.md)
-          # Skip sme-* / *-local / sme-template — those aren't canonical
-          # contract surfaces per lint-agent-contracts.sh's surface 1.
-          case "$pf" in
-            .claude/agents/sme-*.md|.claude/agents/*-local.md) ;;
-            *) preserved_canonical_agents+=("$pf") ;;
-          esac
-          ;;
-      esac
-    done
+    if [ "${#preserved[@]}" -gt 0 ]; then
+      for pf in "${preserved[@]}"; do
+        case "$pf" in
+          .claude/agents/*.md)
+            # Skip sme-* / *-local / sme-template — those aren't canonical
+            # contract surfaces per lint-agent-contracts.sh's surface 1.
+            case "$pf" in
+              .claude/agents/sme-*.md|.claude/agents/*-local.md) ;;
+              *) preserved_canonical_agents+=("$pf") ;;
+            esac
+            ;;
+        esac
+      done
+    fi
     if [[ ${#preserved_canonical_agents[@]} -gt 0 ]]; then
       lint_log="$(mktemp -t upgrade-lint-XXXXXX.log)"
       lint_rc=0
