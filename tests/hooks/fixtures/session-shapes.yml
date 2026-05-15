@@ -1,0 +1,246 @@
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
+# Session-shape corpus for the dogfood AI-TUI check phase.
+#
+# This file differs from the per-hook negative-corpus files in two ways:
+#
+#   1. Entries are run against EVERY hook in the fixture's
+#      scripts/hooks/ directory, not a single named hook. The
+#      session-shape semantics ("does this payload work in a real
+#      Claude Code / Codex session") cut across both customer-notes-guard
+#      and tech-lead-authoring-guard simultaneously, because a real
+#      session fires both hooks on the same PreToolUse event.
+#
+#   2. The `expected:` field carries `pass` or `deny`. A `deny` entry
+#      asserts that AT LEAST ONE hook fires a `deny` permissionDecision
+#      on the payload; a `pass` entry asserts that NO hook fires
+#      `ask`/`deny`. This catches both:
+#        - false-positive regressions (a payload that should pass
+#          but a hook denies it), and
+#        - false-negative regressions (a payload that should deny
+#          but no hook catches it).
+#
+# Driver: tests/hooks/run-ai-tui-check.sh
+# Invoked by: tests/release-gate/dogfood-downstream.sh after the
+#             script-level upgrade PASS, against the UPGRADED fixture's
+#             scripts/hooks/ copies (not the canonical template's).
+#
+# Why this exists: feedback-dogfood-needs-tui-check (2026-05-15). The
+# rc11->rc12 upgrade wired tech-lead-authoring-guard.py per spec but
+# the hook blocked commit-message HEREDOCs and made the inline escape
+# hatch unreachable. Script-level dogfood would have shown green;
+# operator experience was broken. Session-shape payloads catch that
+# class of regression.
+#
+# Entry shape:
+#   - label:     human-readable test name
+#   - category:  taxonomy bucket (1-7)
+#                1 = commit-message HEREDOC
+#                2 = hook-script edit (write attempt)
+#                3 = hook-script read
+#                4 = specialist dispatch
+#                5 = git push (dry-run / non-destructive)
+#                6 = interpreter read of customer-notes
+#                7 = escape-hatch inline carrier
+#   - rationale: one-line justification
+#   - regression: (optional) upstream issue ID
+#   - expected:  "pass" | "deny"
+#   - payload:   the PreToolUse event JSON the hook reads on stdin.
+#                Includes tool_name AND tool_input so hooks that
+#                discriminate on tool can do so. Stored as a string
+#                literal so YAML doesn't try to interpret the inner
+#                JSON.
+
+entries:
+
+  # =====================================================================
+  # Category 1 — Multi-line HEREDOC commit messages.
+  # Real Claude Code Bash tool shape for committing with prose body.
+  # =====================================================================
+
+  - label: "cat1.1: git commit with multi-line HEREDOC body"
+    category: 1
+    rationale: "Canonical Claude Code commit shape; must not be blocked by tech-lead-authoring-guard or customer-notes-guard."
+    regression: "feedback-dogfood-needs-tui-check"
+    expected: pass
+    payload: |
+      {"tool_name":"Bash","tool_input":{"command":"git commit -m \"$(cat <<'EOF'\nfix(scripts): tidy helper\n\nLonger explanation across\nseveral lines.\nEOF\n)\""}}
+
+  - label: "cat1.2: git commit HEREDOC mentioning hook path in body"
+    category: 1
+    rationale: "Commit message body referencing scripts/hooks/foo.py is prose, not a write."
+    expected: pass
+    payload: |
+      {"tool_name":"Bash","tool_input":{"command":"git commit -m \"$(cat <<'EOF'\nfix(hooks): adjust scripts/hooks/customer-notes-guard.py\nEOF\n)\""}}
+
+  - label: "cat1.3: git commit HEREDOC mentioning CUSTOMER_NOTES.md in body"
+    category: 1
+    rationale: "Prose mention in commit message is not a write to CUSTOMER_NOTES.md."
+    regression: "#175"
+    expected: pass
+    payload: |
+      {"tool_name":"Bash","tool_input":{"command":"git commit -m \"$(cat <<'EOF'\ndocs: reference CUSTOMER_NOTES.md ruling 2026-05-15\nEOF\n)\""}}
+
+  # =====================================================================
+  # Category 2 — Writes to a hook script (tech-lead-forbidden path).
+  # =====================================================================
+
+  - label: "cat2.1: Edit-tool write to scripts/hooks/customer-notes-guard.py without escape hatch"
+    category: 2
+    rationale: "scripts/hooks/ is off the tech-lead allow-list; must deny when SWDT_AGENT_PUSH unset."
+    expected: deny
+    payload: |
+      {"tool_name":"Edit","tool_input":{"file_path":"scripts/hooks/customer-notes-guard.py","old_string":"x","new_string":"y"}}
+
+  - label: "cat2.2: Bash echo > scripts/hooks/customer-notes-guard.py without escape hatch"
+    category: 2
+    rationale: "Bash redirect to hook script is a write; must deny when SWDT_AGENT_PUSH unset."
+    expected: deny
+    payload: |
+      {"tool_name":"Bash","tool_input":{"command":"echo broken > scripts/hooks/customer-notes-guard.py"}}
+
+  - label: "cat2.3: Write tool to scripts/hooks/new-hook.py without escape hatch"
+    category: 2
+    rationale: "Write tool with file_path under scripts/hooks/ must deny."
+    expected: deny
+    payload: |
+      {"tool_name":"Write","tool_input":{"file_path":"scripts/hooks/new-hook.py","content":"#!/usr/bin/env python3\nprint('x')\n"}}
+
+  # =====================================================================
+  # Category 3 — Reads of hook scripts (must pass).
+  # =====================================================================
+
+  - label: "cat3.1: cat scripts/hooks/customer-notes-guard.py"
+    category: 3
+    rationale: "Read-only inspection of a hook script must pass."
+    expected: pass
+    payload: |
+      {"tool_name":"Bash","tool_input":{"command":"cat scripts/hooks/customer-notes-guard.py"}}
+
+  - label: "cat3.2: grep researcher scripts/hooks/tech-lead-authoring-guard.py"
+    category: 3
+    rationale: "Read-only grep over hook script must pass."
+    expected: pass
+    payload: |
+      {"tool_name":"Bash","tool_input":{"command":"grep -n researcher scripts/hooks/tech-lead-authoring-guard.py"}}
+
+  - label: "cat3.3: Read tool against scripts/hooks/customer-notes-guard.py"
+    category: 3
+    rationale: "Read tool is not a write surface; must pass."
+    expected: pass
+    payload: |
+      {"tool_name":"Read","tool_input":{"file_path":"scripts/hooks/customer-notes-guard.py"}}
+
+  # =====================================================================
+  # Category 4 — Specialist dispatch via the Agent tool.
+  # The hook fires PreToolUse on Agent invocations too; tool_input
+  # carries subagent_type and prompt. None of those name a path target,
+  # so both hooks must pass through silently.
+  # =====================================================================
+
+  - label: "cat4.1: Agent dispatch to software-engineer"
+    category: 4
+    rationale: "Agent tool invocations carry no file_path; both hooks must pass through."
+    expected: pass
+    payload: |
+      {"tool_name":"Agent","tool_input":{"subagent_type":"software-engineer","description":"refactor parser","prompt":"please refactor scripts/foo.sh to extract the path parser"}}
+
+  - label: "cat4.2: Agent dispatch to researcher mentioning CUSTOMER_NOTES.md in prompt"
+    category: 4
+    rationale: "Prompt body mentioning CUSTOMER_NOTES.md is data, not a write target."
+    expected: pass
+    payload: |
+      {"tool_name":"Agent","tool_input":{"subagent_type":"researcher","description":"append customer ruling","prompt":"please append a new entry to CUSTOMER_NOTES.md per 2026-05-15 ruling"}}
+
+  - label: "cat4.3: Agent dispatch to qa-engineer"
+    category: 4
+    rationale: "Dispatch tool invocation must pass; no path target."
+    expected: pass
+    payload: |
+      {"tool_name":"Agent","tool_input":{"subagent_type":"qa-engineer","description":"run regression","prompt":"run the negative-corpus driver"}}
+
+  # =====================================================================
+  # Category 5 — git push (dry-run / non-destructive).
+  # =====================================================================
+
+  - label: "cat5.1: git push --dry-run origin main"
+    category: 5
+    rationale: "Push dry-run carries no write target; must pass."
+    expected: pass
+    payload: |
+      {"tool_name":"Bash","tool_input":{"command":"git push --dry-run origin main"}}
+
+  - label: "cat5.2: git fetch origin"
+    category: 5
+    rationale: "Fetch is read-only on the local working tree."
+    expected: pass
+    payload: |
+      {"tool_name":"Bash","tool_input":{"command":"git fetch origin"}}
+
+  - label: "cat5.3: git status --porcelain"
+    category: 5
+    rationale: "Read-only status query; must pass."
+    expected: pass
+    payload: |
+      {"tool_name":"Bash","tool_input":{"command":"git status --porcelain"}}
+
+  # =====================================================================
+  # Category 6 — Interpreter reads of customer-notes / off-list files.
+  # The #182 fix re-promoted these to pass; this records the regression
+  # surface explicitly.
+  # =====================================================================
+
+  - label: "cat6.1: python3 -c json.load(open('CUSTOMER_NOTES.md'))"
+    category: 6
+    rationale: "Read-only open() with no mode arg defaults to read; must pass after #182 fix."
+    regression: "#182"
+    expected: pass
+    payload: |
+      {"tool_name":"Bash","tool_input":{"command":"python3 -c \"import json; json.load(open('CUSTOMER_NOTES.md'))\""}}
+
+  - label: "cat6.2: python3 heredoc reading CUSTOMER_NOTES.md"
+    category: 6
+    rationale: "Heredoc-fed interpreter doing only open().read() is read-only; must pass after #182."
+    regression: "#182"
+    expected: pass
+    payload: |
+      {"tool_name":"Bash","tool_input":{"command":"python3 <<PY\nimport json\njson.load(open('CUSTOMER_NOTES.md'))\nPY"}}
+
+  - label: "cat6.3: sh -c cat CUSTOMER_NOTES.md | head"
+    category: 6
+    rationale: "sh -c with cat | head body is read-only."
+    regression: "#182"
+    expected: pass
+    payload: |
+      {"tool_name":"Bash","tool_input":{"command":"sh -c 'cat CUSTOMER_NOTES.md | head -5'"}}
+
+  # =====================================================================
+  # Category 7 — Inline SWDT_AGENT_PUSH escape hatch.
+  # The #178 / #179 fixes anchored the inline form to leading position;
+  # this records the canonical permit shape.
+  # =====================================================================
+
+  - label: "cat7.1: inline SWDT_AGENT_PUSH=software-engineer Edit hook"
+    category: 7
+    rationale: "Inline escape hatch on Edit tool: the Edit tool carries file_path so the hatch must come through env or wrapper, not inline. Recorded as deny (Edit has no command line for inline parse)."
+    regression: "#178"
+    expected: deny
+    payload: |
+      {"tool_name":"Edit","tool_input":{"file_path":"scripts/hooks/customer-notes-guard.py","old_string":"x","new_string":"y"}}
+
+  - label: "cat7.2: inline SWDT_AGENT_PUSH=software-engineer Bash write to hook"
+    category: 7
+    rationale: "Inline carrier on a Bash redirect must permit (after #178)."
+    regression: "#178"
+    expected: pass
+    payload: |
+      {"tool_name":"Bash","tool_input":{"command":"SWDT_AGENT_PUSH=software-engineer echo x > scripts/hooks/customer-notes-guard.py"}}
+
+  - label: "cat7.3: leading export SWDT_AGENT_PUSH then write"
+    category: 7
+    rationale: "Export form at leading position widens allow-list."
+    regression: "#179"
+    expected: pass
+    payload: |
+      {"tool_name":"Bash","tool_input":{"command":"export SWDT_AGENT_PUSH=software-engineer; echo x > scripts/hooks/customer-notes-guard.py"}}

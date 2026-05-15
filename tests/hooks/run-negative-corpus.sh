@@ -82,7 +82,13 @@ if [ "$mode" = "all" ]; then
         printf 'run-negative-corpus: no fixtures dir at %s\n' "$FIXTURES_DIR" >&2
         exit 1
     fi
+    # Skip multi-hook fixtures whose name does not correspond to a
+    # single hook script. session-shapes.yml is consumed by
+    # tests/hooks/run-ai-tui-check.sh, not by this per-hook driver.
     while IFS= read -r f; do
+        case "$(basename "$f")" in
+            session-shapes.yml) continue ;;
+        esac
         fixtures+=("$f")
     done < <(find "$FIXTURES_DIR" -maxdepth 1 -type f -name '*.yml' | sort)
     if [ "${#fixtures[@]}" -eq 0 ]; then
