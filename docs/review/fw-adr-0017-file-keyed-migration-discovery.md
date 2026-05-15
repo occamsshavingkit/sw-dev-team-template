@@ -83,7 +83,7 @@ Why this matters: if a future implementer reads § 4 and thinks "let's record in
 
 The table (lines 308-316) covers `v1.0.0-rc14.sh`, `1.1.0.sh`, malformed 4-segment, etc. It omits two realistic shapes:
 
-- `v1.0.0-rc14+build.sh` — semver build-metadata. Does it parse? Per SemVer 2.0 build metadata is parsed but ignored for ordering. Does the runner accept or reject?
+- `v1.0.0-rc14+build.sh` — semver build-metadata. Per SemVer 2.0 build metadata is parsed but ignored for ordering. The runner's accept-or-reject behavior on these filenames should be specified.
 - `v1.0.0-rc.14.sh` (dotted pre-release identifier, not concatenated `rc14`) — legitimate semver, different ordering rules. Won't sort identically to `v1.0.0-rc14.sh`.
 
 Neither is in the current tree. Both are plausible future authoring mistakes. The table should either include them as explicit rows or § 1 should say "build metadata and dotted pre-release identifiers are accepted per SemVer 2.0 § 9 / § 11" with a note that the existing convention uses concatenated `rcNN`.
