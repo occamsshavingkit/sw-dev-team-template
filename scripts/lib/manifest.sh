@@ -76,6 +76,100 @@ manifest_file_sha() {
   sha256sum "$1" | awk '{print $1}'
 }
 
+# Decide whether the destination release declares <path> as a fresh-write.
+#
+# Per FW-ADR-0014, change point 2. The "destination manifest" is the
+# release the upgrade is moving the project toward — i.e., the upstream
+# clone at the new tag (<paths-repo-new>) — and optionally the previous
+# upstream baseline (<paths-repo-old>) when available. A fresh-write is
+# a path the new release is intentionally introducing new content for:
+#
+#   - present in the new upstream ship tree (i.e., the release would
+#     normally install it), AND
+#   - either no baseline is reachable, or the upstream content at this
+#     path differs from the baseline content (the release is actively
+#     shipping new/changed bytes — not merely re-listing an unchanged
+#     file), AND
+#   - not filtered out of the destination manifest by the project's
+#     own `.template-customizations` preserve-list — a preserved path
+#     is excluded from `manifest_ship_files` and therefore from the
+#     destination manifest as it would actually be regenerated for
+#     this project. The destination manifest cannot "declare" a path
+#     it does not contain.
+#
+# Returns:
+#   0  the new release declares <path> as a fresh-write.
+#   1  the new release does not declare <path> as a fresh-write
+#      (path absent from upstream, upstream content equal to baseline
+#      content, or path explicitly preserved by the project — the
+#      release ships nothing new at <path> from this project's view).
+#
+# Callers MUST pass <path> project-relative (the same shape used by
+# manifest_ship_files / TEMPLATE_MANIFEST.lock entries). <paths-repo-old>
+# is optional; pass empty string when the baseline tree is not
+# available — the function then treats every new-side present path as
+# a fresh-write (conservative: surfaces more refusals, never silently
+# loses a manifest contradiction).
+#
+# <project-repo> is optional; when provided, the function consults the
+# project's `.template-customizations` and returns 1 for any path the
+# project has declared preserved. This closes the false-positive on
+# scaffold-canonical stub-fills (README.md, CUSTOMER_NOTES.md,
+# docs/OPEN_QUESTIONS.md, docs/AGENT_NAMES.md, etc.): upstream's own
+# template content for those paths changes across releases, but the
+# scaffold immediately overwrites them with project-specific content,
+# so the destination manifest for the project excludes them and there
+# is no fresh-write to refuse against. PR #197 / dogfood-2026-05-15.
+manifest_declares_fresh_write() {
+  local path="$1"
+  local paths_repo_new="$2"
+  local paths_repo_old="${3:-}"
+  local project_repo="${4:-}"
+
+  local new_file="$paths_repo_new/$path"
+  if [[ ! -f "$new_file" ]]; then
+    return 1
+  fi
+
+  # Project preserve-list filter — the destination manifest excludes
+  # preserved paths by design (see manifest_ship_files), so the
+  # manifest cannot declare them as fresh-writes for this project.
+  if [[ -n "$project_repo" && -f "$project_repo/.template-customizations" ]]; then
+    while IFS= read -r line; do
+      line="${line%%#*}"
+      line="$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+      [[ -z "$line" ]] && continue
+      if [[ "$line" == "$path" ]]; then
+        return 1
+      fi
+    done < "$project_repo/.template-customizations"
+  fi
+
+  if [[ -z "$paths_repo_old" || ! -d "$paths_repo_old" ]]; then
+    # No baseline reachable — conservative: any path the new release
+    # ships is treated as a fresh-write. Combined with the divergence
+    # check in upgrade.sh's should_preserve(), this only refuses when
+    # the project ALSO diverges at the same path.
+    return 0
+  fi
+
+  local old_file="$paths_repo_old/$path"
+  if [[ ! -f "$old_file" ]]; then
+    # Upstream did not previously ship this path — the new release is
+    # introducing it. Fresh-write.
+    return 0
+  fi
+
+  if cmp -s "$old_file" "$new_file"; then
+    # Upstream content unchanged across the upgrade range — the new
+    # release is not shipping anything new at this path. Not a
+    # fresh-write.
+    return 1
+  fi
+
+  return 0
+}
+
 # Write the manifest. Paths come from <paths-repo> (which MUST be a
 # git-controlled tree — the upstream clone or the template source);
 # SHA256 hashes are computed from the corresponding paths in

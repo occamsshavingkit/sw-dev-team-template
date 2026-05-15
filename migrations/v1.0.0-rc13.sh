@@ -1,63 +1,69 @@
 #!/usr/bin/env bash
 #
-# migrations/v0.14.0.sh — upgrade TO v0.14.0 (or any v0.14.x).
+# migrations/v1.0.0-rc13.sh — pre-bootstrap for rc-to-rc structural-rewrite
+# cliffs in the v1.x lineage (per FW-ADR-0013).
 #
-# v0.14.0 introduces TEMPLATE_MANIFEST.lock (per FW-ADR-0002): a per-file
-# SHA256 manifest at project root, used by `scripts/upgrade.sh
-# --verify` for offline drift / tamper detection.
+# Failure class this migration closes (dogfood-2026-05-15, blocker #1):
+#   A downstream stamped at v1.0.0-rc2 upgrading to v1.0.0-rc12 crashes mid-run
+#   with `./scripts/upgrade.sh: line 205: syntax error near unexpected token
+#   ';;'`. The rc2-era upgrade.sh is ~270 lines, has no `case` statement, and
+#   no SWDT_BOOTSTRAPPED self-bootstrap branch (added in v0.15.0 /
+#   FW-ADR-0010). When the rc2 driver's sync loop overwrites scripts/upgrade.sh
+#   on disk with the rc12 candidate (which has both `case` and `;;` tokens
+#   around line 205), bash continues parsing from its current byte offset and
+#   explodes on the structurally-incompatible token.
 #
-# This migration synthesises the manifest by **predicting the post-sync
-# state** using the same 3-way compare upgrade.sh's sync loop performs.
-# That way a single upgrade run produces a correct manifest regardless
-# of the version of upgrade.sh the project starts with — including
-# v0.13.x projects whose upgrade.sh has no post-sync manifest_write
-# step.
+#   v0.14.0.sh closed the equivalent v0.x → v1.x cliff with the same trick.
+#   But v0.14.0.sh only fires when OLD_VERSION < v0.14.0; on rc2 → rc12 the
+#   project is already past v0.14.0, so no pre-bootstrap fires at all. This
+#   migration covers the rc-to-rc gap below v1.0.0-rc13.
 #
-# Prediction per file:
-#   - file in WORKDIR_NEW but not in PROJECT_ROOT       → sync will
-#     add it; predicted SHA = WORKDIR_NEW SHA.
-#   - file in both, baseline available, project SHA ==
-#     WORKDIR_OLD SHA (unchanged since scaffold)        → sync will
-#     overwrite; predicted SHA = WORKDIR_NEW SHA.
-#   - file in both, baseline available, project SHA !=
-#     WORKDIR_OLD SHA (customisation since scaffold)    → sync will
-#     leave alone (conflict / kept); predicted SHA =
-#     project's current SHA.
-#   - file in both, no baseline                          → conservative:
-#     treat as customisation; predicted SHA = project's current SHA.
+# What this migration does:
+#   Atomic-replaces scripts/upgrade.sh + scripts/lib/*.sh from $WORKDIR_NEW
+#   into $PROJECT_ROOT BEFORE the OLD driver's sync loop runs. The migration
+#   runner (scripts/upgrade.sh lines ~864-942 in the candidate) sources this
+#   file before any sync, so the OLD driver's later `cp` over upgrade.sh sees
+#   cmp-equal between $new_path and $proj_path and skips the cp.
 #
-# After the actual sync, real on-disk SHAs match these predictions, so
-# `scripts/upgrade.sh --verify` exits 0 even on projects whose
-# upgrade.sh predates v0.14.0's post-sync manifest_write step.
-# v0.14.x+ upgrade.sh's post-sync manifest_write rewrites the manifest
-# with the real post-sync SHAs — same result, double-checked.
+#   The atomic mv-rename leaves the parent bash's open fd on the original
+#   (now-unlinked) inode, so the running v1.x-rcN script reads its original
+#   content to EOF without seeing the replacement.
 #
-# Idempotency: if the manifest already exists, leave it alone.
+# FW-ADR-0010 inheritance (binding):
+#   3-SHA decision matrix, refuse-on-uncertain posture,
+#   SWDT_PREBOOTSTRAP_FORCE=1 self-service override,
+#   SWDT_PREBOOTSTRAP_FORCE_REASON audit annotation,
+#   .template-prebootstrap-blocked.json schema v1 block artefact,
+#   docs/pm/pre-release-gate-overrides.md audit-log row
+#     (Gate=pre-bootstrap, Commit SHA slot = "(migration v1.0.0-rc13)"),
+#   retrofit-playbook routing on baseline-unreachable rows.
+#
+#   Behavioural divergence from FW-ADR-0010 requires a new ADR.
+#
+# Intentional de-duplication boundary (FW-ADR-0013):
+#   The pre-bootstrap logic below is a near-verbatim copy of
+#   migrations/v0.14.0.sh lines 42-277. A shared helper at
+#   scripts/lib/prebootstrap.sh is NOT extracted because at the moment any
+#   pre-bootstrap migration runs, the file in question is exactly what is
+#   being installed — neither migration can rely on a shared file being
+#   present at the moment it must run. The duplication is cheaper than the
+#   abstraction. Do not refactor without superseding FW-ADR-0013.
+#
+# Idempotency:
+#   Re-running on a project whose bootstrap-critical files already match the
+#   candidate produces zero writes and exit 0 (the 3-SHA matrix's
+#   `project == upstream` branch). Verified by QA.
+#
+# Cross-migration interaction:
+#   On a v0.13.x → rc13 path, v0.14.0.sh runs first and pre-bootstraps. By
+#   the time this migration runs, bootstrap-critical files in the project
+#   already match $WORKDIR_NEW; the 3-SHA matrix returns `noop` for every
+#   path and the migration exits 0 with no writes.
 
 set -euo pipefail
 
 : "${PROJECT_ROOT:?PROJECT_ROOT is required}"
 : "${WORKDIR_NEW:?WORKDIR_NEW is required}"
-
-# Pre-bootstrap: atomic-replace project's scripts/upgrade.sh + scripts/lib/*
-# with the candidate's versions BEFORE the calling v0.x upgrade.sh's sync
-# loop runs. Pre-v0.15.0 upgrade.sh lacks self-bootstrap, so its sync loop
-# would otherwise `cp` over scripts/upgrade.sh while bash is reading it —
-# corrupting the running script and producing arbitrary crashes mid-loop
-# (observed as `line N: y: command not found`-style errors picked up from
-# the byte offset of a comment in the candidate). Atomic mv-rename leaves
-# the parent bash's open fd on the original (now-unlinked) inode, so the
-# running v0.x script reads its original content to EOF without seeing the
-# replacement; the sync loop then sees cmp-equal between $new_path and
-# $proj_path and skips the cp altogether.
-#
-# FW-ADR-0010 (issue #170): apply the 3-SHA decision matrix here too.
-# Refuse-on-uncertain when project carries local edits or the baseline is
-# unreachable. SWDT_PREBOOTSTRAP_FORCE=1 is the operator's self-service
-# override (audit-logged to docs/pm/pre-release-gate-overrides.md).
-#
-# Idempotent: re-running on the same project state produces the same
-# block artefact (timestamp aside) or proceeds with no work.
 
 prebootstrap_sha() {
     if [ -f "$1" ]; then
@@ -175,7 +181,7 @@ if [ "$any_block" -eq 1 ]; then
             action=$(printf '%s' "$entry" | cut -d: -f1)
             reason=$(printf '%s' "$entry" | cut -d: -f2)
             path=$(printf '%s' "$entry" | cut -d: -f3)
-            row="| $date_iso | pre-bootstrap | (migration v0.14.0) | | $operator | ${reason}:${path} ($force_reason) | |"
+            row="| $date_iso | pre-bootstrap | (migration v1.0.0-rc13) | | $operator | ${reason}:${path} ($force_reason) | |"
             printf '%s\n' "$row" >> "$override_log"
             printf 'WARN: SWDT_PREBOOTSTRAP_FORCE=1 — overriding pre-bootstrap block on %s (reason=%s, action=%s)\n' "$path" "$reason" "$action" >&2
             # Promote to proceed.
@@ -257,78 +263,11 @@ while IFS= read -r rel; do
         install -m 0644 "$new_file" "$proj_file"
     fi
     if [ "$rel" = "scripts/upgrade.sh" ]; then
-        echo "  pre-bootstrapped scripts/upgrade.sh to candidate (cross-MAJOR safe)"
+        echo "  pre-bootstrapped scripts/upgrade.sh to candidate (rc-to-rc structural-rewrite safe)"
     fi
 done < <(printf '%s\n' "$proceed_list")
 
 # Clear any stale block artefact from a prior refused run.
 rm -f "$prebootstrap_block_artefact"
 
-manifest="$PROJECT_ROOT/TEMPLATE_MANIFEST.lock"
-
-if [[ -f "$manifest" ]]; then
-  echo "  TEMPLATE_MANIFEST.lock exists — leaving it (will be rewritten post-sync)"
-  exit 0
-fi
-
-# v0.14.0 ships scripts/lib/manifest.sh; pre-v0.14.0 projects don't
-# have it locally yet, so we source from the upgrade-time clone of
-# upstream.
-# shellcheck source=scripts/lib/manifest.sh
-# shellcheck disable=SC1091
-source "$WORKDIR_NEW/scripts/lib/manifest.sh"
-
-# Collect baseline SHAs if WORKDIR_OLD is available.
-declare -A baseline_sha=()
-baseline_label="(unavailable)"
-if [[ -n "${WORKDIR_OLD:-}" && -d "$WORKDIR_OLD" ]]; then
-  baseline_label="WORKDIR_OLD ($OLD_VERSION)"
-  while IFS= read -r f; do
-    [[ -z "$f" ]] && continue
-    baseline_sha["$f"]="$(manifest_file_sha "$WORKDIR_OLD/$f")"
-  done < <(manifest_ship_files "$WORKDIR_OLD")
-fi
-
-added=0
-upgraded=0
-kept=0
-total=0
-
-{
-  echo "# TEMPLATE_MANIFEST.lock — per FW-ADR-0002"
-  echo "# Generated $(date -u +%Y-%m-%dT%H:%M:%SZ) by migrations/v0.14.0.sh"
-  echo "# Format: <sha256>  <project-relative path>"
-  echo "# Predicted post-sync state (3-way compare against baseline=$baseline_label)."
-  echo "# Files in .template-customizations are omitted by design."
-  echo "#"
-  while IFS= read -r f; do
-    [[ -z "$f" ]] && continue
-    total=$((total+1))
-    new_sha="$(manifest_file_sha "$WORKDIR_NEW/$f")"
-    if [[ ! -f "$PROJECT_ROOT/$f" ]]; then
-      # Sync will add this file from upstream.
-      printf '%s  %s\n' "$new_sha" "$f"
-      added=$((added+1))
-    elif [[ -n "${baseline_sha[$f]:-}" ]]; then
-      proj_sha="$(manifest_file_sha "$PROJECT_ROOT/$f")"
-      if [[ "$proj_sha" == "${baseline_sha[$f]}" ]]; then
-        # Unchanged since scaffold — sync will overwrite.
-        printf '%s  %s\n' "$new_sha" "$f"
-        upgraded=$((upgraded+1))
-      else
-        # Customised — sync will leave the project file alone.
-        printf '%s  %s\n' "$proj_sha" "$f"
-        kept=$((kept+1))
-      fi
-    else
-      # No baseline — conservative: treat as customisation.
-      proj_sha="$(manifest_file_sha "$PROJECT_ROOT/$f")"
-      printf '%s  %s\n' "$proj_sha" "$f"
-      kept=$((kept+1))
-    fi
-  done < <(manifest_ship_files "$WORKDIR_NEW" "$PROJECT_ROOT")
-} > "$manifest"
-
-echo "  synthesised TEMPLATE_MANIFEST.lock — predicted post-sync state ($total entries)"
-echo "    +$added (will be added) ~$upgraded (will be upgraded) !$kept (customisations kept)"
-echo "    baseline: $baseline_label"
+exit 0

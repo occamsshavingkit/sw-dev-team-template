@@ -190,3 +190,65 @@ CI workflows (`.github/workflows/agent-contract-check.yml`,
   LLM-wire-up review.
 
 **Sign-off**: `security-engineer`, 2026-05-13.
+
+## 2026-05-15 — dogfood-before-rc sequencing ruling (turn: pre-intake)
+
+**Question (from tech-lead, framed back to customer during dogfood-blocker triage):**
+> Should we cut a new rc (rc13 / rc12.1) that bundles the dogfood-blocker
+> fixes, then run the dogfood harness AGAINST that new rc?
+
+**Customer answer (verbatim):**
+> "no, we dogfood before cutting an rcX. that is why we made the dogfood scripts."
+
+**Implication (paraphrase, not customer text):**
+The canonical pre-release sequence is:
+1. Fixes land on `main` (after `code-reviewer` review per Hard Rule #3).
+2. The dogfood harness runs against `main` via
+   `scripts/upgrade.sh --target main` (untagged-target feature, PR #186).
+3. Only after the dogfood harness PASSes against `main` is the rc tag cut.
+4. The tag's commit is the same SHA that passed dogfood — no post-tag
+   content drift.
+5. A smoke dogfood vs the cut tag confirms identity, then the meta-pointer
+   bumps.
+
+**Cross-refs:** PR #186 (untagged-target feature in `scripts/upgrade.sh`);
+auto-memory entries `feedback_dogfood_before_meta_bump.md` and
+`feedback_dogfood_needs_tui_check.md`;
+`docs/pm/dogfood-2026-05-15-results.md` (trigger for this ruling).
+
+**Supersedes:** none (codifies the dogfood-before-cut discipline previously
+recorded only in auto-memory).
+**Recorded by:** researcher
+
+## 2026-05-15 — v1.0.0-final blocker frame: upgrade-flow reliability (turn: pre-intake)
+
+**Question (from tech-lead, during the same dogfood-blocker triage):**
+> What is the strategic blocker to cutting v1.0.0 (final, non-rc)?
+
+**Customer answer (verbatim):**
+> "the big blocker to going to v1.0.0 in my view is that the upgrade is always buggy."
+
+**Implication (paraphrase, not customer text):**
+v1.0.0 final ships when the upgrade flow is no longer the recurring source
+of regressions. This is a strategic stance — a quality bar, not a numeric
+criterion ("zero bugs ever"). Concretely:
+- Continued upgrade-flow regressions = more rc cycles, not a v1.0.0 cut.
+- Architects considering rc12 → rc13 changes weigh upgrade-flow risk as a
+  first-class quality attribute.
+- Readiness signal: cumulative coverage from the dogfood harness against
+  representative downstreams stabilises — multiple rc-to-rc cycles pass
+  dogfood without surfacing new upgrade-class bugs.
+
+**Triggering observation (paraphrase):** The 2026-05-15 dogfood surfaced
+three fresh upgrade-class bugs (alpha/scaffold rc2→rc12 self-overwrite;
+beta/scaffold v0.13→rc12 manifest drift; the dogfood driver itself
+crashing on real symlink shapes).
+
+**Cross-refs:** Q-0017 (rc8 self-overwrite ruling); FW-ADR-0013 (rc-to-rc
+pre-bootstrap, proposed 2026-05-15); forthcoming FW-ADR-0014
+(preservation-vs-manifest, in flight via architect-b4);
+`docs/pm/dogfood-2026-05-15-results.md`.
+
+**Supersedes:** none (first explicit customer framing of the v1.0.0-final
+blocker).
+**Recorded by:** researcher
