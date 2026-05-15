@@ -40,8 +40,7 @@ Shape per MADR 3.0 + this template's Three-Path Rule
 
 ## Status
 
-- **Proposed** (Accepted upon merge)
-- **Date:** 2026-05-14
+- **Accepted: 2026-05-14**
 - **Deciders:** `architect` + `tech-lead` + customer (public-API change
   to `scripts/upgrade.sh` and to `migrations/v0.14.0.sh`'s
   pre-bootstrap step; customer approval required per CLAUDE.md
