@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "generated": "2026-05-15T00:00:00Z",
+  "template_version": "v1.0.0-rc11",
+  "entries": [
+    {"path": ".claude/agents/researcher.md", "classified": "accepted_local", "baseline_sha": "1111111111111111111111111111111111111111", "upstream_sha": "2222222222222222222222222222222222222222", "project_sha": "3333333333333333333333333333333333333333"},
+    {"path": ".claude/agents/architect.md", "classified": "conflict", "baseline_sha": "4444444444444444444444444444444444444444", "upstream_sha": "5555555555555555555555555555555555555555", "project_sha": "6666666666666666666666666666666666666666"}
+  ]
+}

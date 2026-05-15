@@ -46,3 +46,6 @@ target/
 # via scripts/generate-fixture-snapshots.sh --all (see snapshots/README.md)
 tests/release-gate/snapshots/*
 !tests/release-gate/snapshots/README.md
+
+# Operator-local dogfood fixtures; never commit (project-specific content)
+.dogfood-fixtures/
