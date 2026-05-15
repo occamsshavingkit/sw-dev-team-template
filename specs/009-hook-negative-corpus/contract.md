@@ -2,7 +2,7 @@
 
 **Feature Branch**: `009-hook-negative-corpus`
 **Created**: 2026-05-14
-**Status**: Draft (customer decisions pending — see §Customer decisions)
+**Status**: Draft (customer rulings 2026-05-15 substituted; see §Resolved decisions)
 **Owner**: `qa-engineer` (convention); per-hook detector logic owned by
   `software-engineer`; review-gate enforcement by `code-reviewer`.
 **Input**: Customer ruling 2026-05-14, Class B (hook regex correctness)
@@ -30,8 +30,10 @@ routing.
 ## Negative-corpus categories (binding)
 
 Every detector's corpus MUST cover all six categories the rc7..rc12
-surface produced. Each category carries at least **N = 3 distinct
-inputs** (per-hook extension allowed upward; floor binds).
+surface produced. **N = 3 per category.** Per-hook author may extend
+upward (e.g., for prose categories where variety is wide); minimum
+floor is 3. Total floor per new detector: 18 entries (6 categories ×
+3).
 
 1. **Read-only ops mentioning the protected target.** `grep
    CUSTOMER_NOTES.md`, `wc -l docs/DECISIONS.md`, `diff a b
@@ -48,10 +50,11 @@ inputs** (per-hook extension allowed upward; floor binds).
 5. **Inline-bash / escape-hatch carriers.** `SWDT_AGENT_PUSH=role
    bash -c '...'`, `! SWDT_AGENT_PUSH=role command`, `export
    SWDT_AGENT_PUSH=role; command`. (#176.)
-6. **Cross-harness invocation shapes.** Claude `Bash` payload,
-   inline `!`-bash, Codex shell, command-substitution `$(...)`,
-   heredoc stdin. Each harness mode the hook fires under
-   contributes one entry.
+6. **Cross-harness invocation shapes.** Category 6 MUST be exercised
+   against every harness mode the hook can fire under: Claude Code
+   `Bash` tool, inline `!`-bash, Codex shell, heredoc-fed shells,
+   command-substitution wrappers. Categories 1–5 stay single-harness
+   (Claude `Bash`).
 
 Mode coverage: each command-string detector MUST have at least one
 category-6 entry per harness mode listed in
@@ -62,9 +65,10 @@ is a `code-reviewer` blocker (#119, #122, #124 root cause).
 
 For each `scripts/hooks/<name>.py`:
 
-1. A peer fixture file `tests/hooks/fixtures/<name>.negative.json`
-   lists negative inputs grouped by the six categories. Each entry
-   carries `category`, `input` (tool_input payload or command
+1. A peer fixture file `tests/hooks/fixtures/<hook-name>.yml` lists
+   negative inputs grouped by the six categories. YAML is the
+   project-wide fixture format; the driver supports YAML only. Each
+   entry carries `category`, `input` (tool_input payload or command
    string), `rationale` (one line), `regression` (optional issue
    ID).
 2. Positive fixtures continue to live in
@@ -74,18 +78,23 @@ For each `scripts/hooks/<name>.py`:
 
 ## Verification
 
-`tests/hooks/test-negative-corpora.sh` iterates every
-`tests/hooks/fixtures/*.negative.json`, feeds each entry to the
-corresponding hook's stdin, asserts stdout is empty (proceed). A
-match fails the driver and names (hook, category, input,
-rationale). Registered as a release-gate sub-gate
-(`negative-corpora`, Style A per
-`specs/007-pre-release-upgrade/contracts/sub-gate.contract.md`),
-gating pre-tag.
+**Both surfaces ship.** Defence-in-depth: pre-commit catches the
+single-commit miss early; release-gate catches drift accumulated
+across a multi-commit branch.
 
-Lighter pre-commit option: `scripts/lint-hook-corpora.sh` checks
-every hook has a peer fixture covering all six categories with
-N>=3. Absence or shortfall is a hard lint failure.
+(a) **Pre-commit lint.** `scripts/lint-hook-corpora.sh` checks every
+hook has a peer fixture covering all six categories with N>=3.
+Absence or shortfall is a hard lint failure. Catches missing /
+regressing corpus at commit time (early shift).
+
+(b) **Release-gate sub-gate.** `hook-negative-corpus` sub-gate in
+`scripts/pre-release-gate.sh` runs
+`tests/hooks/test-negative-corpora.sh`, which iterates every
+`tests/hooks/fixtures/*.yml`, feeds each entry to the corresponding
+hook's stdin, asserts stdout is empty (proceed). A match fails the
+driver and names (hook, category, input, rationale). Style A per
+`specs/007-pre-release-upgrade/contracts/sub-gate.contract.md`.
+Catches drift across multi-commit branches before tag.
 
 ## Cross-harness coverage (binding)
 
@@ -97,35 +106,47 @@ proving the hatch is honoured in every mode (#176).
 
 ## Migration
 
-Existing hooks ship without corpora. Two paths — customer picks:
+**Migration M-A retroactive.** `software-engineer` authors negative
+corpora for both existing hooks immediately upon contract landing,
+before next tag:
 
-- **(M-A) Retroactive.** Dispatch `software-engineer` to author
-  corpora for `customer-notes-guard.py` and
-  `tech-lead-authoring-guard.py` before next tag. Effort: medium.
-- **(M-B) On-next-touch.** Grandfather; convention binds on the
-  next functional change. Effort: low short-term; risk: untouched
-  hooks accumulate the same failure modes (#175 was a touch one
-  year after the original write).
+- `scripts/hooks/customer-notes-guard.py`
+- `scripts/hooks/tech-lead-authoring-guard.py`
 
-## Customer decisions (enumerated, not picked)
+Effort: medium. Two hooks × six categories × 3 entries floor = 36
+fixture entries minimum.
 
-1. **N per category.** Spec proposes 3. Alternatives: 2 (lighter),
-   5 (heavier), per-category N.
-2. **Migration path.** M-A vs. M-B.
-3. **Cross-harness scope.** All six categories × every mode (full
-   matrix) vs. category 6 × every mode (current spec) vs.
-   category 6 × Claude `Bash` only (lightest).
-4. **Verification surface.** Release-gate sub-gate (current) vs.
-   pre-commit lint vs. both.
-5. **Fixture format.** Per-hook author picks (current) vs.
-   project-wide single format.
+## Resolved decisions (appendix)
+
+Customer rulings 2026-05-15:
+
+1. **N per category = 3** (qa-engineer's recommendation). Total
+   floor per new detector: 18 entries. Per-hook author may extend
+   upward.
+2. **Migration M-A retroactive.** `software-engineer` authors
+   corpora for both existing hooks
+   (`scripts/hooks/customer-notes-guard.py` and
+   `scripts/hooks/tech-lead-authoring-guard.py`) immediately upon
+   contract landing.
+3. **Cross-harness scope.** Category 6 × every harness mode
+   (Claude `Bash`, inline `!`-bash, Codex shell, heredoc,
+   command-substitution). Categories 1–5 stay single-harness
+   (Claude `Bash`).
+4. **Verification surface.** BOTH pre-commit lint AND release-gate
+   sub-gate (`hook-negative-corpus` in
+   `scripts/pre-release-gate.sh`).
+5. **Fixture format.** YAML project-wide. Driver supports YAML
+   only. Per-hook fixture files at
+   `tests/hooks/fixtures/<hook-name>.yml`.
 
 ## Effort (adoption, existing hooks)
 
-**Low–medium.** Two hooks × six categories × ~3 entries ≈ 36
-fixture entries, plus a driver (~80 lines, mirrors
-`test-tech-lead-authoring-guard.sh`) and an optional lint (~40
-lines). Skews medium if M-A picked, low if M-B.
+**Medium.** Two hooks × six categories × 3 entries = 36 fixture
+entries minimum (category 6 expands with harness-mode count). Plus
+a YAML-aware driver (~80 lines, mirrors
+`test-tech-lead-authoring-guard.sh`) and the pre-commit lint (~40
+lines). M-A retroactive is bound, so both existing hooks are in
+scope immediately.
 
 ## Relationship to other artefacts
 
@@ -134,6 +155,13 @@ lines). Skews medium if M-A picked, low if M-B.
   candidate tree, hooks perturb `tool_input`. Borrows Style-A
   discipline (PID-scoped markers, revert verification) for driver
   tempfiles; does not extend sub-gate.contract.md.
+- **`specs/008-upgrade-matrix-fixtures/`.** Companion attack on
+  Class A (upgrade machinery) of the rc7..rc12 surface; this
+  contract attacks Class B (hook regex correctness). Both register
+  release-gate sub-gates with matching Style-A discipline.
+- **`specs/010-toc-build-time-strip/`.** No direct overlap; cited
+  for awareness that fixture files under `tests/hooks/fixtures/`
+  are out of the TOC-strip predicate (no TOC blocks).
 - **FW-ADR-0012 §Verification.** Hook test discipline is cited
   there for `tech-lead-authoring-guard.py`; this contract is the
   cross-cutting generalisation. No supersession.
