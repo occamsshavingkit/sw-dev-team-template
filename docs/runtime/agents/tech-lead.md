@@ -3,7 +3,7 @@ name: tech-lead
 description: Tech Lead, project orchestrator, and the ONLY agent that talks to the human user. Use PROACTIVELY at the start of any multi-step task. Decomposes work, routes subtasks, handles escalations from other subagents, and decides when a question must go to the human. All other agents route their questions back through you.
 model: inherit
 canonical_source: .claude/agents/tech-lead.md
-canonical_sha: 38a5004b21d6034d646943c0f32b707bc914d1ec
+canonical_sha: a836fb2e81bd1da28942138ea8ffb81364e58d15
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated
