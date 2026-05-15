@@ -53,7 +53,7 @@ If either condition fails for every refspec, the hook is in advisory mode.
 
 ## Override audit row (data-model.md E-7)
 
-Appended to `docs/pm/pre-release-gate-overrides.md` BEFORE the hook returns 0 in bypass mode. Schema v2 per FW-ADR-0010 (customer-ruled 2026-05-14) adds a `Gate` column at position 2; the pre-push hook always writes `pre-release` there (the `pre-bootstrap` value is reserved for `scripts/upgrade.sh` / `migrations/v0.14.0.sh` bypass rows under `SWDT_PREBOOTSTRAP_FORCE=1`). Format:
+Appended to `docs/pm/pre-release-gate-overrides.md` BEFORE the hook returns 0 in bypass mode. This contract is the consumer view of the FW-ADR-0010 audit-row schema; FW-ADR-0010 is the normative source and spec 007's E-7 mirrors it for traceability. Schema v2 per FW-ADR-0010 (customer-ruled 2026-05-14) adds a `Gate` column at position 2; the pre-push hook always writes `pre-release` there (the `pre-bootstrap` value is reserved for `scripts/upgrade.sh` / `migrations/v0.14.0.sh` bypass rows under `SWDT_PREBOOTSTRAP_FORCE=1`, owned by FW-ADR-0010). Format:
 
 ```text
 | 2026-05-14 | pre-release | abc1234 | v1.0.0-rc11 | user@host | hot-fix tag; gate red on cross-MAJOR | upgrade-paths,advisory-pointers |

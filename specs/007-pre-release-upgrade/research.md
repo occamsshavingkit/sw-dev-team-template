@@ -184,6 +184,8 @@ Both checks must pass for the migration sub-gate to PASS. Either failure names t
 
 ## R-11: Override audit-log enforcement
 
+**Scope**: R-11 owns the pre-push (`SKIP_PRE_RELEASE_GATE=1`) producer-side enforcement procedure only. The audit-row schema and the `SWDT_PREBOOTSTRAP_FORCE=1` pre-bootstrap producer side are owned by FW-ADR-0010; spec 007's E-7 is the consumer view of that schema.
+
 **Decision**: When `SKIP_PRE_RELEASE_GATE=1` is set on a strict-mode push, the hook MUST:
 1. Append an audit row to `docs/pm/pre-release-gate-overrides.md` BEFORE the push completes (via a one-line `printf >> ...`);
 2. Print the appended row to stderr so the operator sees what was logged;
