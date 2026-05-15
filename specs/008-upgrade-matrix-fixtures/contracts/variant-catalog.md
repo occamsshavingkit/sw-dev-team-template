@@ -78,10 +78,10 @@ The generator script (rc13 implementation) reads a registry at `tests/fixtures/d
 
 1. Append the variant name to `_variants.list`.
 2. Author the mutation script (`_mutations.sh`) — deterministic, idempotent, uses no external network.
-3. Run the generator against every eligible source-rc; commit the resulting snapshots.
+3. Run the generator against every eligible source-rc to materialise snapshots locally; snapshots are gitignored (spec FR-003), so nothing snapshot-side is committed — only the mutation scripts and registry entry.
 4. Add a row to this catalog naming the mutation, the rc-cycle issue it catches, and the source-rc range.
 5. Document the wall-clock impact; if it pushes the default-on matrix past the FR-005 ~8 min budget, mark default-off.
 
 ## Removing a variant
 
-Removing a variant deletes its row here, its mutation scripts, and all its committed snapshots. Removal is a breaking change to the diagnostic format (one less `(rc, variant)` pair); record in the rc's CHANGELOG.
+Removing a variant deletes its row here and its mutation scripts. Snapshots are gitignored (spec FR-003), so removal does not touch committed snapshot trees; existing local snapshots become orphaned and are cleared on the next `--all` run. Removal is a breaking change to the diagnostic format (one less `(rc, variant)` pair); record in the rc's CHANGELOG.

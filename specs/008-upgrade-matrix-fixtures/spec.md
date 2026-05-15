@@ -60,7 +60,9 @@ Each variant has a one-paragraph rationale in `specs/008-upgrade-matrix-fixtures
 
 ### FR-003 — Generation procedure
 
-Fixtures are generated, not hand-curated. A generator script (out-of-scope here; lives at `tests/fixtures/downstream-snapshots/_generate.sh` in rc13 implementation) runs: `scaffold-from-tag` → apply variant-specific canned mutations (recorded under `<variant>/_mutations.sh`) → snapshot. The generator is **reproducible given fixed inputs**: the generator inputs are `(source-rc tag SHA, variant name, generator version)`, and re-running against the same triple produces equivalent output. Defining the byte-level normalisation set (timestamps, git index ordering, file-mode bits, locale-dependent sort, embedded SHAs / dates in scaffolded files such as `TEMPLATE_VERSION` and intake logs) is deferred to the generator sub-task — the implementation enumerates and applies normalisations; this spec only guarantees input-fixity reproducibility. Snapshots are committed to the repo so the gate doesn't regenerate on every run; the generator is invoked manually at every rc cut to refresh / extend.
+Fixtures are generated, not hand-curated. A generator script (out-of-scope here; lives at `tests/fixtures/downstream-snapshots/_generate.sh` in rc13 implementation) runs: `scaffold-from-tag` → apply variant-specific canned mutations (recorded under `<variant>/_mutations.sh`) → snapshot. The generator is **reproducible given fixed inputs**: the generator inputs are `(source-rc tag SHA, variant name, generator version)`, and re-running against the same triple produces equivalent output. Defining the byte-level normalisation set (timestamps, git index ordering, file-mode bits, locale-dependent sort, embedded SHAs / dates in scaffolded files such as `TEMPLATE_VERSION` and intake logs) is deferred to the generator sub-task — the implementation enumerates and applies normalisations; this spec only guarantees input-fixity reproducibility.
+
+Snapshots are **gitignored** and regenerated per clone via `scripts/generate-fixture-snapshots.sh --all`. The snapshot directory carries a `README.md` exception that DOES track (for operator discoverability of regen instructions); see `tests/release-gate/snapshots/README.md`. Rationale: implementation surfaced the on-disk size at ~22 MB (16 trees × ~1-2 MB each), 300× the pre-impl ~45 KB estimate, which fires FR-007's revisit trigger ("too large to git-diff"). The generator is invoked manually at every rc cut to refresh / extend, and re-run by operators after clone or after any `git pull` that touches the generator or mutation scripts.
 
 Meta-tests: `qa-engineer` owns regression tests for the `_mutations.sh` scripts themselves (e.g., golden-output assertions on each mutation applied to a known source tree). Mutation scripts are code and can regress; the meta-tests are part of the rc13 implementation sub-task.
 
@@ -83,19 +85,19 @@ Spec-007 FR-012 sizing reference: ~15 source tags × 1 fixture = ~20s/round-trip
 
 A skip file `tests/release-gate/upgrade-matrix-skip.txt` (same format as the existing allowlist; `<tag>` or `<tag>:<variant>` rows) excludes named pairs from execution entirely (distinct from allowlist, which runs the pair and logs the failure non-blockingly). Used for permanently-out-of-scope pairs (e.g., cross-MAJOR + extended variant whose generator can't produce a sane fixture). Default empty.
 
-### FR-007 — Recovery procedure when snapshot diverges from generator output
+### FR-007 — Recovery procedure when snapshots are missing or stale
 
-A committed snapshot can drift from current generator output for two reasons:
+Under gitignored-mirror storage (FR-003), snapshots do not exist on a fresh clone and may go stale on an existing clone after a `git pull` that changed the generator or mutation scripts. Two failure shapes:
 
-- **Legitimate generator fix.** Generator was buggy; new output is correct. Action: regenerate affected snapshots, commit, note in CHANGELOG (one line per affected `(rc, variant)` cluster).
-- **Accidental drift.** Hand-edited fixture, or the source-rc lineage changed under the snapshot (e.g., force-pushed tag). Action: revert the edit, regenerate from the unmodified generator, investigate the cause.
+- **Missing snapshots (fresh clone or pruned tree).** First gate run fails fast with a diagnostic naming the expected snapshot path and the regen command (`scripts/generate-fixture-snapshots.sh --all`). Operators may also run `--all` proactively after clone. There is no committed baseline to diff against, so "drift" is not detectable until snapshots are produced locally.
+- **Stale snapshots (generator or mutations changed under operator).** The generator's `--check` mode re-runs the pipeline in-memory and compares against on-disk snapshots, classifying any mismatch as "snapshots do not match what the current generator + mutations would produce." The operator then re-runs `--all` to refresh. Per-operator staleness is also caught by the (currently opt-in) post-checkout hook that triggers `--all` after generator-touching pulls.
 
-The generator exposes a `--check` mode that re-runs the pipeline in-memory and compares against each committed snapshot. `scripts/pre-release-gate.sh` invokes `--check` during `upgrade-paths` setup; any divergence fails the gate with a diagnostic naming the `(source-rc, variant)` pair and a truncated diff. The operator classifies legitimate fix vs. drift and acts. Without this check, FR-003's "regenerate at every rc cut" silently masks fixture-corruption bugs. `--check` is bounded by FR-005's wall-clock budget; if it exceeds, split into a default fast hash-compare path and an opt-in full-diff path.
+`scripts/pre-release-gate.sh` invokes `--check` during `upgrade-paths` setup; any divergence fails the gate with a diagnostic naming the `(source-rc, variant)` pair, a truncated diff, and the regen command. `--check` is bounded by FR-005's wall-clock budget; if it exceeds, split into a default fast hash-compare path and an opt-in full-diff path. Genuine generator fixes (output legitimately changed) and accidental hand-edits both surface as `--check` failures; classification is the operator's call — for fixes, re-run `--all` and note in CHANGELOG (one line per affected `(rc, variant)` cluster); for hand-edits, discard local snapshots and re-run `--all`.
 
 ### FR-008 — Migration path (rc13 implementation sequence)
 
 1. rc13 cut: this spec lands; design reviewed.
-2. rc13 implementation sub-task: generator script + canned-mutation scripts for the three required variants; snapshots committed for every then-eligible source-rc (currently rc3..rc12 minus excluded).
+2. rc13 implementation sub-task: generator script + canned-mutation scripts for the three required variants; snapshot directory gitignored with a tracked `README.md` exception (per FR-003); operators run `scripts/generate-fixture-snapshots.sh --all` post-clone to materialise snapshots for every then-eligible source-rc (currently rc3..rc12 minus excluded).
 3. rc13 implementation sub-task: `gate_subgate_upgrade-paths` rewired to iterate the matrix; allowlist + skip formats extended.
 4. Canonical: every rc cut from rc14 forward refreshes the snapshot for the newly-published tag before tagging the next rc. Adding a new source-rc to the matrix is a documented step in the rc-cut checklist.
 
@@ -105,8 +107,9 @@ No pending customer-facing decisions remain for this spec.
 
 - **Q-008a (resolved 2026-05-15)** — Wall-clock budget for the default-on matrix. Ruling: LOOSEN to ~8 min. Run all three default-on variants (`clean`, `with-customizations`, `with-accepted-local`) in full across the documented source-rc range. Waives spec-007 FR-012's 5-min limit for the `upgrade-paths` sub-gate only. Reflected in FR-005.
 - **Q-008b (resolved 2026-05-15)** — Cross-MAJOR scope. Ruling: STAY v1.0.0-only for all variants. Pre-v0.16.0 + rc1/rc2 remain out-of-scope per Q-0017 ans A; matches existing `gate_enumerate_source_tags` enumeration cap in `scripts/lib/gate-tags.sh`. Reflected in FR-001.
+- **Q-008d (2026-05-15 morning, reversed 2026-05-15 evening)** — Snapshot storage. Ruling: snapshots are **gitignored** and regenerated per clone via `scripts/generate-fixture-snapshots.sh --all`. The initial morning ruling was "commit snapshots" based on a pre-impl ~45 KB total estimate. Implementation surfaced actual size at ~22 MB (300× the estimate); customer reversed the ruling per FR-007's revisit trigger ("too large to git-diff"). Reflected in FR-003 and FR-007.
 
-Decisions made in-spec (no customer question): optional-variant default-off in v1 (FR-005, revisit after rc14+ once frequency data exists); snapshots committed to the repo (FR-003, regenerate-on-demand only revisited if fixture trees become too large to git-diff).
+Decisions made in-spec (no customer question): optional-variant default-off in v1 (FR-005, revisit after rc14+ once frequency data exists).
 
 ## Success criteria
 
