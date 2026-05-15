@@ -961,6 +961,14 @@ ship_files=$(cd "$workdir/new" && git ls-files \
 # (one path per line, project-root-relative) in .template-customizations.
 # Those paths are skipped entirely by upgrade: never overwritten, never
 # flagged as conflicts.
+#
+# Per FW-ADR-0014, the preserve-list is no longer authoritative on its own.
+# At sync time each entry is classified by should_preserve() against
+# (a) project-vs-baseline divergence and (b) the destination manifest's
+# fresh-write declaration. Inert entries silently drop; genuine
+# manifest-vs-customisation conflicts refuse with exit 2 unless
+# SWDT_PRESERVATION_FORCE=1. The on-disk file is untouched here — the
+# opt-in pruning migration (migrations/v1.0.0-rc14.sh) is the only writer.
 declare -A preserve_list=()
 customizations_file="$project_root/.template-customizations"
 if [[ -f "$customizations_file" ]]; then
@@ -972,6 +980,126 @@ if [[ -f "$customizations_file" ]]; then
     preserve_list["$line"]=1
   done < "$customizations_file"
 fi
+
+# --- FW-ADR-0014: preservation decision helper -------------------------------
+#
+# Classify a preserve-list entry against project divergence and the
+# destination manifest's fresh-write declaration. Returns one of:
+#
+#   preserve          — divergence AND path not declared fresh-write
+#   drop-inert        — no divergence (inert entry; sync proceeds)
+#   refuse-conflict   — divergence AND path declared fresh-write
+#                       (manifest contradiction; caller must refuse
+#                       unless SWDT_PRESERVATION_FORCE=1)
+#
+# Reads (caller-supplied via positional args):
+#   $1  project-relative path
+#   $2  workdir/new (upstream new clone)
+#   $3  workdir/old (upstream baseline clone, or empty when unreachable)
+#   $4  project_root
+#   $5  baseline_available (0/1)
+#
+# When baseline is unreachable (baseline_available=0) we cannot prove
+# the project is at the same content as the baseline — every diverged-
+# from-upstream path is treated as divergence (conservative, matches
+# the existing "no baseline" comment in the sync classifier below).
+should_preserve() {
+  local path="$1"
+  local wnew="$2"
+  local wold="$3"
+  local proot="$4"
+  local b_avail="$5"
+
+  local proj_file="$proot/$path"
+  if [[ ! -f "$proj_file" ]]; then
+    # Project doesn't have the file at all — nothing to preserve. The
+    # sync loop will fall through to its add path (or skip if upstream
+    # also lacks it). Treat as drop-inert.
+    echo "drop-inert"
+    return 0
+  fi
+
+  # Divergence check: project vs baseline.
+  local diverged=0
+  if [[ "$b_avail" == "1" && -n "$wold" && -f "$wold/$path" ]]; then
+    if ! cmp -s "$wold/$path" "$proj_file"; then
+      diverged=1
+    fi
+  else
+    # Baseline unreachable for this path. Conservative: compare project
+    # against new upstream. If they match, there's nothing custom to
+    # preserve (drop-inert). If they differ, we cannot prove which
+    # change introduced the diff, so treat as diverged.
+    if [[ -f "$wnew/$path" ]] && cmp -s "$wnew/$path" "$proj_file"; then
+      diverged=0
+    else
+      diverged=1
+    fi
+  fi
+
+  if [[ $diverged -eq 0 ]]; then
+    echo "drop-inert"
+    return 0
+  fi
+
+  # Divergence is real. Now check the destination manifest's fresh-write
+  # declaration.
+  if manifest_declares_fresh_write "$path" "$wnew" "$wold"; then
+    echo "refuse-conflict"
+  else
+    echo "preserve"
+  fi
+  return 0
+}
+
+# --- FW-ADR-0014: preservation refusal block-artefact writer -----------------
+#
+# Mirrors the FW-ADR-0010 pre-bootstrap block-artefact writer. Emits
+# .template-preservation-blocked.json at project root. Reads three
+# parallel arrays populated by the sync loop's classification pass:
+#
+#   preservation_refused_paths[]
+#   preservation_refused_project_shas[]
+#   preservation_refused_baseline_shas[]
+#   preservation_refused_manifest_shas[]
+#
+# Format: schema parallel to .template-prebootstrap-blocked.json
+# (version 1, generated, reason_summary, blocked[] sorted by path).
+write_preservation_block_artefact() {
+  local out="$1"
+  local tmp
+  tmp="$(mktemp "$out.tmp.XXXXXX")"
+  {
+    printf '{\n'
+    printf '  "version": 1,\n'
+    printf '  "generated": "%s",\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf '  "reason_summary": "manifest-fresh-write-vs-customisation",\n'
+    printf '  "blocked": [\n'
+    # Build a sortable list (path -> index) so output is deterministic.
+    local sorted_idx=()
+    while IFS= read -r idx_line; do
+      sorted_idx+=("${idx_line#*:}")
+    done < <(
+      for j in "${!preservation_refused_paths[@]}"; do
+        printf '%s:%s\n' "${preservation_refused_paths[$j]}" "$j"
+      done | LC_ALL=C sort
+    )
+    local first=1
+    for j in "${sorted_idx[@]}"; do
+      [[ $first -eq 0 ]] && printf ',\n'
+      first=0
+      printf '    {\n'
+      printf '      "path": "%s",\n' "${preservation_refused_paths[$j]}"
+      printf '      "project_sha": "%s",\n' "${preservation_refused_project_shas[$j]}"
+      printf '      "baseline_sha": "%s",\n' "${preservation_refused_baseline_shas[$j]}"
+      printf '      "manifest_declared_sha": "%s",\n' "${preservation_refused_manifest_shas[$j]}"
+      printf '      "reason": "manifest-fresh-write-vs-customisation"\n'
+      printf '    }'
+    done
+    printf '\n  ]\n}\n'
+  } > "$tmp"
+  mv "$tmp" "$out"
+}
 
 # Agent-name-aware compare (issue #64).
 #
@@ -1058,6 +1186,16 @@ shortstat_between() {
 }
 
 added=(); upgraded=(); kept=(); conflicts=(); local_only_kept=(); accepted_local=(); preserved=()
+# FW-ADR-0014: per-path classification of preserve-list entries.
+#   dropped_inert[]     — entries with no divergence (silently dropped).
+#   preservation_refused_paths[] (+ parallel SHA arrays) — entries that
+#     hit the manifest-fresh-write-vs-customisation conflict and need
+#     a block-artefact row.
+dropped_inert=()
+preservation_refused_paths=()
+preservation_refused_project_shas=()
+preservation_refused_baseline_shas=()
+preservation_refused_manifest_shas=()
 # Issue #110: pre-existing collisions — files that the project had
 # locally BEFORE upstream started shipping them. Identified by:
 # baseline-tree did NOT contain the file, project tree DOES, upstream
@@ -1092,10 +1230,49 @@ for f in $ship_files; do
   new_path="$workdir/new/$f"
   proj_path="$project_root/$f"
 
-  # Honor .template-customizations: skip preserved paths entirely.
+  # Honor .template-customizations, gated by FW-ADR-0014's
+  # divergence-AND-manifest-respecting rule (see should_preserve()).
   if [[ -n "${preserve_list[$f]:-}" ]]; then
-    preserved+=("$f")
-    continue
+    case "$(should_preserve "$f" "$workdir/new" "$workdir/old" "$project_root" "$baseline_available")" in
+      preserve)
+        preserved+=("$f")
+        continue
+        ;;
+      drop-inert)
+        # Inert entry — silently drop from the in-memory preserve set
+        # and fall through to the normal sync classifier so the path
+        # gets the upstream content. The on-disk file is not rewritten
+        # here; the opt-in pruning migration is the only writer.
+        dropped_inert+=("$f")
+        ;;
+      refuse-conflict)
+        # Manifest-fresh-write-vs-customisation collision. Record per-
+        # path detail; the post-loop refusal handler emits the block
+        # artefact (or, with SWDT_PRESERVATION_FORCE=1, appends an
+        # audit row and falls through to the normal classifier).
+        proj_sha_p=""
+        baseline_sha_p=""
+        manifest_sha_p=""
+        if [[ -f "$project_root/$f" ]]; then
+          proj_sha_p="$(manifest_file_sha "$project_root/$f")"
+        fi
+        if [[ $baseline_available -eq 1 && -f "$workdir/old/$f" ]]; then
+          baseline_sha_p="$(manifest_file_sha "$workdir/old/$f")"
+        fi
+        if [[ -f "$workdir/new/$f" ]]; then
+          manifest_sha_p="$(manifest_file_sha "$workdir/new/$f")"
+        fi
+        preservation_refused_paths+=("$f")
+        preservation_refused_project_shas+=("$proj_sha_p")
+        preservation_refused_baseline_shas+=("$baseline_sha_p")
+        preservation_refused_manifest_shas+=("$manifest_sha_p")
+        # Default action when not forced: preserve (do not overwrite
+        # the customisation). The post-loop handler will refuse the
+        # whole upgrade if any refusals remain unforced.
+        preserved+=("$f")
+        continue
+        ;;
+    esac
   fi
 
   if [[ "$f" == "AGENTS.md" ]] && memory_only_agents_stub "$proj_path"; then
@@ -1223,6 +1400,108 @@ for f in $ship_files; do
   fi
 done
 
+# --- FW-ADR-0014: preservation-vs-manifest refusal handler ------------------
+#
+# If any entry hit the refuse-conflict row, either:
+#   (a) honour SWDT_PRESERVATION_FORCE=1 — append one audit row per
+#       refused path to docs/pm/pre-release-gate-overrides.md with
+#       Gate=preservation, then atomically install the upstream
+#       content over the divergent project file. Removes any stale
+#       block artefact.
+#   (b) write .template-preservation-blocked.json and exit 2 (the
+#       refuse-on-uncertain posture; matches FW-ADR-0010).
+#
+# dry-run: print the planned refusal / override; change nothing.
+preservation_block_artefact="$project_root/.template-preservation-blocked.json"
+if [[ ${#preservation_refused_paths[@]} -gt 0 ]]; then
+  if [[ "${SWDT_PRESERVATION_FORCE:-}" == "1" ]]; then
+    override_log_p="$project_root/docs/pm/pre-release-gate-overrides.md"
+    if [[ ! -w "$override_log_p" ]]; then
+      echo "ERROR: SWDT_PRESERVATION_FORCE=1 set, but $override_log_p is unwritable." >&2
+      echo "       Refusing to bypass without an audit row. Fix permissions and re-run." >&2
+      exit 2
+    fi
+    date_iso_p="$(date -u +%Y-%m-%d)"
+    operator_p="$(git config user.email 2>/dev/null || echo "${USER:-unknown}@$(hostname 2>/dev/null || echo unknown)")"
+    force_reason_p="${SWDT_PRESERVATION_FORCE_REASON:-unspecified}"
+    new_sha_short_p="${new_sha:-}"
+    if [[ -n "$new_sha_short_p" ]]; then
+      new_sha_short_p="${new_sha_short_p:0:12}"
+    else
+      new_sha_short_p="(preservation)"
+    fi
+    if [[ $dry_run -eq 0 ]]; then
+      for j in "${!preservation_refused_paths[@]}"; do
+        row="| $date_iso_p | preservation | $new_sha_short_p | | $operator_p | manifest-fresh-write-vs-customisation:${preservation_refused_paths[$j]} ($force_reason_p) | |"
+        printf '%s\n' "$row" >> "$override_log_p"
+        echo "WARN: SWDT_PRESERVATION_FORCE=1 — overriding preservation block on ${preservation_refused_paths[$j]}" >&2
+      done
+      echo "WARN: preservation audit row(s) appended to $override_log_p" >&2
+      # Install upstream content over each refused project file. These
+      # paths were classified `preserved` during the sync loop; the
+      # force path now reclassifies them as `upgraded` and writes the
+      # upstream bytes.
+      for f_p in "${preservation_refused_paths[@]}"; do
+        # Remove the path from preserved[] (rebuild without it).
+        # NB: the `[@]:-` rebuild idiom is unsafe — when the source
+        # array is empty, `("${arr[@]:-}")` yields a one-element
+        # empty-string array, not an empty array. Guard on length
+        # instead. (CR blocker B-1, branch
+        # fix/blocker-4-preservation-vs-manifest.)
+        new_preserved=()
+        if [ "${#preserved[@]}" -gt 0 ]; then
+          for q in "${preserved[@]}"; do
+            [[ "$q" == "$f_p" ]] && continue
+            new_preserved+=("$q")
+          done
+        fi
+        if [ "${#new_preserved[@]}" -gt 0 ]; then
+          preserved=("${new_preserved[@]}")
+        else
+          preserved=()
+        fi
+        # Stage upstream content via the atomic helper used by the
+        # main sync loop.
+        if [[ -f "$workdir/new/$f_p" ]]; then
+          mkdir -p "$(dirname "$project_root/$f_p")"
+          atomic_install "$workdir/new/$f_p" "$project_root/$f_p"
+        fi
+        upgraded+=("$f_p")
+      done
+      rm -f "$preservation_block_artefact"
+    else
+      echo "(dry-run: would override preservation block on ${#preservation_refused_paths[@]} path(s) and append audit rows to $override_log_p)" >&2
+    fi
+  else
+    if [[ $dry_run -eq 0 ]]; then
+      write_preservation_block_artefact "$preservation_block_artefact"
+    fi
+    echo >&2
+    echo "ERROR: preservation refused — preserve-list path(s) collide with destination manifest fresh-write declaration." >&2
+    for j in "${!preservation_refused_paths[@]}"; do
+      echo "  ${preservation_refused_paths[$j]}: project diverges AND release ships new content (manifest-fresh-write-vs-customisation)" >&2
+    done
+    if [[ $dry_run -eq 0 ]]; then
+      echo >&2
+      echo "Block artefact: $preservation_block_artefact" >&2
+    else
+      echo "(dry-run: would have written $preservation_block_artefact)" >&2
+    fi
+    echo "Recovery:" >&2
+    echo "  - Inspect the diff at each blocked path and decide whether the" >&2
+    echo "    project customisation should win (remove the upstream change," >&2
+    echo "    re-run upgrade) or whether the release content should win" >&2
+    echo "    (SWDT_PRESERVATION_FORCE=1 — overwrites the project file)." >&2
+    echo "  - To bypass (overwrite every refused path, audit-logged):" >&2
+    echo "      SWDT_PRESERVATION_FORCE=1 scripts/upgrade.sh ..." >&2
+    echo "    (Optionally set SWDT_PRESERVATION_FORCE_REASON='<note>' for the audit row.)" >&2
+    exit 2
+  fi
+else
+  # No refusals — clear any stale block artefact from a prior run.
+  rm -f "$preservation_block_artefact"
+fi
+
 # --- Retrofit docs/intake-log.md (T041 / FR-013) -----------------------------
 # The template ships docs/templates/intake-log-template.md but does not
 # git-track docs/intake-log.md (it's project-owned, append-only customer-truth
@@ -1333,9 +1612,19 @@ EOF
         printf '    {"path": "%s", "classified": "%s", "baseline_sha": "%s", "upstream_sha": "%s", "project_sha": "%s"}' \
           "$path" "$classified" "$baseline_sha" "$upstream_sha" "$project_sha"
       }
-      for f in "${conflicts[@]:-}"; do [[ -n "$f" ]] && emit_entry "$f" "conflict"; done
-      for f in "${local_only_kept[@]:-}"; do [[ -n "$f" ]] && emit_entry "$f" "local_only_kept"; done
-      for f in "${accepted_local[@]:-}"; do [[ -n "$f" ]] && emit_entry "$f" "accepted_local"; done
+      # Avoid the `[@]:-` iteration idiom — under `set -u` on modern
+      # bash, `"${arr[@]}"` over an empty array is safe; the `[@]:-`
+      # form injects a phantom empty-string iteration. Gate on length
+      # instead. (CR blocker B-1.)
+      if [ "${#conflicts[@]}" -gt 0 ]; then
+        for f in "${conflicts[@]}"; do emit_entry "$f" "conflict"; done
+      fi
+      if [ "${#local_only_kept[@]}" -gt 0 ]; then
+        for f in "${local_only_kept[@]}"; do emit_entry "$f" "local_only_kept"; done
+      fi
+      if [ "${#accepted_local[@]}" -gt 0 ]; then
+        for f in "${accepted_local[@]}"; do emit_entry "$f" "accepted_local"; done
+      fi
       printf '\n  ]\n}\n'
     } > "$conflicts_path"
   else
@@ -1371,11 +1660,13 @@ fi
 # the 'added' list; no filtering needed here beyond the prefix match.
 # Upstream issue #36.
 new_agents=()
-for f in "${added[@]:-}"; do
-  case "$f" in
-    .claude/agents/*.md) new_agents+=("$f") ;;
-  esac
-done
+if [ "${#added[@]}" -gt 0 ]; then
+  for f in "${added[@]}"; do
+    case "$f" in
+      .claude/agents/*.md) new_agents+=("$f") ;;
+    esac
+  done
+fi
 if [[ ${#new_agents[@]} -gt 0 ]]; then
   echo "${prefix}ACTION REQUIRED: restart Claude Code to register ${#new_agents[@]} new agent(s)."
   echo "${prefix}  The agent registry is initialized at session start and does not rescan"
@@ -1458,7 +1749,9 @@ if [[ ${#preserved[@]} -gt 0 ]]; then
 fi
 
 if [[ $dry_run -eq 0 ]]; then
-  echo "Done. TEMPLATE_VERSION now $new_version / $new_sha."
+  # FW-ADR-0014 two-phase tail.
+  # Phase A — migration chain complete signal (grep-stable literal).
+  echo "Migration chain complete (TEMPLATE_VERSION now $new_version)."
   if [[ ${#conflicts[@]} -gt 0 ]]; then
     echo "Resolve the ${#conflicts[@]} conflict(s) above, then commit."
     echo "Unresolved conflicts persisted to .template-conflicts.json;"
@@ -1466,6 +1759,38 @@ if [[ $dry_run -eq 0 ]]; then
     echo "  After hand-merging, run scripts/upgrade.sh --resolve to clear."
   elif [[ ${#local_only_kept[@]} -gt 0 || ${#accepted_local[@]} -gt 0 ]]; then
     echo "Manifest verifies clean; remaining listed files are local customizations, not upgrade blockers."
+  fi
+
+  # Phase B — verification. Re-invoke the existing --verify formatter
+  # (manifest_verify from scripts/lib/manifest.sh) and map its result
+  # onto exit codes 0 / 1 / 2 per FW-ADR-0014 Q2.
+  #
+  # Exit codes:
+  #   0  clean      — verify reports OK and no preservation refusal.
+  #   1  drift      — verify reports drift (rc 1) or corrupt manifest
+  #                   (rc 3) — both indicate the post-upgrade project
+  #                   state is not in the shape the manifest claims.
+  #   2  refusal    — preservation refusal artefact present at project
+  #                   root (handled above via exit 2; never reaches
+  #                   this block, but the discriminator is documented
+  #                   here for completeness).
+  verify_rc=0
+  manifest_verify "$project_root" "$project_root/TEMPLATE_MANIFEST.lock" || verify_rc=$?
+  if [[ $verify_rc -eq 0 ]]; then
+    echo "Verification: clean."
+  else
+    # manifest_verify already printed its per-path drift report to
+    # stdout above; nothing extra needed here. Map rc to exit code.
+    if [[ -f "$preservation_block_artefact" ]]; then
+      # Unreachable in practice (refusal handler exits before stamping)
+      # but keep the mapping documented.
+      exit 2
+    fi
+    if [[ $verify_rc -eq 1 || $verify_rc -eq 3 ]]; then
+      exit 1
+    fi
+    # rc 2 means "manifest missing/unreadable" — surface as drift.
+    exit 1
   fi
 
   # Issue #155: when the upgrade preserves custom canonical agent files
@@ -1479,18 +1804,20 @@ if [[ $dry_run -eq 0 ]]; then
   lint_script="$project_root/scripts/lint-agent-contracts.sh"
   if [[ -x "$lint_script" ]]; then
     preserved_canonical_agents=()
-    for pf in "${preserved[@]:-}"; do
-      case "$pf" in
-        .claude/agents/*.md)
-          # Skip sme-* / *-local / sme-template — those aren't canonical
-          # contract surfaces per lint-agent-contracts.sh's surface 1.
-          case "$pf" in
-            .claude/agents/sme-*.md|.claude/agents/*-local.md) ;;
-            *) preserved_canonical_agents+=("$pf") ;;
-          esac
-          ;;
-      esac
-    done
+    if [ "${#preserved[@]}" -gt 0 ]; then
+      for pf in "${preserved[@]}"; do
+        case "$pf" in
+          .claude/agents/*.md)
+            # Skip sme-* / *-local / sme-template — those aren't canonical
+            # contract surfaces per lint-agent-contracts.sh's surface 1.
+            case "$pf" in
+              .claude/agents/sme-*.md|.claude/agents/*-local.md) ;;
+              *) preserved_canonical_agents+=("$pf") ;;
+            esac
+            ;;
+        esac
+      done
+    fi
     if [[ ${#preserved_canonical_agents[@]} -gt 0 ]]; then
       lint_log="$(mktemp -t upgrade-lint-XXXXXX.log)"
       lint_rc=0

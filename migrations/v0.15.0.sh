@@ -32,6 +32,36 @@ set -euo pipefail
 # shellcheck disable=SC1091
 source "$WORKDIR_NEW/scripts/lib/manifest.sh"
 
+# --- FW-ADR-0014: divergence pre-check (advisory) -----------------------------
+# Walk .template-customizations and warn (do not refuse, do not edit) for
+# entries that have no project-vs-baseline divergence. Pollution surfaces
+# during a regular migration run so the operator can opt into the
+# rc14 pruning migration. Skipped silently when WORKDIR_OLD is unset
+# (baseline unreachable — cannot compute divergence).
+preserve_pre_check_cust="$PROJECT_ROOT/.template-customizations"
+if [[ -f "$preserve_pre_check_cust" && -n "${WORKDIR_OLD:-}" && -d "${WORKDIR_OLD:-}" ]]; then
+  preserve_pre_check_inert=()
+  while IFS= read -r line; do
+    line="${line%%#*}"
+    line="$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+    [[ -z "$line" ]] && continue
+    proj_pre="$PROJECT_ROOT/$line"
+    old_pre="$WORKDIR_OLD/$line"
+    [[ -f "$proj_pre" && -f "$old_pre" ]] || continue
+    if cmp -s "$old_pre" "$proj_pre"; then
+      preserve_pre_check_inert+=("$line")
+    fi
+  done < "$preserve_pre_check_cust"
+  if [[ ${#preserve_pre_check_inert[@]} -gt 0 ]]; then
+    echo "  WARN (FW-ADR-0014): ${#preserve_pre_check_inert[@]} preserve-list entry/entries match baseline byte-for-byte (no divergence):" >&2
+    for p in "${preserve_pre_check_inert[@]}"; do
+      echo "    - $p" >&2
+    done
+    echo "    These are silently dropped from preservation at sync time. Opt into" >&2
+    echo "    migrations/v1.0.0-rc14.sh (dry-run by default) to rewrite the file." >&2
+  fi
+fi
+
 # --- (#67) Rename framework ADRs that exist as `NNNN-*.md` to `fw-adr-NNNN-*.md`
 # Only do this if the file content matches the upstream framework ADR
 # (after stripping the renamed cross-references — i.e., the post-sync
