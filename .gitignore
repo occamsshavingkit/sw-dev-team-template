@@ -37,3 +37,7 @@ __pycache__/
 dist/
 build/
 target/
+
+# Build-time TOC strip mirror (spec 010 D-1, D-5). Regenerated locally by
+# scripts/strip-toc.sh; never committed.
+.model-view/
