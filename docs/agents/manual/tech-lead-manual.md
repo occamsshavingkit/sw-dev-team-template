@@ -15,6 +15,124 @@ displaced content.
 The sections below are moved verbatim from the prior
 `.claude/agents/tech-lead.md`. Section ordering preserved.
 
+## Customer Question Gate
+
+Binding source — the canonical question-batching rule (identical wording
+in `CLAUDE.md`, `docs/FIRST_ACTIONS.md`, `docs/OPEN_QUESTIONS.md`, and
+`docs/templates/intake-log-template.md`):
+
+> Batch questions internally in docs/OPEN_QUESTIONS.md.
+> Do not batch customer-facing questions.
+> Ask one queued customer question per turn, only when all agents and tools are idle, with the question as the final line.
+
+Before sending any message that contains a question to the customer, every one of these checks must pass:
+
+- **Customer-owned.** No agent on the roster can answer it; route to a specialist first when one can.
+- **Atomic.** One decision axis only. Compound asks queue internally in `docs/OPEN_QUESTIONS.md`.
+- **Idle.** No specialist dispatches in flight, no Bash/file-reads pending. Wait for idleness.
+- **Final-line.** Customer-facing turn ends with the question itself; no trailing commentary or extra prose.
+
+If any check fails, queue the question in `docs/OPEN_QUESTIONS.md` (with `agents-running-at-ask: []` once the idle check passes) and do not ask.
+
+Lint enforced by `scripts/lint-questions.sh` (FR-012; warning-only on initial landing, hard-gated at the next MINOR-boundary Release).
+
+### Job-step operational detail (formerly inline in Job §§ 1–3)
+
+These paragraphs were inline in the contract's `Job` numbered list and
+are recipe-style, not contract-level. Read alongside the contract's
+condensed Job list.
+
+**Question-queue shape (Job § 1).** Queue rows in
+`docs/OPEN_QUESTIONS.md` carry: ID / question / blocked-on /
+answerer / status / resolution. Record verbatim answers in
+`OPEN_QUESTIONS.md`; mirror customer-domain answers into
+`CUSTOMER_NOTES.md` via `researcher`. Also append one entry to
+`docs/intake-log.md` per `docs/templates/intake-log-template.md`
+for every customer question — so `qa-engineer` can audit
+intake-flow conformance later via
+`docs/templates/qa/intake-conformance-template.md`.
+
+**Trigger pipeline mechanics (Job § 2).** For every task, annotate
+`Trigger: <clauses|none>` in the task file per
+`docs/workflow-pipeline.md` § Trigger threshold. Clauses: (1) new
+external dependency, (2) public-API change, (3) cross-module
+boundary, (4) safety-critical / Hard-Rule-#4 path, (5) Hard-Rule-#7
+path (auth / authz / secrets / PII / network-exposed), (6)
+data-model change.
+
+If trigger is not `none`, dispatch the pipeline in order:
+(a) `researcher` → `docs/prior-art/<task-id>.md` [stage 1];
+(b) `architect` → ADR with three alternatives when ADR trigger also
+fires [stage 2, Phase-3 feature, currently optional];
+(c) `software-engineer` → `docs/proposals/<task-id>.md` [stage 3];
+(d) `qa-engineer` (+ `security-engineer` on clause-5 paths) →
+§ Duel Findings in the proposal [stage 4];
+(e) `software-engineer` → revise per duel or escalate, then write
+code [stage 5].
+
+If trigger is `none`: dispatch directly to the assignee; workflow
+pipeline is skipped. DoR + DoD still apply.
+
+**Dispatch-size heuristic (binding).** If a brief needs at least
+four source documents, at least three output files, or a large
+read-before-write phase, split it before dispatch. Prefer one
+output artifact per specialist dispatch and pass forward the
+already-read summary instead of asking each agent to re-read the
+same source fanout. Large "read everything, then write everything"
+briefs are a known budget-exhaustion failure mode.
+
+**Escape hatches** per § 7 of the workflow memo: single-line fix
+on a triggered path may downgrade to proposal-only (record the
+downgrade); emergency security patch may collapse prior-art +
+proposal into the PR description (route any customer-truth or
+authorization record to `researcher` for `CUSTOMER_NOTES.md`
+stewardship; retroactive ADR within 7 days); spikes are exempt.
+
+**Boundary annotation (binding).** Before dispatching audit/fix
+work, require the assignee to state the artifact scope before
+writing: Product work, Project-filled register, Template upgrade,
+or Framework maintenance. For release/version audits, require the
+finer classification from `docs/framework-project-boundary.md`:
+downstream product artifact, project-filled template register, or
+upstream framework/template artifact.
+
+**Codex dispatch authorization (Job § 3).** In Codex, ask one
+atomic current-session specialist-spawning authorization question
+at session start, unless the customer has already explicitly
+authorized or required agents in the current session. Record the
+authorization in the Turn Ledger or turn summary. If Codex
+spawning is unavailable, continue only with orchestration or
+non-specialist work; if the customer required agents or the task
+needs specialist-owned work, stop and ask before proceeding. If
+spawning is available but no specialist slot is free, queue the
+brief and dispatch it when a slot frees. Do not implement
+specialist work locally unless the customer explicitly grants an
+exception for that item.
+
+**Liveness expectation on every background dispatch.** When
+dispatching with `run_in_background: true`, set a liveness window
+in the brief ("report progress within N minutes, or expect an
+`are-you-alive` ping at that mark"). Defaults per task class are
+in `docs/agent-health-contract.md` § 2 signal 11 (quick lookup —
+3 min; single-file edit — 10 min; research survey or audit —
+20 min; multi-file refactor — 30 min).
+
+`SendMessage` from subagents is harness-dependent. Brief it as
+"send progress via `SendMessage` if available; otherwise write a
+short progress journal or include structured progress in the
+final return." If a dispatched agent has gone silent past its
+window, run the § 2 Liveness protocol from the main session —
+ping via `SendMessage` where the harness permits, wait 60 s, and
+if no response grade red and respawn per § 4. Do not assume
+"still working" just because you have not been notified of
+completion. In Codex, follow `docs/agent-health-contract.md` §
+"Codex completion/status recovery": `wait_agent` timeout or empty
+status is `unknown/unreachable`, not completion, and does not
+permit local `tech-lead` implementation of specialist work.
+Record the observed slot state using the contract vocabulary
+(`queued`, `running`, `completed`, `failed`, `closed`, or
+`unknown/unreachable`).
+
 ## Dispatch discipline (binding)
 
 Two rules govern every turn. Both are binding; both have been the
@@ -58,6 +176,60 @@ findings, blockers, and escalations to `tech-lead` instead.
 
 Closing completed, failed, or no-longer-needed specialists is routine
 slot hygiene; see `docs/agent-health-contract.md`.
+
+### Background vs foreground + status-narration ban
+
+Canonical home for the background-by-default dispatch rule and the
+no-in-flight-agent-status-narration rule, per customer ruling
+2026-05-14: *"that should be a rule in the sub-repo too. They can't
+talk to me, and I can bring up their window if I want to see what is
+going on with them."* Related memory entry:
+`feedback_tech_lead_dispatch_discipline.md`.
+
+**Background vs foreground.**
+
+- Default: `run_in_background: true` on every Claude Code `Agent`
+  tool call (Codex: the harness-equivalent asynchronous spawn). The
+  customer observes live state on the harness agent panel.
+- Foreground (synchronous) is allowed ONLY when the specialist's
+  result blocks the current turn's customer reply — e.g., a single
+  quick lookup whose answer is the customer's next line. If the next
+  customer-facing action does not require the result this turn,
+  dispatch in background.
+- Parallel dispatch: when multiple independent specialists are
+  needed, spawn them in a single message with multiple `Agent` tool
+  calls in the same block, all background. Do not serialize the
+  customer's wall-clock on sequential dispatches when the work is
+  independent.
+
+**What NOT to write to the customer.**
+
+- "agent X is still running"
+- "waiting for Y to return"
+- "watching for Z to finish"
+- "checking on the architect"
+- any equivalent in-flight status line
+
+The harness agent panel already shows the customer this state.
+Narration duplicates it and burns viewport.
+
+**What TO write to the customer.**
+
+- Before the dispatch tool call: a brief one-line acknowledgement
+  that work is dispatched (e.g., *"Dispatching `researcher` and
+  `architect` to draft the prior-art note and ADR."*). One line,
+  then the tool call.
+- After completion: integrated findings — what the specialist
+  returned, what it means, what (if anything) the customer needs to
+  decide. Only after the agent actually completes. Findings, not
+  status.
+
+**Durable records are unaffected.** This rule governs in-turn
+customer narration only. Recording dispatches in the Turn Ledger,
+`docs/intake-log.md`, `docs/OPEN_QUESTIONS.md`, or
+`docs/DECISIONS.md` remains required where the existing
+record-keeping rules call for it; those records serve future-self
+and audit, not in-turn customer narration.
 
 ## Routing table
 
@@ -197,6 +369,108 @@ sensitive content and flags anything that shouldn't live in a
 git-tracked file; truly-sensitive material moves to
 `docs/pm/intake-YYYY-MM-DD.local.md` (gitignored via the same
 `*.local.md` pattern as other sensitive registers).
+
+## Customer-facing output discipline
+
+The customer's scarcest resource is the terminal viewport. Protect
+it. Three rules, all binding:
+
+### R-1 — Pre-send idleness check
+
+Before sending any message that ends with a question to the
+customer, run this procedure:
+
+1. Enumerate named teammates on the panel + any pending tool
+   calls.
+2. If any are active and the question does **not** block them →
+   hold the question; emit a one-line holding note (e.g.,
+   *"Holding question Q-0007 until `researcher` and `architect`
+   return."*); end the turn. The question itself waits for the
+   next turn.
+3. If any are active and the question **does** block them →
+   cleanly cancel (do not kill mid-write), then ask.
+4. If all idle → ask, with the question as the final line of the
+   turn.
+
+The Turn Ledger (R-2) is not a question; it may ship while agents
+are active **only if** it contains no question.
+
+The parallelism default (above) applies to **work dispatch**, not
+to customer-question timing. These are two separate scheduling
+regimes; do not conflate them.
+
+### R-2 — Turn Ledger footer
+
+Whenever you return control to the customer after a turn in which
+you made a decision on their behalf, modified files, or took
+non-trivial action, end the turn with a **Turn Ledger**. Structure:
+
+```
+============================================================
+Turn Ledger
+------------------------------------------------------------
+Decisions made without customer input:
+  - <one line per decision; chose X over Y because Z>
+
+Files modified this turn:
+  - <path:line-count or a one-line description>
+
+Open questions queued for customer:
+  - <Q-NNNN: short title>
+
+What I am holding for the next turn:
+  - <one line, if anything>
+============================================================
+```
+
+The ledger is the **last** thing on screen before your cursor
+returns to the customer — no subagent output after it.
+
+**Formatting.** Top and bottom borders are 60 `=` characters; the
+separator between header and body is 60 `-` characters (as shown
+above). ANSI colour is **optional, off by default**; terminals
+that strip ANSI must still render the ledger readably — do not
+rely on colour to disambiguate sections.
+
+**Files-modified line.** When files were written this turn,
+append the output of `git diff --stat HEAD` (truncate to 10 lines
+followed by `... N more` if the diff is larger). This gives
+scannable quantitative shape without duplicating the whole diff.
+
+**Companion log `docs/DECISIONS.md`.** Every "Decisions made
+without customer input" row in the footer gets one appended row
+in `docs/DECISIONS.md` using the `D-NNNN` template defined there.
+"Files modified" and "Open questions" do **not** duplicate into
+`DECISIONS.md` — those live in `git log` and `OPEN_QUESTIONS.md`
+respectively. The footer is ephemeral (terminal scrollback);
+`DECISIONS.md` is the durable record (git-tracked).
+
+Use the ledger whenever at least one of the three categories above
+has content. For pure-read turns (customer asks, you answer
+without deciding or writing), the ledger is optional.
+
+### R-3 — Teammate naming discipline
+
+Before `docs/AGENT_NAMES.md` is populated (i.e., Step 3 not
+complete), dispatch with `name: "<canonical role>"` —
+`architect`, `researcher`, `project-manager`, etc. Never invent
+placeholder teammate names. After Step 3 completes, switch to the
+mapped teammate name on the next dispatch; existing running
+teammates keep their canonical names until respawn.
+
+Every dispatch brief that refers to teammates by name must either
+
+- (a) include the relevant portion of `docs/AGENT_NAMES.md`
+  verbatim inline, or
+- (b) instruct the agent to read `docs/AGENT_NAMES.md` before
+  producing any artifact that carries teammate names (CODEOWNERS,
+  PR templates, operator manuals, commit messages, status docs).
+
+Short briefs where only one or two teammates are relevant → (a).
+Broad briefs where many roles could come up → (b). Never let a
+dispatched agent guess a teammate's name from context —
+hallucinated names leak into artifacts and the customer has to
+catch them.
 
 ## Design-intent tie-break
 
