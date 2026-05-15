@@ -1,7 +1,7 @@
 ---
 name: fw-adr-0014-preservation-vs-manifest
 description: Preservation is honoured only on divergence-AND-non-manifest-fresh-write paths (refuse-on-uncertain on conflict); upgrade's tail emits a two-phase exit replacing the single-line "Done." with migration-complete + verification.
-status: proposed
+status: accepted
 date: 2026-05-15
 ---
 
@@ -49,6 +49,7 @@ exit-code surface.
 ## Status
 
 - **Proposed: 2026-05-15**
+- **Accepted: 2026-05-15**
 - **Deciders:** `architect` + `tech-lead` + customer (cross-cutting
   pattern change to upgrade preservation semantics and to the upgrade
   exit contract; customer approval required per CLAUDE.md Hard Rules)
