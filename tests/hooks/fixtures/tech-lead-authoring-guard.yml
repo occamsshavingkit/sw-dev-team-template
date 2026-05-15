@@ -1,0 +1,204 @@
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
+# Negative corpus for scripts/hooks/tech-lead-authoring-guard.py.
+# Spec 009 — Hook detector negative-corpus convention.
+#
+# Every entry is a tool_input payload the hook MUST pass through silently
+# (no permissionDecision: deny). If the hook fires `deny` on any entry,
+# the driver reports it as a false-positive regression.
+#
+# Hook semantics being negative-tested (FW-ADR-0012 enforcement):
+# - Deny when the call would WRITE an off-allow-list path.
+# - Allow-list paths (docs/OPEN_QUESTIONS.md, docs/DECISIONS.md, etc.) pass.
+# - Read-only ops, prose mentions, and quoted-data path tokens must NOT fire.
+# - SWDT_AGENT_PUSH=<role> (env or inline) opens the escape hatch for the
+#   call — those payloads must also pass through.
+
+entries:
+
+  # =====================================================================
+  # Category 1 — Read-only ops mentioning a protected (off-list) target.
+  # =====================================================================
+
+  - label: "cat1.1: grep scripts/foo.sh (read, no write)"
+    category: 1
+    rationale: "grep is read-only even when the file is off the allow-list."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"grep -rn TODO scripts/foo.sh"}}
+
+  - label: "cat1.2: wc -l on scripts/lib/manifest.sh"
+    category: 1
+    rationale: "wc reads only."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"wc -l scripts/lib/manifest.sh"}}
+
+  - label: "cat1.3: diff on src/foo.py b/src/foo.py"
+    category: 1
+    rationale: "diff is read-only."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"diff -u a/src/foo.py b/src/foo.py"}}
+
+  # =====================================================================
+  # Category 2 — Prose / docs / comments carrying path-shaped tokens.
+  # =====================================================================
+
+  - label: "cat2.1: git commit message naming docs/adr/ in body"
+    category: 2
+    rationale: "commit message body is prose, not a write to docs/adr/."
+    regression: "#175"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"git commit -m 'chore: reference docs/adr/fw-adr-0012'"}}
+
+  - label: "cat2.2: shell comment mentioning scripts/foo.py"
+    category: 2
+    rationale: "comment after `#` is not a write."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"echo run  # touches scripts/foo.py after edit"}}
+
+  - label: "cat2.3: ls listing for tests/ (read-only)"
+    category: 2
+    rationale: "ls names tests/-prefixed paths but does not write."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"ls -la tests/hooks/"}}
+
+  # =====================================================================
+  # Category 3 — Quoted strings in print / log statements.
+  # =====================================================================
+
+  - label: "cat3.1: python3 -c print mentioning scripts/foo.sh as data"
+    category: 3
+    rationale: "print string is data, not a write."
+    regression: "#175"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"python3 -c \"print('writes to scripts/foo.sh later')\""}}
+
+  - label: "cat3.2: python3 -c read-only open(src/foo.py)"
+    category: 3
+    rationale: "open() with no mode arg defaults to read."
+    regression: "#175"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"python3 -c \"open('src/foo.py').read()\""}}
+
+  - label: "cat3.3: node -e console.log with src/foo.js token"
+    category: 3
+    rationale: "console.log data, not a write."
+    regression: "#175"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"node -e \"require('fs').readFileSync('src/foo.js')\""}}
+
+  # =====================================================================
+  # Category 4 — Heredoc bodies that do not write.
+  # =====================================================================
+
+  - label: "cat4.1: cat <<EOF body mentioning src/foo.py as data"
+    category: 4
+    rationale: "heredoc text containing path tokens is data."
+    regression: "#175"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"bash -c \"echo hi\" <<EOF\nthis mentions 'src/file.py' which is fine\nEOF"}}
+
+  - label: "cat4.2: git commit -m with heredoc-quoted scripts/foo.sh path"
+    category: 4
+    rationale: "heredoc inside $() is commit data."
+    regression: "#175"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"git commit -m \"$(cat <<'EOF'\nfix(scripts/foo.sh): tidy\nEOF\n)\""}}
+
+  - label: "cat4.3: python <<EOF read-only on src/foo.py"
+    category: 4
+    rationale: "heredoc body reads, does not write."
+    regression: "#175"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"python3 <<EOF\nopen('src/foo.py').read()\nEOF"}}
+
+  # =====================================================================
+  # Category 5 — Inline-bash / escape-hatch carriers.
+  # SWDT_AGENT_PUSH=software-engineer is the canonical legit escape hatch
+  # for tool-bridge work on behalf of the software-engineer specialist.
+  # =====================================================================
+
+  - label: "cat5.1: inline SWDT_AGENT_PUSH=software-engineer write to scripts/foo.sh"
+    category: 5
+    rationale: "inline escape hatch allows software-engineer-attributed writes."
+    regression: "#176"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"SWDT_AGENT_PUSH=software-engineer echo x > scripts/foo.sh"}}
+
+  - label: "cat5.2: inline export SWDT_AGENT_PUSH=software-engineer then write"
+    category: 5
+    rationale: "export form of the inline carrier also escapes."
+    regression: "#176"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"export SWDT_AGENT_PUSH=software-engineer; echo x > src/foo.py"}}
+
+  - label: "cat5.3: inline SWDT_AGENT_PUSH=software-engineer with sed -i"
+    category: 5
+    rationale: "in-place edit under software-engineer escape hatch."
+    regression: "#176"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"SWDT_AGENT_PUSH=software-engineer sed -i 's/x/y/' scripts/foo.sh"}}
+
+  # =====================================================================
+  # Category 6 — Cross-harness invocation shapes.
+  # The hook reads tool_input as JSON regardless of the harness; these
+  # entries record representative payloads per harness mode.
+  # Modes: claude-bash | inline-bang | codex-shell | heredoc |
+  # command-substitution
+  # =====================================================================
+
+  - label: "cat6.1: claude-bash — write to allow-listed docs/OPEN_QUESTIONS.md"
+    category: 6
+    harness: claude-bash
+    rationale: "Default Claude Bash tool shape on an allow-listed target."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"echo q >> docs/OPEN_QUESTIONS.md"}}
+
+  - label: "cat6.2: inline-bang — !-prefixed read of off-list path"
+    category: 6
+    harness: inline-bang
+    rationale: "Inline-bang invocation; read-only so hook must allow."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"! grep TODO scripts/foo.sh"}}
+
+  - label: "cat6.3: codex-shell — sh -c read of off-list path"
+    category: 6
+    harness: codex-shell
+    rationale: "Codex shell tool surface; read-only command."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"sh -c 'cat scripts/lib/manifest.sh | head'"}}
+
+  - label: "cat6.4: heredoc — python3 <<EOF read-only against off-list path"
+    category: 6
+    harness: heredoc
+    rationale: "Heredoc-fed interpreter reading off-list path; not a write."
+    regression: "#175"
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"python3 <<'PY'\nopen('src/foo.py').read()\nPY"}}
+
+  - label: "cat6.5: command-substitution — $(...) wrapping read of off-list path"
+    category: 6
+    harness: command-substitution
+    rationale: "Command substitution wraps a read; no write in outer or inner."
+    expected: pass
+    payload: |
+      {"tool_input":{"command":"echo \"$(wc -l scripts/foo.sh)\""}}
