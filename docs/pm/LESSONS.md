@@ -6,6 +6,43 @@ every milestone.
 
 ## Journal
 
+### 2026-05-14 — Hard Rule #11 promotion history (atomic customer questions)
+
+**Context.** The atomic-customer-question rule existed as non-numbered
+references across multiple binding docs (`CLAUDE.md`, `AGENTS.md`,
+`.claude/agents/tech-lead.md`, `docs/FIRST_ACTIONS.md`,
+`docs/OPEN_QUESTIONS.md`, `docs/templates/intake-log-template.md`).
+
+**Event.** Bundled-question violations recurred despite the
+distributed wording. Customer ruling on 2026-05-14 promoted the rule
+to a numbered Hard Rule (HR-11) in `CLAUDE.md` § Hard rules so that
+session-start context contains the binding form directly.
+
+**What went well.** Promotion to a numbered Hard Rule gave the rule
+the same enforcement weight as HR-1 through HR-10 and let
+`scripts/lint-questions.sh` (FR-012) reference a single canonical
+location. A token-economy audit on 2026-05-15 then trimmed HR-11 to
+keep only the binding text + queue-unwritable exception clause inline,
+moving this promotion-history paragraph here.
+
+**What did not.** The original HR-11 paragraph also carried
+archaeology ("Reason for promotion to a numbered Hard Rule...") that
+inflated the session-start context without adding binding force. That
+prose is now consolidated in this LESSONS entry instead of repeated in
+the binding doc.
+
+**Recommendation.** When a rule is promoted from distributed references
+to a numbered Hard Rule, keep only the binding text and any operative
+exception clauses inline; record the why-promoted prose in LESSONS.md
+under the promotion date.
+
+**Category.** governance / token economy.
+
+**References.** `CLAUDE.md` § Hard rules HR-11; `scripts/lint-questions.sh`
+(FR-012); `.claude/agents/tech-lead.md` (FR-011 Customer Question Gate);
+`docs/FIRST_ACTIONS.md`; `docs/OPEN_QUESTIONS.md`;
+`docs/templates/intake-log-template.md`.
+
 ### 2026-05-04 — G-9 needs explicit release-note evidence
 
 **Context.** The final checklist needed a durable proof point for rollback
