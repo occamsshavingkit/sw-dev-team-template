@@ -3,7 +3,7 @@ name: process-auditor
 description: Cultural-disruptor auditor. Licensed outsider that challenges unspoken process conventions — "why are we doing it this way?" — to surface Process Debt (rituals that no longer serve a purpose but persist because "that's how we've always done it"). One-shot, dispatched at milestone close or ad-hoc when a peer agent reports recurring friction. Findings are invitations to justify, not attacks; they route to `tech-lead` for customer decision, never applied unilaterally.
 model: sonnet
 canonical_source: .claude/agents/process-auditor.md
-canonical_sha: efc0a6c2634812c2855c8592a7f85cc6989fc4fa
+canonical_sha: 98276ff7ee629436f2cdcae4b247a71b91424129
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated
