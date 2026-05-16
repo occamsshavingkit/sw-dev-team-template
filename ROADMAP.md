@@ -367,3 +367,11 @@ Things that may interrupt the linear plan:
 | 2026-05-04 | Tagged and pushed v1.0.0-rc6 for #84, #104, and #105; final remains blocked on downstream validation and the checklist gates. | `release-engineer` |
 | 2026-05-04 | Prepared v1.0.0-rc7 candidate for issue #116 concise specialist-brief/no-full-context-fork scope; Claude Code / Codex parity evidence remains a final gate. | `release-engineer` |
 | 2026-05-06 | Added v1.0.0-rc8 release-state boundary for upgrade-flow, hook, Codex-adapter, and CLAUDE.md size-cull fixes; final now depends on the rc8/final-checklist state. | `tech-writer` |
+
+## V2 deferred
+
+Issues filed against the v1.0.0 framework that require harness-level changes, architectural pivots, or capability beyond v1.0.0's scope. Each entry links its issue and a one-line rationale. v2 work tracking begins here; new entries land via the standard `defer-to-v2` disposition path (FR-006 of `specs/011-issue-backlog-triage/spec.md`).
+
+| Issue | Title | Rationale for v2 deferral |
+|-------|-------|---------------------------|
+| [#202](https://github.com/occamsshavingkit/sw-dev-team-template/issues/202) | tech-lead authoring guard silently reverts specialist-agent writes in canonical scope | Fix requires Claude Code harness to expose agent identity (e.g., `CLAUDE_AGENT_TYPE` env var) in PreToolUse events. No such surface exists today. FW-ADR-0012 § ADR-internal follow-ups already records this as a known v1.0.0 deferred item. Current mitigation: tech-lead applies as tool-bridge with `SWDT_AGENT_PUSH=<role>` inline. Architect disposition 2026-05-16. |
