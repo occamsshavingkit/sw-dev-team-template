@@ -216,6 +216,34 @@ _OPEN_WRITE_KWARG_RE = re.compile(
     r"""open\(\s*['"]([^'"]+)['"][^)]*\bmode\s*=\s*['"]([^'"]*[waxA+][^'"]*)['"]"""
 )
 
+# pathlib.Path write-method coverage (issue #184). The earlier regex set
+# only caught ``open(...)``-style writes; ``Path("x").write_text(...)``
+# and ``Path("x").open("w")`` slipped through as untracked writes.
+#
+# Path token: single- or double-quoted literal inside ``Path(...)`` /
+# ``pathlib.Path(...)`` / ``PurePath(...)``. Tracks both the bare class
+# and the qualified-module form.
+_PATHLIB_CTOR = r"(?:pathlib\.)?(?:Path|PurePath|PosixPath|WindowsPath)"
+
+# ``Path("foo").write_text(...)`` and ``Path("foo").write_bytes(...)``.
+# Both are write operations regardless of mode (they are the pathlib
+# equivalents of ``open(..., 'w').write(...)`` /
+# ``open(..., 'wb').write(...)``).
+_PATHLIB_WRITE_TEXT_RE = re.compile(
+    rf"""{_PATHLIB_CTOR}\(\s*['"]([^'"]+)['"]\s*\)\.write_(?:text|bytes)\("""
+)
+
+# ``Path("foo").open("w")`` (positional mode). Same mode-char set as
+# ``_OPEN_WRITE_RE``; non-write modes (``"r"``, ``"rb"``) do not match.
+_PATHLIB_OPEN_RE = re.compile(
+    rf"""{_PATHLIB_CTOR}\(\s*['"]([^'"]+)['"]\s*\)\.open\(\s*['"]([^'"]*[waxA+][^'"]*)['"]"""
+)
+
+# ``Path("foo").open(mode="w")`` (kwarg mode).
+_PATHLIB_OPEN_KWARG_RE = re.compile(
+    rf"""{_PATHLIB_CTOR}\(\s*['"]([^'"]+)['"]\s*\)\.open\([^)]*\bmode\s*=\s*['"]([^'"]*[waxA+][^'"]*)['"]"""
+)
+
 
 def _extract_write_targets_from_body(body: str, *, scan_redirects: bool = True):
     """Extract write-target paths from an interpreter / heredoc body.
@@ -225,15 +253,21 @@ def _extract_write_targets_from_body(body: str, *, scan_redirects: bool = True):
       - ``open('path', 'w'|'a'|'x'|'+'...)`` — positional mode contains
         a write char (covers binary ``'wb'`` / ``'ab'`` too).
       - ``open('path', mode='w')`` — kwarg mode contains a write char.
+      - ``Path('path').write_text(...)`` / ``write_bytes(...)`` —
+        unconditional pathlib writes (issue #184).
+      - ``Path('path').open('w')`` / ``Path('path').open(mode='w')`` —
+        pathlib open with a write mode (issue #184).
       - shell-style redirects ``> path`` / ``>> path`` inside the body
         (covers ``-c "... > file"`` and shell heredocs) — only when
         ``scan_redirects=True``.
 
-    Read-only ``open('foo.json')``, ``open('foo','r')``, and
-    ``open('foo', mode='r')`` do NOT match. Quoted path tokens that are
-    not the first arg of a write-mode open do NOT match. This is the
-    core fix for issue #175; the kwarg branch closes the bypass flagged
-    in code-reviewer tightening #4.
+    Read-only ``open('foo.json')``, ``open('foo','r')``,
+    ``open('foo', mode='r')``, ``Path('foo').read_text()``, and
+    ``Path('foo').open('r')`` do NOT match. Quoted path tokens that
+    are not the first arg of a write-mode open do NOT match. This is
+    the core fix for issues #175 (read-vs-write) and #184 (pathlib
+    coverage); the kwarg branch closes the bypass flagged in
+    code-reviewer tightening #4.
 
     ``scan_redirects=False`` is used for heredoc bodies (issue #180):
     a heredoc body is data, not shell syntax. Lines like prose with
@@ -257,6 +291,16 @@ def _extract_write_targets_from_body(body: str, *, scan_redirects: bool = True):
             # '+' alone is a write signal too).
             if any(ch in mode for ch in ("w", "a", "x", "A", "+")):
                 targets.append(path)
+    # pathlib write-method detection (issue #184). write_text/write_bytes
+    # are unconditional writes (no mode argument); Path(...).open(...)
+    # mirrors the open() mode-char check.
+    for m in _PATHLIB_WRITE_TEXT_RE.finditer(body):
+        targets.append(m.group(1))
+    for regex in (_PATHLIB_OPEN_RE, _PATHLIB_OPEN_KWARG_RE):
+        for m in regex.finditer(body):
+            p_path, p_mode = m.group(1), m.group(2)
+            if any(ch in p_mode for ch in ("w", "a", "x", "A", "+")):
+                targets.append(p_path)
     # Shell redirects inside the body. Skipped for heredoc bodies — see
     # docstring (issue #180 false-positive on prose containing ``>``).
     if scan_redirects:
@@ -490,8 +534,11 @@ def _normalise(path: str) -> str:
     - Strips leading `./`.
     - Resolves `..` segments lexically.
     - If absolute and inside CLAUDE_PROJECT_DIR, makes it relative.
-    - Otherwise returns the cleaned absolute path (which will not match the
-      allow-list and will be denied).
+    - Otherwise returns the cleaned absolute path. Issue #205: an
+      out-of-project absolute path is recognised by ``_is_outside_project``
+      and the decision layer short-circuits to proceed — HR-8 protects
+      project artefacts, not harness-internal writes (auto-memory,
+      ``/tmp``, ``/dev``, skill installation).
     """
     if not path:
         return ""
@@ -505,7 +552,9 @@ def _normalise(path: str) -> str:
         except ValueError:
             rel = p
         if rel.startswith(".."):
-            # Outside the project tree; preserve absolute form.
+            # Outside the project tree; preserve absolute form. The
+            # decision layer treats outside-project paths as out of HR-8
+            # scope and proceeds (issue #205).
             return os.path.normpath(p)
         return rel.replace(os.sep, "/")
 
@@ -514,6 +563,69 @@ def _normalise(path: str) -> str:
     if cleaned.startswith("./"):
         cleaned = cleaned[2:]
     return cleaned
+
+
+# Harness-internal write surfaces. Writes targeting these paths are not
+# project artefacts and lie outside FW-ADR-0012's scope (issues #205 +
+# #206). Patterns are evaluated against absolute paths (after _normalise
+# returns the absolute form for out-of-project inputs); ``~`` is
+# expanded once at import time so the comparison is a pure prefix check.
+_HARNESS_ALLOW_PREFIXES = (
+    os.path.expanduser("~/.claude/projects/"),  # auto-memory
+    os.path.expanduser("~/.claude/skills/"),    # skill installation
+    "/tmp/",
+    "/dev/",
+)
+# Exact-match harness paths (no trailing slash). ``/dev/null`` itself is
+# a device, not a directory; the prefix-match against ``/dev/`` catches
+# both ``/dev/null`` and ``/dev/fd/2``.
+_HARNESS_ALLOW_EXACT = frozenset({"/dev", "/tmp"})
+
+
+def _is_outside_project(path: str) -> bool:
+    """Return True if ``path`` resolves to an absolute location outside
+    the resolved CLAUDE_PROJECT_DIR.
+
+    Issue #205: HR-8 is project-scoped. Writes to harness-internal
+    surfaces (auto-memory under ``~/.claude/projects/**/memory/``, skill
+    installation under ``~/.claude/skills/``, ``/tmp``, ``/dev``) are
+    not the guard's jurisdiction. The decision layer uses this helper
+    to short-circuit before the allow-list lookup.
+
+    Returns False for relative paths (those remain project-scoped) and
+    for absolute paths inside the project tree.
+    """
+    if not path:
+        return False
+    p = path.strip()
+    if not os.path.isabs(p):
+        return False
+    project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    project_dir = os.path.abspath(project_dir)
+    try:
+        rel = os.path.relpath(p, project_dir)
+    except ValueError:
+        # Different drive on Windows; treat as outside.
+        return True
+    return rel.startswith("..")
+
+
+def _is_harness_path(path: str) -> bool:
+    """Return True if ``path`` is a known harness write surface.
+
+    Pattern set covers auto-memory, skills, ``/tmp``, and ``/dev``
+    (issues #205 + #206). Matched purely by absolute-path prefix; the
+    caller is responsible for passing an already-normalised path
+    (``_normalise`` returns absolute form for outside-project inputs).
+    """
+    if not path:
+        return False
+    p = path.strip()
+    if p in _HARNESS_ALLOW_EXACT:
+        return True
+    if not os.path.isabs(p):
+        return False
+    return any(p.startswith(pref) for pref in _HARNESS_ALLOW_PREFIXES)
 
 
 def _matches_recursive_glob(path: str, glob: str) -> bool:
@@ -699,7 +811,8 @@ def _decide_for_path(path: str):
     """Return (decision, audit_callable) for a single target path.
 
     decision is one of:
-      - None: proceed silently (path on allow-list or deferred to
+      - None: proceed silently (path on allow-list, outside the project
+        tree, on the harness allow-list, or deferred to
         customer-notes-guard).
       - dict: a hookSpecificOutput payload (deny).
 
@@ -707,6 +820,22 @@ def _decide_for_path(path: str):
     finalised to emit the override audit-log line on stderr.
     """
     if not path:
+        return None, None
+
+    # Issue #205: HR-8 is project-scoped. Absolute paths outside
+    # CLAUDE_PROJECT_DIR are not the guard's jurisdiction (auto-memory,
+    # ``/tmp``, ``/dev``, skill installs). Short-circuit before the
+    # customer-notes / allow-list checks.
+    if _is_outside_project(path):
+        return None, None
+
+    # Issue #205 + #206: known harness write surfaces always proceed,
+    # even when expressed as a relative path that happens to begin with
+    # ``/tmp`` or ``/dev`` (defence-in-depth — _normalise turns absolute
+    # outside-project paths into absolute form, but a caller passing
+    # ``/dev/null`` literally would already have hit the
+    # _is_outside_project branch).
+    if _is_harness_path(path):
         return None, None
 
     # Customer-notes paths defer to customer-notes-guard. We do not
@@ -734,8 +863,22 @@ def _decide_for_command(command: str):
 
     off_list = []
     for t in targets:
+        # Pre-normalisation filter for harness device paths (issue #206):
+        # ``/dev/(null|stdout|stderr|fd/N|zero|random|urandom)`` and the
+        # broader ``/dev/**`` surface are not authoring targets. Checking
+        # on the raw token is sufficient — ``_is_harness_path`` early-
+        # returns False for any relative path, so absolute harness paths
+        # (e.g. ``/dev/null``) are caught here before normalisation.  No
+        # second ``_is_harness_path`` call is needed after normalisation.
+        if _is_harness_path(t):
+            continue
         norm = _normalise(t)
         if not norm:
+            continue
+        # Issue #205: outside-project absolute targets are out of HR-8
+        # scope. ``_normalise`` returns the absolute form for these;
+        # ``_is_outside_project`` recognises them.
+        if _is_outside_project(t):
             continue
         if _is_customer_notes_path(norm):
             # Defer to customer-notes-guard.

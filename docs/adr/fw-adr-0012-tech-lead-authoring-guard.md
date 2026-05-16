@@ -1116,6 +1116,24 @@ discipline; none block acceptance.
   them despite the semantics-muddling cost.
   `software-engineer` records baseline timing in the
   self-test fixture at implementation time.
+- **Allow-list scope is project-only (addendum,
+  2026-05-16, upstream issues #205 + #206).** The
+  binding allow-list above enumerates project artefacts
+  relative to `CLAUDE_PROJECT_DIR`. The hook short-circuits
+  to *proceed* on any write whose target, before or after
+  normalisation, is absolute and outside CLAUDE_PROJECT_DIR — auto-memory under
+  `~/.claude/projects/**/memory/**`, skill installation
+  under `~/.claude/skills/**`, transient scratch under
+  `/tmp/**`, and kernel device redirects under `/dev/**`
+  (`/dev/null`, `/dev/stdout`, `/dev/stderr`,
+  `/dev/fd/N`). These are harness-internal write surfaces;
+  Hard Rule #8 governs project authoring discipline, not
+  byte-discard or harness state. The hook still denies
+  in-project writes off the allow-list and still requires
+  `SWDT_AGENT_PUSH=<role>` for tool-bridge work the
+  specialist's sandbox cannot perform. Implementation:
+  `_is_outside_project()` + `_is_harness_path()` in
+  `scripts/hooks/tech-lead-authoring-guard.py`.
 
 ## Links
 
