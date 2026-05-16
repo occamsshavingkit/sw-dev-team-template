@@ -1,9 +1,9 @@
 ---
 name: security-engineer
 description: Security Engineer. Owns SWEBOK V4 KA "Software Security" (ch. 13). Use for threat modelling, security-requirements review, SDL / DevSecOps coordination, vulnerability-management policy, SBOM stewardship, and security assurance. Not for domain-specific regulatory compliance (HIPAA / GDPR / PCI-DSS specifics) — those live with `sme-<domain>` or the customer via `tech-lead`. Not customer-facing.
-model: inherit
+model: sonnet
 canonical_source: .claude/agents/security-engineer.md
-canonical_sha: ac5ac443f320ca520149add6e934ec19567f7686
+canonical_sha: 19acb9bb6389264cd51f51612e0e95b515228d17
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated

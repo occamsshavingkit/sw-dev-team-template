@@ -1,9 +1,9 @@
 ---
 name: release-engineer
 description: Build and Release Engineer. Use for build-pipeline work, dependency and toolchain management, packaging, tagging, changelog generation, deployment orchestration, and reproducibility of historical builds. Collapses the build-engineer / release-engineer / DevOps-engineer roles per modern practice.
-model: inherit
+model: sonnet
 canonical_source: .claude/agents/release-engineer.md
-canonical_sha: 3fa9f26ed3f6d2dd3d2255095fc67041c08ab327
+canonical_sha: fc0148746cf4cfe17aaab9dfbc3384d2052e6046
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated
