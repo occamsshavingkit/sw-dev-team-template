@@ -98,7 +98,40 @@ if declare -F first_actions_step0_warning >/dev/null; then
   first_actions_step0_warning "$project_root" "session"
 fi
 
-local_version="$(head -1 "$tv" 2>/dev/null | tr -d '[:space:]')"
+working_tree_version="$(head -1 "$tv" 2>/dev/null | tr -d '[:space:]')"
+
+# Issue #199: read TEMPLATE_VERSION from HEAD, not from the working
+# tree. A half-applied upgrade (uncommitted edit to TEMPLATE_VERSION)
+# would otherwise mask a real drift / nudge — the session-start signal
+# would reflect operator scratch rather than the project's committed
+# framework state.
+#
+# When the project is not a git repo, or TEMPLATE_VERSION is not in
+# HEAD (e.g., file added but never committed), fall back silently to
+# the working-tree value. When HEAD differs from the working tree,
+# prefer HEAD for the comparison and emit a WARN naming both — the
+# operator probably wants to know an upgrade is in-flight.
+head_version=""
+if git -C "$project_root" rev-parse --verify --quiet HEAD >/dev/null 2>&1; then
+  head_version="$(git -C "$project_root" show HEAD:TEMPLATE_VERSION 2>/dev/null \
+                   | head -1 | tr -d '[:space:]')"
+fi
+
+if [[ -n "$head_version" && "$head_version" != "$working_tree_version" ]]; then
+  cat >&2 <<EOF
+====================================================================
+WARN: uncommitted change to TEMPLATE_VERSION
+      HEAD=$head_version, working tree=$working_tree_version
+      Possible half-applied upgrade. Version comparison below uses
+      HEAD; commit or revert the working-tree edit to clear this.
+====================================================================
+EOF
+  local_version="$head_version"
+elif [[ -n "$head_version" ]]; then
+  local_version="$head_version"
+else
+  local_version="$working_tree_version"
+fi
 
 # Untagged-state surfaceing (2026-05-15).
 #
@@ -169,13 +202,25 @@ newest_seen="$(printf '%s\n%s\n' "$local_version" "$latest_tag" | semver_sort_ta
 if [[ "$local_version" == "$latest_tag" || "$newest_seen" == "$local_version" ]]; then
   echo "Template up to date: $local_version."
 else
-  release_url="$upstream/releases/tag/$latest_tag"
   changelog_url="$upstream/blob/main/CHANGELOG.md"
+  # Issue #154: rc tags don't have GitHub Release objects (Release
+  # pages are cut at MINOR boundaries only). Linking to
+  # .../releases/tag/<rc-tag> 404s. For rc tags, surface the tag's
+  # commit view instead (always present once the tag is pushed) and
+  # let the changelog link carry the prose narrative. Stable tags keep
+  # the original Release Notes link.
+  if [[ "$latest_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+$ ]]; then
+    notes_label="Tag commit:   "
+    notes_url="$upstream/commits/$latest_tag"
+  else
+    notes_label="Release notes:"
+    notes_url="$upstream/releases/tag/$latest_tag"
+  fi
   cat <<EOF
 ====================================================================
 Template upgrade available: $local_version → $latest_tag
 
-  Release notes:  $release_url
+  $notes_label  $notes_url
   Full changelog: $changelog_url
 
 To apply:   scripts/upgrade.sh           (add --dry-run to preview)
