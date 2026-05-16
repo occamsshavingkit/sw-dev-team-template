@@ -36,3 +36,19 @@
 # shipped in rc4 and forward.
 v1.0.0-rc3
 
+# v0.16.0 — scripts/upgrade.sh 3-way conflict; the fix in f163897
+# (migrations/v0.14.0.sh marker-writing, issue #163) is broken by
+# migration ordering: v0.16.0's upgrade.sh self-bootstraps (exec's as
+# candidate upgrade.sh) before the migrations loop runs, so the
+# re-execed candidate skips v0.14.0.sh (v0.14.0 < v0.16.0 boundary)
+# and the .template-customizations marker is never written. The sync
+# loop then sees a 3-way conflict on scripts/upgrade.sh
+# (baseline=v0.16.0, project=candidate after pre-bootstrap,
+# upstream=candidate); --verify finds the persisted conflict entry and
+# exits 1. Root cause logged in follow-up issue [see rc14 PR body].
+# v0.16.0 is a single-version sliver between v0.15.x and v0.17.0 with
+# negligible expected downstream presence. Real fix requires a migration
+# at a boundary > v0.16.0 (e.g., v0.17.0.sh or a sync-loop preserve
+# heuristic). Restored for rc14 cut; re-allowlisted from rc11/rc12/rc13.
+v0.16.0
+
