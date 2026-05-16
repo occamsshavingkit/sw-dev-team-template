@@ -78,6 +78,31 @@ tests/release-gate/dogfood-downstream.sh  ← scratch-clones the fixture
   is gitignored — defensive guard against an operator accidentally
   staging a fixture into a working tree.
 
+## Symlink-copy trade-off
+
+The driver uses `cp -a` (no `-L` flag) to copy a fixture into the scratch
+tree. The two modes have different effects:
+
+- **`cp -a` (current)** — preserves symlinks verbatim. A symlink that
+  points outside the fixture root (for example, an overlay-rootfs entry
+  pointing at a host path such as `/etc/init.d/<svc>`) is copied as a
+  dangling symlink rather than dereferenced. The copy succeeds even when
+  the target does not exist on the host running the driver. The upgrade
+  phase then operates on the scratch tree without crashing.
+- **`cp -aL`** — dereferences symlinks at copy time. This gives the
+  scratch tree real files (higher fidelity if the targets exist), but
+  fails with a copy error when any symlink points to a host path absent
+  from the dogfood sandbox. Real captured fixtures from embedded or
+  overlay-rootfs-style downstreams commonly contain such symlinks; using
+  `-aL` on those fixtures crashes the driver before any report is written.
+
+The driver switched from `-aL` to `-a` to fix this crash
+(blocker #2, 2026-05-15; see `docs/pm/dogfood-2026-05-15-results.md`).
+If you are running the driver against fixtures you know contain only
+host-resolvable symlinks, substituting `cp -aL` will give real-file
+copies in the scratch tree — but the standard driver does not expose this
+as a flag.
+
 ## Redaction discipline
 
 Codenames are operator-chosen. Per the 2026-05-14 customer ruling on
@@ -143,6 +168,10 @@ Always removed from the snapshot before it lands at the destination:
 | `.gitmodules` | leaks submodule URLs / org identifiers |
 | `.github/` | workflow YAML often hard-codes org/repo URLs |
 | `.git-credentials` | defensive; should never be present, scrubbed if so |
+| `.idea/` | JetBrains IDE metadata; may embed project paths or credentials |
+| `.vscode/` | VS Code workspace settings; may embed workspace-specific paths |
+| `.gitlab-ci.yml` | GitLab CI config; often hard-codes org/repo references |
+| `.circleci/` | CircleCI config; often contains org-specific pipeline references |
 
 **Operator responsibility:** any other identifying metadata that may
 have crept into the source tree (custom `.dockerignore` comments
