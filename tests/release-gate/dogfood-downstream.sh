@@ -308,6 +308,17 @@ if [ -f "$CONFLICTS_PATH" ]; then
     # key order, and nested structures. Falls back to a tighter regex
     # when jq is unavailable.
     if command -v jq >/dev/null 2>&1; then
+        # Probe: if the file exists but is not valid JSON, FAIL immediately.
+        # `jq empty` is the canonical "validate JSON, produce no output"
+        # idiom. Distinguishes "file missing" (legitimate zero conflicts)
+        # from "file malformed" (data-integrity failure that must not
+        # silently become zero). Without this probe the `?` guard below
+        # would swallow a parse error and report 0 conflicts on a corrupt
+        # conflict log — a silent false-clean. (Issue #195.)
+        if ! jq empty "$CONFLICTS_PATH" 2>/dev/null; then
+            echo "FATAL: $CONFLICTS_PATH exists but is not valid JSON — cannot determine conflict count" >&2
+            exit 1
+        fi
         # The file shape is an object whose `.entries` field is an
         # array of entry objects (see scripts/upgrade.sh writer and
         # tests/release-gate/snapshots/v1.0.0-rc12/with-accepted-local/
