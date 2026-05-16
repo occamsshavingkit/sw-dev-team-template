@@ -31,6 +31,7 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage: scripts/upgrade.sh [--dry-run | --verify | --resolve | --target <ref> |
+                          --allow-non-default-branch |
                           --self-test-semver | --help]
 
   --dry-run         Print the upgrade plan; change nothing.
@@ -64,6 +65,14 @@ Usage: scripts/upgrade.sh [--dry-run | --verify | --resolve | --target <ref> |
                     tag for stable projects, or the latest upstream tag
                     for projects already on a pre-release track.
                     (Issues #60/#68; untagged refs added 2026-05-15.)
+  --allow-non-default-branch
+                    Skip the default-branch guard that normally refuses to
+                    run on a non-default branch. Mutating runs (no flag /
+                    --resolve) refuse by default so the upgrade lands on
+                    trunk; pass this flag to override and accept the risk
+                    of TEMPLATE_VERSION divergence across child branches.
+                    A one-line warning naming both branches is printed.
+                    (Issue #203.)
   --help, -h        Print this help and exit.
 
 With no flag, run the full upgrade. The script:
@@ -154,6 +163,7 @@ dry_run=0
 verify_mode=0
 resolve_mode=0
 target_version=""
+allow_non_default_branch=0
 original_args=("$@")
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -173,10 +183,66 @@ while [[ $# -gt 0 ]]; do
       semver_sort_tags_self_test
       exit $? ;;
     "--resolve")     resolve_mode=1; shift ;;
+    "--allow-non-default-branch")
+                     allow_non_default_branch=1; shift ;;
     "--help"|"-h")   usage; exit 0 ;;
     *)               echo "ERROR: unknown flag: $1" >&2; echo >&2; usage >&2; exit 2 ;;
   esac
 done
+
+# Default-branch guard (issue #203). Mutating runs (no flag / --resolve)
+# must land on the default branch so that TEMPLATE_VERSION /
+# TEMPLATE_MANIFEST.lock are inherited by child feature branches via
+# merge, rather than being stamped on a side branch the trunk never
+# sees. --dry-run and --verify are non-mutating and stay
+# branch-agnostic. --allow-non-default-branch overrides with a warning.
+if [[ $dry_run -eq 0 && $verify_mode -eq 0 ]]; then
+  # Prefer symbolic-ref (works on freshly-initialised repos with an
+  # unborn branch — `git init -b main` before the first commit).
+  # Fall back to rev-parse for older edge cases. Detached HEAD returns
+  # empty from symbolic-ref and "HEAD" from rev-parse; we normalise
+  # the literal "HEAD" to empty so the guard does not refuse an
+  # ambiguous state with a misleading message.
+  current_branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
+  if [[ -z "$current_branch" ]]; then
+    current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
+    [[ "$current_branch" == "HEAD" ]] && current_branch=""
+  fi
+  default_branch=""
+  # Priority chain — first hit wins.
+  if origin_head="$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)"; then
+    default_branch="${origin_head#origin/}"
+  fi
+  if [[ -z "$default_branch" ]]; then
+    default_branch="$(git config --get init.defaultBranch 2>/dev/null || true)"
+  fi
+  if [[ -z "$default_branch" ]]; then
+    default_branch="main"
+    echo "NOTE: upgrade.sh could not resolve the repository default branch from origin/HEAD or init.defaultBranch; falling back to 'main'." >&2
+  fi
+
+  if [[ -n "$current_branch" && "$current_branch" != "$default_branch" ]]; then
+    if [[ $allow_non_default_branch -eq 1 ]]; then
+      echo "WARNING: upgrade.sh running on branch '$current_branch' (default branch is '$default_branch') — --allow-non-default-branch override in effect." >&2
+    else
+      echo "ERROR: upgrade.sh refuses to run on branch '$current_branch' — default" >&2
+      echo "branch is '$default_branch'. Template upgrades must land on the default" >&2
+      echo "branch so child feature branches inherit the new stamp via merge," >&2
+      echo "not by being cut from a side branch. Pass" >&2
+      echo "--allow-non-default-branch to override (you will see a warning)." >&2
+      exit 2
+    fi
+  elif [[ -n "$current_branch" && "$current_branch" == "$default_branch" ]]; then
+    # Optional recommended check from issue #203: warn on dirty tree on
+    # the default branch. The upgrade rewrites tracked files; a dirty
+    # tree muddies the rollback story. Non-fatal.
+    if [[ -d .git ]] || git rev-parse --git-dir >/dev/null 2>&1; then
+      if ! git diff --quiet --ignore-submodules HEAD 2>/dev/null; then
+        echo "WARNING: working tree on '$default_branch' has uncommitted changes — upgrade rewrites tracked files; consider committing or stashing first." >&2
+      fi
+    fi
+  fi
+fi
 
 if [[ ! -f "$tv" ]]; then
   echo "ERROR: no TEMPLATE_VERSION at project root. Not a scaffolded project?" >&2

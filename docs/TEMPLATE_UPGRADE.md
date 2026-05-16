@@ -70,6 +70,35 @@ migrations, stamps `TEMPLATE_VERSION`, and rewrites
 `TEMPLATE_MANIFEST.lock` and fails if `.template-conflicts.json` still
 contains unresolved `conflict` entries.
 
+**Default-branch guard (issue #203).** Mutating runs (no flag and
+`--resolve`) refuse to run on any branch other than the repository's
+default branch and exit `2` with a documented `ERROR` message. The
+default branch is resolved in priority order from
+`refs/remotes/origin/HEAD`, then `init.defaultBranch`, then hard-coded
+`main` as a last resort (with a stderr `NOTE`). This is an early
+guard against a previously-observed divergence trap: an upgrade that
+lands on a feature branch never reaches `main`, child branches cut
+from it inherit a `TEMPLATE_VERSION` / `TEMPLATE_MANIFEST.lock` that
+trunk does not carry, and the divergence is only detected sessions
+later when `--verify` on `main` surfaces a manifest mismatch.
+
+Run upgrades on the default branch (typically `main`). Cut feature
+branches from the post-upgrade default and let `merge` propagate the
+new stamp. If you must test the upgrade on a side branch (rare, e.g.
+verifying an upstream pre-release before merging it into trunk),
+pass `--allow-non-default-branch` — the upgrade proceeds and prints
+a one-line stderr `WARNING` naming the current branch and the
+resolved default branch.
+
+`--dry-run` and `--verify` are non-mutating and remain branch-
+agnostic; `--dry-run` is the cleanest way to preview an upgrade plan
+from a side branch without overriding the guard.
+
+On the default branch the upgrade also prints a non-fatal `WARNING`
+if the working tree is dirty, because the upgrade rewrites tracked
+files and a dirty tree muddies the rollback story. Commit or stash
+first when possible.
+
 **If the upgrade adds new agents under `.claude/agents/`, restart
 Claude Code before dispatching them.** The agent registry is
 initialized at session start and does not rescan the agents
