@@ -200,6 +200,44 @@ _run_payload "write: file_path tool input" \
 _run_payload "write: nested docs/customer-notes path" \
     "$(mkpayload_path docs/customer-notes/CUSTOMER_NOTES.md)" fire
 
+# ---------------------------------------------------------------------------
+# pathlib write detection (issue #184). Mirror coverage from the sister
+# hook so write_text / write_bytes / Path.open("w") on CUSTOMER_NOTES.md
+# are caught by this hook too.
+# ---------------------------------------------------------------------------
+
+run_cmd_case "write: python3 -c Path.write_text on file (#184)" \
+    "python3 -c 'import pathlib; pathlib.Path(\"CUSTOMER_NOTES.md\").write_text(\"x\")'" fire
+
+run_cmd_case "write: python3 -c Path.write_bytes on file (#184)" \
+    "python3 -c 'from pathlib import Path; Path(\"CUSTOMER_NOTES.md\").write_bytes(b\"x\")'" fire
+
+run_cmd_case "write: python3 -c Path.open('w') on file (#184)" \
+    "python3 -c 'from pathlib import Path; Path(\"CUSTOMER_NOTES.md\").open(\"w\").write(\"x\")'" fire
+
+run_cmd_case "write: python3 -c Path.open(mode='w') on file (#184)" \
+    "python3 -c 'from pathlib import Path; Path(\"CUSTOMER_NOTES.md\").open(mode=\"w\").write(\"x\")'" fire
+
+run_cmd_case "write: python3 heredoc Path.write_text (#184)" \
+    'python3 <<PY
+from pathlib import Path
+Path("CUSTOMER_NOTES.md").write_text("x")
+PY' fire
+
+# Read forms must still proceed.
+run_cmd_case "read: python3 -c Path.read_text on file (#184 negative)" \
+    "python3 -c 'from pathlib import Path; Path(\"CUSTOMER_NOTES.md\").read_text()'" proceed
+
+run_cmd_case "read: python3 -c Path.open('r') on file (#184 negative)" \
+    "python3 -c 'from pathlib import Path; Path(\"CUSTOMER_NOTES.md\").open(\"r\").read()'" proceed
+
+run_cmd_case "read: python3 -c Path.open(mode='r') on file (#184 negative)" \
+    "python3 -c 'from pathlib import Path; Path(\"CUSTOMER_NOTES.md\").open(mode=\"r\").read()'" proceed
+
+# Different filename must not trigger.
+run_cmd_case "read: Path.write_text on a different file (#184 negative)" \
+    "python3 -c 'from pathlib import Path; Path(\"OTHER.md\").write_text(\"x\")'" proceed
+
 echo
 echo "customer-notes-guard self-test: $pass passed, $fail failed."
 if [ "$fail" -gt 0 ]; then

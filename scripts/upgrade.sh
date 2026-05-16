@@ -1637,6 +1637,177 @@ if [[ $dry_run -eq 0 && -f "$customizations_file" ]]; then
   fi
 fi
 
+# --- Additive merge for .claude/settings.json hook wiring (issue #201) --------
+# The framework ships PreToolUse hooks (tech-lead-authoring-guard.py,
+# customer-notes-guard.py) and SessionStart reminder hooks via
+# scripts/hooks/, but `.claude/settings.json` is customarily customised
+# by downstream projects (env, permissions, allow / deny lists). It
+# therefore lands in the `preserved` / `conflicts` bucket above and the
+# upstream hook wiring never reaches the file. Result: shipped-but-dead
+# hooks; Hard Rule #8 unenforced at the tool layer.
+#
+# Fix: after the main sync, parse the project's existing settings.json
+# and additively merge any missing framework hook entries (de-duped by
+# `command`). Existing customer entries — env, permissions, custom
+# hooks — are preserved verbatim; only missing framework hooks are added.
+# Idempotent: re-running the upgrade with all framework hooks already
+# present is a no-op.
+#
+# The merge runs in-process via a small Python helper (json module
+# only, no extra deps). It is gated on:
+#   - $dry_run -eq 0
+#   - The framework's source settings.json (workdir/new/.claude/settings.json)
+#     being present
+#   - The downstream's settings.json being present (if absent, the
+#     normal sync flow above already installed the framework copy
+#     verbatim, so no merge needed)
+upstream_settings="$workdir/new/.claude/settings.json"
+project_settings="$project_root/.claude/settings.json"
+if [[ $dry_run -eq 0 && -f "$upstream_settings" && -f "$project_settings" ]]; then
+  settings_merge_log="$(mktemp -t settings-merge-XXXXXX.log)"
+  if python3 - "$upstream_settings" "$project_settings" >"$settings_merge_log" 2>&1 <<'PYMERGE'
+"""Additive merge of framework hook entries into project settings.json.
+
+Reads two file paths from argv: the framework's settings.json (source
+of truth for hook wiring) and the project's settings.json (preserved
+otherwise). Merges missing PreToolUse and SessionStart hooks into the
+project file in place, de-duped by the inner hook ``command`` string.
+Prints a one-line summary per added entry; exit code 0 on success
+(including the no-op case) or 1 on parse error.
+"""
+import json
+import os
+import sys
+
+
+def _command_set(hook_entry):
+    """Set of inner-hook `command` strings for one matcher entry."""
+    out = set()
+    for hk in hook_entry.get("hooks", []) or []:
+        cmd = hk.get("command")
+        if isinstance(cmd, str):
+            out.add(cmd)
+    return out
+
+
+def _entry_key(entry):
+    """Match key for a PreToolUse / SessionStart top-level entry.
+
+    PreToolUse entries discriminate on ``matcher`` (e.g. ``"Write"``).
+    SessionStart entries may have no matcher (the bare default) or a
+    ``"compact"`` matcher. Use the literal matcher (or "" sentinel) so
+    same-matcher framework entries merge into same-matcher project
+    entries instead of being duplicated.
+    """
+    return entry.get("matcher", "") or ""
+
+
+def _merge_hook_section(project_section, upstream_section, section_label):
+    """Merge upstream_section hook entries into project_section in place.
+
+    Returns a list of human-readable strings describing each change.
+    """
+    changes = []
+    project_by_key = {_entry_key(e): e for e in project_section}
+    for up_entry in upstream_section:
+        key = _entry_key(up_entry)
+        if key in project_by_key:
+            proj_entry = project_by_key[key]
+            existing = _command_set(proj_entry)
+            for up_hook in up_entry.get("hooks", []) or []:
+                if not isinstance(up_hook, dict):
+                    continue
+                cmd = up_hook.get("command")
+                if not isinstance(cmd, str) or cmd in existing:
+                    continue
+                proj_entry.setdefault("hooks", []).append(up_hook)
+                existing.add(cmd)
+                label = key if key else "(no matcher)"
+                changes.append(
+                    "{}[{}]: added hook {}".format(section_label, label, cmd)
+                )
+        else:
+            project_section.append(up_entry)
+            label = key if key else "(no matcher)"
+            changes.append(
+                "{}[{}]: added matcher entry".format(section_label, label)
+            )
+            project_by_key[key] = up_entry
+    return changes
+
+
+def main():
+    if len(sys.argv) != 3:
+        sys.stderr.write("usage: merge_settings.py <upstream> <project>\n")
+        return 2
+    upstream_path, project_path = sys.argv[1], sys.argv[2]
+    with open(upstream_path, "r", encoding="utf-8") as fh:
+        upstream = json.load(fh)
+    with open(project_path, "r", encoding="utf-8") as fh:
+        project = json.load(fh)
+
+    upstream_hooks = (upstream.get("hooks") or {})
+    project_hooks = project.setdefault("hooks", {})
+
+    all_changes = []
+    for section in ("PreToolUse", "SessionStart"):
+        up_section = upstream_hooks.get(section)
+        if not isinstance(up_section, list):
+            continue
+        proj_section = project_hooks.setdefault(section, [])
+        if not isinstance(proj_section, list):
+            sys.stderr.write(
+                "WARN: project hooks.{} is not a list; skipping section.\n".format(
+                    section
+                )
+            )
+            continue
+        all_changes.extend(
+            _merge_hook_section(proj_section, up_section, section)
+        )
+
+    if not all_changes:
+        print("settings.json: framework hook wiring already current; no changes.")
+        return 0
+
+    # Write atomically: tmp + rename.
+    tmp_path = project_path + ".tmp." + str(os.getpid())
+    with open(tmp_path, "w", encoding="utf-8") as fh:
+        json.dump(project, fh, indent=2)
+        fh.write("\n")
+    os.replace(tmp_path, project_path)
+    print("settings.json: merged {} framework hook entr{} into project file:".format(
+        len(all_changes), "y" if len(all_changes) == 1 else "ies"
+    ))
+    for line in all_changes:
+        print("  + " + line)
+    return 0
+
+
+sys.exit(main())
+PYMERGE
+  then
+    merge_rc=0
+  else
+    merge_rc=$?
+  fi
+  if [[ $merge_rc -eq 0 ]]; then
+    # Surface the merge summary to the upgrade report.
+    if grep -q '^settings.json: merged' "$settings_merge_log" 2>/dev/null; then
+      echo "ACTION NOTICE: framework hook wiring merged into .claude/settings.json (issue #201):"
+      sed 's/^/  /' "$settings_merge_log"
+    fi
+    # Quiet "no changes" case stays silent; the upgrade report is
+    # otherwise unaffected.
+  else
+    echo "WARN: settings.json additive merge failed (rc=$merge_rc); leaving project file unchanged." >&2
+    sed 's/^/  /' "$settings_merge_log" >&2
+  fi
+  rm -f "$settings_merge_log"
+elif [[ $dry_run -eq 1 && -f "$upstream_settings" && -f "$project_settings" ]]; then
+  echo "(dry-run: would additively merge framework hook entries into .claude/settings.json if any are missing — issue #201)" >&2
+fi
+
 # Stamp the new TEMPLATE_VERSION (only if not dry-run AND there are no conflicts,
 # OR if the user accepts leaving conflicts in place — we do the latter by default).
 if [[ $dry_run -eq 0 ]]; then

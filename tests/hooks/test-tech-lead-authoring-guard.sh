@@ -649,6 +649,139 @@ run_case "issue#180 regression: python3 -c open(..., 'w') still denies" "" \
     deny
 
 # ---------------------------------------------------------------------------
+# Upstream issue #184 — pathlib write coverage. Path("x").write_text(...),
+# Path("x").write_bytes(...), and Path("x").open("w"|mode="w") were
+# previously not detected as writes.
+# ---------------------------------------------------------------------------
+
+run_case "issue#184: python3 -c Path(p).write_text denies" "" \
+    '{"tool_input":{"command":"python3 -c \"from pathlib import Path; Path('"'"'src/foo.py'"'"').write_text('"'"'x'"'"')\""}}' \
+    deny
+
+run_case "issue#184: python3 -c Path(p).write_bytes denies" "" \
+    '{"tool_input":{"command":"python3 -c \"from pathlib import Path; Path('"'"'src/foo.py'"'"').write_bytes(b'"'"'x'"'"')\""}}' \
+    deny
+
+run_case "issue#184: python3 -c pathlib.Path(p).write_text denies" "" \
+    '{"tool_input":{"command":"python3 -c \"import pathlib; pathlib.Path('"'"'src/foo.py'"'"').write_text('"'"'x'"'"')\""}}' \
+    deny
+
+run_case "issue#184: python3 -c Path(p).open('w') denies" "" \
+    '{"tool_input":{"command":"python3 -c \"from pathlib import Path; Path('"'"'src/foo.py'"'"').open('"'"'w'"'"').write('"'"'x'"'"')\""}}' \
+    deny
+
+run_case "issue#184: python3 -c Path(p).open(mode='w') denies" "" \
+    '{"tool_input":{"command":"python3 -c \"from pathlib import Path; Path('"'"'src/foo.py'"'"').open(mode='"'"'w'"'"').write('"'"'x'"'"')\""}}' \
+    deny
+
+run_case "issue#184: python3 -c Path(p).open('a') denies (append mode)" "" \
+    '{"tool_input":{"command":"python3 -c \"from pathlib import Path; Path('"'"'src/foo.py'"'"').open('"'"'a'"'"').write('"'"'x'"'"')\""}}' \
+    deny
+
+run_case "issue#184: python3 heredoc Path.write_text denies" "" \
+    '{"tool_input":{"command":"python3 <<EOF\nfrom pathlib import Path\nPath('"'"'src/foo.py'"'"').write_text('"'"'x'"'"')\nEOF"}}' \
+    deny
+
+run_case "issue#184: Path(p).write_text on allow-listed target proceeds" "" \
+    '{"tool_input":{"command":"python3 -c \"from pathlib import Path; Path('"'"'docs/OPEN_QUESTIONS.md'"'"').write_text('"'"'x'"'"')\""}}' \
+    proceed
+
+# Negative — read-only pathlib does NOT trip.
+run_case "issue#184 negative: Path(p).read_text proceeds" "" \
+    '{"tool_input":{"command":"python3 -c \"from pathlib import Path; Path('"'"'src/foo.py'"'"').read_text()\""}}' \
+    proceed
+
+run_case "issue#184 negative: Path(p).open('r') proceeds" "" \
+    '{"tool_input":{"command":"python3 -c \"from pathlib import Path; Path('"'"'src/foo.py'"'"').open('"'"'r'"'"').read()\""}}' \
+    proceed
+
+run_case "issue#184 negative: Path(p).open(mode='r') proceeds" "" \
+    '{"tool_input":{"command":"python3 -c \"from pathlib import Path; Path('"'"'src/foo.py'"'"').open(mode='"'"'r'"'"').read()\""}}' \
+    proceed
+
+# ---------------------------------------------------------------------------
+# Upstream issue #205 — HR-8 is project-scoped. Absolute paths outside
+# CLAUDE_PROJECT_DIR are not the guard's jurisdiction (auto-memory, /tmp,
+# skill installation). All three previously denied; now proceed.
+# ---------------------------------------------------------------------------
+
+run_case "issue#205: write to /tmp/foo proceeds (outside project)" "" \
+    '{"tool_input":{"file_path":"/tmp/foo","content":"x"}}' \
+    proceed
+
+run_case "issue#205: write to /tmp/nested/dir/file proceeds" "" \
+    '{"tool_input":{"file_path":"/tmp/issues.json","content":"x"}}' \
+    proceed
+
+# Auto-memory path — under ~/.claude/projects/**/memory/**.
+run_case "issue#205: auto-memory write (~/.claude/projects/...) proceeds" "" \
+    "$(python3 -c 'import json, os; print(json.dumps({"tool_input":{"file_path":os.path.expanduser("~/.claude/projects/-home-quackdcs-test/memory/notes.md"),"content":"x"}}))')" \
+    proceed
+
+run_case "issue#205: MEMORY.md index update proceeds" "" \
+    "$(python3 -c 'import json, os; print(json.dumps({"tool_input":{"file_path":os.path.expanduser("~/.claude/projects/-home-quackdcs-test/memory/MEMORY.md"),"content":"x"}}))')" \
+    proceed
+
+# Skill installation under ~/.claude/skills.
+run_case "issue#205: skill installation (~/.claude/skills/...) proceeds" "" \
+    "$(python3 -c 'import json, os; print(json.dumps({"tool_input":{"file_path":os.path.expanduser("~/.claude/skills/my-skill/skill.md"),"content":"x"}}))')" \
+    proceed
+
+# Bash redirect to /tmp must also proceed (issue #205).
+run_case "issue#205: bash redirect to /tmp/issues.json proceeds" "" \
+    '{"tool_input":{"command":"gh issue list > /tmp/issues.json"}}' \
+    proceed
+
+# Regression: project-scoped path still denies.
+run_case "issue#205 regression: in-project src/foo.py still denies" "" \
+    '{"tool_input":{"file_path":"src/foo.py","content":"x"}}' \
+    deny
+
+# Absolute path INSIDE the project tree still denies.
+run_case "issue#205 regression: absolute-in-project src path still denies" "" \
+    "$(python3 -c 'import json, os; print(json.dumps({"tool_input":{"file_path":os.path.join(os.environ.get("CLAUDE_PROJECT_DIR",""),"src","foo.py"),"content":"x"}}))')" \
+    deny
+
+# ---------------------------------------------------------------------------
+# Upstream issue #206 — /dev/* device paths are not authoring targets.
+# Redirects to /dev/null, /dev/stdout, /dev/stderr, /dev/fd/N must proceed.
+# ---------------------------------------------------------------------------
+
+run_case "issue#206: bash redirect to /dev/null proceeds" "" \
+    '{"tool_input":{"command":"some-command > /dev/null"}}' \
+    proceed
+
+run_case "issue#206: bash redirect to /dev/null with stderr proceeds" "" \
+    '{"tool_input":{"command":"some-command 2>/dev/null"}}' \
+    proceed
+
+run_case "issue#206: bash redirect to /dev/stderr proceeds" "" \
+    '{"tool_input":{"command":"echo bad >/dev/stderr"}}' \
+    proceed
+
+run_case "issue#206: bash redirect to /dev/stdout proceeds" "" \
+    '{"tool_input":{"command":"echo good >/dev/stdout"}}' \
+    proceed
+
+run_case "issue#206: bash redirect to /dev/fd/2 proceeds" "" \
+    '{"tool_input":{"command":"some-command >/dev/fd/2"}}' \
+    proceed
+
+run_case "issue#206: 2>&1 + > /dev/null proceeds" "" \
+    '{"tool_input":{"command":"some-command 2>&1 > /dev/null"}}' \
+    proceed
+
+run_case "issue#206: tee > /dev/null suppression proceeds" "" \
+    '{"tool_input":{"command":"some-command | tee /tmp/log > /dev/null"}}' \
+    proceed
+
+# Combined: redirect to /dev/null PLUS an off-list write — the off-list
+# write still denies. The /dev/null filter must not mask the real write.
+run_case "issue#206 regression: /dev/null + off-list write denies (off-list flagged)" "" \
+    '{"tool_input":{"command":"echo x > src/foo.py 2>/dev/null"}}' \
+    deny
+
+# ---------------------------------------------------------------------------
 # Summary.
 # ---------------------------------------------------------------------------
 

@@ -123,6 +123,21 @@ _OPEN_WRITE_KWARG_RE = re.compile(
     r"""open\(\s*['"]([^'"]+)['"][^)]*\bmode\s*=\s*['"]([^'"]*[waxA+][^'"]*)['"]"""
 )
 
+# pathlib write-method coverage (issue #184). Mirrors
+# tech-lead-authoring-guard.py::_PATHLIB_* --- kept verbatim so the
+# sister hooks stay aligned. write_text / write_bytes are unconditional
+# writes; Path(...).open(...) uses the same mode-char set as open().
+_PATHLIB_CTOR = r"(?:pathlib\.)?(?:Path|PurePath|PosixPath|WindowsPath)"
+_PATHLIB_WRITE_TEXT_RE = re.compile(
+    rf"""{_PATHLIB_CTOR}\(\s*['"]([^'"]+)['"]\s*\)\.write_(?:text|bytes)\("""
+)
+_PATHLIB_OPEN_RE = re.compile(
+    rf"""{_PATHLIB_CTOR}\(\s*['"]([^'"]+)['"]\s*\)\.open\(\s*['"]([^'"]*[waxA+][^'"]*)['"]"""
+)
+_PATHLIB_OPEN_KWARG_RE = re.compile(
+    rf"""{_PATHLIB_CTOR}\(\s*['"]([^'"]+)['"]\s*\)\.open\([^)]*\bmode\s*=\s*['"]([^'"]*[waxA+][^'"]*)['"]"""
+)
+
 
 def _extract_open_write_paths(body: str):
     """Return paths opened with a write mode in ``body``.
@@ -130,7 +145,10 @@ def _extract_open_write_paths(body: str):
     Mirrors tech-lead-authoring-guard.py::_extract_write_targets_from_body
     but without redirect detection — the caller decides whether to scan
     the body for redirects (shell `-c` body: yes; non-shell interpreter
-    `-c` and heredoc bodies: no, per #180 + #182).
+    `-c` and heredoc bodies: no, per #180 + #182). Also covers pathlib
+    write methods per issue #184: ``Path("x").write_text(...)``,
+    ``Path("x").write_bytes(...)``, ``Path("x").open("w")`` and the
+    kwarg form ``Path("x").open(mode="w")``.
     """
     if not body:
         return []
@@ -140,6 +158,14 @@ def _extract_open_write_paths(body: str):
             path, mode = m.group(1), m.group(2)
             if any(ch in mode for ch in ("w", "a", "x", "A", "+")):
                 targets.append(path)
+    # pathlib write-method detection (issue #184).
+    for m in _PATHLIB_WRITE_TEXT_RE.finditer(body):
+        targets.append(m.group(1))
+    for regex in (_PATHLIB_OPEN_RE, _PATHLIB_OPEN_KWARG_RE):
+        for m in regex.finditer(body):
+            p_path, p_mode = m.group(1), m.group(2)
+            if any(ch in p_mode for ch in ("w", "a", "x", "A", "+")):
+                targets.append(p_path)
     return targets
 
 
