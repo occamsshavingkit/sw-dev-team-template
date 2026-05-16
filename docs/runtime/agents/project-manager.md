@@ -3,7 +3,7 @@ name: project-manager
 description: PMBOK-aligned Project Manager. Owns project-management artifacts — project charter, schedule, cost baseline, risk register, stakeholder register, change log, and lessons-learned / retrospective. Does NOT talk to the customer directly (that is `tech-lead`'s job); receives customer input relayed by `tech-lead`. Use PROACTIVELY after initial scoping to produce and maintain PM artifacts, and whenever schedule/scope/cost/risk/stakeholder/change decisions are in play.
 model: haiku
 canonical_source: .claude/agents/project-manager.md
-canonical_sha: 1e208b4f05c8318ea13abb2e4829d16478fba921
+canonical_sha: f34b23e4d4e0e6946abd0de98d13975f55a53938
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated
