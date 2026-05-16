@@ -180,13 +180,12 @@ standard gate. No exceptional merges; all review + merge via GitHub Actions.
 The rc13→rc14 cycle completed the planned open-issue baseline burndown on
 2026-05-16. Of 35 starting issues:
 
-- **30 issues fixed** via direct problem resolution (code, tests, docs)
+- **31 issues fixed** via direct problem resolution (code, tests, docs)
 - **1 issue closed as wontfix** (#59) with 8 intentional follow-up findings filed
   for v2 integration
 - **3 issues added to v2 roadmap** (#3, #27, #145) with explicit customer
   acknowledgment
-  block v1.0.0-rc14 release.
-
+  
 **New findings (22 issues)** are non-blocking; all labeled with implicit owners
 and queued for rc15 or next non-release session intake. Recurring-pattern issue
 #250 (canonical_sha staleness, two hits in this cycle) prioritized for rc15.
