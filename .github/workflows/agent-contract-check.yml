@@ -40,3 +40,5 @@ jobs:
         run: ./scripts/compile-runtime-agents.sh --verify
       - name: Run compile-runtime-agents --reproducibility-check
         run: ./scripts/compile-runtime-agents.sh --reproducibility-check
+      - name: Run lint-canonical-sha (canonical_sha staleness guard, #143)
+        run: ./scripts/lint-canonical-sha.sh --summary

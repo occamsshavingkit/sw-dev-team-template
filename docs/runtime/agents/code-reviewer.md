@@ -1,9 +1,9 @@
 ---
 name: code-reviewer
 description: Code Reviewer and Auditor. Use PROACTIVELY before every commit and after significant changes. Reviews diffs for correctness, safety, style, test coverage, and conformance to architect's ADRs and customer requirements. Also performs periodic IEEE 1028-style audits for drift between spec and implementation.
-model: inherit
+model: sonnet
 canonical_source: .claude/agents/code-reviewer.md
-canonical_sha: 0a5e21978fc634778b7e3f016dd7a9c2226836ac
+canonical_sha: 9d76cabe97963fb1faf8234440b69787137924f2
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated
