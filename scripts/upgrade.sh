@@ -1332,6 +1332,30 @@ if [[ -f "$manifest_path_pre" ]]; then
   done < "$manifest_path_pre"
 fi
 
+# Issue #200: pre-load project_sha values for every "conflict"-classified
+# entry in .template-conflicts.json.  Used below to prevent the
+# accepted_via_manifest path from silently reclassifying a tracked
+# conflict to accepted_local on a plain re-run (without --resolve and
+# without an actual hand-merge having taken place).
+declare -A prior_conflict_sha=()
+_prerun_conflicts_path="$project_root/.template-conflicts.json"
+if [[ -f "$_prerun_conflicts_path" ]]; then
+  while IFS= read -r _c_line; do
+    # Match lines containing a "conflict"-classified entry.  The emit
+    # format is one JSON object per line inside the entries array.
+    [[ "$_c_line" == *'"classified": "conflict"'* ]] || continue
+    _c_path="$(printf '%s' "$_c_line" | sed -n 's/.*"path": "\([^"]*\)".*/\1/p')"
+    _c_proj="$(printf '%s' "$_c_line" | sed -n 's/.*"project_sha": "\([^"]*\)".*/\1/p')"
+    [[ -n "$_c_path" ]] || continue
+    prior_conflict_sha["$_c_path"]="$_c_proj"
+  done < "$_prerun_conflicts_path"
+fi
+unset _prerun_conflicts_path _c_line _c_path _c_proj
+
+# Track paths refused by the #200 guard so we can emit a diagnostic and
+# exit non-zero after the file loop.
+silent_reclassify_refused=()
+
 for f in $ship_files; do
   new_path="$workdir/new/$f"
   proj_path="$project_root/$f"
@@ -1461,8 +1485,24 @@ for f in $ship_files; do
       proj_sha="$(manifest_file_sha "$proj_path")"
       new_sha_f="$(manifest_file_sha "$new_path")"
       if [[ "$proj_sha" == "${manifest_sha[$f]}" && "${manifest_sha[$f]}" != "$new_sha_f" ]]; then
-        accepted_local+=("$f")
-        accepted_via_manifest=1
+        # Issue #200: if this file is already tracked as a "conflict" in
+        # .template-conflicts.json, refuse to promote silently to
+        # accepted_local.  A plain re-run must not reclassify a tracked
+        # conflict — the operator must hand-merge and then run
+        # scripts/upgrade.sh --resolve.
+        #
+        # Note: --resolve mode exits at line 456 before reaching this
+        # loop, so resolve_mode is always 0 here.  The guard is stated
+        # without that branch for clarity.
+        if [[ -n "${prior_conflict_sha[$f]:-}" ]]; then
+          # Tracked conflict: refuse silent reclassification.  Fall
+          # through to the accepted_via_manifest=0 block so the file
+          # lands in conflicts[] and keeps the tracked conflict alive.
+          silent_reclassify_refused+=("$f")
+        else
+          accepted_local+=("$f")
+          accepted_via_manifest=1
+        fi
       fi
     fi
     if [[ $accepted_via_manifest -eq 0 ]]; then
@@ -1505,6 +1545,34 @@ for f in $ship_files; do
     fi
   fi
 done
+
+# --- Issue #200: refuse silent conflict→accepted_local reclassification ------
+#
+# If a plain re-run (no --resolve) attempted to promote a file that is
+# already tracked as "conflict" in .template-conflicts.json to
+# accepted_local (via the accepted_via_manifest path), those files were
+# collected in silent_reclassify_refused[].  Emit a diagnostic naming
+# each path and exit non-zero so the tracked conflict is not silently lost.
+# The operator must either:
+#   (a) hand-merge the file and run: scripts/upgrade.sh --resolve
+#   (b) pin the path in .template-customizations and run: scripts/upgrade.sh --resolve
+if [[ ${#silent_reclassify_refused[@]} -gt 0 ]]; then
+  echo "ERROR: the following path(s) are tracked as unresolved conflicts in" >&2
+  echo "  .template-conflicts.json but would be silently accepted on this" >&2
+  echo "  re-run.  Refusing to reclassify without an explicit --resolve." >&2
+  echo "" >&2
+  for _sr in "${silent_reclassify_refused[@]}"; do
+    echo "  conflict (unresolved): $_sr" >&2
+  done
+  echo "" >&2
+  echo "To resolve: hand-merge each file above, then run:" >&2
+  echo "  scripts/upgrade.sh --resolve" >&2
+  echo "Or to accept the local version as-is, add the path to" >&2
+  echo "  .template-customizations, then run: scripts/upgrade.sh --resolve" >&2
+  echo "(Issue #200 / upgrade.sh re-run safety guard.)" >&2
+  exit 1
+fi
+unset _sr
 
 # --- FW-ADR-0014: preservation-vs-manifest refusal handler ------------------
 #
