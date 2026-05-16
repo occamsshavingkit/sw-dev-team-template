@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: MIT
+Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+-->
+
 # release-engineer — manual (rationale, examples, history)
 
 **Canonical contract**: [.claude/agents/release-engineer.md](../../../.claude/agents/release-engineer.md)
@@ -22,8 +27,8 @@ FAIL summary line (FR-009).
 - The worktree has zero uncommitted changes (FR-008 / `worktree-clean`
   sub-gate). The gate refuses to report PASS on a dirty worktree.
 - All seven v1 sub-gates exit 0: `worktree-clean`, `lint-contracts`,
-  `check-spdx`, `upgrade-paths`, `advisory-pointers`, `migrations`,
-  `readme-current`.
+  `check-spdx`, `upgrade-paths`, `advisory-pointers`,
+  `migrations-standalone`, `readme-current`.
 - The run was against the **same SHA** that will be tagged. A PASS
   against a SHA other than the commit being tagged is not release
   evidence.
@@ -89,18 +94,13 @@ regressions that should block the tag.
 
 ## Wrapper-masking failure mode (spec 007 R-5)
 
-**The rc10 footgun.** During the rc8–rc10 release window, a local
-CI-gates wrapper invoked the smoke test via a pipe to `tail`:
-
-```sh
-./scripts/smoke-test.sh | tail -5; echo "EXIT=$?"
-```
-
-The smoke test exited 1 (one failure), but `echo "EXIT=$?"` printed
-the exit code of `tail`, not of `smoke-test.sh`. The wrapper reported
-`EXIT=0`. The regression was only caught when PR CI ran the unwrapped
-smoke test. Spec 007 FR-013 (`readme-current` sub-gate) and FR-013
-were introduced in response to the rc8–rc10 evidence.
+**Illustrative failure pattern.** A wrapper that pipes the gate output
+through another command can mask the gate's exit code. For example, a
+script that chains `./scripts/pre-release-gate.sh | tail -5; echo "EXIT=$?"`
+will print the exit code of `tail`, not of the gate — so a gate
+failure surfaces as `EXIT=0`. This failure mode is the motivation for
+spec 007 R-5 and is directly tested in
+`tests/release-gate/test-gate-wrapper.sh`.
 
 **The fundamental rule.** The gate's exit code is the release signal.
 Any wrapper that captures only the last command's exit — rather than
@@ -140,7 +140,8 @@ M8 owners ledger, release-engineer row):
 
 1. Bump `VERSION` to the new rc string (e.g., `v1.0.0-rc13`).
 2. Touch `README.md` if it does not already mention the new version
-   string (satisfies the `readme-current` sub-gate FR-013).
+   string (satisfies the `readme-current` sub-gate — customer ask
+   2026-05-14).
 3. Commit both files as the "tag-cut step 1" commit.
 4. Run `scripts/pre-release-gate.sh` against that commit.
 5. If PASS: `git tag -a v1.0.0-rcN -m "v1.0.0-rcN"` at that commit.
@@ -154,9 +155,9 @@ string and potentially flag a mismatch.
 
 **Historical lesson.** The rc10/rc11 window surfaced mismatches between
 the tag name and the `VERSION` content at the tagged commit. The
-`readme-current` sub-gate (FR-013) was introduced explicitly because
-the rc8–rc10 cycle shipped stale README content when the version bump
-and the tag were not kept in lockstep.
+`readme-current` sub-gate (customer ask 2026-05-14) was introduced
+explicitly because the rc8–rc10 cycle shipped stale README content when
+the version bump and the tag were not kept in lockstep.
 
 **Cross-reference.** `docs/versioning.md` § "Tag and GitHub Release
 policy" is the canonical tag-naming rule. LESSONS.md 2026-05-03 entry
