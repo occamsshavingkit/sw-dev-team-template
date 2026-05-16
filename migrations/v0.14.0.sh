@@ -264,6 +264,30 @@ done < <(printf '%s\n' "$proceed_list")
 # Clear any stale block artefact from a prior refused run.
 rm -f "$prebootstrap_block_artefact"
 
+# Issue #163: write each pre-bootstrapped path into .template-customizations
+# so modern upgrade.sh's conflict-detection treats them as accepted_local
+# rather than 3-way conflicts. The v0.16.0 upgrade-path failure mode is:
+#   baseline=v0.16.0 upgrade.sh != project=post-pre-bootstrap != upstream=candidate
+# Without this marker, the sync loop classifies it as a conflict. With it,
+# --resolve (issue #171) and the preserve_list check both clear it. Idempotent:
+# check before appending. (FW-ADR-0010.)
+customizations_file="$PROJECT_ROOT/.template-customizations"
+while IFS= read -r rel; do
+    [ -z "$rel" ] && continue
+    # Only mark paths that were actually pre-bootstrapped (exist locally now).
+    [ -f "$PROJECT_ROOT/$rel" ] || continue
+    # Escape the path for use in a grep basic-regex.
+    rel_escaped="$(printf '%s' "$rel" | sed 's/[]\.*^$[]/\\&/g')"
+    if [ -f "$customizations_file" ] && \
+       grep -E "^[[:space:]]*${rel_escaped}([[:space:]]|$)" \
+            "$customizations_file" >/dev/null 2>&1; then
+        continue  # already listed; idempotent
+    fi
+    printf '%s  # pre-bootstrapped by migrations/v0.14.0.sh (issue #163)\n' "$rel" \
+        >> "$customizations_file"
+    echo "  marked $rel in .template-customizations (pre-bootstrap marker; issue #163)"
+done < <(printf '%s\n' "$proceed_list")
+
 manifest="$PROJECT_ROOT/TEMPLATE_MANIFEST.lock"
 
 if [[ -f "$manifest" ]]; then
