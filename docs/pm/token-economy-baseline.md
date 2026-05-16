@@ -75,7 +75,7 @@ R-4 (rationale-absorption pattern).
 | Agent | M0 baseline (canonical) | Post-M1.1 canonical | Generated runtime contract | Reduction (runtime vs M0) |
 |---|---:|---:|---:|---|
 | tech-lead | 3909 words | 2320 | 2251 | 42.4% — **passes SC-001 (≥30%)** |
-| researcher | 1996 words | 1604 | 1590 | 20.3% — **passes SC-002 (≥20%)** (post-T024 archival-mechanic rule added +22 words; clears the floor by 0.3 points) |
+| researcher | 1996 words | 1604 | 1494 | **25.1% — passes SC-002 (≥20%)** (post-T034 breach to 1653/17.2% recovered via issue #151 pronoun-block extraction to manual on 2026-05-16; SC-002 cleared by 103 words) |
 | code-reviewer | 528 words | 535 | 520 | 1.5% — **SC-002 "where safe" clause invoked** (canonical was already lean; no rationale to extract; further reduction would require deleting normative content) |
 | qa-engineer | 1061 words | 737 | 663 | 37.5% — **passes SC-002 (≥20%)**; +178 words added via T017 follow-up to create explicit `## Hard rules` section for schema completeness |
 
@@ -87,9 +87,11 @@ R-4 (rationale-absorption pattern).
   `docs/agents/manual/tech-lead-manual.md` and shrinking the canonical
   contract under `.claude/agents/tech-lead.md` to normative routing and
   hard-rule references only.
-- **researcher — PASS (SC-002).** Runtime 1590 vs M0 1996 = 20.3%
-  reduction, above the SC-002 ≥20% floor by 0.3 points. Rationale and
-  Tier-1 source guidance moved to `docs/agents/manual/researcher-manual.md`.
+- **researcher — PASS (SC-002).** Runtime 1494 vs M0 1996 = 25.1%
+  reduction, above the SC-002 ≥20% floor by 5.1 points. Rationale,
+  Tier-1 source guidance, and (as of 2026-05-16, issue #151) the
+  pronoun-verification procedure moved to
+  `docs/agents/manual/researcher-manual.md`.
   Post-T024 added a 5-line archive-mechanic rule (+22 runtime words);
   margin is intentionally close to the floor — future researcher edits
   must re-measure SC-002 at gate close.
