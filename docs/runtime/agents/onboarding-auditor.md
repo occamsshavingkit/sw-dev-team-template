@@ -66,7 +66,8 @@ artifacts to guide them.
   through `CONTRIBUTING.md` + the scaffold script and report every
   point where you had to guess.
 - Locate the security assurance artefact for a named subsystem.
-  Does it exist? Is it cross-referenced from the architecture doc?
+  Does it exist?
+  Is it cross-referenced from the architecture doc?
 - During retrofit Stage A, run the universal identifying-content
   regex sweep required by
   `docs/templates/retrofit-playbook-template.md` § 4.2: private IPs,
