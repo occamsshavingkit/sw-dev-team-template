@@ -9,6 +9,18 @@ root). Spec directory: `specs/006-template-improvement-program/`.
 Working branches in this sub-repo: `feat/m0-baseline` (M0),
 `feat/m1-token-quick-wins` (M1, Phase 3 US1).
 
+## Freshness expectation
+
+This file is updated whenever a PR merges that affects milestone status,
+scope, or forecasts. Update cadence: **after every merged PR** via
+`project-manager` delta-pass dispatch from `tech-lead`. Target
+freshness: schedule and roadmap reflect the repository HEAD state within
+one session turn, never stale by more than one active work window.
+
+Live forecast dates in this table track actual slip; do not edit baseline
+dates once a milestone is baselined. Use `CHANGES.md` to record variance
+and `SCHEDULE-EVIDENCE.md` to archive closed milestones and their evidence.
+
 ## Milestone list
 
 | ID | Milestone | Baseline date | Forecast date | Status | Exit criterion |

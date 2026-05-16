@@ -120,8 +120,11 @@ Default mode for routine PM updates. Implements rolling-wave planning
 on the session-anchored cadence in `CLAUDE.md` "Time-based cadences".
 Rationale split deferred — see `docs/agents/manual/project-manager-manual.md`.
 
-- **Trigger.** Customer asks for "PM update" / "where are we", or a
-  milestone just closed.
+- **Triggers (automatic).** After every merged PR; before every release/gate PR;
+  when a milestone closes; when status artifacts become stale. `tech-lead`
+  dispatches PM after specialist work lands to keep schedule/roadmap current.
+  **No waiting for customer request** — PM is proactive.
+- **Triggers (explicit).** Customer asks for "PM update" / "where are we".
 - **Inputs.** `git log --since=<last-pm-pass> --oneline`; merged PR
   titles; the `SCHEDULE.md` row(s) with status `in-progress`;
   `OPEN_QUESTIONS.md` rows whose status changed since last pass; row-
@@ -134,6 +137,7 @@ Rationale split deferred — see `docs/agents/manual/project-manager-manual.md`.
   mode. Full rereads are reserved for milestone-close passes, and
   those should consume evidence/archive files rather than re-touring
   closed rows.
+
 
 ## Interfaces
 
