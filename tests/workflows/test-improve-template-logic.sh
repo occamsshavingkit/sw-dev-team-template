@@ -46,10 +46,12 @@ size_cap_check() {
 # Mirrors workflow "Protected-files / customer-truth check" step.
 # Returns 0 = OK, 1 = violation.
 protected_check() {
+    _orig_dir="$(pwd)"
+    cd "$(git rev-parse --show-toplevel)"
     diff_file=$1
     protected_paths='^(CLAUDE\.md|AGENTS\.md|VERSION|TEMPLATE_MANIFEST\.lock|\.claude/agents/|docs/adr/|docs/framework-project-boundary\.md|docs/model-routing-guidelines\.md|\.github/workflows/|migrations/)'
     customer_truth='^(CUSTOMER_NOTES\.md|docs/OPEN_QUESTIONS\.md|docs/intake-log\.md)$'
-    hard_rule_pattern='^(## Hard [Rr]ules?|Hard Rule #|MUST not|MUST NOT)'
+    hard_rule_pattern='(## Hard [Rr]ules?|Hard Rule #|MUST not|MUST NOT)'
     changed_paths=$(grep '^diff --git' "${diff_file}" | awk '{print $4}' | sed 's|^b/||' || true)
     violations=""
     for p in ${changed_paths}; do
@@ -64,18 +66,23 @@ protected_check() {
             fi
         fi
         # Content check: flag any file (not already caught by path) that
-        # contains Hard-Rule-bearing text (FR-027 anchor 11, issue #144).
+        # adds Hard-Rule-bearing text in the diff (FR-027 anchor 11, issue #144).
+        # Grep only diff +lines to avoid false-positives from unchanged HR text.
         if ! echo "${p}" | grep -Eq "${protected_paths}" && \
-           ! echo "${p}" | grep -Eq "${customer_truth}" && \
-           [ -f "${p}" ] && grep -Eq "${hard_rule_pattern}" "${p}"; then
-            if ! echo "${changed_paths}" | grep -Eq '^docs/proposals/.+\.md$'; then
-                violations="${violations} ${p}(hard-rule-content)"
+           ! echo "${p}" | grep -Eq "${customer_truth}"; then
+            added_lines=$(grep -E '^\+[^+]' "${diff_file}" | sed 's/^+//')
+            if echo "${added_lines}" | grep -Eq "${hard_rule_pattern}"; then
+                if ! echo "${changed_paths}" | grep -Eq '^docs/proposals/.+\.md$'; then
+                    violations="${violations} ${p}(hard-rule-content)"
+                fi
             fi
         fi
     done
     if [ -n "${violations}" ]; then
+        cd "${_orig_dir}"
         return 1
     fi
+    cd "${_orig_dir}"
     return 0
 }
 
@@ -163,6 +170,8 @@ run_one "customer-truth-no-proposal"  PASS  FAIL
 run_one "customer-truth-with-proposal" PASS PASS
 run_one "hard-rule-content-no-proposal"  PASS FAIL
 run_one "hard-rule-content-with-proposal" PASS PASS
+# W2 fix: file already has HR text in unchanged lines; diff adds non-HR content -> PASS
+run_one "hard-rule-unchanged-no-proposal" PASS PASS
 
 # Numeric validator tests (issue #149)
 run_numeric "valid-integer"   "123"          PASS

@@ -2,7 +2,8 @@ diff --git a/docs/templates/intake-log-template.md b/docs/templates/intake-log-t
 index aaaaaaa..bbbbbbb 100644
 --- a/docs/templates/intake-log-template.md
 +++ b/docs/templates/intake-log-template.md
-@@ -1,3 +1,4 @@
- # Intake Log Template
-+Hard Rule #1: only tech-lead interfaces with the customer.
+@@ -70,6 +70,7 @@ some middle section
+ ## Hard rules (binding)
+ 1. Only tech-lead interfaces with the customer.
++This is a non-hard-rule addition.
  Some existing content.
