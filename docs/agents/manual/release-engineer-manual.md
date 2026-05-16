@@ -87,6 +87,54 @@ release boundary; two or more override rows in a single rc window is a
 process signal that the gate is either too slow or discovering real
 regressions that should block the tag.
 
+## Dogfood gate
+
+**Rule (customer correction 2026-05-16).** Dogfood gates every release
+tag — rc tags and MINOR/MAJOR-boundary tags alike. No tag is cut without
+a green dogfood run on the exact commit being tagged.
+
+**Position in the pipeline.** The full sequence is:
+
+1. VERSION bump → commit (see VERSION-bump discipline below).
+2. `scripts/pre-release-gate.sh` → PASS required.
+3. `tests/release-gate/dogfood-downstream.sh` → PASS required.
+4. `git tag -a vX.Y.Z[-rcN] -m "..."` — only after step 3 exits 0.
+5. Push tag.
+
+Steps 2 and 3 are both required gates. Passing one does not excuse
+the other. The pre-release gate (step 2) validates the template's
+internal contracts; dogfood (step 3) validates the template's behaviour
+against real downstream fixtures. A partial pass is not a release signal.
+
+**What dogfood means here.** The driver is
+`tests/release-gate/dogfood-downstream.sh`. It exercises
+`scripts/upgrade.sh` against locally-stored snapshot fixtures of real
+downstream projects (operator-local; codename-only in committed
+artifacts). The companion capture script is
+`scripts/capture-dogfood-fixture.sh`. The fixtures must have been
+captured from actual downstream projects; synthetic or fabricated
+fixtures do not satisfy the gate.
+
+T045 fixture-downstream verification (from
+`specs/011-issue-backlog-triage/`) is a lighter check and is necessary
+but not sufficient. A T045 PASS does not substitute for the full
+dogfood driver run.
+
+**Failure mode.** If `dogfood-downstream.sh` exits non-zero on the tip
+commit, no tag is cut. Do not add override mechanisms or bypass flags
+for the dogfood step — there is no equivalent of
+`SKIP_PRE_RELEASE_GATE` here. Fix forward on a new commit, then re-run
+both the pre-release gate and dogfood from the new tip before tagging.
+
+**Real-world precedent — rc14 (2026-05-16).** The rc14 cut attempt
+surfaced the advisory-allowlist drift and the v0.16.0 migration issue
+via the pre-release gate. Had the pipeline been followed in the
+codified order — pre-release gate first, dogfood second — the
+broader downstream compatibility problems would have surfaced at the
+dogfood step before the tag was even considered. The absence of an
+explicit dogfood step in this manual was the gap that made the rc14
+sequence ambiguous.
+
 ## Wrapper-masking failure mode (spec 007 R-5)
 
 **The rc10 footgun.** During the rc8–rc10 release window, a local
@@ -143,8 +191,9 @@ M8 owners ledger, release-engineer row):
    string (satisfies the `readme-current` sub-gate FR-013).
 3. Commit both files as the "tag-cut step 1" commit.
 4. Run `scripts/pre-release-gate.sh` against that commit.
-5. If PASS: `git tag -a v1.0.0-rcN -m "v1.0.0-rcN"` at that commit.
-6. `git push origin main && git push origin v1.0.0-rcN`.
+5. If PASS: run `tests/release-gate/dogfood-downstream.sh` against that commit.
+6. If dogfood PASS: `git tag -a v1.0.0-rcN -m "v1.0.0-rcN"` at that commit.
+7. `git push origin main && git push origin v1.0.0-rcN`.
 
 Post-tag `VERSION` bumps to the next development version are correct
 only for stable/final releases where the next commit starts a new MINOR
