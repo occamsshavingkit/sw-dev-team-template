@@ -72,3 +72,45 @@ for clarification.
 **Context / implications:**
 - <only what the customer stated, or direct process context>
 ```
+
+## Pronoun verification
+
+Canonical contract Job #6 (the binding rule "verify pronouns against an
+authoritative source and record the citation") points here for the
+source hierarchy, citation format, fallback handling, and re-verification
+cadence. The detail moved from canonical to manual on 2026-05-16 (issue
+#151, SC-002 trim) — the binding *rule* still lives in the contract; only
+the procedural elaboration moved here.
+
+### Source hierarchy (use the highest available)
+
+- **Living persons** — (a) the person's own public self-identification
+  (official-site bio, verified profile, first-person interview);
+  (b) their label / publisher / agency / employer bio; (c) a reference
+  encyclopedia entry **when that entry itself cites (a) or (b)** —
+  record the URL plus the date you checked it.
+- **Historical figures** — a reference biography. Accept the era's
+  conventional pronouns as the default unless a modern reference
+  explicitly reconsiders them; in that case, cite the reference and
+  note the reconsideration.
+- **Fictional characters** — the canon source (creator's published work
+  or the official franchise's current canonical site).
+
+### Citation format
+
+One line in the `Source` column of `docs/AGENT_NAMES.md`:
+
+> "<title of source>, <URL or reference>, as of <YYYY-MM-DD>"
+
+### Fallback handling
+
+If pronouns cannot be verified to the bar above, the canonical contract
+requires flagging to `tech-lead`. From there, `tech-lead` either asks
+the customer to pick a different member of the category or records the
+use of "they / them" as a documented fallback in `CUSTOMER_NOTES.md`.
+Do not silently guess or default to "they / them" without that record.
+
+### Re-verification cadence
+
+Re-verify pronouns before a new version of the project's
+`docs/AGENT_NAMES.md` ships if > 12 months since the last check.

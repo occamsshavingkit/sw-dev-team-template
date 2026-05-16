@@ -399,6 +399,13 @@ grandfathering needed if the regex is tightened first.
 
 ## M2.3 researcher SC-002 exception (2026-05-13)
 
+**Status (2026-05-16, issue #151 fix-and-close):** CLOSED. Pronoun-verification
+block moved from canonical to `docs/agents/manual/researcher-manual.md`
+§ "Pronoun verification" per the deferral plan below. Runtime word count
+dropped from 1653 → 1494; SC-002 margin now 25.1% (103-word headroom).
+The original entry below is retained as the historical record.
+
+
 T034 added the FR-009 memory-first-lookup patterns to
 `.claude/agents/researcher.md`. The four canonical patterns are binding
 governance and cannot be elided. Effect on the runtime contract:
