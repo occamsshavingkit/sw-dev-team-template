@@ -4,7 +4,7 @@ A ready-to-use project scaffold that turns a single Claude Code or
 Codex session into a 13-role software-development team with a strict
 escalation protocol and a per-project SME pattern.
 
-**Status.** Release-candidate track. Current candidate: **`v1.0.0-rc12`**
+**Status.** Release-candidate track. Current candidate: **`v1.0.0-rc14`**
 (identity also lives in the `VERSION` file at the tagged commit; see
 `docs/versioning.md`). The public contract becomes stable at `v1.0.0`
 final; breaking changes are still permitted on the rc track if downstream
