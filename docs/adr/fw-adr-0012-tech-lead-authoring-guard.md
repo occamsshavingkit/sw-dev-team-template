@@ -1120,9 +1120,8 @@ discipline; none block acceptance.
   2026-05-16, upstream issues #205 + #206).** The
   binding allow-list above enumerates project artefacts
   relative to `CLAUDE_PROJECT_DIR`. The hook short-circuits
-  to *proceed* on any write whose normalised target is
-  absolute and falls outside the resolved project
-  directory — auto-memory under
+  to *proceed* on any write whose target, before or after
+  normalisation, is absolute and outside CLAUDE_PROJECT_DIR — auto-memory under
   `~/.claude/projects/**/memory/**`, skill installation
   under `~/.claude/skills/**`, transient scratch under
   `/tmp/**`, and kernel device redirects under `/dev/**`

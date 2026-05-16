@@ -865,11 +865,11 @@ def _decide_for_command(command: str):
     for t in targets:
         # Pre-normalisation filter for harness device paths (issue #206):
         # ``/dev/(null|stdout|stderr|fd/N|zero|random|urandom)`` and the
-        # broader ``/dev/**`` surface are not authoring targets. The
-        # _is_harness_path check below catches these via the ``/dev/``
-        # prefix, but doing the check on the raw token avoids any
-        # mis-normalisation surprises when the redirect target is bare
-        # like ``/dev/null`` (already absolute).
+        # broader ``/dev/**`` surface are not authoring targets. Checking
+        # on the raw token is sufficient — ``_is_harness_path`` early-
+        # returns False for any relative path, so absolute harness paths
+        # (e.g. ``/dev/null``) are caught here before normalisation.  No
+        # second ``_is_harness_path`` call is needed after normalisation.
         if _is_harness_path(t):
             continue
         norm = _normalise(t)
@@ -879,8 +879,6 @@ def _decide_for_command(command: str):
         # scope. ``_normalise`` returns the absolute form for these;
         # ``_is_outside_project`` recognises them.
         if _is_outside_project(t):
-            continue
-        if _is_harness_path(norm):
             continue
         if _is_customer_notes_path(norm):
             # Defer to customer-notes-guard.
