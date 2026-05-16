@@ -300,6 +300,21 @@ if [[ $resolve_mode -eq 1 ]]; then
   # current re-emit fixes the field set to {path, classified,
   # baseline_sha, upstream_sha, project_sha} and would silently drop
   # anything else. Bump the schema number and gate accordingly.
+  # Issue #171: load .template-customizations so --resolve can auto-drop
+  # entries the operator resolved by pinning the path. A path listed in
+  # .template-customizations means the operator decided to keep the local
+  # version; the conflict is resolved by declaration, not by SHA change.
+  resolve_pinned=()
+  resolve_customizations="$project_root/.template-customizations"
+  if [[ -f "$resolve_customizations" ]]; then
+    while IFS= read -r _line; do
+      _line="${_line%%#*}"
+      _line="$(echo "$_line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+      [[ -z "$_line" ]] && continue
+      resolve_pinned+=("$_line")
+    done < "$resolve_customizations"
+  fi
+
   tmp_out="$conflicts_path.tmp.$$"
   removed=0
   kept_unresolved=0
@@ -332,6 +347,25 @@ if [[ $resolve_mode -eq 1 ]]; then
         removed=$((removed + 1))
         continue
       fi
+
+      # Issue #171: if the path is now pinned in .template-customizations,
+      # the operator resolved the conflict by declaration — drop it as
+      # accepted_local regardless of SHA state.
+      for _pin in "${resolve_pinned[@]+"${resolve_pinned[@]}"}"; do
+        if [[ "$_pin" == "$e_path" ]]; then
+          removed=$((removed + 1))
+          # Record as accepted_local for manifest refresh purposes.
+          proj_now_pin=""
+          [[ -f "$project_root/$e_path" ]] && proj_now_pin="$(manifest_file_sha "$project_root/$e_path")"
+          if [[ -n "$proj_now_pin" ]]; then
+            printf '%s	%s
+' "$e_path" "$proj_now_pin" >> "$resolved_paths_log"
+          fi
+          e_path=""  # sentinel: skip the rest of the loop body
+          break
+        fi
+      done
+      [[ -z "$e_path" ]] && continue
 
       # Recompute current project SHA.
       proj_now=""
@@ -936,8 +970,10 @@ fi
 # Untagged targets (branch / SHA): semver progression breaks because
 # new_version is a synthetic "untagged-<sha>" label. Run every migration
 # strictly greater than local_version (conservative full-walk). Migrations
-# are required to be idempotent per their contract, so re-running ones
-# that already applied is safe.
+# are required to be idempotent per their contract (migrations/README.md
+# § "Required properties" #1; see also docs/TEMPLATE_UPGRADE.md
+# § "Per-version migrations"), so re-running ones that already applied
+# is safe. (Issue #190.)
 all_tags=$(git -C "$workdir/new" tag -l 'v*' 2>/dev/null | semver_sort_tags || true)
 migrations_to_run=()
 if [[ "$target_kind" == "untagged" ]]; then
@@ -2081,10 +2117,28 @@ if [[ $dry_run -eq 0 ]]; then
         echo "  Full lint output (read-only --canonical-only pass):"
         sed 's/^/    /' "$lint_log"
         echo
+        # Issue #169: find the latest migration in the upstream clone that
+        # touches the agent-contract schema (i.e. mentions the rc9-introduced
+        # required sections). That migration is the canonical backfiller
+        # regardless of whether the target version ships one itself.
+        schema_migration=""
+        if [[ -d "$workdir/new/migrations" ]]; then
+          for _mig in $(ls "$workdir/new/migrations/"*.sh 2>/dev/null | xargs -I{} basename {} .sh | { semver_sort_tags 2>/dev/null || sort; }); do
+            if grep -qE '## Hard rules|## Output format|agent.contract|lint-agent-contracts'                 "$workdir/new/migrations/$_mig.sh" 2>/dev/null; then
+              schema_migration="$_mig"
+            fi
+          done
+        fi
         if [ -f "migrations/$new_version.sh" ]; then
           echo "  Backfill the missing sections per the rc-specific migration at"
           echo "    migrations/$new_version.sh"
-          echo "  (or the latest migrations/<target>.sh that touches agent contracts)."
+          if [[ -n "$schema_migration" && "$schema_migration" != "$new_version" ]]; then
+            echo "  (the latest schema-touching migration is migrations/$schema_migration.sh)."
+          fi
+        elif [[ -n "$schema_migration" ]]; then
+          echo "  Backfill the missing sections per the latest schema-touching migration:"
+          echo "    migrations/$schema_migration.sh"
+          echo "  (no rc-specific migration exists for $new_version; issue #169)."
         else
           echo "  Backfill the missing sections per the latest migrations/<target>.sh"
           echo "  that touches agent contracts (no rc-specific migration exists for"
