@@ -215,6 +215,7 @@ fi
 #   sonnet-preferred -> sonnet, opus
 #   opus-preferred   -> opus
 
+set +e
 python3 << PYEOF
 import sys, json, os, re
 
@@ -258,6 +259,7 @@ if os.path.exists(local_supplement):
 for row in agents:
     agent_name = row["agent"]
     preferred = row["claude_equivalent"]
+    agent_name = os.path.basename(agent_name)
     contract_file = os.path.join(agents_dir, f"{agent_name}.md")
 
     if not os.path.exists(contract_file):
@@ -286,8 +288,8 @@ if failures:
 
 sys.exit(0)
 PYEOF
-
 EXIT_CODE=$?
+set -e
 
 if [ "$SUMMARY" -eq 1 ]; then
     if [ "$EXIT_CODE" -eq 0 ]; then

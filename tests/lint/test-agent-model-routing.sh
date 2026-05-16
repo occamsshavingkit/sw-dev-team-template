@@ -196,6 +196,36 @@ run_case "schema-validation-fail: invalid default_class -> FAIL" 1 \
     --rubric "$RUBRIC6"
 
 # --------------------------------------------------------------------------
+# Case 7: --summary FAIL line is printed on failure path (regression-pin for
+# CR-PR-G blocking finding: under set -eu the FAIL line was dead code).
+# Deliberately corrupt one contract to model: inherit, invoke with --summary,
+# assert exit non-zero AND that the FAIL line appears in stdout.
+# --------------------------------------------------------------------------
+TMPDIR7="$(mktemp -d)"
+ADIR7="$(make_agents_dir "$TMPDIR7")"
+write_contract "$ADIR7" "architect" "inherit"
+RUBRIC7="$(make_rubric "$TMPDIR7" "architect" "claude-sonnet" "sonnet")"
+
+SUMMARY_OUT7="$(mktemp)"
+ACTUAL_EXIT7=0
+"$LINT" --summary --agents-dir "$ADIR7" --rubric "$RUBRIC7" >"$SUMMARY_OUT7" 2>/dev/null || ACTUAL_EXIT7=$?
+
+SUMMARY_FAIL_FOUND=0
+if grep -q "lint-agent-model-routing: FAIL" "$SUMMARY_OUT7"; then
+    SUMMARY_FAIL_FOUND=1
+fi
+rm -f "$SUMMARY_OUT7"
+
+if [ "$ACTUAL_EXIT7" -ne 0 ] && [ "$SUMMARY_FAIL_FOUND" -eq 1 ]; then
+    pass=$((pass + 1))
+    echo "PASS  summary-fail-line: FAIL summary printed + non-zero exit"
+else
+    fail=$((fail + 1))
+    failures+=("summary-fail-line: FAIL summary printed + non-zero exit (exit=$ACTUAL_EXIT7 fail_line_found=$SUMMARY_FAIL_FOUND)")
+    echo "FAIL  summary-fail-line: FAIL summary printed + non-zero exit (exit=$ACTUAL_EXIT7 fail_line_found=$SUMMARY_FAIL_FOUND)"
+fi
+
+# --------------------------------------------------------------------------
 # Summary
 # --------------------------------------------------------------------------
 echo ""
