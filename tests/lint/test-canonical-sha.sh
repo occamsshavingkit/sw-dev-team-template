@@ -12,10 +12,15 @@
 #   3. Stale opencode artefact only: runtime current, opencode stale -> FAIL
 #   4. Missing runtime artefact: canonical exists but no runtime file -> FAIL
 #   5. Missing canonical_sha field in runtime artefact -> FAIL
-#   6. Missing canonical file for which a runtime exists: no canonical -> WARN
-#      (not a FAIL; the canonical is absent, not stale)
-#   7. --no-opencode flag: opencode stale but --no-opencode set -> PASS
-#   8. --summary flag: FAIL summary line printed on stderr mismatch
+#   6. --no-opencode flag: opencode stale but --no-opencode set -> PASS
+#   7. --summary flag: FAIL summary line printed on stdout when stale -> FAIL
+#   8. --summary flag: PASS summary line printed on stdout when current -> PASS
+#
+# NOTE: orphan detection (runtime artefact exists but canonical is absent)
+# is NOT covered here; that gap is filed as a follow-up issue.
+# (lint detects STALE / MISSING_ARTEFACT / NO_SHA_FIELD but does NOT detect
+# MISSING_CANONICAL — a runtime artefact exists for which no canonical source
+# exists.)
 #
 # Each case builds an isolated git repo fixture in a tempdir containing:
 #   .claude/agents/<role>.md      (canonical)
@@ -146,10 +151,21 @@ get_blob_sha() {
 }
 
 # ==========================================================================
+# Single parent tempdir — all per-case dirs live under it.
+# Trap removes the entire tree regardless of which case fails or exits early.
+# ==========================================================================
+PARENT_TMPDIR="$(mktemp -d)"
+trap 'rm -rf "$PARENT_TMPDIR"' EXIT INT TERM HUP
+
+TMPDIR1="$PARENT_TMPDIR/tmpdir1"; mkdir -p "$TMPDIR1"
+TMPDIR2="$PARENT_TMPDIR/tmpdir2"; mkdir -p "$TMPDIR2"
+TMPDIR3="$PARENT_TMPDIR/tmpdir3"; mkdir -p "$TMPDIR3"
+TMPDIR4="$PARENT_TMPDIR/tmpdir4"; mkdir -p "$TMPDIR4"
+TMPDIR5="$PARENT_TMPDIR/tmpdir5"; mkdir -p "$TMPDIR5"
+
+# ==========================================================================
 # Case 1: Happy path — all artefacts current -> PASS
 # ==========================================================================
-TMPDIR1="$(mktemp -d)"
-trap 'rm -rf "$TMPDIR1"' EXIT INT TERM HUP
 REPO1="$(make_fixture_repo "$TMPDIR1")"
 
 write_canonical "$REPO1" "soft-eng" "canonical body v1"
@@ -168,7 +184,6 @@ run_case "happy-path: all artefacts current" 0 \
 # Case 2: Stale runtime artefact — canonical committed with new content,
 #         runtime not updated -> FAIL with STALE diagnostic
 # ==========================================================================
-TMPDIR2="$(mktemp -d)"
 REPO2="$(make_fixture_repo "$TMPDIR2")"
 
 # First commit: canonical + artefacts in sync.
@@ -211,7 +226,6 @@ fi
 # ==========================================================================
 # Case 3: Only opencode artefact is stale (runtime is current) -> FAIL
 # ==========================================================================
-TMPDIR3="$(mktemp -d)"
 REPO3="$(make_fixture_repo "$TMPDIR3")"
 
 write_canonical "$REPO3" "soft-eng" "canonical body v1"
@@ -237,7 +251,6 @@ run_case "stale-opencode-only: opencode artefact stale -> FAIL" 1 \
 # ==========================================================================
 # Case 4: Missing runtime artefact -> FAIL
 # ==========================================================================
-TMPDIR4="$(mktemp -d)"
 REPO4="$(make_fixture_repo "$TMPDIR4")"
 
 write_canonical "$REPO4" "soft-eng" "canonical body"
@@ -252,7 +265,6 @@ run_case "missing-runtime: no runtime artefact -> FAIL" 1 \
 # ==========================================================================
 # Case 5: Missing canonical_sha field in runtime artefact -> FAIL
 # ==========================================================================
-TMPDIR5="$(mktemp -d)"
 REPO5="$(make_fixture_repo "$TMPDIR5")"
 
 write_canonical "$REPO5" "soft-eng" "canonical body"
