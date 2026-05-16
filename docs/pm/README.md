@@ -68,3 +68,20 @@ See `scripts/log-fallback.sh --help` for the full flag set including
 | `SCHEDULE-ARCHIVE.md` | Superseded schedule snapshots. |
 | `dispatch-log.md` | Per-PR dispatch and close record for multi-PR burndowns. |
 | `pre-release-gate-overrides.md` | Bypass audit log for `scripts/pre-release-gate.sh`. |
+
+## Session-output artifacts (gitignored)
+
+Two file patterns are intentionally **not tracked** in git, declared as
+ephemeral session output per issue #189 (customer ruling 2026-05-16):
+
+- `docs/pm/token-ledger.md` — session-output notes (transient working notes,
+  not a durable artifact). Use `docs/pm/token-ledger/prompts/` if you want
+  structured tracked prompt records.
+- `tests/prompt-regression/results-*.md` — daily prompt-regression run
+  results. Each run produces a results file; the test runs themselves are
+  authoritative, not the report files.
+
+If you find these files tracked in a downstream project that pre-dates
+this convention, run `git rm --cached <path>` to untrack without deleting
+the local copy. Follow-up issue #219 tracks an automated migration for
+downstreams.

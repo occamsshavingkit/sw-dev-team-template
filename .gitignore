@@ -50,8 +50,9 @@ tests/release-gate/snapshots/*
 # Operator-local dogfood fixtures; never commit (project-specific content)
 .dogfood-fixtures/
 
-# Lowercase stale variant of docs/pm/TOKEN_LEDGER.md (#160). Some agent
-# code paths derive the filename by lowercasing the conceptual name; the
-# canonical file is docs/pm/TOKEN_LEDGER.md (uppercase). Ignoring the
-# lowercase variant stops it appearing as untracked on every commit cycle.
+# Session output — ephemeral artifacts (issue #189 customer ruling 2026-05-16)
+# docs/pm/token-ledger.md was previously ignored as a lowercase stale variant
+# of TOKEN_LEDGER.md (#160). Q-0014 ruling supersedes: both patterns are
+# declared ephemeral session output and intentionally not tracked.
 docs/pm/token-ledger.md
+tests/prompt-regression/results-*.md
