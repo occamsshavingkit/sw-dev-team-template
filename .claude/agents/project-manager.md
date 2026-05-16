@@ -123,7 +123,7 @@ Rationale split deferred — see `docs/agents/manual/project-manager-manual.md`.
 - **Triggers (automatic).** After every merged PR; before every release/gate PR;
   when a milestone closes; when status artifacts become stale. `tech-lead`
   dispatches PM after specialist work lands to keep schedule/roadmap current.
-  **No waiting for customer request** — PM is proactive.
+  **PM does not wait for a customer request** — PM is proactive.
 - **Triggers (explicit).** Customer asks for "PM update" / "where are we".
 - **Inputs.** `git log --since=<last-pm-pass> --oneline`; merged PR
   titles; the `SCHEDULE.md` row(s) with status `in-progress`;

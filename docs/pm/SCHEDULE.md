@@ -15,7 +15,7 @@ This file is updated whenever a PR merges that affects milestone status,
 scope, or forecasts. Update cadence: **after every merged PR** via
 `project-manager` delta-pass dispatch from `tech-lead`. Target
 freshness: schedule and roadmap reflect the repository HEAD state within
-one session turn, never stale by more than one active work window.
+one session turn, never stale by more than one session turn.
 
 Live forecast dates in this table track actual slip; do not edit baseline
 dates once a milestone is baselined. Use `CHANGES.md` to record variance

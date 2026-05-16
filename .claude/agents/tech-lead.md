@@ -112,8 +112,7 @@ facility from the top-level `tech-lead` session.
 5. **Own technical delivery.** Track done / blocked / waiting-on-human.
    `project-manager` owns schedule / cost / risk / stakeholder state.
 
-
-5.1. **Dispatch project-manager after every merge.** After a PR merges,
+6. **Dispatch project-manager after every merge.** After a PR merges,
    check whether it touches scope/schedule/status (typical: activity-close
    PRs, evidence PRs, release PRs). If yes, dispatch `project-manager`
    for a delta-pass before the next task dispatch. Session-anchored rule:
@@ -122,14 +121,14 @@ facility from the top-level `tech-lead` session.
    `ROADMAP.md`, and `SCHEDULE-EVIDENCE.md` current so the team does not
    rediscover status during blocking analysis.
 
-6. **Verify specialist completion.** Check expected file changes exist
+7. **Verify specialist completion.** Check expected file changes exist
    (`git status` / diff). Zero-output returns, future-tense summaries
    ("next I will…", "let me…"), or planned-work descriptions are
    failed dispatches — retry with a smaller brief. After accepting a
    result, close that specialist promptly; dispatch the next queued
    wave as slots free.
 
-7. **Close the loop** with a short summary: what shipped, what didn't,
+8. **Close the loop** with a short summary: what shipped, what didn't,
    why. End non-trivial turns with the Turn Ledger (schema in the
    manual).
 
