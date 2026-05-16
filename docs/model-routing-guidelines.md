@@ -217,3 +217,18 @@ Provider column key: **Claude equivalent** = fallback used in Claude Code; **Ope
 | `onboarding-auditor` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | (advisory-only role; frontier escalation not gating) |
 | `process-auditor` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | (advisory-only role; frontier escalation not gating) |
 | `sme-template` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | (default for SMEs; haiku for tiny lookups) |
+
+## Availability fallback
+
+The binding default-class table above specifies each agent's *preferred* class. When the preferred class is **unavailable** in the active harness — quota exhausted, model retired, provider outage — the routing wrapper (or operator, in harnesses without one) MUST escalate to the next-higher tier **within the same provider** before degrading across providers. Availability fallback does NOT require the per-task escalation predicate in `frontier_only_when` to be satisfied; it is an operator-level concern separate from per-task escalation.
+
+Provider-specific fallback chains:
+
+- **Claude Code** (Claude only): preferred `haiku` → fall up to `sonnet` → fall up to `opus` (frontier).
+- **Codex** (OpenAI only): preferred `openai-mini` → fall up to `openai-coding` → fall up to `openai-frontier`.
+- **opencode** (Gemini + OpenAI both reachable): preferred `gemini-flash` → fall up to `gemini-pro`. If both Gemini tiers exhausted: cross-provider degrade to the OpenAI equivalent column (`openai-mini` or `openai-coding` as appropriate). Same shape for an OpenAI starting point exhausted.
+
+Note that fallback **up the tier** (toward frontier) is the documented path. Falling **down** (toward `fast`) is only acceptable for non-load-bearing roles where the lower tier is explicitly listed as acceptable in the per-agent row — currently none of the 14 baseline roles have such an exception. The frontier class (`claude-opus`, `openai-frontier`, `gemini-pro` at ceiling) remains the upper bound; if frontier is also unavailable, work pauses or the operator escalates the availability issue to the customer.
+
+CI lint policy (per `scripts/lint-agent-model-routing.sh`): an agent contract's `model:` field MUST equal the preferred Claude equivalent OR the next-higher Claude tier (the availability-fallback). For example, a `sonnet`-defaulted role may declare `model: sonnet` (preferred) or `model: opus` (fallback) and pass the lint; `model: haiku` would fail. The same fallback-permissive rule applies to the Codex-side contract surface.
+
