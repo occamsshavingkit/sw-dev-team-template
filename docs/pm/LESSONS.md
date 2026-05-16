@@ -402,7 +402,7 @@ grandfathering needed if the regex is tightened first.
 **Status (2026-05-16, issue #151 fix-and-close):** CLOSED. Pronoun-verification
 block moved from canonical to `docs/agents/manual/researcher-manual.md`
 § "Pronoun verification" per the deferral plan below. Runtime word count
-dropped from 1653 → 1494; SC-002 margin now 25.1% (103-word headroom).
+dropped from 1655 → 1494; SC-002 margin now 25.1% (103-word headroom).
 The original entry below is retained as the historical record.
 
 
