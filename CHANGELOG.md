@@ -18,6 +18,39 @@ filed upstream include that version.
 
 ---
 
+## v1.0.0-rc14 (2026-05-16)
+
+Release candidate completing baseline open-issue burndown (35 issues: 34 closed,
+1 customer-blocked). Consolidates upgrade-flow robustness, hook-behavior
+hardening, IEEE-paraphrase integration (deferred fan-out), and codifies
+dogfood gate in pre-release workflow.
+
+**Disposition summary** (FR-005):
+- **Fixed**: 30 issues closed via fix-and-close PRs (cycles 1–4, #203–#248,
+  #251–#258).
+- **Wontfix**: 1 issue (#59, audit findings deferred to #238–#245 fan-out).
+- **V2-deferred**: 3 issues added to ROADMAP (#3, #27, #145 via PR #225).
+- **New findings**: 22+ issues filed during burndown (immediate-cycle + fan-out)
+  with implicit owners per label set; target intake window rc15 or first
+  non-release session post-rc14.
+
+**Key themes**:
+- Upgrade-flow robustness: cluster-B version-check, cluster-C upgrade.sh
+  follow-ups, cluster-E dogfood scrub paths, pre-release gate codified
+  (PR #256, #255, #253, #237, #217, #209).
+- Hook-behavior consolidation: cluster-A (inline SWDT_AGENT_PUSH, CUSTOMER_NOTES
+  read-only paths, conflict tracking); cluster-G (model-routing rubric + CI
+  enforcement via lint-agent-model-routing.sh).
+- IEEE-paraphrase integration fan-out: #59 umbrella closed as wontfix; 8
+  follow-ups (#238–#245) deferred per A-009 (1044/730/1012 integration,
+  token-economy, AI/ML requirements, fields, markers, viewpoints, patterns).
+
+v1.0.0-rc14 tag `b421a60` at commit `1090ae1` post-#258 merge. Dogfood
+gate surface completed in `docs/agents/manual/release-engineer-manual.md` (PR
+#256). Last open baseline issue: #189 (Q-0014, customer-blocked).
+
+---
+
 ## v1.0.0-rc13 (forthcoming)
 
 Release candidate carrying PR #197 blocker fixes, post-rc12 hook fixes
