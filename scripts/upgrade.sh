@@ -895,13 +895,16 @@ fi
 # untagged tip are the same commit — no downgrade.
 if [[ "$target_kind" == "tag" && "$local_version" == untagged-* ]]; then
   if [[ -n "$local_sha" && "$local_sha" != "unknown" \
-     && "$target_resolved_sha" != "$local_sha" ]] \
-     && git -C "$workdir/new" merge-base --is-ancestor "$target_resolved_sha" "$local_sha" 2>/dev/null; then
-    echo "ERROR: cannot downgrade from untagged state '$local_version' to older tag '$target_version'." >&2
-    echo "       The requested tag resolves to a commit that is already an ancestor of the current" >&2
-    echo "       untagged tip ($local_sha). Refusing downgrade to avoid corrupting project state." >&2
-    echo "       (Issue #191) To intentionally downgrade, re-scaffold from the target tag instead." >&2
-    exit 1
+     && "$target_resolved_sha" != "$local_sha" ]]; then
+    if ! git -C "$workdir/new" cat-file -e "${local_sha}^{commit}" 2>/dev/null; then
+      echo "WARN: downgrade guard skipped: local SHA $local_sha not reachable in upstream clone." >&2
+    elif git -C "$workdir/new" merge-base --is-ancestor "$target_resolved_sha" "$local_sha" 2>/dev/null; then
+      echo "ERROR: cannot downgrade from untagged state '$local_version' to older tag '$target_version'." >&2
+      echo "       The requested tag resolves to a commit that is already an ancestor of the current" >&2
+      echo "       untagged tip ($local_sha). Refusing downgrade to avoid corrupting project state." >&2
+      echo "       (Issue #191) To intentionally downgrade, re-scaffold from the target tag instead." >&2
+      exit 1
+    fi
   fi
 fi
 
