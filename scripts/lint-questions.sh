@@ -213,7 +213,7 @@ check_pattern1() {
         }
         return out
     }
-    BEGIN { count = 0; in_checkbox = 0 }
+    BEGIN { count = 0; in_checkbox = 0; cb_indent = 0 }
     {
         line = $0
         # Skip code fences and HTML comments crudely.
@@ -223,12 +223,23 @@ check_pattern1() {
         # Track checkbox-bullet continuation state. A checkbox starts on
         # `- [ ]` / `- [x]`; continuations are indented lines without a
         # new bullet/heading. Reset on blank, new bullet, or heading.
+        # Indent-aware (issue #185): a `-` sub-bullet deeper than the
+        # checkbox is a continuation; one at the same or shallower indent
+        # resets the checkbox state.
         is_checkbox_cont = 0
-        if (line ~ /^[[:space:]]*$/) { in_checkbox = 0 }
-        else if (line ~ /^[[:space:]]*-[[:space:]]*\[[ xX]\][[:space:]]/) { in_checkbox = 1 }
-        else if (line ~ /^[[:space:]]*-[[:space:]]/ || line ~ /^[[:space:]]*[0-9]+\./ || line ~ /^#/) { in_checkbox = 0 }
+        if (line ~ /^[[:space:]]*$/) { in_checkbox = 0; cb_indent = 0 }
+        else if (line ~ /^[[:space:]]*-[[:space:]]*\[[ xX]\][[:space:]]/) {
+            in_checkbox = 1
+            tmp = line; sub(/[^[:space:]].*$/, "", tmp); cb_indent = length(tmp)
+        }
+        else if (line ~ /^[[:space:]]*-[[:space:]]/) {
+            tmp = line; sub(/[^[:space:]].*$/, "", tmp); this_indent = length(tmp)
+            if (in_checkbox && this_indent > cb_indent) { is_checkbox_cont = 1 }
+            else { in_checkbox = 0; cb_indent = 0 }
+        }
+        else if (line ~ /^[[:space:]]*[0-9]+\./ || line ~ /^#/) { in_checkbox = 0; cb_indent = 0 }
         else if (in_checkbox && line ~ /^[[:space:]]+/) { is_checkbox_cont = 1 }
-        else { in_checkbox = 0 }
+        else { in_checkbox = 0; cb_indent = 0 }
 
         if (line !~ /\?/) next
 
@@ -263,12 +274,21 @@ check_pattern1() {
 #   A paragraph that contains `^\s*[0-9]+\.\s` more than once before the next `?`.
 #   "Paragraph" = run of non-blank lines.
 #
-# Refinement (issue: false-positive on tight numbered-list-of-questions):
+# Refinement 1 (false-positive on tight numbered-list-of-questions):
 # `saw_question` is set whenever ANY `?` appears in the paragraph,
 # regardless of fire. That way pattern-2 only fires when the FIRST `?`
-# of the paragraph is preceded by ≥2 numbered items (true compound
+# of the paragraph is preceded by >=2 numbered items (true compound
 # multi-axis shape), not when each numbered item is itself a separate
 # question whose `?` happens to come after subsequent items.
+#
+# Refinement 2 (issue #148: false-positive on CQG procedural enumeration):
+# Emission is deferred to the paragraph boundary. Pattern-2 fires only
+# when the candidate paragraph also ends with a `?` on its last line (the
+# customer-facing compound ask terminates with the question). Numbered
+# procedural checklists (e.g. Customer Question Gate) end with prose, not
+# a `?`, so they are suppressed. `last_eff_had_q` tracks whether the most
+# recently processed effective line ended with `?`; it is updated for
+# every non-blank line and checked at paragraph flush.
 check_pattern2() {
     f="$1"
     awk -v F="$f" '
@@ -297,9 +317,22 @@ check_pattern2() {
         }
         return out
     }
+    # Flush any pending paragraph fire. Emits only when the paragraph ended
+    # with a `?` on its last line (last_eff_had_q), suppressing procedural-
+    # checklist paragraphs that contain internal `?`s but terminate with
+    # plain prose (issue #148).
+    function flush_para(    ) {
+        if (pending_fire && last_eff_had_q) {
+            printf "P2\t%d\tpattern-2-multi-numbered\t%s\n", fire_line, fire_snippet
+        }
+        para_start = 0; numbered_count = 0; saw_question = 0
+        first_num_line = 0; in_checkbox = 0; cb_indent = 0
+        pending_fire = 0; fire_line = 0; fire_snippet = ""; last_eff_had_q = 0
+    }
     BEGIN {
-        para_start = 0; numbered_count = 0; saw_question = 0;
-        first_num_line = 0; in_code = 0; in_checkbox = 0
+        para_start = 0; numbered_count = 0; saw_question = 0
+        first_num_line = 0; in_code = 0; in_checkbox = 0; cb_indent = 0
+        pending_fire = 0; fire_line = 0; fire_snippet = ""; last_eff_had_q = 0
     }
     {
         line = $0
@@ -307,21 +340,28 @@ check_pattern2() {
         if (in_code) next
 
         if (line ~ /^[[:space:]]*$/) {
-            # paragraph boundary
-            para_start = 0
-            numbered_count = 0
-            saw_question = 0
-            first_num_line = 0
-            in_checkbox = 0
+            flush_para()
             next
         }
 
-        # Track checkbox continuation state.
+        # Track checkbox continuation state (indent-aware for issue #185).
+        # A `-` sub-bullet indented deeper than the checkbox is a continuation;
+        # a `-` at the same or shallower indent resets the checkbox state.
         is_checkbox_cont = 0
-        if (line ~ /^[[:space:]]*-[[:space:]]*\[[ xX]\][[:space:]]/) { in_checkbox = 1 }
-        else if (line ~ /^[[:space:]]*-[[:space:]]/ || line ~ /^[[:space:]]*[0-9]+\./ || line ~ /^#/) { in_checkbox = 0 }
-        else if (in_checkbox && line ~ /^[[:space:]]+/) { is_checkbox_cont = 1 }
-        else { in_checkbox = 0 }
+        if (line ~ /^[[:space:]]*-[[:space:]]*\[[ xX]\][[:space:]]/) {
+            in_checkbox = 1
+            tmp = line; sub(/[^[:space:]].*$/, "", tmp); cb_indent = length(tmp)
+        } else if (line ~ /^[[:space:]]*-[[:space:]]/) {
+            tmp = line; sub(/[^[:space:]].*$/, "", tmp); this_indent = length(tmp)
+            if (in_checkbox && this_indent > cb_indent) { is_checkbox_cont = 1 }
+            else { in_checkbox = 0; cb_indent = 0 }
+        } else if (line ~ /^[[:space:]]*[0-9]+\./ || line ~ /^#/) {
+            in_checkbox = 0; cb_indent = 0
+        } else if (in_checkbox && line ~ /^[[:space:]]+/) {
+            is_checkbox_cont = 1
+        } else {
+            in_checkbox = 0; cb_indent = 0
+        }
 
         if (para_start == 0) {
             para_start = NR
@@ -331,9 +371,14 @@ check_pattern2() {
             if (first_num_line == 0) first_num_line = NR
         }
         eff = strip_template_prose(line, is_checkbox_cont)
+        # Track whether the last processed effective line ended with `?`.
+        # At paragraph flush this tells us if the compound ask terminates
+        # with a question (fire) or just contains internal rhetorical `?`s
+        # (procedural checklist, suppress).
+        last_eff_had_q = (eff ~ /\?[[:space:]]*$/) ? 1 : 0
         if (eff ~ /\?/) {
-            if (numbered_count > 1 && !saw_question) {
-                printf "P2\t%d\tpattern-2-multi-numbered\t%s\n", first_num_line, line
+            if (numbered_count > 1 && !saw_question && !pending_fire) {
+                pending_fire = 1; fire_line = first_num_line; fire_snippet = line
             }
             # Always mark the paragraph as having seen a `?`, so a list-
             # of-questions (one `?` per numbered item) does not later
@@ -341,6 +386,7 @@ check_pattern2() {
             saw_question = 1
         }
     }
+    END { flush_para() }
     ' "$f"
 }
 
@@ -390,16 +436,27 @@ check_pattern3() {
             if (code_toggle[i]) c = 1 - c
             incode[i] = c
         }
-        # Pre-compute checkbox-continuation state per line.
-        in_cb = 0
+        # Pre-compute checkbox-continuation state per line (indent-aware,
+        # issue #185). A `-` sub-bullet deeper than the checkbox indent is
+        # a continuation; one at the same or shallower indent resets state.
+        in_cb = 0; cb_ind = 0
         for (i = 1; i <= NR; i++) {
             L = lines[i]
             cb_cont[i] = 0
-            if (L ~ /^[[:space:]]*$/) { in_cb = 0; continue }
-            if (L ~ /^[[:space:]]*-[[:space:]]*\[[ xX]\][[:space:]]/) { in_cb = 1; continue }
-            if (L ~ /^[[:space:]]*-[[:space:]]/ || L ~ /^[[:space:]]*[0-9]+\./ || L ~ /^#/) { in_cb = 0; continue }
+            if (L ~ /^[[:space:]]*$/) { in_cb = 0; cb_ind = 0; continue }
+            if (L ~ /^[[:space:]]*-[[:space:]]*\[[ xX]\][[:space:]]/) {
+                in_cb = 1
+                ltmp = L; sub(/[^[:space:]].*$/, "", ltmp); cb_ind = length(ltmp)
+                continue
+            }
+            if (L ~ /^[[:space:]]*-[[:space:]]/) {
+                ltmp = L; sub(/[^[:space:]].*$/, "", ltmp); this_ind = length(ltmp)
+                if (in_cb && this_ind > cb_ind) { cb_cont[i] = 1; continue }
+                in_cb = 0; cb_ind = 0; continue
+            }
+            if (L ~ /^[[:space:]]*[0-9]+\./ || L ~ /^#/) { in_cb = 0; cb_ind = 0; continue }
             if (in_cb && L ~ /^[[:space:]]+/) { cb_cont[i] = 1; continue }
-            in_cb = 0
+            in_cb = 0; cb_ind = 0
         }
         for (i = 1; i <= NR; i++) {
             if (incode[i]) continue
