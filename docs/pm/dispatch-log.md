@@ -169,3 +169,31 @@ Issues #238-#245 - IEEE 1044/730/1012 integration, token-economy section, AI/ML 
 **T043 PASSES**: every post-2026-05-16 issue is in the GitHub backlog with explicit labels indicating bucket and implicit owner. The 14 immediate finds are non-blocking quality follow-ups; the 8 fan-outs are intentionally deferred per A-009. **#250 is flagged as a recurring-pattern issue** - the canonical_sha staleness pitfall has hit twice (PR #234, PR #248); priority for rc15.
 
 **T046 (rc14 cut) is unblocked from T043's side.** Remaining gate: customer authorization per HR-4 and Q-0014 disposition for #189 (the last open baseline issue).
+
+
+## 2026-05-16 — Meta-close (T046 / T047 / T049)
+
+**T046 rc14 cut** (release-engineer 2026-05-16 ~20:50 UTC):
+- VERSION bumped to `v1.0.0-rc14` on `main` (squashed via PR #253 alongside other rc14 prep).
+- Pre-release-gate 10/10 PASS (after PR #253 advisory-allowlist + PR #255 v0.16.0 + PR #258 branch-guard fallback).
+- Dogfood gate PASS on quackdcs/rc13-gh fixture against main: upgrade exit 0, --verify clean, ai-tui 21/21.
+- Annotated tag `v1.0.0-rc14` cut at commit `1090ae1`, tag SHA `b421a60`, pushed to origin.
+- Post-tag smoke dogfood PASS — TEMPLATE_VERSION resolves to v1.0.0-rc14 at `1090ae1`, tag identity confirmed.
+- No GitHub Release object (rc tags only per `project_releases_at_minor_only`).
+
+**T047 meta-summary** (project-manager 2026-05-16 ~21:00 UTC, PR #259 merged):
+- `CHANGELOG.md` rc14 entry: 35/35 baseline closed (31 fixed, 1 wontfix, 3 v2-deferred).
+- `docs/pm/burndown-rc13-rc14-summary.md` (new, 198 lines): full disposition table + burndown arc + new-finding fan-out.
+
+**T049 close meta-effort** (this entry):
+- Per-bucket disposition (final):
+  - **Fixed (31)**: every release-gate/upgrade-flow/hook-behavior/framework-gap/framework-friction/docs-drift baseline that wasn't wontfix or v2-deferred.
+  - **Wontfix (1)**: #59 (umbrella audit → fanned out as #238–#245 per A-009).
+  - **V2-deferred (3)**: #3, #27, #145 (via PR #225 batch).
+  - **Consolidated (0)** / **Duplicate (0)**.
+  - **Customer-blocked open (0)** — #189 closed via PR #252 (Q-0014 ruling).
+- **Issue-count delta**: baseline 35 → 0 open. **100% completion.**
+- **New-finding fan-out**: 22 issues filed during burndown (14 immediate-cycle + 8 #59-audit fan-out + #250 recurring-pattern + #254 v0.16.0 real-fix + #257 branch-guard root-cause). All have implicit owners via labels; target window rc15.
+- **Spec status**: `specs/011-issue-backlog-triage/spec.md` → Complete.
+
+Meta-effort closed 2026-05-16.
