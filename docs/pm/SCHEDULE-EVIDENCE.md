@@ -48,7 +48,7 @@ Non-blocking observations (all logged to `docs/pm/LESSONS.md`):
 - Researcher SC-002 margin (20.3%) is 0.3 points above the floor — future researcher edits must re-measure at gate close.
 - code-reviewer "where safe" SC-002 — canonical already lean; no further reduction possible without deleting normative content.
 - Five small content-fidelity observations from T020 M1.1 audit (researcher Job §1 rationale trim, §6 citation-format trim, qa-engineer HR-5 codification, qa-engineer second escalation-format block silently dropped by singular-slug schema, runtime SHA-from-index semantics).
-- Untracked lowercase `docs/pm/token-ledger.md` clutter in working tree; sandbox denied `rm`. Phase-3+ cleanup.
+- Untracked lowercase `docs/pm/token-ledger.md` clutter — resolved in #160: added to `.gitignore`; workaround grep-filters removed from `gate-runner.sh` and `test-gate-pass.sh`.
 
 ## M2 — Token operating model
 

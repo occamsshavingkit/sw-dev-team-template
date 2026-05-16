@@ -178,6 +178,9 @@ check "smoke-test SemVer dotted prerelease ordering" \
 check_semver_sorter "upgrade" "$repo_root/scripts/upgrade.sh"
 check_semver_sorter "version-check" "$repo_root/scripts/version-check.sh"
 check_semver_sorter "stepwise-smoke" "$repo_root/scripts/stepwise-smoke.sh"
+# #160 — canonical token ledger must be uppercase; lowercase stale variant is gitignored.
+check "docs/pm/TOKEN_LEDGER.md present (canonical uppercase, #160)"  test -f "$repo_root/docs/pm/TOKEN_LEDGER.md"
+check "docs/pm/token-ledger.md absent from repo (gitignored, #160)"   bash -c "! git -C '$repo_root' ls-files --error-unmatch docs/pm/token-ledger.md 2>/dev/null"
 
 echo "-- scaffold --"
 ./scripts/scaffold.sh "$target" "Acme Smoke Test" >/dev/null
