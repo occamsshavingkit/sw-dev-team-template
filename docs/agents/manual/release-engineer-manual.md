@@ -74,11 +74,18 @@ for the full contract.
 ruling 1):**
 
 1. Fixes land on `main` after `code-reviewer` review (Hard Rule #3).
-2. Run the dogfood harness against `main` via
-   `scripts/upgrade.sh --target main`.
-3. Only after dogfood PASSes is the rc tag cut — at the same SHA that
-   passed dogfood.
-4. A smoke dogfood run against the cut tag confirms identity.
+2. VERSION bump → commit (see VERSION-bump discipline below).
+3. *(Optional pre-check)* `scripts/upgrade.sh --target main` — self-upgrade
+   sanity run in the upstream tree. Supplementary only; does not substitute
+   for the dogfood gate.
+4. `scripts/pre-release-gate.sh` → PASS required.
+5. `tests/release-gate/dogfood-downstream.sh` → PASS required. This is
+   the binding gate; see the "Dogfood gate" section below for the full
+   procedure and failure mode.
+6. `git tag -a vX.Y.Z[-rcN] -m "..."` at the commit that passed both
+   gates. Push tag.
+7. *(Post-tag confirmation)* Smoke dogfood run against the cut tag to
+   confirm tag identity — after push, not before.
 
 **Override audit log.** Any push that bypasses the gate with
 `SKIP_PRE_RELEASE_GATE=1` appends a row to
@@ -126,14 +133,6 @@ for the dogfood step — there is no equivalent of
 `SKIP_PRE_RELEASE_GATE` here. Fix forward on a new commit, then re-run
 both the pre-release gate and dogfood from the new tip before tagging.
 
-**Real-world precedent — rc14 (2026-05-16).** The rc14 cut attempt
-surfaced the advisory-allowlist drift and the v0.16.0 migration issue
-via the pre-release gate. Had the pipeline been followed in the
-codified order — pre-release gate first, dogfood second — the
-broader downstream compatibility problems would have surfaced at the
-dogfood step before the tag was even considered. The absence of an
-explicit dogfood step in this manual was the gap that made the rc14
-sequence ambiguous.
 
 ## Wrapper-masking failure mode (spec 007 R-5)
 
