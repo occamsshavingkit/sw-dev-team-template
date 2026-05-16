@@ -49,6 +49,7 @@ protected_check() {
     diff_file=$1
     protected_paths='^(CLAUDE\.md|AGENTS\.md|VERSION|TEMPLATE_MANIFEST\.lock|\.claude/agents/|docs/adr/|docs/framework-project-boundary\.md|docs/model-routing-guidelines\.md|\.github/workflows/|migrations/)'
     customer_truth='^(CUSTOMER_NOTES\.md|docs/OPEN_QUESTIONS\.md|docs/intake-log\.md)$'
+    hard_rule_pattern='^(## Hard [Rr]ules?|Hard Rule #|MUST not|MUST NOT)'
     changed_paths=$(grep '^diff --git' "${diff_file}" | awk '{print $4}' | sed 's|^b/||' || true)
     violations=""
     for p in ${changed_paths}; do
@@ -62,11 +63,57 @@ protected_check() {
                 violations="${violations} ${p}"
             fi
         fi
+        # Content check: flag any file (not already caught by path) that
+        # contains Hard-Rule-bearing text (FR-027 anchor 11, issue #144).
+        if ! echo "${p}" | grep -Eq "${protected_paths}" && \
+           ! echo "${p}" | grep -Eq "${customer_truth}" && \
+           [ -f "${p}" ] && grep -Eq "${hard_rule_pattern}" "${p}"; then
+            if ! echo "${changed_paths}" | grep -Eq '^docs/proposals/.+\.md$'; then
+                violations="${violations} ${p}(hard-rule-content)"
+            fi
+        fi
     done
     if [ -n "${violations}" ]; then
         return 1
     fi
     return 0
+}
+
+# ----- numeric_validator_check ---------------------------------------------
+# Mirrors workflow "Identify target issue" numeric validation (issue #149).
+# Returns 0 = valid (positive integer or empty), 1 = invalid.
+numeric_validator_check() {
+    issue_number=$1
+    if [ -n "${issue_number}" ]; then
+        case "${issue_number}" in
+            *[!0-9]*)
+                return 1
+                ;;
+        esac
+    fi
+    return 0
+}
+
+# ----- run_numeric ---------------------------------------------------------
+# Args: label input-string expected (PASS|FAIL)
+run_numeric() {
+    label=$1
+    input=$2
+    expected=$3
+    if numeric_validator_check "${input}"; then
+        actual="PASS"
+    else
+        actual="FAIL"
+    fi
+    if [ "${expected}" = "${actual}" ]; then
+        verdict="OK"
+        pass_count=$((pass_count + 1))
+    else
+        verdict="MISMATCH"
+        fail_count=$((fail_count + 1))
+    fi
+    printf 'numeric[%s]: input="%s" expected=%s actual=%s | %s\n' \
+        "${label}" "${input}" "${expected}" "${actual}" "${verdict}"
 }
 
 # ----- run_one -------------------------------------------------------------
@@ -114,6 +161,17 @@ run_one "protected-no-proposal"       PASS  FAIL
 run_one "protected-with-proposal"     PASS  PASS
 run_one "customer-truth-no-proposal"  PASS  FAIL
 run_one "customer-truth-with-proposal" PASS PASS
+run_one "hard-rule-content-no-proposal"  PASS FAIL
+run_one "hard-rule-content-with-proposal" PASS PASS
+
+# Numeric validator tests (issue #149)
+run_numeric "valid-integer"   "123"          PASS
+run_numeric "zero"            "0"            PASS
+run_numeric "empty"           ""             PASS
+run_numeric "alpha"           "abc"          FAIL
+run_numeric "inject-newline"  "12
+extra"        FAIL
+run_numeric "semicolon"       "12;rm -rf /" FAIL
 
 printf 'test-improve-template-logic: %d pass, %d fail\n' "${pass_count}" "${fail_count}"
 
