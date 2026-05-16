@@ -880,6 +880,31 @@ else
   new_version="$(tr -d '[:space:]' < "$workdir/new/VERSION")"
 fi
 
+# --- Downgrade guard: untagged-to-tag (Issue #191) -------------------------
+# When the project is currently pinned at an untagged state (local_version
+# starts with "untagged-") and the operator requests --target=<tag>, the
+# requested tag may be OLDER than the untagged tip the project already has.
+# Silently applying such a downgrade would corrupt the project state.
+#
+# Detection: target_kind == "tag" (resolved above) AND local_version has the
+# "untagged-" prefix AND the target tag's commit is a strict ancestor of the
+# untagged tip SHA recorded in TEMPLATE_VERSION line 2 (local_sha). The
+# workdir/new clone already checked out the target tag at this point, so
+# new_sha == target_resolved_sha; we must compare against local_sha instead.
+# Same-tip exemption: if target_resolved_sha == local_sha the tag and the
+# untagged tip are the same commit — no downgrade.
+if [[ "$target_kind" == "tag" && "$local_version" == untagged-* ]]; then
+  if [[ -n "$local_sha" && "$local_sha" != "unknown" \
+     && "$target_resolved_sha" != "$local_sha" ]] \
+     && git -C "$workdir/new" merge-base --is-ancestor "$target_resolved_sha" "$local_sha" 2>/dev/null; then
+    echo "ERROR: cannot downgrade from untagged state '$local_version' to older tag '$target_version'." >&2
+    echo "       The requested tag resolves to a commit that is already an ancestor of the current" >&2
+    echo "       untagged tip ($local_sha). Refusing downgrade to avoid corrupting project state." >&2
+    echo "       (Issue #191) To intentionally downgrade, re-scaffold from the target tag instead." >&2
+    exit 1
+  fi
+fi
+
 if [[ "$local_version" == "$new_version" ]]; then
   # Stamp matches upstream. Closes the #61 bug: do not short-circuit
   # on stamp alone — verify the manifest first. If the manifest is
