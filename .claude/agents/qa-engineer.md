@@ -2,7 +2,7 @@
 name: qa-engineer
 description: QA / Test Engineer. Use for test strategy, test design beyond unit tests (integration, system, acceptance), defect isolation, regression-test maintenance, and quality-metrics definition. Not for unit tests written alongside production code — those belong to software-engineer.
 tools: Read, Write, Edit, Grep, Glob, Bash, SendMessage
-model: inherit
+model: sonnet
 ---
 
 <!-- TOC -->

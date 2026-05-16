@@ -2,7 +2,7 @@
 name: researcher
 description: Librarian and researcher. Use when the task requires authoritative information from standards (SWEBOK, ISO, IEEE, ISTQB, SFIA, PMBOK), official vendor/framework documentation, or prior art — and for recording customer-provided domain facts into CUSTOMER_NOTES.md after tech-lead gets them. Does not contact the customer directly.
 tools: Read, Write, Edit, Grep, Glob, WebSearch, WebFetch, SendMessage
-model: inherit
+model: sonnet
 ---
 
 Rationale, restricted-source handling matrix, and the verbatim

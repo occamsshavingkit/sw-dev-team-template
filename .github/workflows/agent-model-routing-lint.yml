@@ -1,0 +1,50 @@
+# Agent model-routing lint (#207 Part B).
+#
+# Runs scripts/lint-agent-model-routing.sh on every PR touching:
+#   - .claude/agents/**          (contract files)
+#   - docs/model-routing-guidelines.md  (the binding rubric)
+#   - scripts/lint-agent-model-routing.sh  (the lint itself)
+#   - schemas/model-routing.schema.json    (the schema)
+#
+# Fails the workflow on non-zero exit from the lint script.
+# Read-only check; default GITHUB_TOKEN permissions (contents: read) are
+# sufficient.
+
+name: agent-model-routing-lint
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.claude/agents/**'
+      - 'docs/model-routing-guidelines.md'
+      - 'scripts/lint-agent-model-routing.sh'
+      - 'schemas/model-routing.schema.json'
+  push:
+    branches: [main]
+    paths:
+      - '.claude/agents/**'
+      - 'docs/model-routing-guidelines.md'
+      - 'scripts/lint-agent-model-routing.sh'
+      - 'schemas/model-routing.schema.json'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  agent-model-routing-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install check-jsonschema
+        run: pipx install check-jsonschema==0.37.2
+      - name: Run agent-model-routing lint
+        run: ./scripts/lint-agent-model-routing.sh --summary
+      - name: Run agent-model-routing lint tests
+        run: bash tests/lint/test-agent-model-routing.sh

@@ -131,7 +131,7 @@ Cross-references: PR-10 + PR-11 (commit `72c922b`); compiler skip-incomplete fix
 
 Non-blocking observations (LESSONS at G5 close):
 - OBS-G5-1: 4 incomplete canonicals (onboarding-auditor, process-auditor, project-manager, sre) — section additions required by M6 lint hard-gate or M9 release readiness.
-- OBS-G5-2: Older `## Role defaults` tier table coexists with new `## Binding per-agent default-class table` in `docs/model-routing-guidelines.md`. Reconciliation deferred to Phase-3+.
+- OBS-G5-2: Resolved in `fix/cluster-G-model-routing` (issue #147 Part C). Tables merged; see LESSONS.md M5 close entry for detail.
 - OBS-G5-3: `docs/pm/fallback-log.jsonl` is create-on-first-write; consider documenting the contract in `docs/pm/README.md` or seeding an empty file at scaffold time.
 
 ## M6 — Markdown compiler / runtime contract pipeline

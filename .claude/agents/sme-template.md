@@ -2,7 +2,7 @@
 name: sme-<domain-slug>
 description: Subject-Matter Expert for <domain>. Holds knowledge previously gathered from the customer or external SMEs on <domain-specific topics>. Consult BEFORE escalating a <domain> question to tech-lead — this agent may already know the answer. Never stands in for the customer or the external SME; only retrieves what has already been captured.
 tools: Read, Grep, Glob, Write, Edit, SendMessage
-model: inherit
+model: sonnet
 ---
 
 <!-- TOC -->

@@ -47,6 +47,38 @@
             "type": "string",
             "minLength": 5,
             "description": "Plain-language predicate for when this agent escalates to the frontier tier"
+          },
+          "claude_equivalent": {
+            "type": "string",
+            "description": "Claude Code fallback alias for this agent's default_class (e.g. sonnet, haiku, opus)"
+          },
+          "openai_equivalent": {
+            "type": "string",
+            "enum": [
+              "claude-opus",
+              "claude-sonnet",
+              "claude-haiku",
+              "gemini-pro",
+              "gemini-flash",
+              "openai-frontier",
+              "openai-coding",
+              "openai-mini"
+            ],
+            "description": "OpenAI class abstraction used in Codex"
+          },
+          "gemini_equivalent": {
+            "type": "string",
+            "enum": [
+              "claude-opus",
+              "claude-sonnet",
+              "claude-haiku",
+              "gemini-pro",
+              "gemini-flash",
+              "openai-frontier",
+              "openai-coding",
+              "openai-mini"
+            ],
+            "description": "Gemini class abstraction used in opencode"
           }
         }
       }
