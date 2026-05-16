@@ -197,13 +197,12 @@ USAGE
 
 # T009 — worktree-clean (precondition). FR-008.
 # Fails if `git status --porcelain` against $GATE_CANDIDATE_TREE is non-empty,
-# excluding the two known-stale untracked files documented in upstream issue
-# #160 (docs/pm/token-ledger.md + tests/prompt-regression/results-*.md) so the
-# gate doesn't false-positive on pre-existing untracked clutter.
+# excluding tests/prompt-regression/results-*.md (generated on demand, not
+# committed). docs/pm/token-ledger.md is now gitignored (#160) and no longer
+# needs an explicit filter here.
 gate_subgate_worktree-clean() {
     cd "$GATE_CANDIDATE_TREE" || return 1
     dirty=$(git status --porcelain 2>&1 \
-        | grep -vE '^\?\? docs/pm/token-ledger\.md$' \
         | grep -vE '^\?\? tests/prompt-regression/results-' \
         || true)
     if [ -z "$dirty" ]; then

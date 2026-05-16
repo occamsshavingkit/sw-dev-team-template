@@ -16,7 +16,6 @@ gate="$repo_root/scripts/pre-release-gate.sh"
 
 # Verify worktree is clean (otherwise this test isn't meaningful).
 dirty=$(git -C "$repo_root" status --porcelain \
-    | grep -vE '^\?\? docs/pm/token-ledger\.md$' \
     | grep -vE '^\?\? tests/prompt-regression/results-' \
     || true)
 if [ -n "$dirty" ]; then
