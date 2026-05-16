@@ -46,6 +46,12 @@ jobs:
         run: |
           set -eu
           if [ -n "${ISSUE_NUMBER:-}" ]; then
+            case "${ISSUE_NUMBER}" in
+              *[!0-9]*)
+                echo "improve-template: invalid issue_number '${ISSUE_NUMBER}' (expected positive integer)" >&2
+                exit 2
+                ;;
+            esac
             echo "issue=${ISSUE_NUMBER}" >> "$GITHUB_OUTPUT"
           else
             # Pick the highest-reaction open template-gap issue.
@@ -115,6 +121,7 @@ jobs:
           # Build the protected-files allowlist as a single regex.
           protected_paths='^(CLAUDE\.md|AGENTS\.md|VERSION|TEMPLATE_MANIFEST\.lock|\.claude/agents/|docs/adr/|docs/framework-project-boundary\.md|docs/model-routing-guidelines\.md|\.github/workflows/|migrations/)'
           customer_truth='^(CUSTOMER_NOTES\.md|docs/OPEN_QUESTIONS\.md|docs/intake-log\.md)$'
+          hard_rule_pattern='(## Hard [Rr]ules?|Hard Rule #|MUST not|MUST NOT)'
           # Extract changed paths from the proposal diff.
           changed_paths=$(grep '^diff --git' /tmp/proposal.diff | awk '{print $4}' | sed 's|^b/||' || true)
           violations=""
@@ -128,6 +135,18 @@ jobs:
             if echo "${p}" | grep -Eq "${customer_truth}"; then
               if ! echo "${changed_paths}" | grep -Eq '^docs/proposals/.+\.md$'; then
                 violations="${violations} ${p}"
+              fi
+            fi
+            # Content check: flag any file (not already caught by path) that
+            # adds Hard-Rule-bearing text in the diff (FR-027 anchor 11).
+            # Grep only diff +lines to avoid false-positives from unchanged HR text.
+            if ! echo "${p}" | grep -Eq "${protected_paths}" && \
+               ! echo "${p}" | grep -Eq "${customer_truth}"; then
+              added_lines=$(git diff "$base"..."$head" -- "${p}" | grep -E '^\+[^+]' | sed 's/^+//')
+              if echo "${added_lines}" | grep -Eq "${hard_rule_pattern}"; then
+                if ! echo "${changed_paths}" | grep -Eq '^docs/proposals/.+\.md$'; then
+                  violations="${violations} ${p}(hard-rule-content)"
+                fi
               fi
             fi
           done

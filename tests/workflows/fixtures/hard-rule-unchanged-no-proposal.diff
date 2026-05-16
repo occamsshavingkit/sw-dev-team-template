@@ -1,0 +1,9 @@
+diff --git a/docs/templates/intake-log-template.md b/docs/templates/intake-log-template.md
+index aaaaaaa..bbbbbbb 100644
+--- a/docs/templates/intake-log-template.md
++++ b/docs/templates/intake-log-template.md
+@@ -70,6 +70,7 @@ some middle section
+ ## Hard rules (binding)
+ 1. Only tech-lead interfaces with the customer.
++This is a non-hard-rule addition.
+ Some existing content.
