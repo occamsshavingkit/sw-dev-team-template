@@ -204,7 +204,7 @@ The architect addressed only the rc13 collision (lines 318–323) and missed the
 
 > **Provenance note (transcription):** Re-CR session returned findings inline; tech-lead transcribed verbatim.
 
-## Counts
+## Counts (re-CR pass)
 
 - Critical resolved: 3/3 (C-1, C-2, C-3 all applied at primary sites)
 - Warnings resolved: 5/5 from the prior pass (W-2 + W-4 verified; W-1 / W-3 / W-5 were non-blocking deferrals)
@@ -243,6 +243,6 @@ Should read "12-fixture acceptance harness shape" or "extended 12-fixture accept
 - Hard Rule #8 boundary: ADR remains pure design.
 - FW-ADR-0017 § 5 idempotency contract: honored — rc13.sh and rc14.sh remain on disk untouched per § 1's interaction clause.
 
-## Disposition
+## Disposition (re-CR pass)
 
 **APPROVED-WITH-CHANGES (non-blocking).** Status stays `accepted`. Chain proceeds to FW-ADR-0019. Architect folds Fresh-1 + Fresh-2 fixes into deferred S-1 housekeeping pass; no re-CR required.
