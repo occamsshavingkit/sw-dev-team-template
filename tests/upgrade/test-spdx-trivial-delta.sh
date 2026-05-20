@@ -579,6 +579,19 @@ check "(i): log line is 'auto-merged (trivial SPDX delta): scripts/test-fixture.
   bash -c "grep -qF 'auto-merged (trivial SPDX delta): scripts/test-fixture.sh' '$log_a'"
 
 # ---------------------------------------------------------------------------
+# Case (j): Issue #269 — auto-merged file appears in summary with the
+#           '(auto-merge: SPDX)' suffix, not as a bare filename under the
+#           "unchanged since scaffold" label. Reuse case (a) log output.
+# ---------------------------------------------------------------------------
+echo ""
+echo "-- #269 case (j): summary report label for auto-merged file --"
+
+check "(j): summary contains '(auto-merge: SPDX)' suffix for auto-merged file" \
+  bash -c "grep -qF '~ scripts/test-fixture.sh (auto-merge: SPDX)' '$log_a'"
+check "(j): summary does not list auto-merged file as bare filename (no suffix)" \
+  bash -c "! grep -qE '^  ~ scripts/test-fixture\.sh$' '$log_a'"
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 echo ""
