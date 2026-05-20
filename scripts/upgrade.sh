@@ -217,8 +217,16 @@ if [[ $dry_run -eq 0 && $verify_mode -eq 0 ]]; then
     default_branch="$(git config --get init.defaultBranch 2>/dev/null || true)"
   fi
   if [[ -z "$default_branch" ]]; then
-    default_branch="$current_branch"
-    echo "NOTE: upgrade.sh could not resolve the repository default branch from origin/HEAD or init.defaultBranch; falling back to current branch '$current_branch'." >&2
+    # Third fallback: if a local branch named 'main' exists, use it.
+    # This handles repos initialised with `-b main` that have no remote
+    # yet (new scaffold, CI). Without this, a feature branch cut from
+    # main would see current==current and the guard would never fire.
+    if git rev-parse --verify refs/heads/main >/dev/null 2>&1; then
+      default_branch="main"
+    else
+      default_branch="$current_branch"
+      echo "NOTE: upgrade.sh could not resolve the repository default branch from origin/HEAD or init.defaultBranch; falling back to current branch '$current_branch'." >&2
+    fi
   fi
 
   if [[ -n "$current_branch" && "$current_branch" != "$default_branch" ]]; then
@@ -1642,7 +1650,7 @@ for f in $ship_files; do
            && _is_trivial_spdx_delta \
                 "$workdir/old/$f" "$proj_path" "$new_path"; then
           echo "auto-merged (trivial SPDX delta): $f"
-          upgraded+=("$f")
+          upgraded+=("$f (auto-merge: SPDX)")
           atomic_install "$new_path" "$proj_path"
           [[ $is_agent -eq 1 ]] && agent_splice_name "$proj_path" "$agent_name_line"
           continue
