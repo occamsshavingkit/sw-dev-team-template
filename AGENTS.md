@@ -158,6 +158,15 @@ gates DISPATCH, not CLOSE. Do not close a still-running specialist
 unless it has failed liveness checks per `docs/agent-health-contract.md`,
 the customer redirects the work, or the work is no longer needed.
 
+**Rule F — Background-by-default dispatch (binding).** When the Codex
+harness supports asynchronous specialist spawning, use it by default.
+Synchronous (foreground, blocking) dispatch is allowed only when the
+specialist's return value is required before the next customer-facing
+turn — e.g., a quick lookup whose answer feeds the very next reply. If
+the next customer action does not require the result this turn, dispatch
+asynchronously so the customer chat stays interactive while specialists
+work.
+
 **Turn-summary requirement (binding).** Each turn that involved
 specialist-scoped work states one of: `specialists dispatched`,
 `specialist unavailable: stopped`, or `customer exception granted`
