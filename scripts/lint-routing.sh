@@ -314,6 +314,8 @@ classify_path() {
     esac
 
     # Docs (non-ADR markdown + top-level docs).
+    # Depth-specific globs intentionally enumerated; SC2221/SC2222 FP for case-branch ordering.
+    # shellcheck disable=SC2221,SC2222
     case "$p" in
         CHANGELOG.md|README.md) printf 'docs\n'; return 0 ;;
         docs/*.md|docs/*/*.md|docs/*/*/*.md|docs/*/*/*/*.md)

@@ -44,10 +44,10 @@ run_case() {
         # multiple KEY=VAL tokens through as distinct argv elements.
         local -a env_args=()
         local _old_ifs=$IFS
-        IFS=' 	'
+        IFS=' 	'  # nosemgrep: bash.lang.security.ifs-tampering - standard safe IFS save/restore; IFS restored on next line
         # shellcheck disable=SC2206  # intentional word-split of env_line
         env_args=( $env_line )
-        IFS=$_old_ifs
+        IFS=$_old_ifs  # nosemgrep: bash.lang.security.ifs-tampering - IFS restore to saved value
         printf '%s' "$stdin" | env "${env_args[@]}" python3 "$HOOK" >"$tmp_out" 2>"$tmp_err"
     else
         # Explicitly clear the escape hatch so it can't leak in from the

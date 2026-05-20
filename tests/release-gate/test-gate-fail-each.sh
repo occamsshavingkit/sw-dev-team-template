@@ -281,10 +281,6 @@ if git -C "$repo_root" diff --quiet && git -C "$repo_root" diff --cached --quiet
     fixture08_readme="$repo_root/README.md"
     fixture08_backup="$fixture08_readme.bak-$$"
     cp "$fixture08_readme" "$fixture08_backup"
-    # Determine current VERSION so we can write a README that deliberately
-    # omits it. The scrubbed README is content-free for the rest of the
-    # gate (only readme-current cares about it).
-    fixture08_version=$(cat "$repo_root/VERSION" 2>/dev/null || echo "unknown")
     cat > "$fixture08_readme" <<'SCRUB'
 <!--
 SPDX-License-Identifier: MIT
