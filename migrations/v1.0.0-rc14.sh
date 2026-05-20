@@ -125,6 +125,11 @@ _run_pass1() {
 _run_pass1
 
 # ---------------------------------------------------------------------------
+# NOTE (operator warning): Pass 2 runs unconditionally; it is NOT gated by
+# SWDT_PRESERVATION_PRUNE_APPLY (which only affects pass 1). Idempotency
+# (re-run safety) is the operator's dry-run substitute — running this
+# migration twice is safe and the second run is a no-op.
+# ---------------------------------------------------------------------------
 # Pass 2 — backfill hard_rules / output_format in preserved canonical agents
 #
 # Candidate set: every file in $PROJECT_ROOT/.claude/agents/*.md whose
@@ -362,6 +367,13 @@ else
     # shellcheck disable=SC2086
     echo "MIGRATION(rc14-pass2): $base missing section(s):$(printf ' %s' $missing)" >&2  # nosemgrep: bash.lang.correctness.unquoted-expansion.unquoted-variable-expansion-in-command
 
+    # When multiple sections are missing, build a single concatenated body
+    # (hard_rules + blank line + output_format) and call the insertion helper
+    # once. A single insertion preserves canonical order (Escalation →
+    # Hard rules → Output format); two separate insertions at the same anchor
+    # invert the order because each call re-anchors at escalation. Issue #267.
+    combined_body=$(mktemp)
+
     for slug in $missing; do
       body_file=$(mktemp)
       sourced_from_upstream=0
@@ -383,7 +395,11 @@ else
       # Ensure body ends with a newline.
       tail -c 1 "$body_file" | od -An -c | grep -q '\\n' || printf '\n' >> "$body_file"
 
-      _rc14_insert_after_escalation "$proj_file" "$body_file"
+      # Append to combined body; add a blank separator between sections.
+      if [ -s "$combined_body" ]; then
+        printf '\n' >> "$combined_body"
+      fi
+      cat "$body_file" >> "$combined_body"
       rm -f "$body_file"
 
       case "$slug" in
@@ -398,6 +414,9 @@ else
         _rc14_append_decision "M14 rc14 migration pass 2: backfilled ${section_label} placeholder for .claude/agents/$base (upstream rc14 ship not reachable; manual fill required)."
       fi
     done
+
+    _rc14_insert_after_escalation "$proj_file" "$combined_body"
+    rm -f "$combined_body"
 
     _rc14_backfilled=$((_rc14_backfilled + 1))
   done < "$cust"
