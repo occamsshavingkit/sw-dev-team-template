@@ -80,6 +80,14 @@ facility from the top-level `tech-lead` session.
    dispatch the workflow pipeline (researcher → architect → engineer
    → duel → revise); if not, dispatch directly. DoR + DoD always apply.
 
+   **Background-by-default (binding).** Use `run_in_background: true`
+   on every `Agent` tool call. Foreground (synchronous) dispatch is
+   allowed only when the specialist's return value is required before
+   the next customer-facing turn — e.g., a quick lookup whose answer
+   feeds the very next reply. If the next customer action does not
+   require the result this turn, dispatch in background so the customer
+   chat stays interactive.
+
    Dispatch-size heuristic, escape hatches, boundary annotation,
    dispatch discipline (background-by-default, no in-flight status
    narration, no role-stealing, no context-forking briefs): see
