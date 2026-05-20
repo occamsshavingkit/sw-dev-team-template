@@ -1308,6 +1308,89 @@ atomic_install() {
   mv "$dst.tmp.$$" "$dst"
 }
 
+# Issue #262: trivial SPDX-only delta auto-merge helper.
+#
+# Returns 0 (true) when ALL of the following hold:
+#   1. Every line added in project vs baseline matches
+#      ^#.*SPDX-License-Identifier: or ^#.*Copyright.
+#   2. The added-line count is <= 5.
+#   3. There are zero deletions (no baseline lines absent from project).
+#   4. There are zero other modifications (no in-place changes).
+# AND the upstream file already contains each of those added lines
+#   (diff project vs upstream reduces to zero non-SPDX-line differences).
+#
+# Arguments:
+#   $1  baseline path  (workdir/old/<f>)
+#   $2  project path   (project_root/<f>)
+#   $3  upstream path  (workdir/new/<f>)
+#
+# Conservative: any ambiguity returns 1 (fall through to conflict path).
+_is_trivial_spdx_delta() {
+  local baseline="$1"
+  local project="$2"
+  local upstream="$3"
+
+  # Require all three files to exist; without a baseline we cannot prove
+  # the delta is trivial.
+  [[ -f "$baseline" && -f "$project" && -f "$upstream" ]] || return 1
+
+  # --- Rule 1-4: analyse baseline→project diff --------------------------------
+  # Use comm after sorting to find lines added and deleted.
+  # comm -23 sorted-project sorted-baseline = lines only in project (added).
+  # comm -23 sorted-baseline sorted-project = lines only in baseline (deleted).
+  #
+  # Note: comm on sorted input does not detect in-place modifications;
+  # we check for those by requiring zero deletions AND that added+deleted
+  # account for the full diff (wc -l of diff output vs comm output).
+
+  local added_lines deleted_lines
+  added_lines="$(comm -23 \
+      <(sort "$project") \
+      <(sort "$baseline"))"
+  deleted_lines="$(comm -23 \
+      <(sort "$baseline") \
+      <(sort "$project"))"
+
+  # Rule 3: zero deletions.
+  [[ -z "$deleted_lines" ]] || return 1
+
+  # Rule 1: every added line must match the SPDX/Copyright pattern.
+  if [[ -n "$added_lines" ]]; then
+    local bad_lines
+    bad_lines="$(printf '%s\n' "$added_lines" \
+        | grep -v -E '^#.*(SPDX-License-Identifier:|Copyright)' || true)"
+    [[ -z "$bad_lines" ]] || return 1
+  fi
+
+  # Rule 2: added-line count <= 5.
+  local add_count
+  add_count="$(printf '%s\n' "$added_lines" | grep -c . || true)"
+  [[ "$add_count" -le 5 ]] || return 1
+
+  # Rule 4: zero other modifications.
+  # If the file content differs by more than just the added lines, there
+  # must be in-place edits. We detect this by confirming that the line
+  # count of the project equals the baseline count plus the added count.
+  local proj_lines base_lines
+  proj_lines="$(wc -l < "$project")"
+  base_lines="$(wc -l < "$baseline")"
+  [[ "$proj_lines" -eq $((base_lines + add_count)) ]] || return 1
+
+  # If nothing was added the files are byte-identical and we should not
+  # have reached this function (files_match would have caught it above).
+  # But if we somehow do, there is nothing to auto-merge.
+  [[ "$add_count" -gt 0 ]] || return 1
+
+  # --- Upstream containment check: every added line exists in upstream --------
+  # Each added line must already appear verbatim in the upstream file.
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    grep -qxF "$line" "$upstream" || return 1
+  done <<< "$added_lines"
+
+  return 0
+}
+
 shortstat_between() {
   local from="$1"
   local to="$2"
@@ -1547,6 +1630,23 @@ for f in $ship_files; do
          && cmp -s "$workdir/old/$f" "$workdir/new/$f"; then
         local_only_kept+=("$f")
       else
+        # Issue #262: before classifying as a conflict, check whether the
+        # local delta is a trivial SPDX-only addition that upstream already
+        # contains.  If so, take upstream silently and emit a log line.
+        # False negatives (delta not detected as trivial) are acceptable;
+        # false positives are not — when in doubt fall through to the
+        # conflict path below.
+        if [[ $baseline_available -eq 1 \
+           && -f "$workdir/old/$f" \
+           && $dry_run -eq 0 ]] \
+           && _is_trivial_spdx_delta \
+                "$workdir/old/$f" "$proj_path" "$new_path"; then
+          echo "auto-merged (trivial SPDX delta): $f"
+          upgraded+=("$f")
+          atomic_install "$new_path" "$proj_path"
+          [[ $is_agent -eq 1 ]] && agent_splice_name "$proj_path" "$agent_name_line"
+          continue
+        fi
         conflicts+=("$f")
         # Issue #110: pre-existing collision — file present in project
         # AND upstream but absent from baseline. Means upstream began
