@@ -141,6 +141,25 @@ check "rc9 → run exits 0" \
 check "rc9 → banner names rc11 (not rc10 as latest text-sort glitch)" \
   bash -c "grep -q 'Template upgrade available: v1.0.0-rc9 .* v1.0.0-rc11' '$tmp/rc9-out.log'"
 
+echo "-- issue #260: rc9 < rc10 < rc14 across decade boundary --"
+
+# Case #260: project at rc9, upstream has rc9/rc10/rc14 (decade crossing).
+# The lexicographic sort bug treated rc14 < rc9, so the banner would have
+# reported "up to date" instead of offering an upgrade to rc14.
+upstream_rc260="$tmp/upstream-rc260"
+make_upstream "$upstream_rc260" \
+  v1.0.0-rc9 v1.0.0-rc10 v1.0.0-rc14
+
+proj_260="$tmp/proj-260"
+make_project "$proj_260" "v1.0.0-rc9"
+rc_260=$(run_vc "$proj_260" "$upstream_rc260" "$tmp/rc260-out.log")
+check "issue #260 → run exits 0" \
+  bash -c "[ '$rc_260' = '0' ]"
+check "issue #260 → banner names rc14 as target (not rc9 or rc10)" \
+  bash -c "grep -q 'Template upgrade available: v1.0.0-rc9 .* v1.0.0-rc14' '$tmp/rc260-out.log'"
+check "issue #260 → does NOT report up-to-date when on rc9 with rc14 upstream" \
+  bash -c "! grep -q 'Template up to date' '$tmp/rc260-out.log'"
+
 echo "-- issue #199: HEAD vs working-tree TEMPLATE_VERSION --"
 
 # Case D: HEAD=rc8, working tree=rc9, upstream latest=rc11. Expect:

@@ -36,12 +36,12 @@ semver_sort_tags() {
           key = key ".1.0." sprintf("%010d", length(id)) "." id
         } else if (match(id, /^[A-Za-z][A-Za-z]*[0-9]+$/)) {
           # Legacy form: rcN, betaN. Split alpha prefix + numeric tail
-          # so rc9 < rc10 < rc11. Tier 2 (alphanumeric) but ordered by
-          # alpha-then-numeric within the tier.
+          # so rc9 < rc10 < rc11 (issue #260). Tier 2 (alphanumeric) but
+          # ordered numerically within the tier via zero-padded value.
           m = match(id, /[0-9]+$/)
           alpha = substr(id, 1, m - 1)
           num   = substr(id, m)
-          key = key ".1.1." alpha "." sprintf("%010d", length(num)) "." num
+          key = key ".1.1." alpha "." sprintf("%010d", num+0)
         } else {
           key = key ".1.1." id ".0000000000.0"
         }
@@ -90,5 +90,17 @@ semver_sort_tags_self_test() {
     echo "actual:"; printf '%s\n' "$actual" | sed 's/^/  /'
     rc=1
   fi
+
+  # Issue #260 regression: rc9/rc10/rc14 — tail must be rc14.
+  local repro_input repro_latest
+  repro_input=$'v1.0.0-rc9\nv1.0.0-rc10\nv1.0.0-rc14'
+  repro_latest="$(printf '%s\n' "$repro_input" | semver_sort_tags | tail -1)"
+  if [[ "$repro_latest" == "v1.0.0-rc14" ]]; then
+    echo "OK: issue #260 regression check passed (rc14 is newest)"
+  else
+    echo "FAIL: issue #260 regression — expected v1.0.0-rc14, got $repro_latest"
+    rc=1
+  fi
+
   return "$rc"
 }
