@@ -12,7 +12,8 @@
 #   2. Fixture: preserved agent missing output_format only.
 #      Expected: output_format inserted; hard_rules untouched; lint clean.
 #   3. Fixture: preserved agent missing both hard_rules and output_format.
-#      Expected: both sections inserted; lint clean.
+#      Expected: both sections inserted in canonical order (Hard rules before
+#      Output format); lint clean. Order assertion added per issue #267.
 #   4. Fixture: preserved agent already has both sections (idempotent no-op).
 #      Expected: file unchanged; lint clean; no duplicate sections.
 #   5. Fixture: WORKDIR_NEW is absent (no upstream clone); placeholder fallback.
@@ -298,6 +299,8 @@ check "case3: exactly one output_format section" \
   bash -c "[ \"\$(grep -c '^## Output format' '$proj3/.claude/agents/synthetic-agent.md')\" = '1' ]"
 check "case3: two audit rows written (one per section)" \
   bash -c "[ \"\$(grep -c 'rc14 migration pass 2' '$proj3/docs/DECISIONS.md')\" = '2' ]"
+check "case3: canonical order — Hard rules before Output format (issue #267)" \
+  bash -c "[ \"\$(awk '/^## Hard rules/{print NR; exit}' '$proj3/.claude/agents/synthetic-agent.md')\" -lt \"\$(awk '/^## Output format/{print NR; exit}' '$proj3/.claude/agents/synthetic-agent.md')\" ]"
 check "case3: lint passes" lint_one_agent "$proj3/.claude/agents/synthetic-agent.md"
 
 # ---------------------------------------------------------------------------

@@ -351,6 +351,13 @@ for f in $candidates; do
     # shellcheck disable=SC2086
     echo "MIGRATION: $base missing section(s):$(printf ' %s' $missing)" >&2  # nosemgrep: bash.lang.correctness.unquoted-expansion.unquoted-variable-expansion-in-command
 
+    # When multiple sections are missing, build a single concatenated body
+    # (hard_rules + blank line + output_format) and call the insertion helper
+    # once. A single insertion preserves canonical order (Escalation →
+    # Hard rules → Output format); two separate insertions at the same anchor
+    # invert the order because each call re-anchors at escalation. Issue #267.
+    combined_body=$(mktemp)
+
     for slug in $missing; do
         case "$slug" in
             hard_rules)    section_label="Hard rules" ;;
@@ -374,7 +381,11 @@ for f in $candidates; do
         # Ensure the body ends with a single newline.
         tail -c 1 "$body_file" | od -An -c | grep -q '\\n' || printf '\n' >> "$body_file"
 
-        insert_after_escalation "$f" "$body_file"
+        # Append to combined body; add a blank separator between sections.
+        if [ -s "$combined_body" ]; then
+            printf '\n' >> "$combined_body"
+        fi
+        cat "$body_file" >> "$combined_body"
         rm -f "$body_file"
 
         if [ "$sourced_from_upstream" -eq 1 ]; then
@@ -383,6 +394,9 @@ for f in $candidates; do
             append_decision "M9 rc9 migration: backfilled ${section_label} placeholder for .claude/agents/$base (upstream rc9 ship not reachable during migration; manual fill required)."
         fi
     done
+
+    insert_after_escalation "$f" "$combined_body"
+    rm -f "$combined_body"
 
     backfilled=$((backfilled + 1))
 done
