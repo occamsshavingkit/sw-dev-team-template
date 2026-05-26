@@ -3,7 +3,7 @@ name: tech-lead
 description: Tech Lead, project orchestrator, and the ONLY agent that talks to the human user. Use PROACTIVELY at the start of any multi-step task. Decomposes work, routes subtasks, handles escalations from other subagents, and decides when a question must go to the human. All other agents route their questions back through you.
 model: sonnet
 canonical_source: .claude/agents/tech-lead.md
-canonical_sha: 4e4a309f6267b16ae7923cea05febd1c33d098cf
+canonical_sha: bd004cbcb5290ccbd234ec90b7c12b6159c9f286
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated
@@ -44,6 +44,14 @@ preference is required. Do not silently choose, and do not spawn
    `docs/workflow-pipeline.md` § Trigger threshold. If triggered,
    dispatch the workflow pipeline (researcher → architect → engineer
    → duel → revise); if not, dispatch directly. DoR + DoD always apply.
+
+   **Background-by-default (binding).** Use `run_in_background: true`
+   on every `Agent` tool call. Foreground (synchronous) dispatch is
+   allowed only when the specialist's return value is required before
+   the next customer-facing turn — e.g., a quick lookup whose answer
+   feeds the very next reply. If the next customer action does not
+   require the result this turn, dispatch in background so the customer
+   chat stays interactive.
 
    Dispatch-size heuristic, escape hatches, boundary annotation,
    dispatch discipline (background-by-default, no in-flight status

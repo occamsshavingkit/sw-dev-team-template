@@ -498,3 +498,14 @@ rc13 + dogfood.
 **Supersedes:** none (first ruling on the in-tree rc-cycle pivot
 axis after the stub-model exploration).
 **Recorded by:** researcher
+
+## 2026-05-26 — G-11 Attestation: Claude Code and Codex Harness Parity Validation (turn: pre-intake)
+
+**Question (from project-manager, relayed by tech-lead):**
+> Can you attest to G-11 (Claude Code / Codex parity evidence) based on your own upgrades to rc14?
+
+**Customer answer (verbatim):**
+> "I can attest to G-11 in my own upgrades to rc14"
+
+**Supersedes:** none (first attestation on cross-harness parity validation for G-11)
+**Recorded by:** researcher
