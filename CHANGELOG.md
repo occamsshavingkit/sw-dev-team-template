@@ -18,6 +18,20 @@ filed upstream include that version.
 
 ---
 
+## v1.0.0-rc15 (2026-05-26)
+
+Release candidate addressing critical edge cases and stabilizing core behaviors for v1.0.0.
+
+### Fixed
+
+- **SemVer Tag Sorting Across Decade Boundaries (#260)**: Fixed alphanumeric sorting in `scripts/lib/semver.sh` by performing direct numeric evaluation of suffix values, guaranteeing correct order (e.g., `rc9 < rc10 < rc14`).
+- **Codacy Framework Quality and Complexity Resolution (#263)**: Refactored complex logic blocks in the `tech-lead-authoring-guard.py` hook into modular, single-responsibility helpers, dramatically reducing cyclomatic complexity while keeping the behavior intact.
+- **Agent Contract Schema Backfill & Insertion Ordering (#261, #266, #267)**: Fixed an ordering bug where sequential insertions of missing contract sections on the same anchor line reversed their order; migrated to single combined insertions preserving canonical order. SME and local files are correctly excluded from backfilling.
+- **Trivial SPDX / Copyright Header Auto-Merging (#262, #268, #269)**: Added a heuristic to automatically merge upstream files if downstream changes consist solely of trivial license additions. Added a local git fallback for repos without remote branches and properly reported them in the post-upgrade summary.
+- **Asynchronous Background-by-Default Dispatching Rules (#265)**: Enforced background execution (`run_in_background: true` on `Agent` tool calls) by default in `.claude/agents/tech-lead.md` and `AGENTS.md` to keep sessions responsive.
+
+---
+
 ## v1.0.0-rc14 (2026-05-16)
 
 Release candidate completing baseline open-issue burndown (35 issues: 34 closed,
