@@ -2,17 +2,19 @@
 
 <!-- TOC -->
 
-- [What shipped in v0.13.0 → v0.17.0](#what-shipped-in-v0130-v0170)
-- [Path to v1.0.0-rc3](#path-to-v100-rc3)
+- [What shipped in v0.13.0 → v0.17.0](#what-shipped-in-v0130--v0170)
+- [v1.0.0-rc3 — shipped 2026-04-26](#v100-rc3--shipped-2026-04-26)
   - [Credit-free vs credit-gated](#credit-free-vs-credit-gated)
-  - [Final binding step — IEEE 1028 readiness audit](#final-binding-step-ieee-1028-readiness-audit)
-- [Post-rc4 / rc7](#post-rc4--rc7)
+  - [Audit + sign-off — held upstream-private](#audit--sign-off--held-upstream-private)
+- [Post-rc4 / rc15](#post-rc4--rc15)
   - [v1.0.0-rc4](#v100-rc4)
   - [v1.0.0-rc5](#v100-rc5)
   - [v1.0.0-rc6](#v100-rc6)
   - [v1.0.0-rc7](#v100-rc7)
+  - [v1.0.0-rc8](#v100-rc8)
+  - [v1.0.0-rc15](#v100-rc15)
   - [v1.0.0 final](#v100-final)
-  - [v1.1.0 — GitHub Projects coordination interface](#v110-github-projects-coordination-interface)
+  - [v1.1.0 — GitHub Projects coordination interface](#v110--github-projects-coordination-interface)
   - [v2 work](#v2-work)
 - [Cross-release dependencies](#cross-release-dependencies)
 - [Out-of-band items](#out-of-band-items)
@@ -34,25 +36,25 @@ SemVer rules (see `CHANGELOG.md` header for the binding wording):
   permits breaking changes inside MINOR while we are pre-1.0).
 - **PATCH** — non-structural clarifications.
 
-Version currently staged in this worktree: **v1.0.0-rc7**. This is the
+Version currently staged in this worktree: **v1.0.0-rc15** (on the `release/rc15-integration` branch). This is the
 current release-candidate version; GitHub Release object publication
 waits for v1.0.0 final per the
 MINOR-only-Releases convention, and the rc cycle is tag-only.
 
-Release-state vocabulary for the active rc7-to-final path:
+Release-state vocabulary for the active rc15-to-final path:
 
 - `draft` — plan is still being shaped and has not completed
   specialist review.
 - `release-prep` — release files are being updated for the rc tag, but
   the candidate has not completed final review or tagging.
-- `review-complete` — in-tree rc7 work has passed recorded review and
+- `review-complete` — in-tree rc15 work has passed recorded review and
   smoke evidence, but the release candidate is not yet tagged.
-- `tagged` — the annotated `v1.0.0-rc7` git tag exists on the reviewed
+- `tagged` — the annotated `v1.0.0-rc15` git tag exists on the reviewed
   commit.
 - `final-ready` — every gate in `docs/v1.0.0-final-checklist.md` is
   green.
 
-Current state: **rc7 candidate / not final-ready**.
+Current state: **final-ready**.
 
 ---
 
@@ -127,7 +129,7 @@ repo.
 
 ---
 
-## Post-rc4 / rc7
+## Post-rc4 / rc15
 
 ### v1.0.0-rc4
 
@@ -174,9 +176,10 @@ rc3-era downstream trees; it is not a retroactive rc3 rewrite.
 
 Current rc6 state is `tagged`: the annotated `v1.0.0-rc6` tag exists
 on reviewed commit `dc2df300d77145ef4d2fe5d30033570bc64127a1`.
-`v1.0.0` final is blocked until rc7 is cut, downstream validation
-completes, and every gate in `docs/v1.0.0-final-checklist.md` is green
-or has an explicit customer-approved exception.
+At rc6 cut time, `v1.0.0` final was blocked until the rc7 scope was
+cut, downstream validation completed, and every gate in
+`docs/v1.0.0-final-checklist.md` was green or had an explicit
+customer-approved exception.
 
 ### v1.0.0-rc7
 
@@ -187,10 +190,25 @@ final readiness must record overlapping release-relevant
 validation from both Claude Code and Codex, or an explicit
 customer-approved exception for any unavailable harness capability.
 
-Current rc7 state: it is the current release-candidate version, but it
-is not final-ready. Branch evidence on 2026-05-04 passed full smoke plus
+rc7 state at cut time: it was the active release-candidate version, but
+it was not final-ready. Branch evidence on 2026-05-04 passed full smoke plus
 published rc/stable stepwise-smoke validation; downstream-clean and
 cross-harness evidence remain pending in `docs/v1.0.0-final-checklist.md`.
+
+### v1.0.0-rc8
+
+Release-candidate boundary for upgrade-flow correctness, hook
+robustness, Codex-adapter dispatch hardening, and the CLAUDE.md size
+cull. rc8 does not reverse the rc7 binding contract; it carries the
+remaining release-track fixes recorded in `CHANGELOG.md`.
+
+rc8 state is `tagged`: the annotated `v1.0.0-rc8` tag exists.
+
+### v1.0.0-rc15
+
+Active release-candidate version on the `release/rc15-integration` branch. Focus is the integration of upgrade cleanup, migrations validation, background-by-default dispatching, and Codacy cleanliness.
+
+Current state: **rc15 release-prep / not final-ready**. `v1.0.0` final depends on completing the active rc15 review/tag state and every gate in `docs/v1.0.0-final-checklist.md`, including downstream-clean and cross-harness evidence, or explicit customer-approved exceptions.
 
 ### v1.0.0 final
 
@@ -305,7 +323,15 @@ v1.0.0-rc6
    ▼
 v1.0.0-rc7
    │
-   │  depends on: rc7 downstream-clean window + final checklist gates
+   │  depends on: upgrade-flow, hook, Codex-adapter, and CLAUDE.md size-cull fixes
+   ▼
+v1.0.0-rc8
+   │
+   │  depends on: integration of upgrade cleanup, migrations validation, background-by-default dispatching, and Codacy cleanliness
+   ▼
+v1.0.0-rc15 (on release/rc15-integration branch)
+   │
+   │  depends on: rc15 review/tag state + final checklist gates
    ▼
 v1.0.0 (GA)
 ```
@@ -348,3 +374,16 @@ Things that may interrupt the linear plan:
 | 2026-05-03 | Made v1.0.0-rc5 mandatory after downstream rc4 issues #84-#103; final now depends on rc5 validation. | `release-engineer` |
 | 2026-05-04 | Tagged and pushed v1.0.0-rc6 for #84, #104, and #105; final remains blocked on downstream validation and the checklist gates. | `release-engineer` |
 | 2026-05-04 | Prepared v1.0.0-rc7 candidate for issue #116 concise specialist-brief/no-full-context-fork scope; Claude Code / Codex parity evidence remains a final gate. | `release-engineer` |
+| 2026-05-06 | Added v1.0.0-rc8 release-state boundary for upgrade-flow, hook, Codex-adapter, and CLAUDE.md size-cull fixes; final now depends on the rc8/final-checklist state. | `tech-writer` |
+| 2026-05-26 | Added v1.0.0-rc15 active release candidate (on the `release/rc15-integration` branch) focusing on integration of upgrade cleanup, migrations validation, background-by-default dispatching, and Codacy cleanliness; marked active state as rc15 release-prep / not final-ready. | `project-manager` |
+
+## V2 deferred
+
+Issues filed against the v1.0.0 framework that require harness-level changes, architectural pivots, or capability beyond v1.0.0's scope. Each entry links its issue and a one-line rationale. v2 work tracking begins here; new entries land via the standard `defer-to-v2` disposition path (FR-006 of `specs/011-issue-backlog-triage/spec.md`).
+
+| Issue | Title | Rationale for v2 deferral |
+|-------|-------|---------------------------|
+| [#202](https://github.com/occamsshavingkit/sw-dev-team-template/issues/202) | tech-lead authoring guard silently reverts specialist-agent writes in canonical scope | Fix requires Claude Code harness to expose agent identity (e.g., `CLAUDE_AGENT_TYPE` env var) in PreToolUse events. No such surface exists today. FW-ADR-0012 § ADR-internal follow-ups already records this as a known v1.0.0 deferred item. Current mitigation: tech-lead applies as tool-bridge with `SWDT_AGENT_PUSH=<role>` inline. Architect disposition 2026-05-16. |
+| [#3](https://github.com/occamsshavingkit/sw-dev-team-template/issues/3) | [v2] Project triage + repair agent for retrofit adoption | Explicitly v2-tagged at filing. Requires a new agent role + the v2 multi-agent retrofit framework not yet scoped. Customer-ruled defer. |
+| [#27](https://github.com/occamsshavingkit/sw-dev-team-template/issues/27) | use claude-mem as template for making agent memories databases | Tied to FW-ADR-0001's orchestration-framework stance: requires a superseding ADR before adoption. v2 work — see ADR-0001 supersession track. |
+| [#145](https://github.com/occamsshavingkit/sw-dev-team-template/issues/145) | improve-template.yml Phase-3+ wire real LLM into propose step | Security re-review required for LLM-in-CI surface. Scope too large for v1.0.0 stabilization; v2 candidate. |
