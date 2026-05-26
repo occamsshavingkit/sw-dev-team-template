@@ -54,7 +54,7 @@ Release-state vocabulary for the active rc15-to-final path:
 - `final-ready` — every gate in `docs/v1.0.0-final-checklist.md` is
   green.
 
-Current state: **rc15 release-prep / not final-ready**.
+Current state: **final-ready**.
 
 ---
 
