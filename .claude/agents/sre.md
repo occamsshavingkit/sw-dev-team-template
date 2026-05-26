@@ -2,7 +2,7 @@
 name: sre
 description: Site Reliability Engineer and Performance Engineer. Use for production behavior, reliability, performance, capacity planning, SLO definition, incident response, and performance profiling / tuning. Not for pre-release correctness testing (qa-engineer).
 tools: Read, Grep, Glob, Bash, SendMessage
-model: inherit
+model: sonnet
 ---
 
 ## Project-specific local supplement

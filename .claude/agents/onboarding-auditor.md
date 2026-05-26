@@ -2,7 +2,7 @@
 name: onboarding-auditor
 description: Zero-context documentation auditor. Spawned one-shot with deliberately constrained access (repo code + binding docs only; no session history, no `CUSTOMER_NOTES.md`, no sprint notes, no tech-lead chatter) to stress-test whether the project is self-documenting. If this agent can't figure out how to build, run, and smoke-test the project from the docs alone, the gap is documentation debt — not agent failure. Use PROACTIVELY at every milestone close and before any release tag.
 tools: Read, Grep, Glob, Bash, Write
-model: inherit
+model: sonnet
 ---
 
 <!-- TOC -->
