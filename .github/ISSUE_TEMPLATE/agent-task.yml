@@ -1,0 +1,122 @@
+name: Agent task
+description: File a new agent-routed task for the multi-agent workflow (intake → implementation → review).
+title: "[task] "
+labels: ["status:queued"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to file a bounded, agent-routable task. One issue per coherent task — see `docs/coordination/multi-operator-model.md` for the one-issue-per-task rule.
+
+        Before filing, read `docs/ISSUE_FILING.md`. If you are reporting a framework gap, use the **Framework gap** template instead.
+
+  - type: input
+    id: task-id
+    attributes:
+      label: Task ID (durable handoff link)
+      description: The task ID from `docs/handoffs/` or `specs/<feature>/tasks.md` (e.g., T042). Links this issue to the durable handoff record.
+      placeholder: "T042"
+    validations:
+      required: false
+
+  - type: input
+    id: summary
+    attributes:
+      label: One-line summary
+      placeholder: "Add FR-011 issue-form templates for agent-routed intake"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Task description
+      description: What needs to be done and why. Reference the spec, ADR, or user story that drives this task.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: role
+    attributes:
+      label: Owning role (routing)
+      description: The canonical roster role responsible for this task. Add the matching `role:*` label after filing. Missing or conflicting role labels → needs-triage.
+      options:
+        - role:tech-lead
+        - role:project-manager
+        - role:architect
+        - role:software-engineer
+        - role:researcher
+        - role:qa-engineer
+        - role:sre
+        - role:tech-writer
+        - role:code-reviewer
+        - role:release-engineer
+        - role:security-engineer
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - "priority:p0 — drop everything"
+        - "priority:p1 — high (current sprint / next slot)"
+        - "priority:p2 — normal (scheduled work)"
+        - "priority:p3 — whenever (low urgency)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: Measurable conditions under which this task is done. Use a checklist. The durable handoff record (not this issue) is the binding evidence gate.
+      placeholder: |
+        - [ ] FR-011 agent-task.yml exists and passes YAML parse
+        - [ ] All required fields render correctly on GitHub
+    validations:
+      required: true
+
+  - type: textarea
+    id: prior-art
+    attributes:
+      label: Prior art / proposal links
+      description: Links to `docs/prior-art/<task-id>.md`, `docs/proposals/<task-id>.md`, ADRs, spec sections, or related issues.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: trigger-annotation
+    attributes:
+      label: Trigger annotation (workflow-pipeline)
+      description: Does this task trigger the pre-code proposal requirement per `docs/workflow-pipeline.md`?
+      options:
+        - "none — below threshold, code directly"
+        - "proposal-required — produce docs/proposals/<task-id>.md before coding"
+        - "escape-hatch — recorded by tech-lead in task file"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: release-note-impact
+    attributes:
+      label: Release-note impact
+      description: Does this task require a release note or CHANGELOG entry?
+      options:
+        - "none — internal / no user-visible change"
+        - "patch — bug fix or backward-compatible internal change"
+        - "minor — new additive capability"
+        - "major — breaking change"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: This is a single coherent task (one issue, one durable handoff — see `docs/coordination/multi-operator-model.md`).
+          required: true
+        - label: I've read `docs/ISSUE_FILING.md` and confirmed this is not a framework gap or a feature request.
+          required: true

@@ -218,6 +218,90 @@ Provider column key: **Claude equivalent** = fallback used in Claude Code; **Ope
 | `process-auditor` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | (advisory-only role; frontier escalation not gating) |
 | `sme-template` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | (default for SMEs; haiku for tiny lookups) |
 
+## Multi-operator and coordination context
+
+*FR-012. Cross-reference: `docs/coordination/label-taxonomy.md`, `docs/coordination/multi-operator-model.md`.*
+
+The multi-operator coordination interface introduces shared work items (GitHub
+issues + durable handoffs) that any participating operator may claim and act
+on. Model-routing decisions in this context carry higher stakes than in
+single-operator work: a wrong routing choice compounds across operators and
+machines.
+
+### When to use plan mode
+
+In addition to the general plan-mode triggers above, treat the presence of
+the following coordination signals as mandatory plan-mode triggers:
+
+- The issue carries `priority:p0` or `priority:p1`. High-priority coordination
+  items may be claimed under time pressure; a written plan prevents a rushed
+  first edit from leaving the shared state inconsistent.
+- The issue carries `meta:customer-approval-required` or
+  `meta:security-review-required`. These labels mark the Hard Rule #4 and
+  Hard Rule #7 paths; coordination errors here are irreversible.
+- The task is a HANDBACK target: you are picking up an in-progress claim from
+  a different operator. The incoming HANDBACK comment describes what was done
+  and what remains, but the prior operator's mental model is not available.
+  Plan mode lets you verify scope before touching files.
+- The issue is transitioning to `status:in-review`. Review routing across
+  operators is a coordination boundary; plan mode confirms which reviewer and
+  which evidence gates are expected.
+
+Skip plan mode for:
+
+- `priority:p3` issues with `status:queued` and a single clear file target.
+- Read-only coordination actions (posting a PROGRESS comment, updating a label
+  without touching artifacts).
+
+### When to raise model tier
+
+Raise from default to `strong` (or from `strong` to `frontier`) when the
+coordination context includes any of the following:
+
+| Trigger | Minimum tier |
+|---|---|
+| `priority:p0` issue | `strong` |
+| `meta:customer-approval-required` | `frontier` |
+| `meta:security-review-required` | `frontier` |
+| Tie-break resolution between two concurrent claims | `strong` |
+| Claim picked up after a YIELD (prior operator released under pressure) | `strong` |
+| Cross-role HANDBACK where the target role differs from the source role | `strong` |
+
+The `meta:framework-maintenance` label does not alone trigger a tier raise,
+but if the framework-maintenance change also touches agent contracts, routing
+policy, or release gating, apply the cross-system-tradeoff criterion from the
+`Elevation triggers` section above.
+
+### When to raise reasoning effort
+
+Effort escalation in the coordination context follows the same predicates as
+the general `Elevation triggers` section. Coordination-specific additions:
+
+- A claim comment cites a collision (two operators claimed near-simultaneously):
+  raise effort to `high` or `xhigh` to carefully reconstruct the state the
+  other operator left.
+- The issue comment stream shows a BLOCKED entry that was subsequently
+  unblocked: raise effort to verify the blocker resolution is complete before
+  treating the task as resumable.
+- The durable handoff `verification.*` record is absent or inconsistent with
+  the issue's `status:done` label: raise effort to `xhigh` before posting
+  a GATE-PASSED comment. Remember that a GATE-PASSED comment does not
+  satisfy the gate — this effort level is for determining whether the binding
+  evidence actually exists.
+
+### Label-to-routing quick reference
+
+| Label(s) present | Plan mode | Minimum tier | Notes |
+|---|---|---|---|
+| `priority:p0` | Yes | `strong` | Drop-everything item; plan before touching anything |
+| `priority:p1` | Recommended | `standard` | Default for current-sprint items |
+| `priority:p2` or `priority:p3` | Normal rules apply | per default table | No coordination-specific override |
+| `meta:customer-approval-required` | Yes | `frontier` | Hard Rule #4; no agent-only path |
+| `meta:security-review-required` | Yes | `frontier` | Hard Rule #7; security-engineer sign-off required |
+| `meta:blocked-external` + `status:blocked` | Yes, when unblocking | `strong` | Verify the external blocker is fully resolved |
+| `status:in-review` | Yes, when routing | `strong` | Confirm reviewer, gates, and evidence before handoff |
+| `meta:framework-maintenance` + policy change | Yes | `strong` (min) | Applies when agent contracts or routing policy is affected |
+
 ## Availability fallback
 
 The binding default-class table above specifies each agent's *preferred* class. When the preferred class is **unavailable** in the active harness — quota exhausted, model retired, provider outage — the routing wrapper (or operator, in harnesses without one) MUST escalate to the next-higher tier **within the same provider** before degrading across providers. Availability fallback does NOT require the per-task escalation predicate in `frontier_only_when` to be satisfied; it is an operator-level concern separate from per-task escalation.

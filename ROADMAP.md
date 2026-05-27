@@ -14,7 +14,7 @@
   - [v1.0.0-rc8](#v100-rc8)
   - [v1.0.0-rc15](#v100-rc15)
   - [v1.0.0 final](#v100-final)
-  - [v1.1.0 — GitHub Projects coordination interface](#v110--github-projects-coordination-interface)
+  - [v1.1.0 — handoff contracts and coordination interface](#v110--handoff-contracts-and-coordination-interface)
   - [v2 work](#v2-work)
 - [Cross-release dependencies](#cross-release-dependencies)
 - [Out-of-band items](#out-of-band-items)
@@ -231,14 +231,25 @@ evidence, cross-harness parity evidence, release-engineer and
 code-reviewer sign-offs, customer ratification, GitHub Release object
 creation steps, and rollback / upgrade notes.
 
-### v1.1.0 — GitHub Projects coordination interface
+### v1.1.0 — handoff contracts and coordination interface
 
-Add a GitHub-native coordination layer so multiple people can run the
-agent set from different machines while staying aligned on one task
-list, Kanban board, and issue-backed work queue.
+Add machine-readable handoff contracts and an optional GitHub-native
+coordination layer so multiple people can run the agent set from
+different machines while staying aligned on bounded task scope,
+evidence, and issue-backed work queues.
+
+The v1.1 implementation spine is the machine-readable handoff-contract
+plan in `docs/v1.1-handoff-contracts.md`, which adds enforceable task
+boundaries without replacing the canonical role model.
 
 Planned scope:
 
+- Define the handoff-contract planning surface: durable JSON handoffs,
+  active-handoff pointer, hook gates, bounded Codex requirements, and
+  warning-to-enforce migration tests.
+- Add hard-rule-to-hook traceability so each `CLAUDE.md` / `AGENTS.md`
+  Hard Rule is classified as semantic-only, hook-enforceable,
+  evidence-gated, or customer-approval-gated.
 - Define a project-board convention for template-driven work:
   statuses, ownership, priority, milestone/release, blocked state,
   and agent-role routing fields.
@@ -260,6 +271,13 @@ Planned scope:
   playbook so teams know when agents should use plan mode, raise model
   tier, or increase reasoning effort across OpenAI / ChatGPT and
   Claude / Claude Code deployments.
+- Define where `llmdc` fits in the template workflow, including owning
+  role, touched artifacts / hooks, and interaction with handoff contracts
+  without bypassing role ownership or evidence gates.
+- Define the Speckit integration model for `speckit-specify`,
+  `speckit-plan`, `speckit-tasks`, `speckit-implement`,
+  `speckit-analyze`, and `speckit-checklist`, including how outputs map
+  to canonical roles, active handoffs, and customer-question governance.
 
 Non-goals for v1.1.0:
 
@@ -271,16 +289,43 @@ Non-goals for v1.1.0:
 
 Exit criteria:
 
-- A documented GitHub Projects field/status schema exists.
-- At least one issue/task template supports agent-routed work from
-  intake through review.
+- The handoff-contract plan defines target layout, sample JSON, hook
+  gates, evidence rules, bounded Codex constraints, and migration tests.
+- The handoff-contract plan preserves traceability from deterministic
+  hook or schema gates back to the original Hard Rule numbers.
+- A documented GitHub Issues label taxonomy exists covering status,
+  role routing, priority, and meta groups, creatable via a `gh label
+  create` transcript without GitHub Projects access.
+- An optimistic issue-claim convention is documented: self-assign +
+  status label + structured claim comment (operator-id, machine,
+  session-id, UTC timestamp); earliest-timestamp tie-break for
+  collisions; yield protocol for the losing claimer; advisory nature
+  and race-window bounds are stated explicitly.
+- At least two issue/task templates support agent-routed work:
+  `agent-task.yml` (intake through in-progress) and
+  `agent-review-request.yml` (handback through review).
+- The register-authority table is documented: which state is
+  authoritative in `docs/handoffs/*.json`, which in `docs/DECISIONS.md`
+  / `docs/OPEN_QUESTIONS.md` / PMBOK artifacts, and which in GitHub
+  Issues labels/milestones, with explicit preservation of the non-goals
+  (in-repo registers not replaced; only `tech-lead` talks to the
+  customer; interface is opt-in).
 - Agent model-routing guidelines are reviewed against current provider
-  docs and mapped to issue labels or fields where useful.
-- A fresh downstream project can follow the setup guide and produce a
-  usable board without hand-editing the template internals.
+  docs and mapped to issue `role:` labels where useful.
+- The `llmdc` workflow integration has a documented owner role, allowed
+  artifact / hook touchpoints, and explicit evidence-gate boundaries.
+- The Speckit workflow integration documents when each Speckit command is
+  used, how outputs map to canonical roles and `docs/handoffs/*.json`,
+  and what remains governed by `tech-lead` customer-question rules.
+- A fresh downstream project can follow the setup guide and bootstrap
+  the label set, milestones, and issue templates without hand-editing
+  template internals.
 - The coordination model has been smoke-tested with at least two
-  concurrent agent operators on separate machines, or explicitly
-  deferred with a narrower single-operator validation note.
+  concurrent agent operators on separate machines using the claim/yield
+  convention, or explicitly deferred with a narrower single-operator
+  validation note and a recorded customer ruling (Q-0018: deferral
+  pre-authorized for v1.1.0; single-operator plus simulated-concurrency
+  smoke satisfies exit).
 
 ### v2 work
 
@@ -376,6 +421,7 @@ Things that may interrupt the linear plan:
 | 2026-05-04 | Prepared v1.0.0-rc7 candidate for issue #116 concise specialist-brief/no-full-context-fork scope; Claude Code / Codex parity evidence remains a final gate. | `release-engineer` |
 | 2026-05-06 | Added v1.0.0-rc8 release-state boundary for upgrade-flow, hook, Codex-adapter, and CLAUDE.md size-cull fixes; final now depends on the rc8/final-checklist state. | `tech-writer` |
 | 2026-05-26 | Added v1.0.0-rc15 active release candidate (on the `release/rc15-integration` branch) focusing on integration of upgrade cleanup, migrations validation, background-by-default dispatching, and Codacy cleanliness; marked active state as rc15 release-prep / not final-ready. | `project-manager` |
+| 2026-05-26 | Added customer-provided v1.1 scope input for `llmdc` and Speckit workflow integrations. | `tech-writer` + `project-manager` |
 
 ## V2 deferred
 

@@ -258,6 +258,13 @@ run_gate_isolation_case \
     "$FIXTURES/external-tool-activity-not-evidence.json" \
     "$REPO_ROOT"
 
+# github_issue field coverage (T017 / FR-017):
+# Schema must accept a string value (URL or issue-number string) and reject a non-string.
+run_schema_case "schema accepts handoff with github_issue as URL string (FR-017)" \
+    "$FIXTURES/github-issue-valid.json" valid
+run_schema_case "schema rejects handoff with github_issue as non-string object (FR-017)" \
+    "$FIXTURES/github-issue-invalid-type.json" invalid
+
 printf '\nSummary: %s passed, %s failed\n' "$pass" "$fail"
 if [ "$fail" -ne 0 ]; then
     printf 'Failures:\n'

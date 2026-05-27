@@ -1,0 +1,123 @@
+name: Agent review request
+description: Request a review from a specific agent role (code review, QA gate, security sign-off, or other role-owned review).
+title: "[review] "
+labels: ["status:in-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to hand off completed work to the appropriate reviewing role. The review owner is responsible for driving the review to a gate decision.
+
+        A `GATE-PASSED` comment on this issue is observational only — it does NOT satisfy the evidence gate. The binding evidence remains the hook-captured verification record and the role-owned artifact on the durable handoff. See `docs/coordination/label-taxonomy.md`.
+
+  - type: input
+    id: task-id
+    attributes:
+      label: Task ID (durable handoff link)
+      description: The task ID whose work is being reviewed (e.g., T042). Links this issue to the durable handoff at `docs/handoffs/<task-id>.json`.
+      placeholder: "T042"
+    validations:
+      required: true
+
+  - type: input
+    id: summary
+    attributes:
+      label: One-line summary
+      placeholder: "Code review: agent-task and agent-review-request issue templates (T042)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: review-owner
+    attributes:
+      label: Review owner (routing)
+      description: The canonical roster role that owns this review. Add the matching `role:*` label after filing.
+      options:
+        - role:code-reviewer
+        - role:qa-engineer
+        - role:security-engineer
+        - role:tech-lead
+        - role:architect
+        - role:project-manager
+        - role:software-engineer
+        - role:researcher
+        - role:sre
+        - role:tech-writer
+        - role:release-engineer
+    validations:
+      required: true
+
+  - type: dropdown
+    id: review-type
+    attributes:
+      label: Review type
+      description: What kind of review gate is this?
+      options:
+        - "code-review — IEEE 1028 code inspection (code-reviewer)"
+        - "qa-gate — test coverage / acceptance scenario validation (qa-engineer)"
+        - "security-sign-off — Hard Rule #7 sign-off (security-engineer)"
+        - "architecture-review — structural / ADR alignment (architect)"
+        - "release-gate — build/release readiness (release-engineer)"
+        - "customer-approval — Hard Rule #4 live customer sign-off (tech-lead)"
+        - "other — describe in description field"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-is-done
+    attributes:
+      label: What was completed
+      description: Brief summary of the work being reviewed. Reference the spec/ADR/user story and the durable handoff record.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria for this review
+      description: What the reviewer must verify. These are the conditions for the review gate to pass. The binding evidence (hook-captured record / role-owned artifact) must be present — a comment alone is insufficient.
+      placeholder: |
+        - [ ] Both YAML files parse without errors
+        - [ ] All FR-011 fields present and correctly typed
+        - [ ] Labels match docs/coordination/label-taxonomy.md role:* set
+    validations:
+      required: true
+
+  - type: textarea
+    id: prior-art
+    attributes:
+      label: Prior art / proposal links
+      description: Links to `docs/proposals/<task-id>.md`, `docs/prior-art/<task-id>.md`, ADRs, spec sections, or the originating agent-task issue.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: release-note-impact
+    attributes:
+      label: Release-note impact
+      description: Does the reviewed work require a release note or CHANGELOG entry?
+      options:
+        - "none — internal / no user-visible change"
+        - "patch — bug fix or backward-compatible internal change"
+        - "minor — new additive capability"
+        - "major — breaking change"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reviewer-notes
+    attributes:
+      label: Reviewer notes (filled in by review owner)
+      description: Leave this blank when filing. The review owner fills in findings, gate decision, and a pointer to the binding evidence artifact.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: The durable handoff record for this task exists at `docs/handoffs/<task-id>.json` (or equivalent).
+          required: true
+        - label: I understand a GATE-PASSED comment on this issue does NOT satisfy the evidence gate — the binding evidence is the hook-captured verification record on the durable handoff.
+          required: true

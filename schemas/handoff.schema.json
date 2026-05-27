@@ -228,6 +228,10 @@
     },
     "bounded_codex_exception": {"$ref": "#/$defs/bounded_codex_exception"},
     "model_fallback": {"$ref": "#/$defs/model_fallback_record"},
+    "github_issue": {
+      "type": "string",
+      "description": "Optional bidirectional link to the coordination GitHub issue for this handoff (feature 014, FR-017). Value is an issue number or URL. Absence keeps the handoff valid for single-operator and offline projects."
+    },
     "external_tool_activity": {
       "type": "array",
       "items": {"$ref": "#/$defs/external_tool_activity_ref"},

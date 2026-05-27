@@ -297,6 +297,18 @@ back upstream.
 Template version is recorded in \`TEMPLATE_VERSION\`.
 EOF
 
+# --- Append .devteam/active-handoff.json to downstream .gitignore (FR-018) --
+# active-handoff.json is a per-machine/per-session local pointer, not shared
+# truth. Gitignoring it in every scaffolded downstream project prevents
+# cross-machine churn and accidental commits (customer ruling Q-0019,
+# 2026-05-27). This only touches the downstream copy; the template repo's
+# own .gitignore is unchanged.
+{
+  printf '\n# .devteam/active-handoff.json is a per-machine/per-session local pointer\n'
+  printf '# (not shared truth). Gitignored by scaffold (FR-018 / spec-014).\n'
+  printf '.devteam/active-handoff.json\n'
+} >> "$target/.gitignore"
+
 # --- Write TEMPLATE_MANIFEST.lock + self-verify ------------------------------
 # Per FW-ADR-0002. Captures per-file SHA256 of every shipped file at scaffold
 # time so future `scripts/upgrade.sh --verify` runs can detect drift.
