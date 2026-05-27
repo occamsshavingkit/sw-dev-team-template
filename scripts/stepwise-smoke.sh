@@ -145,8 +145,15 @@ fi
 echo "  hops: ${#hop_tags[@]} (${hop_tags[0]} → ${hop_tags[${#hop_tags[@]}-1]})" | tee -a "$log"
 
 # Scaffold a fresh project from the clone at $start_tag.
+# Run scaffold.sh with CWD=$clone so that tar and git rev-parse HEAD
+# operate on the clone's tree (checked out at $start_tag), not on
+# repo_root/HEAD.  This ensures the bootstrap-critical files in $target
+# (scripts/upgrade.sh, scripts/lib/*.sh) match $start_tag's content and
+# therefore satisfy FW-ADR-0010's 3-SHA matrix: project SHA == baseline
+# SHA (both come from $start_tag), so the guard correctly classifies
+# them as "unedited baseline" and allows the bootstrap to proceed.
 git -C "$clone" checkout -q "$start_tag"
-"$clone/scripts/scaffold.sh" "$target" "Stepwise Smoke" >/dev/null
+( cd "$clone" && ./scripts/scaffold.sh "$target" "Stepwise Smoke" ) >/dev/null
 
 # Hand-stamp TEMPLATE_VERSION to the start tag with a placeholder SHA.
 start_sha="$(git -C "$clone" rev-parse "$start_tag")"
