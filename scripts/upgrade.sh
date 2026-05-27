@@ -1066,6 +1066,20 @@ fi
 if [[ ${#migrations_to_run[@]} -gt 0 ]]; then
   echo >&2
   echo "Running migrations between $local_version and $new_version:" >&2
+
+  # Build the full ordered chain for position reporting (T003/FR-001).
+  # Only tags whose .sh file is present are included; _chain_total and
+  # _chain_idx count file-present migrations only, so the summary's "N of M"
+  # refers to file-present migrations.
+  declare -a _migration_chain=()
+  for _v in "${migrations_to_run[@]}"; do
+    _mig_path="$workdir/new/migrations/$_v.sh"
+    [[ -f "$_mig_path" ]] && _migration_chain+=("migrations/$_v.sh")
+  done
+  _chain_total=${#_migration_chain[@]}
+  _chain_idx=0
+  declare -a _applied_migrations=()
+
   for v in "${migrations_to_run[@]}"; do
     mig="$workdir/new/migrations/$v.sh"
     if [[ -f "$mig" ]]; then
@@ -1073,7 +1087,14 @@ if [[ ${#migrations_to_run[@]} -gt 0 ]]; then
       if [[ $dry_run -eq 1 ]]; then
         echo "    (dry-run: would run $mig)" >&2
       else
-        (
+        _chain_idx=$(( _chain_idx + 1 ))
+        # FR-001: capture each migration's true exit status, decoupled from
+        # any trailing pipeline stage and from set -e masking.
+        # Run the migration in a subshell with output captured to a variable;
+        # the subshell's exit status is captured directly via $? before set -e
+        # can fire on a non-zero value.
+        set +e
+        _mig_output=$(
           cd "$project_root"
           export PROJECT_ROOT="$project_root"
           export OLD_VERSION="$local_version"
@@ -1081,8 +1102,110 @@ if [[ ${#migrations_to_run[@]} -gt 0 ]]; then
           export TARGET_VERSION="$v"
           export WORKDIR_NEW="$workdir/new"
           [[ $baseline_available -eq 1 ]] && export WORKDIR_OLD="$workdir/old"
-          bash "$mig"
-        ) 2>&1 | sed 's/^/    /' >&2
+          bash "$mig" 2>&1
+        )
+        _mig_rc=$?
+        set -e
+
+        # Indent and forward migration output to stderr.
+        if [[ -n "$_mig_output" ]]; then
+          printf '%s\n' "$_mig_output" | sed 's/^/    /' >&2
+        fi
+
+        if [[ $_mig_rc -ne 0 ]]; then
+          # --- Controlled failure path (FR-006 / T005) ---
+          # Stop-at-first: do NOT continue iterating after a failure.
+          # Exit is controlled and deliberate — never a silent set -e abort.
+          # Exit code propagates the migration's true exit status (_mig_rc).
+          #
+          # State available here for T006 (stderr summary) and T007 (artifact):
+          #   _failing_migration  — "migrations/$v.sh" (failing entry)
+          #   _chain_idx          — 1-based position of failing migration
+          #   _chain_total        — total migrations in chain
+          #   _applied_migrations — ordered list of successfully-applied migrations
+          #   _not_run_migrations — ordered list of migrations not yet run
+          #   _mig_rc             — true exit status of the failing migration
+
+          # Capture state for T006/T007 extensions.
+          _failing_migration="migrations/$v.sh"
+
+          # Build not_run list: chain entries after the failing position.
+          # _migration_chain is 0-indexed; _chain_idx is 1-based, so
+          # _migration_chain[_chain_idx] is the first entry not yet run.
+          declare -a _not_run_migrations=()
+          for (( _nr=_chain_idx; _nr<_chain_total; _nr++ )); do
+            _not_run_migrations+=("${_migration_chain[$_nr]}")
+          done
+
+          echo >&2
+          echo "ERROR: migration failed — fix and re-run to resume." >&2
+          echo "  failing : $_failing_migration  ($_chain_idx of $_chain_total)" >&2
+          if [[ ${#_applied_migrations[@]} -gt 0 ]]; then
+            echo "  applied : $(IFS=', '; echo "${_applied_migrations[*]}")" >&2
+          else
+            echo "  applied : (none)" >&2
+          fi
+          if [[ ${#_not_run_migrations[@]} -gt 0 ]]; then
+            echo "  not run : $(IFS=', '; echo "${_not_run_migrations[*]}")" >&2
+          else
+            echo "  not run : (none)" >&2
+          fi
+          # T007: write .template-migration-failed.json atomically (FR-012).
+          # Use python3 + json.dump (R2 decision) so field values containing
+          # '"' or '\' are serialised safely.  Arrays are passed via the
+          # environment (NUL-delimited) so no shell-to-Python string
+          # interpolation is needed — the escaping gap is closed at the
+          # OS boundary.
+          # stderr_tail is intentionally omitted (optional per contract §B).
+          _failed_artifact="$project_root/.template-migration-failed.json"
+          _MFAIL_SCHEMA="template-migration-failed/1" \
+          _MFAIL_FAILING="$_failing_migration" \
+          _MFAIL_IDX="$_chain_idx" \
+          _MFAIL_TOTAL="$_chain_total" \
+          _MFAIL_EXIT="$_mig_rc" \
+          _MFAIL_TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+          _MFAIL_APPLIED="$(IFS=$'\x01'; printf '%s' "${_applied_migrations[*]+"${_applied_migrations[*]}"}")" \
+          _MFAIL_NOT_RUN="$(IFS=$'\x01'; printf '%s' "${_not_run_migrations[*]+"${_not_run_migrations[*]}"}")" \
+          python3 - "$_failed_artifact" <<'PYMFAIL'
+import json, os, sys
+
+out_path = sys.argv[1]
+
+def _split_env(key):
+    raw = os.environ.get(key, "")
+    return [e for e in raw.split("\x01") if e] if raw else []
+
+data = {
+    "schema":            os.environ["_MFAIL_SCHEMA"],
+    "failing_migration": os.environ["_MFAIL_FAILING"],
+    "position": {
+        "index": int(os.environ["_MFAIL_IDX"]),
+        "total": int(os.environ["_MFAIL_TOTAL"]),
+    },
+    "exit_status": int(os.environ["_MFAIL_EXIT"]),
+    "applied":   _split_env("_MFAIL_APPLIED"),
+    "not_run":   _split_env("_MFAIL_NOT_RUN"),
+    "timestamp": os.environ["_MFAIL_TIMESTAMP"],
+}
+
+tmp_path = out_path + ".tmp." + str(os.getpid())
+try:
+    with open(tmp_path, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2)
+        fh.write("\n")
+    os.replace(tmp_path, out_path)
+except Exception:
+    try:
+        os.unlink(tmp_path)
+    except OSError:
+        pass
+    raise
+PYMFAIL
+          echo "  artifact: $_failed_artifact" >&2
+          exit $_mig_rc
+        fi
+
+        _applied_migrations+=("migrations/$v.sh")
       fi
     fi
   done

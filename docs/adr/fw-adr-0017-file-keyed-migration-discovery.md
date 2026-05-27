@@ -400,17 +400,38 @@ A migration fails when its body exits non-zero.
 2. Do NOT write `TEMPLATE_STATE.json` (the sync session lock
    from FW-ADR-0016 holds; the file remains at its pre-upgrade
    state).
-3. Exit non-zero with phase-A "Migration chain incomplete"
-   (per FW-ADR-0014 Q2, inherited into the runner unchanged).
-4. The stderr summary names: (a) the failing migration's
-   filename, (b) the position in the chain (`3 of 7`), (c) the
-   migrations that did run (and therefore mutated state), and
-   (d) the migrations that did not run.
-5. Operator recovery is operator-side: fix the migration body
-   (if the failure is a bug), or fix the project tree (if the
-   failure is environment), then re-run the upgrade. The
-   already-applied migrations re-run; their idempotency
-   contract (§ 5) MUST cover the re-run.
+3. Exit non-zero (the migration's true exit status, not a
+   fixed code) with a controlled exit — not a silent
+   `set -e` abort — so the caller can distinguish a migration
+   failure from a runner internal error (per FW-ADR-0014 Q2,
+   phase-A "Migration chain incomplete").
+4. Emit a human-readable stderr summary naming: (a) the failing
+   migration's filename, (b) its position in the chain
+   (`N of M`), (c) the migrations that did run (and therefore
+   mutated state), (d) the migrations that did not run, and
+   (e) the path of the structured artifact written in step 5.
+5. Write a structured failure artifact `.template-migration-failed.json`
+   at the project root, atomically (write to a temp file, then
+   `mv` into place). The artifact is schema-parallel to the
+   `.template-*-blocked.json` block-artifact family. Its fields
+   are: `schema` (`"template-migration-failed/1"`),
+   `failing_migration` (filename), `position` (`{index, total}`),
+   `exit_status` (the migration's true non-zero exit code),
+   `applied` (ordered list of migrations that ran), `not_run`
+   (ordered list that did not run), and `timestamp` (UTC ISO-8601).
+   Invariants: `len(applied) == index - 1`;
+   `len(not_run) == total - index`; `applied + [failing_migration]
+   + not_run` equals the full ordered chain. A successful run
+   produces no artifact; an all-success run leaves no
+   `.template-migration-failed.json` at the project root.
+   Full schema and illustrative example:
+   `specs/013-migration-runner-hardening/contracts/migration-failure-report.md`.
+6. Recovery is **forward-only**: applied migrations are not
+   reverted. The operator fixes the migration body (bug) or the
+   project tree (environment), then re-runs the upgrade. The
+   already-applied migrations re-run from the start of the
+   original range; their idempotency contract (§ 5) MUST cover
+   the re-run.
 
 **Source-bound invariant:** `TEMPLATE_STATE.json.template.version`
 advances only on full-chain success. Mid-chain failures leave the
@@ -422,11 +443,11 @@ idempotency contract (§ 5) handles the re-run.
 
 - Retry the failing migration automatically.
 - Skip the failing migration and continue.
-- Rollback applied migrations. Rollback is not supported; the
-  idempotency contract is the rollback story.
+- Roll back applied migrations. Forward-only recovery (step 6
+  above) is the only supported path; the idempotency contract
+  absorbs the re-run.
 
-This matches the current runner's behaviour
-(`set -euo pipefail` in each migration body); FW-ADR-0017 makes
+This matches the implemented runner behaviour; FW-ADR-0017 makes
 the contract explicit.
 
 ### 5. Idempotency contract
