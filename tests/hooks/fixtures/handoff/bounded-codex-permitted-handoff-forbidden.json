@@ -11,7 +11,7 @@
   "review_roles": ["code-reviewer"],
   "security_roles": [],
   "objective": "Fixture: permitted bounded-Codex where a path is allowed at exception level but forbidden at handoff level. Proves handoff-level forbidden overrides exception-level allowed.",
-  "allowed_paths": ["schemas/**", "docs/public/**"],
+  "allowed_paths": ["schemas/**", "docs/public/**", "src/**"],
   "forbidden_paths": ["docs/private/**"],
   "framework_scope": "product",
   "requires": {
@@ -28,7 +28,7 @@
     "execution_mode": "bounded-codex",
     "codex_permission_flag": true,
     "permitted_role_owned_action": "update-docs",
-    "allowed_paths": ["docs/private/**", "schemas/**"],
+    "allowed_paths": ["docs/private/**", "schemas/**", "src/**"],
     "forbidden_paths": [],
     "required_evidence": [],
     "expiry_or_completion_condition": "T025 task completion"

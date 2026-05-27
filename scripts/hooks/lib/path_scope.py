@@ -7,10 +7,18 @@ from fnmatch import fnmatch
 
 # Framework-managed path patterns per docs/framework-project-boundary.md (layer 1).
 # These paths require framework_scope == "framework-maintenance" on the handoff.
+#
+# Anchoring: all patterns are matched against repo-relative paths using fnmatch.
+# fnmatch is NOT path-aware but provides implicit root-anchoring here because
+# patterns like "schemas/**" only match strings that start with "schemas/" —
+# a path like "src/schemas/foo.json" does NOT match "schemas/**".  This is
+# consistent with how "scripts/**", "migrations/**", etc. behave.
 _FRAMEWORK_MANAGED_PATTERNS: list[str] = [
     "CLAUDE.md",
     "AGENTS.md",
+    "TEMPLATE_VERSION",
     ".claude/agents/*.md",
+    "schemas/**",
     "scripts/**",
     "migrations/**",
     "docs/templates/**",

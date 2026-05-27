@@ -262,12 +262,15 @@ run_codex_gate_case \
     enforce "bounded-codex-denied-valid.json" "schemas/handoff.schema.json" deny
 
 # T025-C8: Permitted bounded-Codex, path within both handoff and exception scopes
-# AND non-framework-managed (framework_scope=product, path is schemas/test.json) →
+# AND non-framework-managed (framework_scope=product, path is src/main.py) →
 # proceeds.  Confirms the gate is specific: product-scope handoff does not blanket-deny
 # non-framework-managed writes; only framework-managed paths are gated by scope.
+# Note: schemas/** is now framework-managed (Q-0015), so src/** is used here
+# to provide a non-framework-managed path within both the fixture's allowed_paths
+# and its bounded_codex_exception.allowed_paths.
 run_codex_gate_case \
     "T025-C8: permitted bounded-Codex to non-framework-managed path with product scope proceeds" \
-    enforce "bounded-codex-permitted-handoff-forbidden.json" "schemas/test.json" proceed
+    enforce "bounded-codex-permitted-handoff-forbidden.json" "src/main.py" proceed
 
 # ---------------------------------------------------------------------------
 # S-1: Bounded-Codex Signal-2 over-trigger documentation (by-design behavior)

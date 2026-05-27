@@ -214,6 +214,29 @@ assert result is True, f'expected True, got {result}'
 "
 
 # ---------------------------------------------------------------------------
+# A8: schemas/handoff.schema.json + framework_scope == "product" → not satisfied
+# ---------------------------------------------------------------------------
+run_py_case \
+    "A8: schemas/handoff.schema.json + product scope → not satisfied" \
+    "
+from scripts.hooks.lib.path_scope import is_framework_scope_satisfied
+result = is_framework_scope_satisfied('schemas/handoff.schema.json', 'product')
+assert result is False, f'expected False, got {result}'
+"
+
+# ---------------------------------------------------------------------------
+# A9: schemas/handoff.schema.json + framework_scope == "framework-maintenance"
+#     → satisfied
+# ---------------------------------------------------------------------------
+run_py_case \
+    "A9: schemas/handoff.schema.json + framework-maintenance scope → satisfied" \
+    "
+from scripts.hooks.lib.path_scope import is_framework_scope_satisfied
+result = is_framework_scope_satisfied('schemas/handoff.schema.json', 'framework-maintenance')
+assert result is True, f'expected True, got {result}'
+"
+
+# ---------------------------------------------------------------------------
 # B-series: representative framework-managed patterns → is_framework_managed True
 # ---------------------------------------------------------------------------
 
@@ -280,6 +303,27 @@ from scripts.hooks.lib.path_scope import is_framework_managed
 assert is_framework_managed('TEMPLATE_MANIFEST.lock') is True, 'expected True'
 "
 
+run_py_case \
+    "B10: schemas/handoff.schema.json is framework-managed" \
+    "
+from scripts.hooks.lib.path_scope import is_framework_managed
+assert is_framework_managed('schemas/handoff.schema.json') is True, 'expected True'
+"
+
+run_py_case \
+    "B11: TEMPLATE_VERSION is framework-managed" \
+    "
+from scripts.hooks.lib.path_scope import is_framework_managed
+assert is_framework_managed('TEMPLATE_VERSION') is True, 'expected True'
+"
+
+run_py_case \
+    "B12: schemas/README.md is framework-managed" \
+    "
+from scripts.hooks.lib.path_scope import is_framework_managed
+assert is_framework_managed('schemas/README.md') is True, 'expected True'
+"
+
 # ---------------------------------------------------------------------------
 # C-series: clearly non-framework paths → is_framework_managed False
 # ---------------------------------------------------------------------------
@@ -317,6 +361,20 @@ run_py_case \
     "
 from scripts.hooks.lib.path_scope import is_framework_managed
 assert is_framework_managed('CUSTOMER_NOTES.md') is False, 'expected False'
+"
+
+run_py_case \
+    "C6: src/schemas/foo.json is NOT framework-managed (root-anchoring: non-root schemas/ segment)" \
+    "
+from scripts.hooks.lib.path_scope import is_framework_managed
+assert is_framework_managed('src/schemas/foo.json') is False, 'expected False — schemas/** must not match non-root segments'
+"
+
+run_py_case \
+    "C7: app/schemas/user.json is NOT framework-managed (root-anchoring)" \
+    "
+from scripts.hooks.lib.path_scope import is_framework_managed
+assert is_framework_managed('app/schemas/user.json') is False, 'expected False — schemas/** must not match non-root segments'
 "
 
 # ===========================================================================
