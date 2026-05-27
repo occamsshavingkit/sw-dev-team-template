@@ -1,0 +1,58 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "v1.1-completion-evidence-gate",
+  "status": "active",
+  "mode": {
+    "execution": "bounded-codex",
+    "codex_allowed": true,
+    "codex_server": "codex"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": ["security-engineer"],
+  "objective": "Implement completion evidence gate behavior.",
+  "allowed_paths": ["scripts/hooks/handoff-task-completed-gate.py"],
+  "forbidden_paths": ["CUSTOMER_NOTES.md"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": ["tests/hooks/test-handoff-task-completed-gate.sh"],
+    "review": true,
+    "security_review": true,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "Implementing worker self-attesting the security gate (wrong actor_role) does not satisfy security_review."
+  ],
+  "hard_rule_traces": [],
+  "activity": [],
+  "verification": {
+    "tests": [
+      {
+        "name": "tests/hooks/test-handoff-task-completed-gate.sh",
+        "result": "passed",
+        "source": "PostToolUse",
+        "actor_role": "qa-engineer"
+      }
+    ],
+    "reviews": [
+      {
+        "artifact": "docs/reviews/v1.1-completion-evidence-gate.md",
+        "result": "approved",
+        "actor_role": "code-reviewer"
+      }
+    ],
+    "security": [
+      {
+        "artifact": "docs/security/self-attested-security.md",
+        "result": "approved",
+        "actor_role": "software-engineer"
+      }
+    ],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

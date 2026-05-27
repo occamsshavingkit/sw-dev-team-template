@@ -1,0 +1,48 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "bounded-codex-permitted-product-scope-001",
+  "status": "active",
+  "mode": {
+    "execution": "bounded-codex",
+    "codex_allowed": true,
+    "codex_server": "codex"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Fixture: permitted bounded-Codex (flag=true) but framework_scope=product. Proves framework-scope gate fires for bounded-Codex sessions targeting framework-managed paths.",
+  "allowed_paths": ["scripts/**", "docs/**"],
+  "forbidden_paths": [],
+  "framework_scope": "product",
+  "requires": {
+    "tests": ["tests/hooks/test-codex-handoff-gate.sh"],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "Write to scripts/hooks/handoff-pre-tool-gate.py is denied because framework_scope is not framework-maintenance."
+  ],
+  "hard_rule_traces": [],
+  "bounded_codex_exception": {
+    "execution_mode": "bounded-codex",
+    "codex_permission_flag": true,
+    "permitted_role_owned_action": "update-scripts",
+    "allowed_paths": ["scripts/**", "docs/**"],
+    "forbidden_paths": [],
+    "required_evidence": [],
+    "expiry_or_completion_condition": "T025 task completion"
+  },
+  "activity": [],
+  "verification": {
+    "tests": [],
+    "reviews": [],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

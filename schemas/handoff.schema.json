@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "type": "object",
+  "required": [
+    "schema",
+    "task_id",
+    "status",
+    "mode",
+    "owner_role",
+    "review_roles",
+    "security_roles",
+    "objective",
+    "allowed_paths",
+    "forbidden_paths",
+    "framework_scope",
+    "requires",
+    "acceptance_criteria",
+    "hard_rule_traces",
+    "activity",
+    "verification",
+    "completion"
+  ],
+  "$defs": {
+    "evidence_gate": {
+      "type": "object",
+      "properties": {
+        "gate_type": {
+          "type": "string",
+          "enum": ["test", "review", "security", "human_approval", "customer_truth"]
+        },
+        "required": {"type": "boolean"},
+        "accepted_evidence_refs": {"type": "array", "items": {"type": "string"}},
+        "actor_role": {"type": "string"},
+        "result": {
+          "type": "string"
+        },
+        "timestamp": {"type": ["string", "null"]},
+        "evidence_kind": {
+          "type": "string",
+          "enum": ["accepted", "worker_report"],
+          "description": "Classifies whether this evidence is independently accepted (from a non-owner role satisfying the gate, e.g. code-reviewer artifact, security-engineer sign-off, hook-captured test rerun, researcher-stewarded customer-truth record) or a worker_report (the implementing worker's own claim). Worker self-attestation cannot satisfy final test, review, security, or customer-truth gates; the gate enforces this via actor_role checks."
+        },
+        "source": {
+          "type": "string",
+          "description": "Origin of the evidence, e.g. 'PostToolUse', 'CUSTOMER_NOTES.md', 'ad-hoc-chat', or a reviewer artifact path."
+        },
+        "artifact": {
+          "type": "string",
+          "description": "Path or identifier for the evidence artifact, e.g. a review document or security sign-off record."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name or identifier for this evidence entry, typically the test suite or review label."
+        },
+        "type": {
+          "type": "string",
+          "description": "Informal evidence category label within a gate list, e.g. 'test', 'review'."
+        }
+      }
+    },
+    "bounded_codex_exception": {
+      "type": "object",
+      "required": ["execution_mode", "codex_permission_flag", "allowed_paths", "forbidden_paths"],
+      "properties": {
+        "execution_mode": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Execution mode identifier for this bounded-Codex session (e.g. 'bounded-codex')."
+        },
+        "permitted_role_owned_action": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The specific role-owned action this bounded-Codex exception is scoped to. Required when codex_permission_flag is true; cannot be absent or empty when permission is granted, ensuring role ownership cannot be waived."
+        },
+        "codex_permission_flag": {
+          "type": "boolean",
+          "description": "Explicit permission grant for bounded Codex on this handoff. Must be true for bounded-Codex execution to be allowed; false is an explicit denial. Absence of the entire bounded_codex_exception object is also a denial. This field must not be inferred — the gate checks it directly."
+        },
+        "allowed_paths": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Paths bounded Codex may write within this exception. Bounded Codex receives no broader path authority than the active handoff declares."
+        },
+        "forbidden_paths": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Paths explicitly forbidden for bounded Codex even if covered by allowed_paths. Forbidden paths override allowed paths."
+        },
+        "required_evidence": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Evidence gate identifiers that must be satisfied before this bounded-Codex exception is accepted as complete."
+        },
+        "expiry_or_completion_condition": {
+          "type": "string",
+          "description": "Condition under which this bounded-Codex exception expires or is considered complete."
+        }
+      },
+      "if": {
+        "properties": {"codex_permission_flag": {"const": true}},
+        "required": ["codex_permission_flag"]
+      },
+      "then": {
+        "required": ["permitted_role_owned_action"],
+        "properties": {
+          "permitted_role_owned_action": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "model_fallback_record": {
+      "type": "object",
+      "required": [
+        "requested_role",
+        "requested_model_class",
+        "actual_model_class",
+        "capability_tier_comparison",
+        "fallback_reason"
+      ],
+      "properties": {
+        "requested_role": {"type": "string", "minLength": 1},
+        "requested_model_class": {"type": "string", "minLength": 1},
+        "actual_model_class": {"type": "string", "minLength": 1},
+        "capability_tier_comparison": {
+          "type": "string",
+          "enum": ["same", "higher", "lower"]
+        },
+        "fallback_reason": {"type": "string", "minLength": 1}
+      }
+    },
+    "hard_rule_trace": {
+      "type": "object",
+      "required": ["rule_id", "description"],
+      "properties": {
+        "rule_id": {"type": "string", "minLength": 1},
+        "description": {"type": "string", "minLength": 1},
+        "source": {"type": "string"}
+      }
+    },
+    "external_tool_activity_ref": {
+      "description": "INPUT-ONLY reference to external-tool activity (e.g. llmdc, Speckit). Must never appear inside verification.* or completion.evidence; no field here is read by evidence helpers as accepted evidence. Note: this structural separation is enforced by the evidence helpers (which only read verification.*/completion.evidence), not by JSON Schema validation itself.",
+      "type": "object",
+      "required": ["tool_type", "activity_type", "affected_artifact", "canonical_role_owner", "cited_active_handoff"],
+      "properties": {
+        "tool_type": {
+          "type": "string",
+          "enum": ["llmdc", "speckit"],
+          "description": "Which external tool produced this activity reference."
+        },
+        "activity_type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The category of activity from the external tool (e.g. 'planning', 'documentation', 'task-scaffold', 'checklist')."
+        },
+        "affected_artifact": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Path or identifier of the handoff or artifact this activity relates to."
+        },
+        "canonical_role_owner": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The canonical role that owns and must accept or reject this activity's output."
+        },
+        "cited_active_handoff": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Task ID or path of the active handoff this external-tool activity is associated with."
+        },
+        "limitations": {
+          "type": "string",
+          "description": "Notes on what this external-tool activity cannot do (e.g. cannot approve gates, cannot record customer truth)."
+        },
+        "speckit_artifact_type": {
+          "type": "string",
+          "description": "Speckit-only: artifact type (e.g. 'task-scaffold', 'acceptance-checklist', 'feature-spec')."
+        },
+        "speckit_feature_path": {
+          "type": "string",
+          "description": "Speckit-only: feature path within the Speckit artifact."
+        },
+        "speckit_source_authority": {
+          "type": "string",
+          "enum": ["input-only", "pending-role-acceptance"],
+          "description": "Speckit-only: source authority classification. Always 'input-only' or 'pending-role-acceptance'; never accepted evidence."
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema": {"type": "string"},
+    "task_id": {"type": "string", "minLength": 1},
+    "status": {"type": "string", "minLength": 1},
+    "mode": {
+      "type": "object",
+      "required": ["execution", "codex_allowed", "codex_server"],
+      "properties": {
+        "execution": {"type": "string", "minLength": 1},
+        "codex_allowed": {"type": "boolean"},
+        "codex_server": {"type": "string", "minLength": 1},
+        "gate_mode": {
+          "type": "string",
+          "enum": ["warn", "enforce"]
+        }
+      }
+    },
+    "owner_role": {"type": "string", "minLength": 1},
+    "review_roles": {"type": "array", "items": {"type": "string"}},
+    "security_roles": {"type": "array", "items": {"type": "string"}},
+    "objective": {"type": "string", "minLength": 1},
+    "allowed_paths": {"type": "array", "items": {"type": "string"}},
+    "forbidden_paths": {"type": "array", "items": {"type": "string"}},
+    "framework_scope": {"type": "string", "minLength": 1},
+    "requires": {
+      "type": "object",
+      "required": ["tests", "review", "security_review", "human_approval"],
+      "properties": {
+        "tests": {"type": "array", "items": {"type": "string"}},
+        "review": {"type": "boolean"},
+        "security_review": {"type": "boolean"},
+        "human_approval": {"type": "boolean"}
+      }
+    },
+    "acceptance_criteria": {"type": "array", "items": {"type": "string"}},
+    "hard_rule_traces": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/hard_rule_trace"}
+    },
+    "bounded_codex_exception": {"$ref": "#/$defs/bounded_codex_exception"},
+    "model_fallback": {"$ref": "#/$defs/model_fallback_record"},
+    "external_tool_activity": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/external_tool_activity_ref"},
+      "description": "Optional INPUT-ONLY list of external-tool activity references (llmdc, Speckit). These are informational inputs to canonical-role work; they are structurally separate from verification.* and completion.evidence and cannot satisfy any evidence gate."
+    },
+    "activity": {"type": "array"},
+    "verification": {
+      "type": "object",
+      "required": ["tests", "reviews", "security", "human_approval"],
+      "properties": {
+        "tests": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/evidence_gate"}
+        },
+        "reviews": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/evidence_gate"}
+        },
+        "security": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/evidence_gate"}
+        },
+        "human_approval": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/evidence_gate"}
+        }
+      }
+    },
+    "completion": {
+      "type": "object",
+      "required": ["claimed_by", "completed_at", "evidence"],
+      "properties": {
+        "claimed_by": {"type": ["string", "null"]},
+        "completed_at": {"type": ["string", "null"]},
+        "evidence": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/evidence_gate"}
+        }
+      }
+    }
+  }
+}

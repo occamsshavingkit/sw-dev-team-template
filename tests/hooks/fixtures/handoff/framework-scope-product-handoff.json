@@ -1,0 +1,39 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "v1.1-framework-scope-product",
+  "status": "active",
+  "mode": {
+    "execution": "bounded-codex",
+    "codex_allowed": true,
+    "codex_server": "codex"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Exercise framework-scope gate with product (non-maintenance) scope.",
+  "allowed_paths": ["**"],
+  "forbidden_paths": [],
+  "framework_scope": "product",
+  "requires": {
+    "tests": [],
+    "review": false,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "Framework-managed writes are blocked when framework_scope is not framework-maintenance."
+  ],
+  "hard_rule_traces": [],
+  "activity": [],
+  "verification": {
+    "tests": [],
+    "reviews": [],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

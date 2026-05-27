@@ -55,26 +55,14 @@ ALLOW_GLOBS_RECURSIVE = ("docs/tech-lead/**",)
 
 # ---------------------------------------------------------------------------
 # Role vocabulary (binding from CLAUDE.md § Agent roster).
+# Imported from the single authoritative source in lib/roles.py.
 # ---------------------------------------------------------------------------
 
-CANONICAL_ROLES = frozenset(
-    {
-        "tech-lead",
-        "project-manager",
-        "architect",
-        "software-engineer",
-        "researcher",
-        "qa-engineer",
-        "sre",
-        "tech-writer",
-        "code-reviewer",
-        "release-engineer",
-        "security-engineer",
-        "onboarding-auditor",
-        "process-auditor",
-    }
-)
-SME_ROLE_RE = re.compile(r"^sme-[a-z][a-z0-9_-]*$")
+_REPO_ROOT_FOR_ROLES = str(pathlib.Path(__file__).resolve().parents[2])
+if _REPO_ROOT_FOR_ROLES not in sys.path:
+    sys.path.insert(0, _REPO_ROOT_FOR_ROLES)
+
+from scripts.hooks.lib.roles import CANONICAL_ROLES, SME_ROLE_RE  # noqa: E402
 
 
 CUSTOMER_NOTES_BASENAME = "CUSTOMER_NOTES.md"

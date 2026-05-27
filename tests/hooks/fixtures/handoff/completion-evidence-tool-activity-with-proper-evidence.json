@@ -1,0 +1,81 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "v1.1-tool-activity-proper-evidence-001",
+  "status": "active",
+  "mode": {
+    "execution": "claude-code",
+    "codex_allowed": false,
+    "codex_server": "none"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Fixture: external_tool_activity present AND proper accepted test/review evidence present — completion gate must proceed. Proves it is the absence of proper evidence (not tool-activity presence) that causes denial.",
+  "allowed_paths": ["tests/**", "scripts/**"],
+  "forbidden_paths": ["CUSTOMER_NOTES.md"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": ["tests/hooks/test-handoff-task-completed-gate.sh"],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "Completion is allowed when proper accepted test and review evidence is present alongside external_tool_activity references."
+  ],
+  "hard_rule_traces": [
+    {
+      "rule_id": "FR-018",
+      "description": "External-tool activity does not block completion when independent accepted evidence satisfies all gates; tool-activity references are invisible to the evidence check.",
+      "source": "specs/012-v1-1-handoff-contracts/data-model.md llmdc Activity + Speckit Artifact; FR-018..FR-023; SC-007"
+    }
+  ],
+  "external_tool_activity": [
+    {
+      "tool_type": "llmdc",
+      "activity_type": "planning",
+      "affected_artifact": "docs/handoffs/T032-tool-activity-gate.json",
+      "canonical_role_owner": "software-engineer",
+      "cited_active_handoff": "v1.1-tool-activity-proper-evidence-001",
+      "limitations": "Cannot approve evidence gates or record customer truth independently."
+    },
+    {
+      "tool_type": "speckit",
+      "activity_type": "checklist",
+      "affected_artifact": "specs/012-v1-1-handoff-contracts/tasks.md",
+      "canonical_role_owner": "software-engineer",
+      "cited_active_handoff": "v1.1-tool-activity-proper-evidence-001",
+      "limitations": "Analysis and checklist output is input only until accepted through the owning role and handoff evidence gates.",
+      "speckit_artifact_type": "acceptance-checklist",
+      "speckit_feature_path": "US4/T032",
+      "speckit_source_authority": "input-only"
+    }
+  ],
+  "activity": [],
+  "verification": {
+    "tests": [
+      {
+        "name": "tests/hooks/test-handoff-task-completed-gate.sh",
+        "result": "passed",
+        "source": "PostToolUse",
+        "actor_role": "qa-engineer",
+        "evidence_kind": "accepted"
+      }
+    ],
+    "reviews": [
+      {
+        "artifact": "docs/reviews/T032-tool-activity-gate-review.md",
+        "result": "approved",
+        "actor_role": "code-reviewer",
+        "evidence_kind": "accepted"
+      }
+    ],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

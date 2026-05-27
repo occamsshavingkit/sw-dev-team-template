@@ -1,0 +1,66 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "v1.1-external-tool-activity-valid-001",
+  "status": "active",
+  "mode": {
+    "execution": "claude-code",
+    "codex_allowed": false,
+    "codex_server": "none"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Fixture: handoff with external_tool_activity references for llmdc and Speckit input (input-only, not evidence).",
+  "allowed_paths": ["schemas/**", "scripts/**", "tests/**"],
+  "forbidden_paths": [".claude/**", "CUSTOMER_NOTES.md"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": ["tests/hooks/test-handoff-contracts.sh"],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "External-tool activity references are recorded as input-only and do not satisfy evidence gates."
+  ],
+  "hard_rule_traces": [
+    {
+      "rule_id": "FR-018",
+      "description": "llmdc activity references are input-only; they cannot approve gates or record customer truth.",
+      "source": "specs/012-v1-1-handoff-contracts/data-model.md llmdc Activity"
+    }
+  ],
+  "external_tool_activity": [
+    {
+      "tool_type": "llmdc",
+      "activity_type": "planning",
+      "affected_artifact": "docs/handoffs/T031-external-tool-schema.json",
+      "canonical_role_owner": "software-engineer",
+      "cited_active_handoff": "v1.1-external-tool-activity-valid-001",
+      "limitations": "Cannot mark role-owned work complete, approve evidence gates, or record customer truth independently."
+    },
+    {
+      "tool_type": "speckit",
+      "activity_type": "task-scaffold",
+      "affected_artifact": "specs/012-v1-1-handoff-contracts/tasks.md",
+      "canonical_role_owner": "software-engineer",
+      "cited_active_handoff": "v1.1-external-tool-activity-valid-001",
+      "limitations": "Analysis and checklist output is input only until accepted through the owning role and handoff evidence gates.",
+      "speckit_artifact_type": "task-scaffold",
+      "speckit_feature_path": "US4/T031",
+      "speckit_source_authority": "input-only"
+    }
+  ],
+  "activity": [],
+  "verification": {
+    "tests": [],
+    "reviews": [],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

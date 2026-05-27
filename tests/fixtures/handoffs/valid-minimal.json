@@ -1,0 +1,37 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "v1.1-valid-minimal",
+  "status": "active",
+  "mode": {
+    "execution": "standard",
+    "codex_allowed": false,
+    "codex_server": "none"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Minimal valid handoff for schema tests.",
+  "allowed_paths": ["docs/**"],
+  "forbidden_paths": ["docs/private/**"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": [],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": ["Schema validates."],
+  "hard_rule_traces": [],
+  "activity": [],
+  "verification": {
+    "tests": [],
+    "reviews": [],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}
