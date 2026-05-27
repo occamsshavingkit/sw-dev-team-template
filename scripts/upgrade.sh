@@ -113,9 +113,19 @@ ensure_prestaged_required_libs() {
     return 0
   fi
 
+  # SWDT_PRESTAGED_WORKDIR dependency: this function only runs when
+  # SWDT_PRESTAGED_WORKDIR is set (early-return above guards that).
+  # Glob over the upstream lib dir rather than enumerating names so that
+  # any new scripts/lib/*.sh added in future releases is automatically
+  # recovered — preventing rc7→rc8-class enumeration cliffs going forward.
+  # NOTE: this glob fix cannot retroactively help versions whose bootstrap
+  # predates SWDT_PRESTAGED_WORKDIR (e.g. v1.0.0-rc7); those require the
+  # one-time manual repair documented in FW-ADR-0013 § "Stranded rc7 repair
+  # path" and docs/TEMPLATE_UPGRADE.md § "Known upgrade cliffs".
   mkdir -p "$script_dir/lib"
-  for lib_name in manifest.sh semver.sh; do
-    upstream_lib="$prestaged_lib_dir/$lib_name"
+  for upstream_lib in "$prestaged_lib_dir"/*.sh; do
+    [[ -f "$upstream_lib" ]] || continue
+    lib_name="$(basename "$upstream_lib")"
     local_lib="$script_dir/lib/$lib_name"
     if [[ ! -f "$local_lib" && -f "$upstream_lib" ]]; then
       cp "$upstream_lib" "$local_lib.tmp.$$"

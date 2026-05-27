@@ -242,6 +242,77 @@ downstream maintainer reading this guide from a project tree may need to
 consult the upstream template repo for `migrations/README.md` and
 `migrations/TEMPLATE.sh`.
 
+## Known upgrade cliffs
+
+An upgrade cliff is a specific version hop where the project's existing
+`scripts/upgrade.sh` cannot bootstrap the new version without a manual
+assist. Normal upgrade hygiene (run on `main`, clean working tree,
+`--dry-run` first) is not enough to avoid these; the gap is in the
+shipped code at the source version, which is immutable after release.
+
+### rc7 to rc8+ (lib-enumeration bootstrap cliff)
+
+**Affected projects:** those stamped at exactly `v1.0.0-rc7` upgrading
+to `v1.0.0-rc8` or later. Projects already at rc8 or later are not
+affected. This cliff cannot recur for any version cut after the forward
+fix landed (the bootstrap now stages all `scripts/lib/*.sh` via a glob
+rather than a hard-coded list).
+
+**What fails.** Running `scripts/upgrade.sh` on an rc7 project toward
+rc8+ produces an error similar to:
+
+    ./scripts/upgrade.sh: line NN: ./scripts/lib/semver.sh: No such file or directory
+
+The script exits immediately after this line; no files are modified.
+
+**Why it fails.** rc7's bootstrap pre-dates the
+`ensure_prestaged_required_libs` mechanism. When the old bootstrap
+re-executes the new `upgrade.sh`, that new script calls
+`ensure_prestaged_required_libs` before sourcing any lib. The function
+checks for `semver.sh` (added at rc8) by hard-coded name, but rc7's
+bootstrap never placed it on disk. The function cannot recover a file it
+was never told to stage.
+
+rc7 is a released, immutable version. The gap cannot be closed
+retroactively in rc7's shipped code.
+
+**One-time manual repair.** Before running `scripts/upgrade.sh`, place
+the missing lib from the upstream target into the project:
+
+```bash
+# Run from the project root.
+# Replace <upstream-url> with the canonical upstream URL and
+# <target-tag> with your desired target (e.g. v1.0.0-rc8).
+git clone <upstream-url> /tmp/swdt-fix && \
+  git -C /tmp/swdt-fix checkout <target-tag> && \
+  cp /tmp/swdt-fix/scripts/lib/semver.sh ./scripts/lib/semver.sh && \
+  rm -rf /tmp/swdt-fix
+
+# Then run the normal upgrade sequence:
+scripts/upgrade.sh --dry-run
+scripts/upgrade.sh
+scripts/upgrade.sh --verify
+```
+
+No `SWDT_PREBOOTSTRAP_FORCE=1` override is needed: the 3-SHA matrix
+classifies a file that is missing locally as `proceed`, not `refuse`.
+After the manual copy, `scripts/upgrade.sh` runs normally. This repair
+targets the specific rc7→rc8 gap where `scripts/lib/semver.sh` is the
+only missing lib. For any other stranded hop, first check which
+`scripts/lib/*.sh` files the target's `upgrade.sh` sources at startup
+and copy all that are absent before re-running the upgrade; the glob
+fix only takes effect after the new `upgrade.sh` is installed.
+
+If no non-cliff intermediate version exists between rc7 and your target,
+the single manual copy above is the complete repair. If you want to
+upgrade through multiple intermediate versions, apply the copy once
+before the first hop; subsequent hops use the already-fixed bootstrap.
+
+This is a documented workaround for an immutable historical gap, not a
+normal step in the upgrade sequence. See `docs/adr/fw-adr-0013-rc-to-rc-pre-bootstrap.md`
+(Amendment: rc7→rc8 lib-enumeration bootstrap cliff) for the full
+architectural rationale.
+
 ## GitHub labels (FR-025)
 
 The framework defines a taxonomy of GitHub issue labels (template-gap,

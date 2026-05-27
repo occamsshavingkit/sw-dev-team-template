@@ -64,4 +64,4 @@ while IFS= read -r f; do
     rewrote=1
   fi
 done <<< "$md_files"
-[[ $rewrote -eq 1 ]] && echo "  rewrote references: docs/GLOSSARY.md → docs/glossary/ENGINEERING.md"
+[[ $rewrote -eq 1 ]] && echo "  rewrote references: docs/GLOSSARY.md → docs/glossary/ENGINEERING.md" || true

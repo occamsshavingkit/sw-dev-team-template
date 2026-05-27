@@ -228,11 +228,48 @@ unpin_clone() {
   fi
 }
 
+# Known-cliff hops: immutable historical gaps that cannot be fixed by
+# code changes to this version of upgrade.sh. Each entry is
+# "from_tag:to_tag". On a match the hop is annotated KNOWN-CLIFF,
+# skipped (not run), and counted separately — it does NOT count as FAIL.
+#
+# rc7→rc8: rc7's bootstrap predates SWDT_PRESTAGED_WORKDIR entirely;
+# the glob fix in ensure_prestaged_required_libs (FW-ADR-0013 amendment
+# 2026-05-27) cannot reach it. Projects stranded at rc7 require the
+# one-time manual repair in FW-ADR-0013 § "Stranded rc7 repair path".
+declare -a known_cliff_hops=("v1.0.0-rc7:v1.0.0-rc8")
+
 passed=0
+known_cliff=0
 failed_at=""
 trap 'unpin_clone 2>/dev/null || true; if [[ $keep -eq 0 ]]; then rm -rf "$tmp"; else echo "(kept $tmp for inspection)" >&2; fi' EXIT
 
+# Track the current project stamp so we know the "from" tag each hop.
+from_tag="$start_tag"
+
 for tag in "${hop_tags[@]}"; do
+  # Check if this hop is a known-cliff (immutable historical gap).
+  hop_key="$from_tag:$tag"
+  is_known_cliff=0
+  for cliff in "${known_cliff_hops[@]}"; do
+    if [[ "$cliff" == "$hop_key" ]]; then
+      is_known_cliff=1
+      break
+    fi
+  done
+  if [[ $is_known_cliff -eq 1 ]]; then
+    echo "  hop $tag  KNOWN-CLIFF: $hop_key — rc7 bootstrap predates SWDT_PRESTAGED_WORKDIR; glob fix (FW-ADR-0013 amendment 2026-05-27) cannot reach this hop. See docs/TEMPLATE_UPGRADE.md § \"Known upgrade cliffs\"." | tee -a "$log"
+    known_cliff=$((known_cliff + 1))
+    # Advance from_tag without running upgrade so the next hop uses
+    # the correct from tag.  The project stamp stays at the previous
+    # hop's value; re-stamp it to $tag so subsequent hops run cleanly
+    # from this point forward.
+    tag_sha="$(git -C "$clone" rev-parse "refs/tags/$tag" 2>/dev/null || echo "unknown")"
+    printf '%s\n%s\n%s\n' "$tag" "$tag_sha" "$(date -u +%Y-%m-%d)" > "$target/TEMPLATE_VERSION"
+    from_tag="$tag"
+    continue
+  fi
+
   echo "  hop $tag" | tee -a "$log"
   pin_clone_to_tag "$tag"
   hop_log="$tmp/hop-$tag.log"
@@ -271,14 +308,16 @@ for tag in "${hop_tags[@]}"; do
     break
   fi
   passed=$((passed + 1))
+  from_tag="$tag"
 done
 
+total_hops=${#hop_tags[@]}
 echo "------------------------------------------------------------" | tee -a "$log"
 if [[ -z "$failed_at" ]]; then
-  echo "SUMMARY: stepwise-smoke OK — $passed/$passed hops passed (${hop_tags[0]} → ${hop_tags[${#hop_tags[@]}-1]})" | tee -a "$log"
+  echo "SUMMARY: stepwise-smoke OK — $passed passed, known-cliff: $known_cliff (of $total_hops hops, ${hop_tags[0]} → ${hop_tags[${#hop_tags[@]}-1]})" | tee -a "$log"
   exit 0
 else
-  echo "SUMMARY: stepwise-smoke FAILED at $failed_at — $passed hop(s) passed before failure" | tee -a "$log"
+  echo "SUMMARY: stepwise-smoke FAILED at $failed_at — $passed passed, known-cliff: $known_cliff before failure" | tee -a "$log"
   echo "  full log: $log" | tee -a "$log"
   echo "  hop log:  $tmp/hop-$failed_at.log" | tee -a "$log"
   exit 1

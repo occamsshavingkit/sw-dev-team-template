@@ -40,6 +40,9 @@ Shape per MADR 3.0 + this template's Three-Path Rule
 
 - **Proposed: 2026-05-15**
 - **Accepted: 2026-05-15**
+- **Amended: 2026-05-27** (rc7→rc8 lib-enumeration cliff; glob fix to
+  `ensure_prestaged_required_libs`; stranded-rc7 repair; smoke
+  skip/annotate — see § "Amendment" below)
 - **Deciders:** `architect` + `tech-lead` + customer (cross-cutting
   pattern change to the migration queue; customer approval required
   per CLAUDE.md Hard Rules)
@@ -381,6 +384,118 @@ lines. Cross-check against this ADR:
   shipping artefact verifiable independently of the running shell)
   that resolves the de-dup catch-22.
 
+## Amendment: rc7→rc8 lib-enumeration bootstrap cliff (2026-05-27)
+
+### Problem
+
+Dogfood identified a second class of bootstrap cliff in the FW-ADR-0013
+family. `ensure_prestaged_required_libs()` in `scripts/upgrade.sh`
+(lines ~102–125) hard-codes the lib filename list:
+`for lib_name in manifest.sh semver.sh`. When rc8 added
+`scripts/lib/semver.sh`, any project re-execed through rc7's bootstrap
+hit `source: semver.sh: No such file or directory` on startup. rc7's
+`upgrade.sh` predates `ensure_prestaged_required_libs` entirely — rc7
+installs only the new `upgrade.sh` and a partial lib subset, then
+re-execs. The re-execed rc8+ `upgrade.sh` calls
+`ensure_prestaged_required_libs` before any `source`, but if the local
+rc7 bootstrap hard-enumerated a subset that excluded `semver.sh`, the
+function cannot recover a file it was never told to enumerate.
+
+The underlying structural gap: **hard-coding filenames in
+`ensure_prestaged_required_libs` means every new `scripts/lib/*.sh`
+added to a future release reproduces this cliff** for any SOURCE version
+that still uses the enumerated form. This is a different failure path
+from the inode-mutation cliff FW-ADR-0013 primarily addresses (sync
+loop, not re-exec), but it shares the bootstrap-immutability constraint
+and the same forward-only fix obligation.
+
+### Decision
+
+Change `ensure_prestaged_required_libs()` to glob the full upstream lib
+dir instead of enumerating names. Exact replacement for
+`scripts/upgrade.sh` lines ~117–123:
+
+```diff
+-  for lib_name in manifest.sh semver.sh; do
+-    upstream_lib="$prestaged_lib_dir/$lib_name"
+-    local_lib="$script_dir/lib/$lib_name"
+-    if [[ ! -f "$local_lib" && -f "$upstream_lib" ]]; then
+-      cp "$upstream_lib" "$local_lib.tmp.$$"
+-      mv "$local_lib.tmp.$$" "$local_lib"
+-    fi
+-  done
++  for upstream_lib in "$prestaged_lib_dir"/*.sh; do
++    [[ -f "$upstream_lib" ]] || continue
++    lib_name="$(basename "$upstream_lib")"
++    local_lib="$script_dir/lib/$lib_name"
++    if [[ ! -f "$local_lib" && -f "$upstream_lib" ]]; then
++      cp "$upstream_lib" "$local_lib.tmp.$$"
++      mv "$local_lib.tmp.$$" "$local_lib"
++    fi
++  done
+```
+
+The `[[ ! -f "$local_lib" ]]` guard is preserved: already-present local
+files are not overwritten, consistent with the existing behaviour and
+with FW-ADR-0010's "customisation wins" rule.
+
+**Scope:** This fix only protects hops where the SOURCE version's
+`upgrade.sh` already contains the glob version of this function (i.e.,
+any version cut after this amendment lands). It cannot retroactively
+fix projects at v1.0.0-rc7, whose `upgrade.sh` predates
+`ensure_prestaged_required_libs` entirely. v1.0.0-rc7 is immutable.
+
+**No migration required.** The fix lives in `upgrade.sh` itself, not in
+a migration, because the failure is on the re-exec path (after the old
+bootstrap installs the new `upgrade.sh` but before the first `source`),
+not on the sync-loop path that migrations protect against. The FW-ADR-0013
+migration-per-cliff pattern applies only to inode-mutation structural
+rewrites in the sync loop.
+
+### Stranded rc7 repair path
+
+Projects stamped at v1.0.0-rc7 must perform a one-time manual step
+before running `scripts/upgrade.sh` toward rc8+:
+
+```bash
+# From the project root. Replace <upstream-url> and <target-tag>
+# with the canonical upstream URL and desired target, e.g. v1.0.0-rc8.
+git clone <upstream-url> /tmp/swdt-fix && \
+  git -C /tmp/swdt-fix checkout <target-tag> && \
+  cp /tmp/swdt-fix/scripts/lib/semver.sh ./scripts/lib/semver.sh && \
+  rm -rf /tmp/swdt-fix
+# Then run the normal upgrade:
+./scripts/upgrade.sh
+```
+
+After this step `scripts/upgrade.sh` runs normally. The glob fix in
+`ensure_prestaged_required_libs` (which the new `upgrade.sh` carries)
+covers any remaining lib files for the rest of the upgrade path. The
+3-SHA matrix in FW-ADR-0010 classifies a missing-locally file as
+`proceed` (not `refuse`), so no `SWDT_PREBOOTSTRAP_FORCE=1` override
+is needed. Document in `docs/TEMPLATE_UPGRADE.md` under a "Known
+upgrade cliffs" section.
+
+### Smoke harness
+
+The rc7→rc8 hop in `scripts/stepwise-smoke.sh --track rc` is a
+known-immutable cliff (rc7's bootstrap is immutable; the glob fix
+cannot reach it). The smoke harness should annotate this hop rather
+than failing:
+
+- Add a `known_cliff_hops` array pre-populated with
+  `"v1.0.0-rc7:v1.0.0-rc8"`.
+- In the hop loop, check whether `"$from_tag:$to_tag"` appears in
+  `known_cliff_hops`. On a match, print a `KNOWN-CLIFF` line with a
+  citation to this amendment and count the hop as a known skip.
+- The SUMMARY line should report `known-cliff: N` separately from
+  passes and failures.
+
+This preserves full-range validation (rc3→latest) while documenting
+the single immutable gap explicitly. Advancing the default `start_tag`
+past rc7 is rejected: it silently discards validation of rc3–rc6 for
+any future fix path, and the annotation approach costs the same.
+
 ## Relationship to other ADRs and issues
 
 - **FW-ADR-0010 (pre-bootstrap local-edit safety).** This ADR
@@ -450,3 +565,7 @@ lines. Cross-check against this ADR:
   - `docs/pm/dogfood-2026-05-15-results.md` (rc-to-rc dogfood
     evidence)
 - External references: MADR 3.0 (`https://adr.github.io/madr/`).
+- This ADR's amendment (2026-05-27): rc7→rc8 lib-enumeration cliff;
+  glob fix to `ensure_prestaged_required_libs`; stranded-rc7 one-time
+  repair path; smoke-harness skip/annotate recommendation. See
+  § "Amendment: rc7→rc8 lib-enumeration bootstrap cliff" above.
