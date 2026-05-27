@@ -6,6 +6,48 @@ every milestone.
 
 ## Journal
 
+### 2026-05-27 — v1.0.0 VERSION stamp mismatch and forward versioning gate
+
+**Context.** During v1.1 upgrade dogfooding, the published `v1.0.0`
+annotated tag was found to point at a commit whose `VERSION` file read
+`v1.0.0-rc15`. The release was tagged without first bumping `VERSION` to
+match the tag. `origin/main` carried an even older `v1.0.0-rc14`, and the
+release commit was detached.
+
+**Event.** The `TEMPLATE_VERSION` stamp in downstream projects correctly
+captured the tag name (`v1.0.0`), so practical impact was limited to the
+VERSION file content in the tagged tree. However, stepwise-smoke validation
+hard-failed at the rc14→v1.0.0 hop because the TEMPLATE_VERSION verification
+step confirmed the tag name but not the VERSION file match.
+
+**What went well.** The tag is immutable (customer ruling 2026-05-27:
+published tags are never re-tagged or force-pushed). The forward fix was
+straightforward: add a precondition sub-gate to verify `VERSION == tag`
+at tag-cut time.
+
+**What did not.** The release process had no automated check that the
+tagged commit's `VERSION` file matched the tag name before the tag was
+pushed. This is a preventable class of defect.
+
+**Contributing factors.** Version bumping and tagging were separate steps
+with no linked precondition. The release workflow did not gate on a
+version-stamp consistency check.
+
+**Recommendation.** Release tagging must gate on `VERSION == tag`;
+a version bump must land in the exact commit being tagged. Implement a
+`version-stamp` sub-gate in the release-gate runner (verify the tagged
+commit's `VERSION` equals the tag name). Add a pre-tag human checklist to
+the release-engineer manual. Document known-issue records for any immutable
+published tags that violate this rule going forward.
+
+**Category.** release-process / versioning governance.
+
+**References.** `docs/versioning.md` § Known issues (v1.0.0 VERSION stamp
+mismatch); `scripts/lib/gate-runner.sh` (version-stamp sub-gate);
+`scripts/stepwise-smoke.sh` (rc14→v1.0.0 known_cliff_hop annotation);
+`docs/agents/manual/release-engineer-manual.md` (§ "VERSION-bump discipline" pre-tag checklist);
+`docs/v1.0.0-release-notes.md` (release-specific cliff workaround).
+
 ### 2026-05-14 — Hard Rule #11 promotion history (atomic customer questions)
 
 **Context.** The atomic-customer-question rule existed as non-numbered

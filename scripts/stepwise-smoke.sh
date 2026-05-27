@@ -237,7 +237,27 @@ unpin_clone() {
 # the glob fix in ensure_prestaged_required_libs (FW-ADR-0013 amendment
 # 2026-05-27) cannot reach it. Projects stranded at rc7 require the
 # one-time manual repair in FW-ADR-0013 § "Stranded rc7 repair path".
-declare -a known_cliff_hops=("v1.0.0-rc7:v1.0.0-rc8")
+#
+# rc14→v1.0.0: the v1.0.0 tag was published with VERSION=v1.0.0-rc15
+# (the VERSION file was not bumped before tagging). The tag is
+# intentionally immutable (customer ruling 2026-05-27). The
+# TEMPLATE_VERSION verification step in this smoke script hard-fails on
+# this hop because it expects TEMPLATE_VERSION==v1.0.0 but upgrade.sh
+# stamps it from the VERSION file, yielding v1.0.0-rc15. This is a
+# known stamp mismatch, not a genuine upgrade regression. The forward
+# fix is the version-stamp precondition sub-gate in
+# scripts/pre-release-gate.sh (added 2026-05-27). See
+# docs/versioning.md § "Known issues" and docs/v1.0.0-release-notes.md
+# § "Known issues in this release" for the full incident record.
+declare -a known_cliff_hops=(
+  "v1.0.0-rc7:v1.0.0-rc8"
+  "v1.0.0-rc14:v1.0.0"
+)
+# Per-hop reason strings (parallel to known_cliff_hops).
+declare -a known_cliff_reasons=(
+  "rc7 bootstrap predates SWDT_PRESTAGED_WORKDIR; glob fix (FW-ADR-0013 amendment 2026-05-27) cannot reach this hop. See docs/TEMPLATE_UPGRADE.md § \"Known upgrade cliffs\"."
+  "v1.0.0 was tagged with VERSION=v1.0.0-rc15 (stamp mismatch); tag is intentionally immutable (customer ruling 2026-05-27). TEMPLATE_VERSION check hard-fails on this hop. See docs/versioning.md § \"Known issues\"."
+)
 
 passed=0
 known_cliff=0
@@ -251,14 +271,16 @@ for tag in "${hop_tags[@]}"; do
   # Check if this hop is a known-cliff (immutable historical gap).
   hop_key="$from_tag:$tag"
   is_known_cliff=0
-  for cliff in "${known_cliff_hops[@]}"; do
-    if [[ "$cliff" == "$hop_key" ]]; then
+  cliff_reason=""
+  for ci in "${!known_cliff_hops[@]}"; do
+    if [[ "${known_cliff_hops[$ci]}" == "$hop_key" ]]; then
       is_known_cliff=1
+      cliff_reason="${known_cliff_reasons[$ci]:-}"
       break
     fi
   done
   if [[ $is_known_cliff -eq 1 ]]; then
-    echo "  hop $tag  KNOWN-CLIFF: $hop_key — rc7 bootstrap predates SWDT_PRESTAGED_WORKDIR; glob fix (FW-ADR-0013 amendment 2026-05-27) cannot reach this hop. See docs/TEMPLATE_UPGRADE.md § \"Known upgrade cliffs\"." | tee -a "$log"
+    echo "  hop $tag  KNOWN-CLIFF: $hop_key — ${cliff_reason}" | tee -a "$log"
     known_cliff=$((known_cliff + 1))
     # Advance from_tag without running upgrade so the next hop uses
     # the correct from tag.  The project stamp stays at the previous

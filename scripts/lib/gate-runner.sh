@@ -275,9 +275,82 @@ gate_subgate_mirror-current() {
     ./scripts/strip-toc.sh --all --dry-run --quiet
 }
 
+# version-stamp (precondition). Verifies that the VERSION file at HEAD
+# exactly equals the intended tag name (the git-describe --exact-match
+# output), with no pre-release suffix and no stale rc stamp.
+#
+# Rationale: v1.0.0 was tagged from a commit whose VERSION file still
+# read "v1.0.0-rc15" — the release was published with a stale stamp.
+# That tag is intentionally left immutable (customer ruling 2026-05-27).
+# This gate exists to catch the same class of mismatch before any future
+# tag is cut.  See docs/versioning.md § "Known issues" for the v1.0.0
+# incident record.
+#
+# Pass condition: git describe --exact-match --tags HEAD produces a tag
+# name that equals the content of VERSION (trimmed).
+# Fail condition (at tag time): the two differ, or VERSION contains a
+# pre-release suffix when the tag does not.
+# Behaviour when HEAD is not at an exact tag: emits an advisory warning
+# (not a failure) — the gate is meaningful only when called from the
+# release-tagging workflow, i.e. when HEAD == intended release commit.
+gate_subgate_version-stamp() {
+    cd "$GATE_CANDIDATE_TREE" || return 1
+
+    if [ ! -f VERSION ]; then
+        echo "version-stamp: VERSION file missing"
+        return 1
+    fi
+    version_file="$(cat VERSION | tr -d '[:space:]')"
+    if [ -z "$version_file" ]; then
+        echo "version-stamp: VERSION file is empty"
+        return 1
+    fi
+
+    # Resolve the exact tag at HEAD, if any.
+    exact_tag="$(git -C "$GATE_CANDIDATE_TREE" describe --exact-match --tags HEAD 2>/dev/null || true)"
+
+    if [ -z "$exact_tag" ]; then
+        # HEAD is not at an exact tag.  This is normal during development;
+        # emit an advisory so the engineer knows the check was skipped, but
+        # do not block — the gate is only meaningful at tag-cut time.
+        echo "version-stamp: HEAD is not at an exact tag; skipping stamp check (advisory only)"
+        echo "  VERSION=$version_file  HEAD=$(git -C "$GATE_CANDIDATE_TREE" rev-parse --short HEAD 2>/dev/null)"
+        echo "  Before cutting a release tag, ensure VERSION equals the intended tag name."
+        return 0
+    fi
+
+    # NIT-3: verify the tag is annotated, not lightweight.
+    # git cat-file -t refs/tags/<name> returns "tag" for annotated objects,
+    # "commit" for lightweight tags (which point directly at the commit).
+    # Project policy (docs/versioning.md, rc tag procedure): lightweight tags
+    # are not acceptable for public releases.
+    tag_obj_type="$(git -C "$GATE_CANDIDATE_TREE" cat-file -t "refs/tags/$exact_tag" 2>/dev/null || true)"
+    if [ "$tag_obj_type" != "tag" ]; then
+        echo "version-stamp: LIGHTWEIGHT TAG — '$exact_tag' is not an annotated tag (cat-file returned '${tag_obj_type:-<unknown>}')"
+        echo "  Public releases must use annotated tags: git tag -a $exact_tag -m '<message>'"
+        echo "  Do NOT re-tag a published tag. If '$exact_tag' was already pushed, retract it"
+        echo "  and cut a new annotated tag at the same commit."
+        return 1
+    fi
+
+    if [ "$version_file" = "$exact_tag" ]; then
+        echo "version-stamp: VERSION ($version_file) matches annotated tag ($exact_tag)"
+        return 0
+    fi
+
+    # Mismatch: VERSION file does not match the tag that would be pushed.
+    echo "version-stamp: MISMATCH — VERSION=$version_file  tag=$exact_tag"
+    echo "  Bump VERSION to match the tag before pushing.  Do NOT tag first"
+    echo "  and patch afterward — that leaves a published tag with a stale stamp."
+    echo "  (Incident record: v1.0.0 was published with VERSION=v1.0.0-rc15;"
+    echo "   that tag is intentionally immutable. See docs/versioning.md § Known issues.)"
+    return 1
+}
+
 # ----- Registration -----------------------------------------------------------
 
 gate_register worktree-clean   precondition  "Worktree clean against git status (FR-008)."
+gate_register version-stamp    precondition  "VERSION file at HEAD matches the exact git tag (prevents stale-stamp releases; see v1.0.0 incident in docs/versioning.md)."
 gate_register lint-contracts   regression    "Canonical agent contracts schema (FR-004)."
 gate_register check-spdx       regression    "SPDX-License-Identifier headers (FR-005)."
 gate_register readme-current   regression    "README.md mentions current VERSION or was modified since last v* tag (customer ask 2026-05-14)."

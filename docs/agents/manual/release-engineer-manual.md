@@ -21,9 +21,13 @@ FAIL summary line (FR-009).
 
 - The worktree has zero uncommitted changes (FR-008 / `worktree-clean`
   sub-gate). The gate refuses to report PASS on a dirty worktree.
-- All seven v1 sub-gates exit 0: `worktree-clean`, `lint-contracts`,
-  `check-spdx`, `upgrade-paths`, `advisory-pointers`, `migrations`,
-  `readme-current`.
+- All registered precondition and regression sub-gates exit 0:
+  `worktree-clean`, `version-stamp` (preconditions); `lint-contracts`,
+  `check-spdx`, `readme-current`, `mirror-current` (regressions); plus
+  any sub-gates sourced from `scripts/lib/gate-*.sh` at registration time
+  (`upgrade-paths`, `advisory-pointers`, `migrations`, and others when
+  present). The authoritative list is the `gate_register` call sequence in
+  `scripts/lib/gate-runner.sh`.
 - The run was against the **same SHA** that will be tagged. A PASS
   against a SHA other than the commit being tagged is not release
   evidence.
@@ -183,6 +187,26 @@ commit where `VERSION` still reads the previous rc value creates a
 mismatch between `git describe` output, the `readme-current` sub-gate's
 check, and downstream `TEMPLATE_VERSION` stamps.
 
+**Pre-tag human checklist — stamp verification (added 2026-05-27):**
+
+Before cutting any release tag, verify the following manually, in order:
+
+- [ ] `cat VERSION` prints the exact version string you intend to tag
+      (e.g., `v1.0.0-rc16`, not `v1.0.0-rc15`).
+- [ ] The version string has no stale pre-release suffix relative to the
+      intended tag (e.g., tagging `v1.0.0` final requires `VERSION==v1.0.0`,
+      not `v1.0.0-rc15`).
+- [ ] `scripts/pre-release-gate.sh` exits 0 — the `version-stamp`
+      precondition sub-gate will fail automatically if the above two
+      conditions are not met at the exact commit being tagged.
+- [ ] The tag name you are about to create matches `VERSION` byte-for-byte.
+
+Rationale: the `v1.0.0` tag was published with `VERSION=v1.0.0-rc15`
+because the VERSION file was not bumped before tagging. That tag is
+intentionally left immutable (customer ruling 2026-05-27). The
+`version-stamp` sub-gate and this checklist exist to prevent a recurrence.
+See `docs/versioning.md § Known issues` for the full incident record.
+
 The canonical bump order at rc-cut (per `docs/pm/SCHEDULE-EVIDENCE.md`
 M8 owners ledger, release-engineer row):
 
@@ -190,10 +214,12 @@ M8 owners ledger, release-engineer row):
 2. Touch `README.md` if it does not already mention the new version
    string (satisfies the `readme-current` sub-gate FR-013).
 3. Commit both files as the "tag-cut step 1" commit.
-4. Run `scripts/pre-release-gate.sh` against that commit.
-5. If PASS: run `tests/release-gate/dogfood-downstream.sh` against that commit.
-6. If dogfood PASS: `git tag -a v1.0.0-rcN -m "v1.0.0-rcN"` at that commit.
-7. `git push origin main && git push origin v1.0.0-rcN`.
+4. **Human verification:** confirm `cat VERSION` == intended tag name
+   (see pre-tag checklist above).
+5. Run `scripts/pre-release-gate.sh` against that commit.
+6. If PASS: run `tests/release-gate/dogfood-downstream.sh` against that commit.
+7. If dogfood PASS: `git tag -a v1.0.0-rcN -m "v1.0.0-rcN"` at that commit.
+8. `git push origin main && git push origin v1.0.0-rcN`.
 
 Post-tag `VERSION` bumps to the next development version are correct
 only for stable/final releases where the next commit starts a new MINOR
