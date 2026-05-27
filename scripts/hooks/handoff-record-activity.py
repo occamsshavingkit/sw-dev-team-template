@@ -63,6 +63,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from scripts.hooks.lib.handoff import (  # noqa: E402
     load_active_handoff,
+    resolve_gate_mode,
     _resolve_repo_relative,
 )
 
@@ -178,8 +179,7 @@ def _atomic_append_evidence(handoff_file: Path, entry: dict) -> None:
 
 
 def main() -> int:
-    mode = os.environ.get("SWDT_HANDOFF_GATES", "").strip().lower()
-    if mode not in {"warn", "enforce"}:
+    if resolve_gate_mode() == "off":
         return 0
 
     try:

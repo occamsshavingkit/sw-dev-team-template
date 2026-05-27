@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,64 @@ import jsonschema
 
 
 _HANDOFF_SCHEMA_PATH = Path(__file__).resolve().parents[3] / "schemas" / "handoff.schema.json"
+
+_VALID_GATE_MODES = {"warn", "enforce"}
+
+
+def resolve_gate_mode(
+    handoff: dict | None = None,
+    *,
+    _env: str | None = None,
+) -> str:
+    """Return the effective gate mode for the current invocation.
+
+    Precedence (rollout-safe — env var is the deployment control):
+
+    1. Read SWDT_HANDOFF_GATES from the environment (or *_env* in tests).
+       If the value is not "warn" or "enforce", return "off" immediately;
+       the handoff override cannot re-enable a gate that the operator has
+       not enrolled.
+
+    2. When env_mode is "warn" and the active handoff supplies
+       ``mode.gate_mode == "enforce"``, return "enforce" (the handoff may
+       *tighten* a warn deployment to enforce, but never relax it).
+
+    3. When env_mode is "enforce", always return "enforce" regardless of
+       any handoff override (the operator cannot be overridden downward by
+       the handoff).
+
+    The ``mode.gate_mode`` field in the handoff schema is the per-handoff
+    optional override (Active Handoff Pointer data-model, "optional gate
+    mode override if supported by implementation").  It is honoured only
+    within the range already permitted by the env var so that the env var
+    remains the authoritative rollout switch.
+
+    Args:
+        handoff: Loaded handoff dict (output of load_active_handoff), or
+            None when the handoff is unavailable.  When None, only the env
+            var is consulted.
+        _env: Override for SWDT_HANDOFF_GATES used in unit tests.
+            Production callers should leave this as None.
+
+    Returns:
+        One of "off", "warn", or "enforce".
+    """
+    raw = (_env if _env is not None else os.environ.get("SWDT_HANDOFF_GATES", "")).strip().lower()
+    env_mode = raw if raw in _VALID_GATE_MODES else "off"
+
+    if env_mode == "off":
+        return "off"
+
+    if env_mode == "enforce":
+        return "enforce"
+
+    # env_mode == "warn": allow handoff to tighten to "enforce"
+    if isinstance(handoff, dict):
+        handoff_override = handoff.get("mode", {}).get("gate_mode", "")
+        if isinstance(handoff_override, str) and handoff_override.strip().lower() == "enforce":
+            return "enforce"
+
+    return "warn"
 
 
 def _resolve_repo_relative(repo_root: Path, value: str) -> Path:

@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
 from scripts.hooks.lib.handoff import (
     load_active_handoff,
     missing_evidence_gates,
+    resolve_gate_mode,
 )
 
 
@@ -58,8 +59,7 @@ def _load_failure_decision(mode: str, error: Exception) -> dict:
 
 
 def main() -> int:
-    mode = os.environ.get("SWDT_HANDOFF_GATES", "").strip().lower()
-    if mode not in {"warn", "enforce"}:
+    if resolve_gate_mode() == "off":
         return 0
 
     try:
@@ -73,9 +73,11 @@ def main() -> int:
     try:
         handoff = load_active_handoff(repo_root)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
+        mode = resolve_gate_mode()
         print(json.dumps(_load_failure_decision(mode, exc)))
         return 0
 
+    mode = resolve_gate_mode(handoff)
     missing = missing_evidence_gates(handoff)
     if missing:
         print(json.dumps(_decision(mode, missing)))

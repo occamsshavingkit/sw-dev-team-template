@@ -300,6 +300,109 @@ run_codex_gate_case \
     "S-1: Signal-2 bce-block detected, path within handoff scope but outside exception scope warns in warn mode" \
     warn "bounded-codex-permitted-valid.json" "scripts/validate-handoff.py" warn
 
+# ===========================================================================
+# T041: ENFORCE-READINESS SMOKE BASELINE (US5)
+#
+# Minimal smoke cases that must all pass before the warning→enforce gate
+# is considered ready.  Labelled SMOKE-BC-* (bounded Codex) and
+# SMOKE-MF-* (model fallback).
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# SMOKE-BC: Bounded-Codex readiness smoke — warn and enforce modes
+#
+# Four cases cover the two boolean dimensions:
+#   (permission granted, in-scope)  → proceeds in both modes
+#   (permission denied)             → deny in enforce, warn in warn
+#   (permission granted, out of scope) → deny in enforce, warn in warn
+# ---------------------------------------------------------------------------
+
+# SMOKE-BC-1 (enforce): permitted action within exception allowed_paths → proceeds.
+# Reuses bounded-codex-permitted-valid.json; path=schemas/handoff.schema.json is
+# within both handoff allowed_paths (schemas/**) and exception allowed_paths.
+run_codex_gate_case \
+    "SMOKE-BC-1 [readiness-smoke]: permitted bounded-Codex action in scope proceeds (enforce)" \
+    enforce "bounded-codex-permitted-valid.json" "schemas/handoff.schema.json" proceed
+
+# SMOKE-BC-2 (warn): same permitted action in warn mode → still proceeds (no warning
+# triggered when permission is granted and path is in scope).
+run_codex_gate_case \
+    "SMOKE-BC-2 [readiness-smoke]: permitted bounded-Codex action in scope proceeds (warn)" \
+    warn "bounded-codex-permitted-valid.json" "schemas/handoff.schema.json" proceed
+
+# SMOKE-BC-3 (enforce): codex_permission_flag=false → deny regardless of path.
+# Reuses bounded-codex-denied-valid.json.
+run_codex_gate_case \
+    "SMOKE-BC-3 [readiness-smoke]: no-permission bounded-Codex is denied (enforce)" \
+    enforce "bounded-codex-denied-valid.json" "schemas/handoff.schema.json" deny
+
+# SMOKE-BC-4 (warn): same no-permission handoff in warn mode → warns-and-proceeds.
+run_codex_gate_case \
+    "SMOKE-BC-4 [readiness-smoke]: no-permission bounded-Codex warns-and-proceeds (warn)" \
+    warn "bounded-codex-denied-valid.json" "schemas/handoff.schema.json" warn
+
+# SMOKE-BC-5 (enforce): permitted flag=true but path outside exception allowed_paths
+# (docs/README.md is not in schemas/handoff.schema.json) → denied by scope check.
+run_codex_gate_case \
+    "SMOKE-BC-5 [readiness-smoke]: permitted bounded-Codex outside exception scope is denied (enforce)" \
+    enforce "bounded-codex-permitted-valid.json" "docs/README.md" deny
+
+# SMOKE-BC-6 (warn): same out-of-scope path in warn mode → warns-and-proceeds.
+run_codex_gate_case \
+    "SMOKE-BC-6 [readiness-smoke]: permitted bounded-Codex outside exception scope warns-and-proceeds (warn)" \
+    warn "bounded-codex-permitted-valid.json" "docs/README.md" warn
+
+# ---------------------------------------------------------------------------
+# SMOKE-MF: Model-fallback readiness smoke — validate-handoff.py invocations
+#
+# The model-fallback rule is enforced by validate-handoff.py
+# (check_model_fallback_tier).  These smoke cases call the validator directly
+# to confirm same/higher tier is accepted and lower tier is rejected.
+#
+# Fixtures reused: model-fallback-same-tier.json (capability_tier_comparison=same)
+#                  model-fallback-valid.json      (capability_tier_comparison=higher)
+#                  model-fallback-lower-tier.json  (capability_tier_comparison=lower)
+# ---------------------------------------------------------------------------
+
+VALIDATOR="$REPO_ROOT/scripts/validate-handoff.py"
+
+run_fallback_validator_case() {
+    # $1 = case name  $2 = fixture filename (relative to FIXTURES)
+    # $3 = "valid" (expect rc=0) or "invalid" (expect rc!=0)
+    local name="$1" fixture_file="$2" expect="$3"
+    local fixture tmp_out rc output
+    fixture="$FIXTURES/$fixture_file"
+    tmp_out=$(mktemp)
+    python3 "$VALIDATOR" "$fixture" >"$tmp_out" 2>&1
+    rc=$?
+    output=$(cat "$tmp_out")
+    rm -f "$tmp_out"
+    if [ "$expect" = "valid" ] && [ "$rc" -eq 0 ]; then
+        record_pass "$name"
+    elif [ "$expect" = "invalid" ] && [ "$rc" -ne 0 ]; then
+        record_pass "$name"
+    else
+        record_fail "$name" "expected=$expect rc=$rc output=$output"
+    fi
+}
+
+# SMOKE-MF-1: capability_tier_comparison=same → validator PASSES (rc=0).
+run_fallback_validator_case \
+    "SMOKE-MF-1 [readiness-smoke]: validate-handoff.py PASSES same-tier model_fallback" \
+    "model-fallback-same-tier.json" valid
+
+# SMOKE-MF-2: capability_tier_comparison=higher → validator PASSES (rc=0).
+run_fallback_validator_case \
+    "SMOKE-MF-2 [readiness-smoke]: validate-handoff.py PASSES higher-tier model_fallback" \
+    "model-fallback-valid.json" valid
+
+# SMOKE-MF-3: capability_tier_comparison=lower → validator FAILS (rc!=0, pause/escalate).
+# Intentional negative fixture — lower-tier fallback requires pause/escalation,
+# not automatic continuation.  Validator exit code 1 is the correct outcome.
+run_fallback_validator_case \
+    "SMOKE-MF-3 [readiness-smoke]: validate-handoff.py FAILS lower-tier model_fallback (by design)" \
+    "model-fallback-lower-tier.json" invalid
+
 # ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------

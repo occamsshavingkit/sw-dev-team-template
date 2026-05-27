@@ -9,6 +9,7 @@ set -u
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 HOOK="$REPO_ROOT/scripts/hooks/handoff-pre-tool-gate.py"
 FIXTURE="$REPO_ROOT/tests/hooks/fixtures/handoff/active-path-scope-handoff.json"
+SMOKE_FIXTURE="$REPO_ROOT/tests/hooks/fixtures/handoff/handoff-smoke-readiness.json"
 
 pass=0
 fail=0
@@ -445,6 +446,90 @@ run_command_gate_case() {
         record_fail "$name" "expected=$expect actual=$actual rc=$rc stdout=$stdout stderr=$stderr command=$command"
     fi
 }
+
+# ---------------------------------------------------------------------------
+# Smoke baseline: make_sandbox_smoke / run_smoke_gate_case
+#
+# Uses handoff-smoke-readiness.json, which has:
+#   allowed_paths: ["docs/handoffs/**", ".devteam/**", "docs/allowed/**"]
+#   forbidden_paths: ["docs/private/**"]
+#   framework_scope: "product"
+#
+# Smoke cases cover the warning->enforce readiness baseline (US5):
+#   - HANDOFF CREATE/UPDATE: write to docs/handoffs/ or .devteam/
+#   - ALLOWED EDIT: write inside docs/allowed/
+#   - FORBIDDEN EDIT: write inside docs/private/
+# Both warn and enforce modes are exercised for allowed/forbidden pair.
+# ---------------------------------------------------------------------------
+
+make_sandbox_smoke() {
+    sandbox=$(mktemp -d)
+    SANDBOXES+=("$sandbox")
+    mkdir -p "$sandbox/.devteam" "$sandbox/docs/handoffs" "$sandbox/docs/allowed" "$sandbox/docs/private"
+    cp "$SMOKE_FIXTURE" "$sandbox/docs/handoffs/handoff-smoke-readiness.json"
+    printf '{"handoff_path":"docs/handoffs/handoff-smoke-readiness.json"}\n' \
+        >"$sandbox/.devteam/active-handoff.json"
+}
+
+run_smoke_gate_case() {
+    local name=$1
+    local mode=$2
+    local path=$3
+    local expect=$4
+    local sandbox payload tmp_out tmp_err rc stdout stderr actual
+    make_sandbox_smoke
+    payload=$(mkpayload_file "$path")
+    tmp_out=$(mktemp)
+    tmp_err=$(mktemp)
+
+    printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$sandbox" SWDT_HANDOFF_GATES="$mode" \
+        python3 "$HOOK" >"$tmp_out" 2>"$tmp_err"
+    rc=$?
+    stdout=$(cat "$tmp_out")
+    stderr=$(cat "$tmp_err")
+    rm -f "$tmp_out" "$tmp_err"
+    actual=$(printf '%s' "$stdout" | classify_decision)
+
+    if [ "$actual" = "$expect" ] && [ "$rc" -eq 0 ]; then
+        record_pass "$name"
+    else
+        record_fail "$name" "expected=$expect actual=$actual rc=$rc stdout=$stdout stderr=$stderr"
+    fi
+}
+
+# --- Enforce-Readiness Smoke Baseline (US5) ---
+
+# HANDOFF CREATE: write that creates a new handoff artifact in docs/handoffs/
+# allowed_paths covers docs/handoffs/** → must proceed in enforce mode.
+run_smoke_gate_case \
+    "smoke: enforce: HANDOFF CREATE allowed (write to docs/handoffs/ in scope)" \
+    enforce "docs/handoffs/new-task-handoff.json" proceed
+
+# HANDOFF UPDATE: write to the active handoff pointer itself (.devteam/active-handoff.json)
+# allowed_paths covers .devteam/** → must proceed in enforce mode.
+run_smoke_gate_case \
+    "smoke: enforce: HANDOFF UPDATE allowed (write to .devteam/active-handoff.json in scope)" \
+    enforce ".devteam/active-handoff.json" proceed
+
+# ALLOWED EDIT (enforce): write inside docs/allowed/ → must proceed.
+run_smoke_gate_case \
+    "smoke: enforce: ALLOWED EDIT proceeds for path within active handoff allowed_paths" \
+    enforce "docs/allowed/notes.md" proceed
+
+# ALLOWED EDIT (warn): same path in warn mode → must also proceed (no warning triggered for allowed path).
+run_smoke_gate_case \
+    "smoke: warn: ALLOWED EDIT proceeds for path within active handoff allowed_paths" \
+    warn "docs/allowed/notes.md" proceed
+
+# FORBIDDEN EDIT (enforce): write inside docs/private/ → must deny.
+run_smoke_gate_case \
+    "smoke: enforce: FORBIDDEN EDIT denied for path matching active handoff forbidden_paths" \
+    enforce "docs/private/secret.md" deny
+
+# FORBIDDEN EDIT (warn): same path in warn mode → must warn (proceed with warning).
+run_smoke_gate_case \
+    "smoke: warn: FORBIDDEN EDIT warns-and-proceeds for path matching active handoff forbidden_paths" \
+    warn "docs/private/secret.md" warn
 
 run_loader_case "active handoff loader follows .devteam pointer into docs/handoffs"
 

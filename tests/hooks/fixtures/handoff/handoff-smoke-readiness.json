@@ -1,0 +1,54 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "v1.1-handoff-smoke-readiness-001",
+  "status": "active",
+  "mode": {
+    "execution": "claude-code",
+    "codex_allowed": false,
+    "codex_server": "none"
+  },
+  "owner_role": "qa-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Warning-to-enforce readiness smoke baseline: exercise handoff create/update, allowed edit, and forbidden edit in both warn and enforce modes.",
+  "allowed_paths": [
+    "docs/handoffs/**",
+    ".devteam/**",
+    "docs/allowed/**"
+  ],
+  "forbidden_paths": [
+    "docs/private/**"
+  ],
+  "framework_scope": "product",
+  "requires": {
+    "tests": ["tests/hooks/test-handoff-pre-tool-gate.sh"],
+    "review": false,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "Writes to docs/handoffs/ and .devteam/ are allowed when in scope.",
+    "Writes to docs/allowed/ are allowed when in scope.",
+    "Writes to docs/private/ are denied (enforce) or warned (warn).",
+    "Both warn and enforce modes behave correctly for the allowed/forbidden pair."
+  ],
+  "hard_rule_traces": [
+    {
+      "rule_id": "HR-01",
+      "description": "Test-design ownership for integration/system/acceptance tests is qa-engineer's.",
+      "source": ".claude/agents/qa-engineer.md"
+    }
+  ],
+  "activity": [],
+  "verification": {
+    "tests": [],
+    "reviews": [],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

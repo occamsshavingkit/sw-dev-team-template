@@ -13,7 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.hooks.lib.handoff import load_active_handoff
+from scripts.hooks.lib.handoff import load_active_handoff, resolve_gate_mode
 from scripts.hooks.lib.path_scope import is_framework_scope_satisfied, is_path_allowed
 from scripts.hooks.lib.write_targets import extract_write_targets
 
@@ -237,8 +237,9 @@ def _check_codex_path_scope(
 
 
 def main() -> int:
-    mode = os.environ.get("SWDT_HANDOFF_GATES", "").strip().lower()
-    if mode not in {"warn", "enforce"}:
+    # Pre-check env var before loading handoff; resolve_gate_mode is called
+    # again after the handoff loads so the per-handoff override is applied.
+    if resolve_gate_mode() == "off":
         return 0
 
     try:
@@ -256,9 +257,13 @@ def main() -> int:
     try:
         handoff = load_active_handoff(repo_root)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
+        # Resolve without handoff for load-failure path.
+        mode = resolve_gate_mode()
         if mode == "enforce":
             print(json.dumps(_load_failure_decision(exc)))
         return 0
+
+    mode = resolve_gate_mode(handoff)
 
     # Bounded-Codex session detection: when the event carries execution_mode
     # "bounded-codex" OR the active handoff declares a bounded_codex_exception

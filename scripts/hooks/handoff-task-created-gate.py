@@ -25,7 +25,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.hooks.lib.handoff import load_active_handoff
+from scripts.hooks.lib.handoff import load_active_handoff, resolve_gate_mode
 from scripts.hooks.lib.roles import is_canonical_role
 
 _HOOK_EVENT_NAME = "TaskCreated"
@@ -79,8 +79,7 @@ def _load_failure(mode: str, error: Exception) -> dict:
 
 
 def main() -> int:
-    mode = os.environ.get("SWDT_HANDOFF_GATES", "").strip().lower()
-    if mode not in {"warn", "enforce"}:
+    if resolve_gate_mode() == "off":
         return 0
 
     try:
@@ -95,8 +94,11 @@ def main() -> int:
         handoff = load_active_handoff(repo_root)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         # Fail-safe: warn mode allows; enforce mode denies.
+        mode = resolve_gate_mode()
         print(json.dumps(_load_failure(mode, exc)))
         return 0
+
+    mode = resolve_gate_mode(handoff)
 
     active_task_id: str = handoff.get("task_id", "")
 

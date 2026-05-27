@@ -1879,7 +1879,8 @@ fi
 
 # --- Additive merge for .claude/settings.json hook wiring (issue #201) --------
 # The framework ships PreToolUse hooks (tech-lead-authoring-guard.py,
-# customer-notes-guard.py) and SessionStart reminder hooks via
+# customer-notes-guard.py), PostToolUse activity capture, TaskCompleted /
+# TaskCreated / SubagentStop / Stop handoff gates, and SessionStart reminders via
 # scripts/hooks/, but `.claude/settings.json` is customarily customised
 # by downstream projects (env, permissions, allow / deny lists). It
 # therefore lands in the `preserved` / `conflicts` bucket above and the
@@ -1910,8 +1911,9 @@ if [[ $dry_run -eq 0 && -f "$upstream_settings" && -f "$project_settings" ]]; th
 
 Reads two file paths from argv: the framework's settings.json (source
 of truth for hook wiring) and the project's settings.json (preserved
-otherwise). Merges missing PreToolUse and SessionStart hooks into the
-project file in place, de-duped by the inner hook ``command`` string.
+otherwise). Merges missing PreToolUse, PostToolUse, TaskCompleted, TaskCreated,
+SubagentStop, Stop, and SessionStart hooks into the project file in place,
+de-duped by the inner hook ``command`` string.
 Prints a one-line summary per added entry; exit code 0 on success
 (including the no-op case) or 1 on parse error.
 """
@@ -1990,7 +1992,7 @@ def main():
     project_hooks = project.setdefault("hooks", {})
 
     all_changes = []
-    for section in ("PreToolUse", "SessionStart"):
+    for section in ("PreToolUse", "PostToolUse", "TaskCompleted", "TaskCreated", "SubagentStop", "Stop", "SessionStart"):
         up_section = upstream_hooks.get(section)
         if not isinstance(up_section, list):
             continue

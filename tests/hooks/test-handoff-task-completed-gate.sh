@@ -316,6 +316,43 @@ run_gate_case "warn: warns but allows when test entry has absent evidence_kind a
 run_gate_case "enforce: allows completion when test entry carries explicit evidence_kind accepted (S-1/FR-006 positive contrast)" \
     enforce "completion-evidence-satisfied.json" proceed
 
+# ---------------------------------------------------------------------------
+# US5 Enforce-Readiness Smoke Baseline — Evidence Acceptance and Rejection
+#
+# These cases are the warning→enforce readiness smoke baseline required by
+# specs/012-v1-1-handoff-contracts/quickstart.md §Enforce-Readiness Smoke
+# Baseline (items: Evidence acceptance, Evidence rejection).
+#
+# EVIDENCE ACCEPTANCE: all required gates (test, review, security_review,
+# human_approval) carry proper accepted evidence — correct actor_role,
+# evidence_kind=accepted, researcher-stewarded CUSTOMER_NOTES.md for
+# human_approval.  Both rollout modes must proceed.
+#
+# EVIDENCE REJECTION: all required gates have only self-attested evidence
+# (evidence_kind=worker_report, wrong actor_role, missing researcher
+# stewardship).  enforce must deny; warn must warn-and-allow.
+# ---------------------------------------------------------------------------
+
+# EVIDENCE ACCEPTANCE — enforce mode: all gates satisfied → proceed
+run_gate_case \
+    "smoke/enforce: proceeds when all gates carry accepted evidence (US5 acceptance smoke)" \
+    enforce "smoke-evidence-acceptance-full-gates.json" proceed
+
+# EVIDENCE ACCEPTANCE — warn mode: all gates satisfied → proceed (no spurious warning)
+run_gate_case \
+    "smoke/warn: proceeds when all gates carry accepted evidence (US5 acceptance smoke)" \
+    warn "smoke-evidence-acceptance-full-gates.json" proceed
+
+# EVIDENCE REJECTION — enforce mode: self-attested/worker-report across all gates → deny
+run_gate_case \
+    "smoke/enforce: denies when all evidence is self-attested or wrong-actor (US5 rejection smoke)" \
+    enforce "smoke-evidence-rejection-self-attested.json" deny
+
+# EVIDENCE REJECTION — warn mode: self-attested/worker-report across all gates → warn
+run_gate_case \
+    "smoke/warn: warns when all evidence is self-attested or wrong-actor (US5 rejection smoke)" \
+    warn "smoke-evidence-rejection-self-attested.json" warn
+
 printf '\nSummary: %s passed, %s failed\n' "$pass" "$fail"
 if [ "$fail" -ne 0 ]; then
     printf 'Failures:\n'

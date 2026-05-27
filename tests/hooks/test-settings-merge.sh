@@ -11,8 +11,9 @@
 #     PreToolUse) → expect 4 PreToolUse entries + 2 missing SessionStart
 #     hooks added; customer entries preserved.
 #   - already-current project → expect no changes.
-#   - missing-hooks-block (no `hooks` key at all) → expect both
-#     PreToolUse and SessionStart sections added from upstream.
+#   - missing-hooks-block (no `hooks` key at all) → expect all framework
+#     sections (PreToolUse, PostToolUse, TaskCompleted, TaskCreated,
+#     SubagentStop, Stop, SessionStart) added from upstream.
 #
 # Mirrors test-customer-notes-guard.sh / test-tech-lead-authoring-guard.sh
 # style: pass/fail accounting with a final summary, exit non-zero on
@@ -187,7 +188,10 @@ JSON
 # Checkers --------------------------------------------------------------
 
 # Generic: verify the post-merge file contains the 4 framework
-# PreToolUse matchers and the framework's SessionStart hooks.
+# PreToolUse matchers, each write-capable matcher runs every framework
+# guard in warning mode where applicable, and the framework's
+# SessionStart / TaskCompleted / TaskCreated / SubagentStop / Stop /
+# PostToolUse hooks are present.
 check_full_framework_wiring() {
     local f=$1
     python3 - "$f" <<'PYCHK'
@@ -201,14 +205,25 @@ need = {"Write", "Edit", "MultiEdit", "Bash"}
 if not need.issubset(matchers):
     sys.stderr.write("missing PreToolUse matchers: %s\n" % (need - matchers))
     sys.exit(1)
-# Each matcher entry must reference both guards.
+# Each write-capable matcher entry must reference all framework
+# PreToolUse guards. The v1.1 handoff scope gate rolls out in warning
+# mode first, so its command must carry SWDT_HANDOFF_GATES=warn.
 for entry in pretool:
+    matcher = entry.get("matcher")
+    if matcher not in need:
+        continue
     cmds = [h.get("command", "") for h in entry.get("hooks", [])]
     if not any("tech-lead-authoring-guard.py" in c for c in cmds):
-        sys.stderr.write("PreToolUse[%s] missing tech-lead-authoring-guard\n" % entry.get("matcher"))
+        sys.stderr.write("PreToolUse[%s] missing tech-lead-authoring-guard\n" % matcher)
         sys.exit(1)
     if not any("customer-notes-guard.py" in c for c in cmds):
-        sys.stderr.write("PreToolUse[%s] missing customer-notes-guard\n" % entry.get("matcher"))
+        sys.stderr.write("PreToolUse[%s] missing customer-notes-guard\n" % matcher)
+        sys.exit(1)
+    if not any(
+        "handoff-pre-tool-gate.py" in c and "SWDT_HANDOFF_GATES=warn" in c
+        for c in cmds
+    ):
+        sys.stderr.write("PreToolUse[%s] missing warning-mode handoff-pre-tool-gate\n" % matcher)
         sys.exit(1)
 sess = hooks.get("SessionStart", [])
 all_cmds = []
@@ -221,6 +236,65 @@ for s_ in need_substrings:
     if s_ not in joined:
         sys.stderr.write("missing SessionStart hook substring: %s\n" % s_)
         sys.exit(1)
+task_completed = hooks.get("TaskCompleted", [])
+task_completed_cmds = []
+for e in task_completed:
+    for h in e.get("hooks", []):
+        task_completed_cmds.append(h.get("command", ""))
+if not any(
+    "handoff-task-completed-gate.py" in c and "SWDT_HANDOFF_GATES=warn" in c
+    for c in task_completed_cmds
+):
+    sys.stderr.write("missing TaskCompleted warning-mode handoff-task-completed-gate\n")
+    sys.exit(1)
+# TaskCreated gate
+task_created = hooks.get("TaskCreated", [])
+task_created_cmds = []
+for e in task_created:
+    for h in e.get("hooks", []):
+        task_created_cmds.append(h.get("command", ""))
+if not any(
+    "handoff-task-created-gate.py" in c and "SWDT_HANDOFF_GATES=warn" in c
+    for c in task_created_cmds
+):
+    sys.stderr.write("missing TaskCreated warning-mode handoff-task-created-gate\n")
+    sys.exit(1)
+# SubagentStop gate
+subagent_stop = hooks.get("SubagentStop", [])
+subagent_stop_cmds = []
+for e in subagent_stop:
+    for h in e.get("hooks", []):
+        subagent_stop_cmds.append(h.get("command", ""))
+if not any(
+    "handoff-subagent-stop-gate.py" in c and "SWDT_HANDOFF_GATES=warn" in c
+    for c in subagent_stop_cmds
+):
+    sys.stderr.write("missing SubagentStop warning-mode handoff-subagent-stop-gate\n")
+    sys.exit(1)
+# Stop gate
+stop = hooks.get("Stop", [])
+stop_cmds = []
+for e in stop:
+    for h in e.get("hooks", []):
+        stop_cmds.append(h.get("command", ""))
+if not any(
+    "handoff-stop-gate.py" in c and "SWDT_HANDOFF_GATES=warn" in c
+    for c in stop_cmds
+):
+    sys.stderr.write("missing Stop warning-mode handoff-stop-gate\n")
+    sys.exit(1)
+# PostToolUse activity capture
+post_tool = hooks.get("PostToolUse", [])
+post_tool_cmds = []
+for e in post_tool:
+    for h in e.get("hooks", []):
+        post_tool_cmds.append(h.get("command", ""))
+if not any(
+    "handoff-record-activity.py" in c and "SWDT_HANDOFF_GATES=warn" in c
+    for c in post_tool_cmds
+):
+    sys.stderr.write("missing PostToolUse warning-mode handoff-record-activity\n")
+    sys.exit(1)
 PYCHK
 }
 
@@ -273,6 +347,7 @@ PYCHK
 # Verifies no rewrite — file content unchanged from build_current_style.
 check_unchanged_from_upstream() {
     local f=$1
+    if ! check_full_framework_wiring "$f"; then return 1; fi
     if ! diff -q "$f" "$UPSTREAM_SETTINGS" >/dev/null 2>&1; then
         # The merge may have re-pretty-printed; compare canonical JSON.
         python3 - "$f" "$UPSTREAM_SETTINGS" <<'PYCHK'
@@ -294,7 +369,7 @@ run_case "rc8-style downstream: full framework wiring added, customer preserved"
 run_case "already-current downstream: no-op merge" \
     build_current_style no check_unchanged_from_upstream
 
-run_case "no hooks block at all: PreToolUse + SessionStart added" \
+run_case "no hooks block at all: full framework hook set added" \
     build_no_hooks_block yes check_full_framework_wiring
 
 run_case "partial PreToolUse (Write only): missing matchers added, Write not duplicated" \
