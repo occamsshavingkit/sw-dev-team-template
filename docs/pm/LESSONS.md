@@ -6,6 +6,10 @@ every milestone.
 
 ## Journal
 
+### 2026-05-28 — v1.1.0 shipped with template-contract-smoke RED (#282)
+
+`core.hooksPath` was unset at tag time; the pre-push hook at `.git-hooks/pre-push` was never invoked, so `scripts/pre-release-gate.sh` did not run and `template-contract-smoke` RED shipped with commit `20713d0`. Fix: hook installation verification added as the first mandatory pre-tag checklist item in `docs/agents/manual/release-engineer-manual.md`; CI green-on-exact-release-commit check added to the same checklist. A follow-up automated gate (option B, `scripts/release/pre-tag-ci-gate.sh`) is tracked in issue #285 for v1.2.0.
+
 ### 2026-05-27 — v1.0.0 VERSION stamp mismatch and forward versioning gate
 
 **Context.** During v1.1 upgrade dogfooding, the published `v1.0.0`
