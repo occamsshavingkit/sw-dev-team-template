@@ -2,7 +2,7 @@
 name: onboarding-auditor
 model: claude-sonnet
 canonical_source: .claude/agents/onboarding-auditor.md
-canonical_sha: 504a11defc18778c8fa3afb36e3621bafd08230c
+canonical_sha: fe924e528d07d889d4388aa4d68b8436cf1b0b2b
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated

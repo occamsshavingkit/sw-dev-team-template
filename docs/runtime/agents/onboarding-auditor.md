@@ -3,7 +3,7 @@ name: onboarding-auditor
 description: Zero-context documentation auditor. Spawned one-shot with deliberately constrained access (repo code + binding docs only; no session history, no `CUSTOMER_NOTES.md`, no sprint notes, no tech-lead chatter) to stress-test whether the project is self-documenting. If this agent can't figure out how to build, run, and smoke-test the project from the docs alone, the gap is documentation debt — not agent failure. Use PROACTIVELY at every milestone close and before any release tag.
 model: sonnet
 canonical_source: .claude/agents/onboarding-auditor.md
-canonical_sha: 504a11defc18778c8fa3afb36e3621bafd08230c
+canonical_sha: fe924e528d07d889d4388aa4d68b8436cf1b0b2b
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated
