@@ -76,8 +76,20 @@ Three tags, each exclusive:
   from the contract at move time; the manual is the durable home and
   the contract now carries a redundant copy.
 
+- **`cross-contract-duplicate`** — prose appearing verbatim or
+  near-verbatim in N ≥ 3 contracts where no single contract is the
+  designated canonical home and the prose adds no contract-specific
+  nuance. The team designates one contract as the surviving home
+  (recorded in the Proposals table, "Manual pointer" column reused for
+  home pointer); the remaining N-1 instances are cuttable under this
+  tag. The surviving copy may be annotated with a `(see also: <home
+  contract>)` pointer where helpful. This tag does NOT apply if the
+  prose exists in a cross-contract binding source such as `CLAUDE.md`;
+  in that case `duplicated-boilerplate` applies instead. Amendment
+  ruled by architect 2026-05-28 after T014 surfaced the gap.
+
 A cut is rejected (and documented as rejected) if it cannot be assigned
-any of the three tags without stretching the definition — i.e., the
+any of the four tags without stretching the definition — i.e., the
 prose is binding, behavioral, or a customer-truth pointer.
 
 ### D-4: Review sequence

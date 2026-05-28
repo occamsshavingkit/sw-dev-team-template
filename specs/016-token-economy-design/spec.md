@@ -101,11 +101,11 @@ Per Q-0022 (+ addendum 2026-05-28 ratifying PM's wider gate), the composite desi
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% of `.claude/agents/<role>.md` files (excluding `sme-template.md`) sit at ≤80% of their sizing cap after the design pass lands.
+- **SC-001** *(amended 2026-05-28 per customer ruling)*: 100% of `.claude/agents/<role>.md` files (excluding `sme-template.md`) sit at ≤85% of their sizing cap after the design pass lands. **Original target was ≤80%; relaxed to ≤85% because all safe (D-3 non-binding) cuts were exhausted with 9 of 13 contracts still above the 80% ceiling per T028/T029. A residual gap remains: even at ≤85%, 7 contracts still fail (worst: project-manager at 101.3%). Residual recorded as a v1.4.0 carryover.**
 - **SC-002**: 100% of cuts carry a rationale tag and (for manual-echo cuts) a manual-location pointer; reviewer can verify by inspection.
 - **SC-003**: Zero binding rules are dropped; verifiable by code-reviewer diff review identifying no semantic regressions.
 - **SC-004**: Zero customer-truth references are dropped; verifiable by grepping every `CUSTOMER_NOTES.md` cross-reference against the post-cut files.
-- **SC-005**: Aggregate context cost reduction across the roster is ≥15% (measured by total word count of contract files before vs. after), with no single file exceeding 100% of its cap.
+- **SC-005** *(amended 2026-05-28 per customer ruling)*: Aggregate context cost reduction across the roster is ≥12.5% (measured by total word count of contract files before vs. after). **Original target was ≥15% with no single file exceeding 100% of its cap; relaxed to ≥12.5% and the "no file >100% of cap" clause dropped because project-manager.md lands at 101.3% even after all approved cuts — eliminating the over-100% requires either an FR-007 restructuring violation or dropping binding content. Residual recorded as a v1.4.0 carryover.**
 - **SC-006**: The "Token economy (binding)" section is present in tech-lead's contract surface (CA-003-permitted location per Assumption A-1) and contains every rule and anti-pattern listed in FR-001 / FR-002.
 - **SC-007**: Customer sign-off is recorded in `CUSTOMER_NOTES.md` and referenced from `docs/pm/release-plan-v1.x.md` before any v1.2.0 or v1.3.0 implementation work begins.
 - **SC-008** *(SLO, not a release gate)*: Time from design-pass landing to customer sign-off is ≤2 sessions (no protracted review cycle), assuming all reviewers' findings are addressed in one revision. This is an execution SLO that informs cadence, not a buildable success criterion; no task or gate depends on meeting it.

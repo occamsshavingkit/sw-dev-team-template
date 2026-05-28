@@ -72,26 +72,26 @@ description: "Task list for spec 016 — token economy design pass (composite #2
 
 For each task: read the file, identify candidate spans, tag each with one of the three D-3 rationales, record the proposed before/after in `audit-tables.md` § Proposals (do NOT apply edits yet). If the contract is already ≤80% per Baseline and no behavior-neutral / manual-echo / duplicated-boilerplate spans are visible, mark the row `no-op` with a one-line justification.
 
-- [ ] T013 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/architect.md`; tag per D-3; record in `audit-tables.md` § Proposals.
-- [ ] T014 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/code-reviewer.md`; tag per D-3; record.
-- [ ] T015 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/onboarding-auditor.md`; tag per D-3; record.
-- [ ] T016 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/process-auditor.md`; tag per D-3; record.
-- [ ] T017 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/project-manager.md`; tag per D-3; record.
-- [ ] T018 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/qa-engineer.md`; tag per D-3; record.
-- [ ] T019 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/release-engineer.md`; tag per D-3; record.
-- [ ] T020 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/researcher.md`; tag per D-3; record.
-- [ ] T021 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/security-engineer.md`; tag per D-3; record.
-- [ ] T022 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/software-engineer.md`; tag per D-3; record.
-- [ ] T023 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/sre.md`; tag per D-3; record.
-- [ ] T024 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/tech-writer.md`; tag per D-3; record.
-- [ ] T025 [US2] Propose cuts for `sw-dev-team-template/.claude/agents/tech-lead.md`. NOT parallel — sequence after US1 T011 to avoid editing in the middle of Half A authoring. Task authors should sequence accordingly.
+- [X] T013 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/architect.md`; tag per D-3; record in `audit-tables.md` § Proposals.
+- [X] T014 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/code-reviewer.md`; tag per D-3; record.
+- [X] T015 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/onboarding-auditor.md`; tag per D-3; record.
+- [X] T016 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/process-auditor.md`; tag per D-3; record.
+- [X] T017 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/project-manager.md`; tag per D-3; record.
+- [X] T018 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/qa-engineer.md`; tag per D-3; record.
+- [X] T019 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/release-engineer.md`; tag per D-3; record.
+- [X] T020 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/researcher.md`; tag per D-3; record.
+- [X] T021 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/security-engineer.md`; tag per D-3; record.
+- [X] T022 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/software-engineer.md`; tag per D-3; record.
+- [X] T023 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/sre.md`; tag per D-3; record.
+- [X] T024 [P] [US2] Propose cuts for `sw-dev-team-template/.claude/agents/tech-writer.md`; tag per D-3; record.
+- [X] T025 [US2] Propose cuts for `sw-dev-team-template/.claude/agents/tech-lead.md`. NOT parallel — sequence after US1 T011 to avoid editing in the middle of Half A authoring. Task authors should sequence accordingly.
 
 ### Review-and-apply phase
 
-- [ ] T026 [US2] `tech-writer` prose-quality review of all proposals in `audit-tables.md` § Proposals: confirm cuts are tagged correctly (D-3 operational tests); flag any proposal that looks behavior-bearing or drops a customer-truth reference (FR-008 / SC-003 / SC-004). Record findings in `audit-tables.md` § Proposals "tech-writer notes" column.
-- [ ] T027 [US2] Apply approved cuts to all 13 contract files in one atomic pass per file (one logical change per commit per the new D-1 binding "atomic commits" rule). Rejected proposals stay in § Proposals with a "rejected — <reason>" annotation.
-- [ ] T028 [US2] Re-run `wc -w` on every edited contract file; populate `audit-tables.md` § Post-cut with `Post-cut words`, `% of cap`, `Delta words`, and `All cuts tagged?` columns for all 13 rows.
-- [ ] T029 [US2] Verify SC-001 (every row `% of cap ≤ 80`) and SC-005 (Σ Delta ≥ 0.15 × Σ M0) against § Post-cut. If SC-005 falls short, escalate to `architect` for scope-extension or document the gap per plan Risks row 3.
+- [X] T026 [US2] `tech-writer` prose-quality review of all proposals in `audit-tables.md` § Proposals: confirm cuts are tagged correctly (D-3 operational tests); flag any proposal that looks behavior-bearing or drops a customer-truth reference (FR-008 / SC-003 / SC-004). Record findings in `audit-tables.md` § Proposals "tech-writer notes" column.
+- [X] T027 [US2] Apply approved cuts to all 13 contract files in one atomic pass per file (one logical change per commit per the new D-1 binding "atomic commits" rule). Rejected proposals stay in § Proposals with a "rejected — <reason>" annotation.
+- [X] T028 [US2] Re-run `wc -w` on every edited contract file; populate `audit-tables.md` § Post-cut with `Post-cut words`, `% of cap`, `Delta words`, and `All cuts tagged?` columns for all 13 rows.
+- [X] T029 [US2] Verify SC-001 (every row `% of cap ≤ 80`) and SC-005 (Σ Delta ≥ 0.15 × Σ M0) against § Post-cut. If SC-005 falls short, escalate to `architect` for scope-extension or document the gap per plan Risks row 3.
 
 **Checkpoint (US2 done)**: All 13 contracts ≤80% of cap; cuts are source-traceable; aggregate ≥15% reduction (or a documented gap).
 
@@ -101,8 +101,8 @@ For each task: read the file, identify candidate spans, tag each with one of the
 
 **Purpose**: Lock the design-pass content for `code-reviewer` diff review.
 
-- [ ] T030 `architect` sign-off on Half A semantic correctness — records "Half A signed off: <date>" in `audit-tables.md` footer. Pre-sign-off: confirm FR-010 composite landing — both T012 (Half A complete) AND T029 (Half B complete) are checked off.
-- [ ] T031 `tech-writer` sign-off on Half B prose surgery — records "Half B signed off: <date>" in `audit-tables.md` footer. Pre-sign-off: confirm FR-010 composite landing as in T030.
+- [X] T030 `architect` sign-off on Half A semantic correctness — records "Half A signed off: <date>" in `audit-tables.md` footer. Pre-sign-off: confirm FR-010 composite landing — both T012 (Half A complete) AND T029 (Half B complete) are checked off.
+- [X] T031 `tech-writer` sign-off on Half B prose surgery — records "Half B signed off: <date>" in `audit-tables.md` footer. Pre-sign-off: confirm FR-010 composite landing as in T030.
 
 **Checkpoint (Gate 1)**: Both reviewer sign-offs present. Code-reviewer diff review may proceed.
 
@@ -112,9 +112,9 @@ For each task: read the file, identify candidate spans, tag each with one of the
 
 **Purpose**: Confirm no binding-rule drops, no customer-truth-reference drops, all cuts tagged. Post-revision diff only (D-4: code-reviewer reviews the result, not proposals).
 
-- [ ] T032 Dispatch `code-reviewer` to diff-review the full set of edited contract files (`.claude/agents/*.md` + `docs/agents/manual/tech-lead-manual.md`) against their pre-pass state. Confirm: no binding rules dropped (FR-008); no customer-truth references dropped (SC-004); every cut carries a D-3 rationale tag (FR-004 / FR-012); the new "Token economy (binding)" section is present in the contract surface (SC-006); no restructuring of the agent-roster shape, the escalation protocol, or the manual-extraction pattern (FR-007); no out-of-scope files touched — scripts, schemas, hooks, migrations, scaffold templates all unchanged (FR-013).
-- [ ] T033 Apply any code-reviewer findings from T032; re-run T028 (post-cut word counts) if any further cuts land.
-- [ ] T034 `code-reviewer` sign-off — records "Code-reviewer signed off: <date>" in `audit-tables.md` footer.
+- [X] T032 Dispatch `code-reviewer` to diff-review the full set of edited contract files (`.claude/agents/*.md` + `docs/agents/manual/tech-lead-manual.md`) against their pre-pass state. Confirm: no binding rules dropped (FR-008); no customer-truth references dropped (SC-004); every cut carries a D-3 rationale tag (FR-004 / FR-012); the new "Token economy (binding)" section is present in the contract surface (SC-006); no restructuring of the agent-roster shape, the escalation protocol, or the manual-extraction pattern (FR-007); no out-of-scope files touched — scripts, schemas, hooks, migrations, scaffold templates all unchanged (FR-013).
+- [X] T033 Apply any code-reviewer findings from T032; re-run T028 (post-cut word counts) if any further cuts land. **No-op (2026-05-28):** T032 produced no blocker / no-fix findings; the documented residual 7-file gap is policy-acknowledged via T029 customer ruling.
+- [X] T034 `code-reviewer` sign-off — records "Code-reviewer signed off: <date>" in `audit-tables.md` footer. **Satisfied inline by T032 (2026-05-28):** Gate 2 row already updated by the same code-reviewer dispatch.
 
 **Checkpoint (Gate 2)**: Code-reviewer signed off; design-pass content is locked.
 
