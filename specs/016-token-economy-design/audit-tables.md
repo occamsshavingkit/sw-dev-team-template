@@ -235,10 +235,10 @@ Given that all safe approved cuts have been applied (corrected aggregate ~13.8%)
 
 | Threshold | Pass | Fail |
 |---|---:|---:|
-| SC-001 ≤ 85% | 6 (architect 79.0%, qa-engineer 66.3%, researcher 71.4%, tech-lead 35.5%, tech-writer 84.9%, onboarding-auditor 82.6%) | 7 (code-reviewer 87.9%, process-auditor 89.3%, project-manager 101.3%, release-engineer 89.6%, security-engineer 88.7%, software-engineer 88.1%, sre 94.5%) |
+| SC-001 ≤ 85% | 5 (architect 79.0%, qa-engineer 66.3%, researcher 71.4%, tech-lead 35.5%, tech-writer 84.9%) | 8 (code-reviewer 87.9%, onboarding-auditor ~89%, process-auditor 89.3%, project-manager 101.3%, release-engineer 89.6%, security-engineer 88.7%, software-engineer 88.1%, sre 94.5%) |
 | SC-005 ≥ 12.5% | aggregate = 13.7% (Σ Delta 2022 / Σ M0 14720) | — |
 
-**Residual gap recorded as v1.4.0 carryover**: 7 contracts still exceed even the relaxed ≤85% bar; project-manager.md is worst at 101.3%. Closing the residual will require an FR-007 restructuring decision (out of scope for spec 016) or a deeper D-3 redefinition. PM to file as a v1.4.0 backlog item alongside the existing concurrency-model work (#212).
+**Residual gap recorded as v1.4.0 carryover**: 8 contracts still exceed the relaxed ≤85% bar (onboarding-auditor crossed back over after the P1-A schema-section restore added ~62 words, estimated ~89%); project-manager.md is worst at 101.3%. Closing the residual will require an FR-007 restructuring decision (out of scope for spec 016) or a deeper D-3 redefinition. PM to file as a v1.4.0 backlog item alongside the existing concurrency-model work (#212).
 
 **T039**: upstream framework gap filed as issue #277 (researcher-manual.md missing "archival sizing policy" section). Filed 2026-05-28. https://github.com/occamsshavingkit/sw-dev-team-template/issues/277
 

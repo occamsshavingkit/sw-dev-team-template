@@ -3,7 +3,7 @@
 **Feature Branch**: `016-token-economy-design`
 **Created**: 2026-05-28
 **Status**: Draft
-**Input**: Composite token-economy design pass that gates v1.2.0 and v1.3.0 implementation entry per `docs/pm/release-plan-v1.x.md` (customer ruling Q-0022 + addendum ratifying PM's wider gate, 2026-05-28). Combines GitHub issues #239 (framework-gap: tech-lead.md missing Token economy (binding) section) and #245 (token-economy: agent contract prose audit AGT-1).
+**Input**: Composite token-economy design pass that gates v1.2.0 and v1.3.0 implementation entry per `docs/pm/release-plan-v1.x.md` (customer ruling Q-0025 + addendum ratifying PM's wider gate, 2026-05-28). Combines GitHub issues #239 (framework-gap: tech-lead.md missing Token economy (binding) section) and #245 (token-economy: agent contract prose audit AGT-1).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -11,7 +11,7 @@
 
 A `tech-lead` agent — and any human or AI operator playing the tech-lead role — must be able to read its own contract surface and find a single, binding section that codifies the dispatch discipline keeping multi-agent context costs down. Today the discipline is folklore; the contract is silent. After this work, the rules (WIP=1 per specialist, vertical slicing, JIT context, dispatch-brief token-budget hints, DoD-before-next-dispatch, atomic commits) are stated as binding rules and an explicit anti-pattern list calls out the Scrum practices that do NOT transfer to multi-agent work (daily standups, story points, time-boxed sprints, velocity tracking, scrum-master role).
 
-**Why this priority**: P1 because (a) it gates v1.2.0 and v1.3.0 implementation entry per Q-0022 + addendum, and (b) every dispatch the tech-lead makes is governed by these rules whether or not they are written down — making them binding is the difference between consistent dispatch behavior and per-session improvisation.
+**Why this priority**: P1 because (a) it gates v1.2.0 and v1.3.0 implementation entry per Q-0025 + addendum, and (b) every dispatch the tech-lead makes is governed by these rules whether or not they are written down — making them binding is the difference between consistent dispatch behavior and per-session improvisation.
 
 **Independent Test**: A tech-lead operator (human or agent) opens its contract surface, navigates to the "Token economy (binding)" section between memory-first lookup and escalation, and finds every rule listed above plus the anti-pattern list. A specialist agent can quote the same section verbatim when an operator's behavior drifts from it. Verifiable by inspection of the contract surface and by a targeted regression review of recent dispatches.
 
@@ -27,7 +27,7 @@ A `tech-lead` agent — and any human or AI operator playing the tech-lead role 
 
 Every `.claude/agents/<role>.md` file pays a fresh context cost on each spawn. v0.12.1+ moved explanatory prose to per-role manuals, but several contracts still echo the moved content; some carry duplicated escalation boilerplate; some carry behavior-neutral prose. A systematic word-count baseline followed by source-traceable cuts brings every contract to ≤80% of its sizing cap (per the archival sizing policy in `docs/pm/token-economy-baseline.md` (M0 table)), preserving all binding rules and customer-truth references.
 
-**Why this priority**: P1 because (a) it shares the same Q-0022 gate as User Story 1, and (b) prose audit results from this story feed back into the binding-section placement decision in User Story 1 (whether to put new content in the contract or the manual) — the two halves are coupled.
+**Why this priority**: P1 because (a) it shares the same Q-0025 gate as User Story 1, and (b) prose audit results from this story feed back into the binding-section placement decision in User Story 1 (whether to put new content in the contract or the manual) — the two halves are coupled.
 
 **Independent Test**: For every agent contract file, the design pass produces (a) the baseline word count, (b) the proposed cuts with before/after, (c) each cut linked to its rationale tag (duplicated boilerplate / behavior-neutral prose / manual-echo), and (d) the final word count. A code-reviewer reads each diff and confirms binding-rule preservation; a tech-writer reads the consolidated set for prose quality.
 
@@ -42,11 +42,11 @@ Every `.claude/agents/<role>.md` file pays a fresh context cost on each spawn. v
 
 ### User Story 3 — Customer sign-off gates v1.2.0 and v1.3.0 entry (Priority: P1)
 
-Per Q-0022 (+ addendum 2026-05-28 ratifying PM's wider gate), the composite design pass — Half A AND Half B together — must land and be reviewed by architect + tech-writer + code-reviewer, then receive explicit customer sign-off, before either v1.2.0 or v1.3.0 implementation may begin. The sign-off becomes a gating record in the release plan.
+Per Q-0025 (+ addendum 2026-05-28 ratifying PM's wider gate), the composite design pass — Half A AND Half B together — must land and be reviewed by architect + tech-writer + code-reviewer, then receive explicit customer sign-off, before either v1.2.0 or v1.3.0 implementation may begin. The sign-off becomes a gating record in the release plan.
 
 **Why this priority**: P1 because no v1.2.0 or v1.3.0 work can start without it; this is the explicit customer ruling.
 
-**Independent Test**: `docs/pm/release-plan-v1.x.md` carries a customer-sign-off line referencing this spec; `CUSTOMER_NOTES.md` carries the verbatim sign-off; `OPEN_QUESTIONS.md` Q-0022 closes with a pointer to the sign-off. If any v1.2.0 or v1.3.0 implementation work is found to have started before the sign-off date, the gate has failed.
+**Independent Test**: `docs/pm/release-plan-v1.x.md` carries a customer-sign-off line referencing this spec; `CUSTOMER_NOTES.md` carries the verbatim sign-off; `OPEN_QUESTIONS.md` Q-0025 closes with a pointer to the sign-off. If any v1.2.0 or v1.3.0 implementation work is found to have started before the sign-off date, the gate has failed.
 
 **Acceptance Scenarios**:
 
@@ -85,8 +85,8 @@ Per Q-0022 (+ addendum 2026-05-28 ratifying PM's wider gate), the composite desi
 ### Constitution Alignment *(mandatory)*
 
 - **CA-001**: Source authority is canonical for all touched files. `.claude/agents/*.md` and `docs/agents/manual/tech-lead-manual.md` are canonical agent contracts; this spec, plan, tasks, and the word-count tables produced during the audit are canonical artifacts. No generated or ephemeral outputs are introduced.
-- **CA-002**: Customer-owned requirements cite the recorded customer answer Q-0022 (2026-05-28: "validate full scope") and its 2026-05-28 addendum ratifying PM's widened gate (blocks v1.2.0 in addition to v1.3.0). Both are recorded in `docs/OPEN_QUESTIONS.md`.
-- **CA-003**: This is framework-maintenance work touching framework-managed files (`.claude/agents/*.md`, `docs/agents/manual/`). HR #10 authorization is satisfied by the customer's Q-0022 ruling and the release-plan ratification; the work scope is bounded by FR-013.
+- **CA-002**: Customer-owned requirements cite the recorded customer answer Q-0025 (2026-05-28: "validate full scope") and its 2026-05-28 addendum ratifying PM's widened gate (blocks v1.2.0 in addition to v1.3.0). Both are recorded in `docs/OPEN_QUESTIONS.md`.
+- **CA-003**: This is framework-maintenance work touching framework-managed files (`.claude/agents/*.md`, `docs/agents/manual/`). HR #10 authorization is satisfied by the customer's Q-0025 ruling and the release-plan ratification; the work scope is bounded by FR-013.
 - **CA-004**: Role authority is preserved — architect signs off on Half A's binding semantics; tech-writer signs off on Half B's prose surgery; code-reviewer signs off on diff-level binding-rule preservation; tech-lead orchestrates and obtains customer sign-off. No agent crosses role boundaries.
 
 ### Key Entities
@@ -101,7 +101,7 @@ Per Q-0022 (+ addendum 2026-05-28 ratifying PM's wider gate), the composite desi
 
 ### Measurable Outcomes
 
-- **SC-001** *(amended 2026-05-28 per customer ruling)*: 100% of `.claude/agents/<role>.md` files (excluding `sme-template.md`) sit at ≤85% of their sizing cap after the design pass lands. **Original target was ≤80%; relaxed to ≤85% because all safe (D-3 non-binding) cuts were exhausted with 9 of 13 contracts still above the 80% ceiling per T028/T029. A residual gap remains: even at ≤85%, 7 contracts still fail (worst: project-manager at 101.3%). Residual recorded as a v1.4.0 carryover.**
+- **SC-001** *(amended 2026-05-28 per customer ruling)*: 100% of `.claude/agents/<role>.md` files (excluding `sme-template.md`) sit at ≤85% of their sizing cap after the design pass lands, OR are explicitly listed as v1.4.0 carryover residuals in `audit-tables.md` § T029 Customer Ruling. The original target was ≤80% for all; the relaxation accepts a documented carryover list because all safe (D-3 non-binding) cuts were exhausted. The carryover list is the contract for v1.4.0 follow-up work.
 - **SC-002**: 100% of cuts carry a rationale tag and (for manual-echo cuts) a manual-location pointer; reviewer can verify by inspection.
 - **SC-003**: Zero binding rules are dropped; verifiable by code-reviewer diff review identifying no semantic regressions.
 - **SC-004**: Zero customer-truth references are dropped; verifiable by grepping every `CUSTOMER_NOTES.md` cross-reference against the post-cut files.

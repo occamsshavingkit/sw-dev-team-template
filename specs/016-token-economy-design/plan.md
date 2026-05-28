@@ -4,7 +4,7 @@
 
 ## Summary
 
-Add a binding "Token economy" section to the tech-lead contract surface (Half A), then systematically audit and trim every agent contract to ≤80% of its M0-baseline cap (Half B). Both halves land together as a single composite design pass gating v1.2.0 and v1.3.0 entry per customer ruling Q-0022.
+Add a binding "Token economy" section to the tech-lead contract surface (Half A), then systematically audit and trim every agent contract to ≤80% of its M0-baseline cap (Half B). Both halves land together as a single composite design pass gating v1.2.0 and v1.3.0 entry per customer ruling Q-0025.
 
 ## Decisions
 
@@ -152,9 +152,9 @@ after Gate 1 — it reviews the post-revision diff, not proposals.
 - **Role routing**: architect owns Half A semantic review; tech-writer owns Half B prose review; code-reviewer owns diff-level binding-rule audit; tech-lead orchestrates and obtains customer sign-off; researcher writes the CUSTOMER_NOTES.md sign-off entry. No role crosses its boundary (CA-004).
 - **Token/context economy**: Live files to read: `.claude/agents/*.md` (13 files, ~8 k words total post-M1.1), `docs/agents/manual/tech-lead-manual.md`, `docs/pm/token-economy-baseline.md`. Audit table (`audit-tables.md`) is a canonical artifact produced by this pass; it is not reloaded on every spawn. No long session-archive files required.
 - **Source authority**: `.claude/agents/*.md` and `docs/agents/manual/tech-lead-manual.md` are canonical. `specs/016-token-economy-design/` artifacts (this plan, `audit-tables.md`) are canonical spec artifacts. Generated runtime contracts in `docs/runtime/agents/` are downstream of the canonical contracts and are NOT edited directly (FR-013 scope).
-- **Customer intake**: Q-0022 (answered 2026-05-28) is the governing customer ruling. No new customer question is currently open. One design-pass question is queued — see Open Design Questions below.
+- **Customer intake**: Q-0025 (answered 2026-05-28) is the governing customer ruling. No new customer question is currently open. One design-pass question is queued — see Open Design Questions below.
 - **Quality gates**: Gate 0 (baseline measurement), Gate 1 (architect + tech-writer sign-off), Gate 2 (code-reviewer sign-off), Gate 3 (customer sign-off). All four required before v1.2.0/v1.3.0 entry per SC-007 / FR-011.
-- **Framework/project boundary**: This is explicit framework-maintenance work. HR-10 authorization satisfied by Q-0022 customer ruling and CA-003. Scope is bounded to `.claude/agents/*.md`, `docs/agents/manual/tech-lead-manual.md`, and `specs/016-token-economy-design/`. No product-work artifacts are touched.
+- **Framework/project boundary**: This is explicit framework-maintenance work. HR-10 authorization satisfied by Q-0025 customer ruling and CA-003. Scope is bounded to `.claude/agents/*.md`, `docs/agents/manual/tech-lead-manual.md`, and `specs/016-token-economy-design/`. No product-work artifacts are touched.
 - **Adapter discipline**: No new authority surfaces introduced. Codex adapter prose that duplicates `AGENTS.md` is treated as `duplicated-boilerplate` (A-5); contracts retain a one-line pointer. This is a reduction pass, not an expansion of the authority model.
 
 ## Project Structure
