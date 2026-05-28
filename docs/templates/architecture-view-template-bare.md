@@ -1,3 +1,10 @@
+---
+name: architecture-view-template-bare
+description: Bare per-view file template per FW-ADR-0003 / FW-ADR-0004; structure only.
+template_class: architecture-view
+---
+
+
 # View — <viewpoint> — <name>
 
 Bare variant per FW-ADR-0003. Lives at

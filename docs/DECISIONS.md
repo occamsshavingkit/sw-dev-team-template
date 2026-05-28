@@ -99,3 +99,4 @@ R-2) can scroll away, but this file survives.
 **Notes:** Claude Code keeps using `CLAUDE.md` and the `Agent` tool vocabulary. Codex uses root `AGENTS.md` and its native subagent vocabulary while preserving canonical role names and teammate names where supported.
 M9 rc9 migration: backfilled Output format placeholder for .claude/agents/code-reviewer.md (upstream rc9 ship not reachable during migration; manual fill required).
 M9 rc9 migration: backfilled Hard rules placeholder for .claude/agents/qa-engineer.md (upstream rc9 ship not reachable during migration; manual fill required).
+M14 rc14 migration pass 2: backfilled Output format for .claude/agents/tech-lead.md from upstream rc14 ship.

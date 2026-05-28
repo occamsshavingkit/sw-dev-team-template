@@ -1,3 +1,10 @@
+---
+name: proposal-template
+description: Workflow-stage-3 implementation-proposal template chosen against the Three-Path ADR.
+template_class: proposal
+---
+
+
 # Proposal — <task-id>
 
 <!-- TOC -->

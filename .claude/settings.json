@@ -50,8 +50,8 @@
     "autoMode": {
       "allow": [
         "$defaults",
-        "Edit(/home/quackdcs/SWEProj/**) — project-managed agent contracts and templates; the project owns these and they are tracked in git.",
-        "Write(/home/quackdcs/SWEProj/**) — same as above; new artifacts under the project root are project-owned."
+        "Edit(/home/quackdcs/SWEProj/**) \u2014 project-managed agent contracts and templates; the project owns these and they are tracked in git.",
+        "Write(/home/quackdcs/SWEProj/**) \u2014 same as above; new artifacts under the project root are project-owned."
       ]
     }
   },
@@ -69,6 +69,11 @@
             "type": "command",
             "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/tech-lead-authoring-guard.py\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-pre-tool-gate.py\"",
+            "timeout": 5
           }
         ]
       },
@@ -83,6 +88,11 @@
           {
             "type": "command",
             "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/tech-lead-authoring-guard.py\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-pre-tool-gate.py\"",
             "timeout": 5
           }
         ]
@@ -99,6 +109,11 @@
             "type": "command",
             "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/tech-lead-authoring-guard.py\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-pre-tool-gate.py\"",
+            "timeout": 5
           }
         ]
       },
@@ -113,6 +128,11 @@
           {
             "type": "command",
             "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/tech-lead-authoring-guard.py\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-pre-tool-gate.py\"",
             "timeout": 5
           }
         ]
@@ -138,6 +158,12 @@
             "command": "[ -x \"${CLAUDE_PROJECT_DIR}/scripts/hooks/role-routing-reminder.sh\" ] && \"${CLAUDE_PROJECT_DIR}/scripts/hooks/role-routing-reminder.sh\" 2>&1 || true",
             "timeout": 5,
             "statusMessage": "Role-routing rule reminder..."
+          },
+          {
+            "type": "command",
+            "command": "[ -x \"${CLAUDE_PROJECT_DIR}/scripts/version-check.sh\" ] && \"${CLAUDE_PROJECT_DIR}/scripts/version-check.sh\" 2>&1 || true",
+            "timeout": 10,
+            "statusMessage": "Checking template version..."
           }
         ]
       },
@@ -149,6 +175,61 @@
             "command": "[ -x \"${CLAUDE_PROJECT_DIR}/scripts/hooks/post-compact-refresh.sh\" ] && \"${CLAUDE_PROJECT_DIR}/scripts/hooks/post-compact-refresh.sh\" 2>&1 || true",
             "timeout": 5,
             "statusMessage": "Post-compaction refresh directive..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-record-activity.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-task-completed-gate.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "TaskCreated": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-task-created-gate.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-subagent-stop-gate.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-stop-gate.py\"",
+            "timeout": 5
           }
         ]
       }

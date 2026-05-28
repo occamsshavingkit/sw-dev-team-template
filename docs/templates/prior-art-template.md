@@ -1,3 +1,10 @@
+---
+name: prior-art-template
+description: Workflow-stage-1 prior-art scan template for grounding downstream stages in cited documentation.
+template_class: prior-art
+---
+
+
 # Prior-art scan — <task-id>
 
 Owned by `researcher`. Produced at workflow-pipeline stage 1 for

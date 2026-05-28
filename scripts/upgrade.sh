@@ -30,7 +30,8 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/upgrade.sh [--dry-run | --verify | --resolve | --target <ver> |
+Usage: scripts/upgrade.sh [--dry-run | --verify | --resolve | --target <ref> |
+                          --allow-non-default-branch |
                           --self-test-semver | --help]
 
   --dry-run         Print the upgrade plan; change nothing.
@@ -49,14 +50,29 @@ Usage: scripts/upgrade.sh [--dry-run | --verify | --resolve | --target <ver> |
   --self-test-semver
                     Run the SemVer-sort regression guard for issue #108
                     and exit. No project state needed.
-  --target <ver>    Pin the upgrade to a specific upstream tag (e.g.
-                    v0.14.4). Validates the tag exists, checks it out
-                    in the upstream clone, runs migrations between
-                    current TEMPLATE_VERSION and the target, stamps
-                    target's tag. Without this flag, upgrade.sh
-                    targets the latest stable upstream tag for stable
-                    projects, or the latest upstream tag for projects
-                    already on a pre-release track. (Issues #60/#68.)
+  --target <ref>    Pin the upgrade to a specific upstream ref. Accepts:
+                      * a tag (e.g. v0.14.4)                — stamps the tag
+                      * a branch (e.g. main, feat/foo)      — stamps
+                          "untagged-<short-sha>"
+                      * a short or full commit SHA          — same
+                    Resolution priority: tags first (back-compat), then
+                    branches (refs/heads then refs/remotes/origin), then
+                    commit SHAs. For untagged targets, ALL migrations
+                    strictly greater than the project's current
+                    TEMPLATE_VERSION are run (semver progression
+                    unavailable; conservative full-walk). Without this
+                    flag, upgrade.sh targets the latest stable upstream
+                    tag for stable projects, or the latest upstream tag
+                    for projects already on a pre-release track.
+                    (Issues #60/#68; untagged refs added 2026-05-15.)
+  --allow-non-default-branch
+                    Skip the default-branch guard that normally refuses to
+                    run on a non-default branch. Mutating runs (no flag /
+                    --resolve) refuse by default so the upgrade lands on
+                    trunk; pass this flag to override and accept the risk
+                    of TEMPLATE_VERSION divergence across child branches.
+                    A one-line warning naming both branches is printed.
+                    (Issue #203.)
   --help, -h        Print this help and exit.
 
 With no flag, run the full upgrade. The script:
@@ -97,9 +113,19 @@ ensure_prestaged_required_libs() {
     return 0
   fi
 
+  # SWDT_PRESTAGED_WORKDIR dependency: this function only runs when
+  # SWDT_PRESTAGED_WORKDIR is set (early-return above guards that).
+  # Glob over the upstream lib dir rather than enumerating names so that
+  # any new scripts/lib/*.sh added in future releases is automatically
+  # recovered — preventing rc7→rc8-class enumeration cliffs going forward.
+  # NOTE: this glob fix cannot retroactively help versions whose bootstrap
+  # predates SWDT_PRESTAGED_WORKDIR (e.g. v1.0.0-rc7); those require the
+  # one-time manual repair documented in FW-ADR-0013 § "Stranded rc7 repair
+  # path" and docs/TEMPLATE_UPGRADE.md § "Known upgrade cliffs".
   mkdir -p "$script_dir/lib"
-  for lib_name in manifest.sh semver.sh; do
-    upstream_lib="$prestaged_lib_dir/$lib_name"
+  for upstream_lib in "$prestaged_lib_dir"/*.sh; do
+    [[ -f "$upstream_lib" ]] || continue
+    lib_name="$(basename "$upstream_lib")"
     local_lib="$script_dir/lib/$lib_name"
     if [[ ! -f "$local_lib" && -f "$upstream_lib" ]]; then
       cp "$upstream_lib" "$local_lib.tmp.$$"
@@ -147,6 +173,7 @@ dry_run=0
 verify_mode=0
 resolve_mode=0
 target_version=""
+allow_non_default_branch=0
 original_args=("$@")
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -154,7 +181,7 @@ while [[ $# -gt 0 ]]; do
     "--verify")      verify_mode=1; shift ;;
     "--target")
       if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
-        echo "ERROR: --target requires a tag argument (e.g. --target v0.14.4)" >&2
+        echo "ERROR: --target requires a ref argument (tag, branch, or commit SHA — e.g. --target v0.14.4, --target main, --target b7aa9d3)" >&2
         usage >&2
         exit 2
       fi
@@ -166,10 +193,74 @@ while [[ $# -gt 0 ]]; do
       semver_sort_tags_self_test
       exit $? ;;
     "--resolve")     resolve_mode=1; shift ;;
+    "--allow-non-default-branch")
+                     allow_non_default_branch=1; shift ;;
     "--help"|"-h")   usage; exit 0 ;;
     *)               echo "ERROR: unknown flag: $1" >&2; echo >&2; usage >&2; exit 2 ;;
   esac
 done
+
+# Default-branch guard (issue #203). Mutating runs (no flag / --resolve)
+# must land on the default branch so that TEMPLATE_VERSION /
+# TEMPLATE_MANIFEST.lock are inherited by child feature branches via
+# merge, rather than being stamped on a side branch the trunk never
+# sees. --dry-run and --verify are non-mutating and stay
+# branch-agnostic. --allow-non-default-branch overrides with a warning.
+if [[ $dry_run -eq 0 && $verify_mode -eq 0 ]]; then
+  # Prefer symbolic-ref (works on freshly-initialised repos with an
+  # unborn branch — `git init -b main` before the first commit).
+  # Fall back to rev-parse for older edge cases. Detached HEAD returns
+  # empty from symbolic-ref and "HEAD" from rev-parse; we normalise
+  # the literal "HEAD" to empty so the guard does not refuse an
+  # ambiguous state with a misleading message.
+  current_branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
+  if [[ -z "$current_branch" ]]; then
+    current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
+    [[ "$current_branch" == "HEAD" ]] && current_branch=""
+  fi
+  default_branch=""
+  # Priority chain — first hit wins.
+  if origin_head="$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)"; then
+    default_branch="${origin_head#origin/}"
+  fi
+  if [[ -z "$default_branch" ]]; then
+    default_branch="$(git config --get init.defaultBranch 2>/dev/null || true)"
+  fi
+  if [[ -z "$default_branch" ]]; then
+    # Third fallback: if a local branch named 'main' exists, use it.
+    # This handles repos initialised with `-b main` that have no remote
+    # yet (new scaffold, CI). Without this, a feature branch cut from
+    # main would see current==current and the guard would never fire.
+    if git rev-parse --verify refs/heads/main >/dev/null 2>&1; then
+      default_branch="main"
+    else
+      default_branch="$current_branch"
+      echo "NOTE: upgrade.sh could not resolve the repository default branch from origin/HEAD or init.defaultBranch; falling back to current branch '$current_branch'." >&2
+    fi
+  fi
+
+  if [[ -n "$current_branch" && "$current_branch" != "$default_branch" ]]; then
+    if [[ $allow_non_default_branch -eq 1 ]]; then
+      echo "WARNING: upgrade.sh running on branch '$current_branch' (default branch is '$default_branch') — --allow-non-default-branch override in effect." >&2
+    else
+      echo "ERROR: upgrade.sh refuses to run on branch '$current_branch' — default" >&2
+      echo "branch is '$default_branch'. Template upgrades must land on the default" >&2
+      echo "branch so child feature branches inherit the new stamp via merge," >&2
+      echo "not by being cut from a side branch. Pass" >&2
+      echo "--allow-non-default-branch to override (you will see a warning)." >&2
+      exit 2
+    fi
+  elif [[ -n "$current_branch" && "$current_branch" == "$default_branch" ]]; then
+    # Optional recommended check from issue #203: warn on dirty tree on
+    # the default branch. The upgrade rewrites tracked files; a dirty
+    # tree muddies the rollback story. Non-fatal.
+    if [[ -d .git ]] || git rev-parse --git-dir >/dev/null 2>&1; then
+      if ! git diff --quiet --ignore-submodules HEAD 2>/dev/null; then
+        echo "WARNING: working tree on '$default_branch' has uncommitted changes — upgrade rewrites tracked files; consider committing or stashing first." >&2
+      fi
+    fi
+  fi
+fi
 
 if [[ ! -f "$tv" ]]; then
   echo "ERROR: no TEMPLATE_VERSION at project root. Not a scaffolded project?" >&2
@@ -227,6 +318,21 @@ if [[ $resolve_mode -eq 1 ]]; then
   # current re-emit fixes the field set to {path, classified,
   # baseline_sha, upstream_sha, project_sha} and would silently drop
   # anything else. Bump the schema number and gate accordingly.
+  # Issue #171: load .template-customizations so --resolve can auto-drop
+  # entries the operator resolved by pinning the path. A path listed in
+  # .template-customizations means the operator decided to keep the local
+  # version; the conflict is resolved by declaration, not by SHA change.
+  resolve_pinned=()
+  resolve_customizations="$project_root/.template-customizations"
+  if [[ -f "$resolve_customizations" ]]; then
+    while IFS= read -r _line; do
+      _line="${_line%%#*}"
+      _line="$(echo "$_line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+      [[ -z "$_line" ]] && continue
+      resolve_pinned+=("$_line")
+    done < "$resolve_customizations"
+  fi
+
   tmp_out="$conflicts_path.tmp.$$"
   removed=0
   kept_unresolved=0
@@ -259,6 +365,25 @@ if [[ $resolve_mode -eq 1 ]]; then
         removed=$((removed + 1))
         continue
       fi
+
+      # Issue #171: if the path is now pinned in .template-customizations,
+      # the operator resolved the conflict by declaration — drop it as
+      # accepted_local regardless of SHA state.
+      for _pin in "${resolve_pinned[@]+"${resolve_pinned[@]}"}"; do
+        if [[ "$_pin" == "$e_path" ]]; then
+          removed=$((removed + 1))
+          # Record as accepted_local for manifest refresh purposes.
+          proj_now_pin=""
+          [[ -f "$project_root/$e_path" ]] && proj_now_pin="$(manifest_file_sha "$project_root/$e_path")"
+          if [[ -n "$proj_now_pin" ]]; then
+            printf '%s	%s
+' "$e_path" "$proj_now_pin" >> "$resolved_paths_log"
+          fi
+          e_path=""  # sentinel: skip the rest of the loop body
+          break
+        fi
+      done
+      [[ -z "$e_path" ]] && continue
 
       # Recompute current project SHA.
       proj_now=""
@@ -365,19 +490,54 @@ else
 fi
 
 # --- Select upstream target before bootstrap ----------------------------------
-# Check out the intended upstream tag before any other steps run.
+# Check out the intended upstream ref before any other steps run.
 # Bootstrap, baseline-clone, and sync all see the selected target state.
-# VERSION inside the clone is the selected target's VERSION, so
-# new_version derived below picks up correctly.
+# VERSION inside the clone is the selected target's VERSION at that ref
+# — for tag targets new_version is derived from it; for untagged targets
+# (branch / SHA) we use a synthetic "untagged-<short-sha>" label instead
+# so the TEMPLATE_VERSION stamp is unambiguously distinct from semver.
+#
+# target_kind tracks how --target resolved: "tag" / "untagged" / "" (none).
+# Resolution priority for --target: tags first (back-compat), then
+# branches (refs/heads, then refs/remotes/origin/<ref>), then commit SHAs.
+target_kind=""
+target_resolved_sha=""
 if [[ -n "$target_version" ]]; then
-  if ! git -C "$workdir/new" rev-parse --verify --quiet "refs/tags/$target_version" >/dev/null; then
-    echo "ERROR: --target $target_version is not a known tag in $upstream." >&2
+  if git -C "$workdir/new" rev-parse --verify --quiet "refs/tags/$target_version" >/dev/null; then
+    target_kind="tag"
+    target_resolved_sha="$(git -C "$workdir/new" rev-parse --verify --quiet "refs/tags/$target_version^{commit}")"
+    echo "Pinning upgrade to --target $target_version (tag)" >&2
+    git -C "$workdir/new" checkout -q "$target_version"
+  elif git -C "$workdir/new" rev-parse --verify --quiet "refs/heads/$target_version" >/dev/null; then
+    target_kind="untagged"
+    target_resolved_sha="$(git -C "$workdir/new" rev-parse --verify --quiet "refs/heads/$target_version^{commit}")"
+    echo "Pinning upgrade to --target $target_version (branch → ${target_resolved_sha:0:7})" >&2
+    git -C "$workdir/new" checkout -q "$target_version"
+  elif git -C "$workdir/new" rev-parse --verify --quiet "refs/remotes/origin/$target_version" >/dev/null; then
+    target_kind="untagged"
+    target_resolved_sha="$(git -C "$workdir/new" rev-parse --verify --quiet "refs/remotes/origin/$target_version^{commit}")"
+    echo "Pinning upgrade to --target $target_version (remote branch → ${target_resolved_sha:0:7})" >&2
+    git -C "$workdir/new" checkout -q "refs/remotes/origin/$target_version"
+  elif git -C "$workdir/new" rev-parse --verify --quiet "${target_version}^{commit}" >/dev/null; then
+    # Bare SHA (short or full). Reject anything that *looks like* a tag
+    # syntactically (starts with v + digit) but did not match the tag
+    # branch above — that case is a typo, not a SHA.
+    if [[ "$target_version" =~ ^v[0-9] ]]; then
+      echo "ERROR: --target $target_version is not a known tag, branch, or commit in $upstream." >&2
+      echo "  Recent tags (last 10):" >&2
+      git -C "$workdir/new" tag -l 'v*' | semver_sort_tags | tail -10 | sed 's/^/    /' >&2
+      exit 2
+    fi
+    target_kind="untagged"
+    target_resolved_sha="$(git -C "$workdir/new" rev-parse --verify --quiet "${target_version}^{commit}")"
+    echo "Pinning upgrade to --target $target_version (commit → ${target_resolved_sha:0:7})" >&2
+    git -C "$workdir/new" checkout -q "$target_resolved_sha"
+  else
+    echo "ERROR: --target $target_version is not a known tag, branch, or commit in $upstream." >&2
     echo "  Recent tags (last 10):" >&2
     git -C "$workdir/new" tag -l 'v*' | semver_sort_tags | tail -10 | sed 's/^/    /' >&2
     exit 2
   fi
-  echo "Pinning upgrade to --target $target_version" >&2
-  git -C "$workdir/new" checkout -q "$target_version"
 else
   all_upstream_tags="$(git -C "$workdir/new" tag -l 'v*' 2>/dev/null | semver_sort_tags || true)"
   if [[ "$local_version" == *-* ]]; then
@@ -726,8 +886,45 @@ if declare -F first_actions_step0_warning >/dev/null; then
   first_actions_step0_warning "$project_root" "upgrade"
 fi
 
-new_version="$(tr -d '[:space:]' < "$workdir/new/VERSION")"
 new_sha="$(git -C "$workdir/new" rev-parse HEAD)"
+if [[ "$target_kind" == "untagged" ]]; then
+  # Synthetic version label for untagged targets (branch / SHA). The
+  # "untagged-" prefix makes the TEMPLATE_VERSION first line visually
+  # distinct from semver so operators recognise a pre-release /
+  # experimental state. version-check.sh prints a WARN line on this
+  # state. (2026-05-15.)
+  new_version="untagged-${new_sha:0:7}"
+else
+  new_version="$(tr -d '[:space:]' < "$workdir/new/VERSION")"
+fi
+
+# --- Downgrade guard: untagged-to-tag (Issue #191) -------------------------
+# When the project is currently pinned at an untagged state (local_version
+# starts with "untagged-") and the operator requests --target=<tag>, the
+# requested tag may be OLDER than the untagged tip the project already has.
+# Silently applying such a downgrade would corrupt the project state.
+#
+# Detection: target_kind == "tag" (resolved above) AND local_version has the
+# "untagged-" prefix AND the target tag's commit is a strict ancestor of the
+# untagged tip SHA recorded in TEMPLATE_VERSION line 2 (local_sha). The
+# workdir/new clone already checked out the target tag at this point, so
+# new_sha == target_resolved_sha; we must compare against local_sha instead.
+# Same-tip exemption: if target_resolved_sha == local_sha the tag and the
+# untagged tip are the same commit — no downgrade.
+if [[ "$target_kind" == "tag" && "$local_version" == untagged-* ]]; then
+  if [[ -n "$local_sha" && "$local_sha" != "unknown" \
+     && "$target_resolved_sha" != "$local_sha" ]]; then
+    if ! git -C "$workdir/new" cat-file -e "${local_sha}^{commit}" 2>/dev/null; then
+      echo "WARN: downgrade guard skipped: local SHA $local_sha not reachable in upstream clone." >&2
+    elif git -C "$workdir/new" merge-base --is-ancestor "$target_resolved_sha" "$local_sha" 2>/dev/null; then
+      echo "ERROR: cannot downgrade from untagged state '$local_version' to older tag '$target_version'." >&2
+      echo "       The requested tag resolves to a commit that is already an ancestor of the current" >&2
+      echo "       untagged tip ($local_sha). Refusing downgrade to avoid corrupting project state." >&2
+      echo "       (Issue #191) To intentionally downgrade, re-scaffold from the target tag instead." >&2
+      exit 1
+    fi
+  fi
+fi
 
 if [[ "$local_version" == "$new_version" ]]; then
   # Stamp matches upstream. Closes the #61 bug: do not short-circuit
@@ -815,33 +1012,74 @@ fi
 # project's current TEMPLATE_VERSION and less-than-or-equal-to the new one,
 # in ascending order. Migrations handle file moves / renames / reshapes that
 # the plain file-sync cannot. Most are no-ops.
+#
+# Untagged targets (branch / SHA): semver progression breaks because
+# new_version is a synthetic "untagged-<sha>" label. Run every migration
+# strictly greater than local_version (conservative full-walk). Migrations
+# are required to be idempotent per their contract (migrations/README.md
+# § "Required properties" #1; see also docs/TEMPLATE_UPGRADE.md
+# § "Per-version migrations"), so re-running ones that already applied
+# is safe. (Issue #190.)
 all_tags=$(git -C "$workdir/new" tag -l 'v*' 2>/dev/null | semver_sort_tags || true)
 migrations_to_run=()
-past_local=0
-for tag in $all_tags; do
-  if [[ $past_local -eq 0 ]]; then
-    [[ "$tag" == "$local_version" ]] && past_local=1
-    continue
-  fi
-  migrations_to_run+=("$tag")
-  [[ "$tag" == "$new_version" ]] && break
-done
-
-# Edge case: local_version doesn't appear in the tag list (e.g., pre-release
-# or hand-stamped). In that case, past_local stays 0 and migrations_to_run is
-# empty. Fall back: run every migration ≤ new_version, letting idempotency
-# guards handle re-runs.
-if [[ $past_local -eq 0 && ${#migrations_to_run[@]} -eq 0 ]]; then
-  echo "NOTE: local_version $local_version does not match any upstream tag — running all migrations ≤ $new_version with idempotency guards." >&2
+if [[ "$target_kind" == "untagged" ]]; then
+  past_local=0
   for tag in $all_tags; do
+    if [[ $past_local -eq 0 ]]; then
+      [[ "$tag" == "$local_version" ]] && past_local=1
+      continue
+    fi
+    migrations_to_run+=("$tag")
+  done
+  # If local_version isn't a known tag (hand-stamped / itself untagged-*),
+  # walk every migration up to tip.
+  if [[ $past_local -eq 0 && ${#migrations_to_run[@]} -eq 0 ]]; then
+    for tag in $all_tags; do
+      migrations_to_run+=("$tag")
+    done
+  fi
+  echo "NOTE: Running all migrations from $local_version to $new_version (semver progression unavailable; conservative full-walk)." >&2
+else
+  past_local=0
+  for tag in $all_tags; do
+    if [[ $past_local -eq 0 ]]; then
+      [[ "$tag" == "$local_version" ]] && past_local=1
+      continue
+    fi
     migrations_to_run+=("$tag")
     [[ "$tag" == "$new_version" ]] && break
   done
+
+  # Edge case: local_version doesn't appear in the tag list (e.g., pre-release
+  # or hand-stamped). In that case, past_local stays 0 and migrations_to_run is
+  # empty. Fall back: run every migration ≤ new_version, letting idempotency
+  # guards handle re-runs.
+  if [[ $past_local -eq 0 && ${#migrations_to_run[@]} -eq 0 ]]; then
+    echo "NOTE: local_version $local_version does not match any upstream tag — running all migrations ≤ $new_version with idempotency guards." >&2
+    for tag in $all_tags; do
+      migrations_to_run+=("$tag")
+      [[ "$tag" == "$new_version" ]] && break
+    done
+  fi
 fi
 
 if [[ ${#migrations_to_run[@]} -gt 0 ]]; then
   echo >&2
   echo "Running migrations between $local_version and $new_version:" >&2
+
+  # Build the full ordered chain for position reporting (T003/FR-001).
+  # Only tags whose .sh file is present are included; _chain_total and
+  # _chain_idx count file-present migrations only, so the summary's "N of M"
+  # refers to file-present migrations.
+  declare -a _migration_chain=()
+  for _v in "${migrations_to_run[@]}"; do
+    _mig_path="$workdir/new/migrations/$_v.sh"
+    [[ -f "$_mig_path" ]] && _migration_chain+=("migrations/$_v.sh")
+  done
+  _chain_total=${#_migration_chain[@]}
+  _chain_idx=0
+  declare -a _applied_migrations=()
+
   for v in "${migrations_to_run[@]}"; do
     mig="$workdir/new/migrations/$v.sh"
     if [[ -f "$mig" ]]; then
@@ -849,7 +1087,14 @@ if [[ ${#migrations_to_run[@]} -gt 0 ]]; then
       if [[ $dry_run -eq 1 ]]; then
         echo "    (dry-run: would run $mig)" >&2
       else
-        (
+        _chain_idx=$(( _chain_idx + 1 ))
+        # FR-001: capture each migration's true exit status, decoupled from
+        # any trailing pipeline stage and from set -e masking.
+        # Run the migration in a subshell with output captured to a variable;
+        # the subshell's exit status is captured directly via $? before set -e
+        # can fire on a non-zero value.
+        set +e
+        _mig_output=$(
           cd "$project_root"
           export PROJECT_ROOT="$project_root"
           export OLD_VERSION="$local_version"
@@ -857,8 +1102,110 @@ if [[ ${#migrations_to_run[@]} -gt 0 ]]; then
           export TARGET_VERSION="$v"
           export WORKDIR_NEW="$workdir/new"
           [[ $baseline_available -eq 1 ]] && export WORKDIR_OLD="$workdir/old"
-          bash "$mig"
-        ) 2>&1 | sed 's/^/    /' >&2
+          bash "$mig" 2>&1
+        )
+        _mig_rc=$?
+        set -e
+
+        # Indent and forward migration output to stderr.
+        if [[ -n "$_mig_output" ]]; then
+          printf '%s\n' "$_mig_output" | sed 's/^/    /' >&2
+        fi
+
+        if [[ $_mig_rc -ne 0 ]]; then
+          # --- Controlled failure path (FR-006 / T005) ---
+          # Stop-at-first: do NOT continue iterating after a failure.
+          # Exit is controlled and deliberate — never a silent set -e abort.
+          # Exit code propagates the migration's true exit status (_mig_rc).
+          #
+          # State available here for T006 (stderr summary) and T007 (artifact):
+          #   _failing_migration  — "migrations/$v.sh" (failing entry)
+          #   _chain_idx          — 1-based position of failing migration
+          #   _chain_total        — total migrations in chain
+          #   _applied_migrations — ordered list of successfully-applied migrations
+          #   _not_run_migrations — ordered list of migrations not yet run
+          #   _mig_rc             — true exit status of the failing migration
+
+          # Capture state for T006/T007 extensions.
+          _failing_migration="migrations/$v.sh"
+
+          # Build not_run list: chain entries after the failing position.
+          # _migration_chain is 0-indexed; _chain_idx is 1-based, so
+          # _migration_chain[_chain_idx] is the first entry not yet run.
+          declare -a _not_run_migrations=()
+          for (( _nr=_chain_idx; _nr<_chain_total; _nr++ )); do
+            _not_run_migrations+=("${_migration_chain[$_nr]}")
+          done
+
+          echo >&2
+          echo "ERROR: migration failed — fix and re-run to resume." >&2
+          echo "  failing : $_failing_migration  ($_chain_idx of $_chain_total)" >&2
+          if [[ ${#_applied_migrations[@]} -gt 0 ]]; then
+            echo "  applied : $(IFS=', '; echo "${_applied_migrations[*]}")" >&2
+          else
+            echo "  applied : (none)" >&2
+          fi
+          if [[ ${#_not_run_migrations[@]} -gt 0 ]]; then
+            echo "  not run : $(IFS=', '; echo "${_not_run_migrations[*]}")" >&2
+          else
+            echo "  not run : (none)" >&2
+          fi
+          # T007: write .template-migration-failed.json atomically (FR-012).
+          # Use python3 + json.dump (R2 decision) so field values containing
+          # '"' or '\' are serialised safely.  Arrays are passed via the
+          # environment (NUL-delimited) so no shell-to-Python string
+          # interpolation is needed — the escaping gap is closed at the
+          # OS boundary.
+          # stderr_tail is intentionally omitted (optional per contract §B).
+          _failed_artifact="$project_root/.template-migration-failed.json"
+          _MFAIL_SCHEMA="template-migration-failed/1" \
+          _MFAIL_FAILING="$_failing_migration" \
+          _MFAIL_IDX="$_chain_idx" \
+          _MFAIL_TOTAL="$_chain_total" \
+          _MFAIL_EXIT="$_mig_rc" \
+          _MFAIL_TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+          _MFAIL_APPLIED="$(IFS=$'\x01'; printf '%s' "${_applied_migrations[*]+"${_applied_migrations[*]}"}")" \
+          _MFAIL_NOT_RUN="$(IFS=$'\x01'; printf '%s' "${_not_run_migrations[*]+"${_not_run_migrations[*]}"}")" \
+          python3 - "$_failed_artifact" <<'PYMFAIL'
+import json, os, sys
+
+out_path = sys.argv[1]
+
+def _split_env(key):
+    raw = os.environ.get(key, "")
+    return [e for e in raw.split("\x01") if e] if raw else []
+
+data = {
+    "schema":            os.environ["_MFAIL_SCHEMA"],
+    "failing_migration": os.environ["_MFAIL_FAILING"],
+    "position": {
+        "index": int(os.environ["_MFAIL_IDX"]),
+        "total": int(os.environ["_MFAIL_TOTAL"]),
+    },
+    "exit_status": int(os.environ["_MFAIL_EXIT"]),
+    "applied":   _split_env("_MFAIL_APPLIED"),
+    "not_run":   _split_env("_MFAIL_NOT_RUN"),
+    "timestamp": os.environ["_MFAIL_TIMESTAMP"],
+}
+
+tmp_path = out_path + ".tmp." + str(os.getpid())
+try:
+    with open(tmp_path, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2)
+        fh.write("\n")
+    os.replace(tmp_path, out_path)
+except Exception:
+    try:
+        os.unlink(tmp_path)
+    except OSError:
+        pass
+    raise
+PYMFAIL
+          echo "  artifact: $_failed_artifact" >&2
+          exit $_mig_rc
+        fi
+
+        _applied_migrations+=("migrations/$v.sh")
       fi
     fi
   done
@@ -885,6 +1232,14 @@ ship_files=$(cd "$workdir/new" && git ls-files \
 # (one path per line, project-root-relative) in .template-customizations.
 # Those paths are skipped entirely by upgrade: never overwritten, never
 # flagged as conflicts.
+#
+# Per FW-ADR-0014, the preserve-list is no longer authoritative on its own.
+# At sync time each entry is classified by should_preserve() against
+# (a) project-vs-baseline divergence and (b) the destination manifest's
+# fresh-write declaration. Inert entries silently drop; genuine
+# manifest-vs-customisation conflicts refuse with exit 2 unless
+# SWDT_PRESERVATION_FORCE=1. The on-disk file is untouched here — the
+# opt-in pruning migration (migrations/v1.0.0-rc14.sh) is the only writer.
 declare -A preserve_list=()
 customizations_file="$project_root/.template-customizations"
 if [[ -f "$customizations_file" ]]; then
@@ -896,6 +1251,130 @@ if [[ -f "$customizations_file" ]]; then
     preserve_list["$line"]=1
   done < "$customizations_file"
 fi
+
+# --- FW-ADR-0014: preservation decision helper -------------------------------
+#
+# Classify a preserve-list entry against project divergence and the
+# destination manifest's fresh-write declaration. Returns one of:
+#
+#   preserve          — divergence AND path not declared fresh-write
+#   drop-inert        — no divergence (inert entry; sync proceeds)
+#   refuse-conflict   — divergence AND path declared fresh-write
+#                       (manifest contradiction; caller must refuse
+#                       unless SWDT_PRESERVATION_FORCE=1)
+#
+# Reads (caller-supplied via positional args):
+#   $1  project-relative path
+#   $2  workdir/new (upstream new clone)
+#   $3  workdir/old (upstream baseline clone, or empty when unreachable)
+#   $4  project_root
+#   $5  baseline_available (0/1)
+#
+# When baseline is unreachable (baseline_available=0) we cannot prove
+# the project is at the same content as the baseline — every diverged-
+# from-upstream path is treated as divergence (conservative, matches
+# the existing "no baseline" comment in the sync classifier below).
+should_preserve() {
+  local path="$1"
+  local wnew="$2"
+  local wold="$3"
+  local proot="$4"
+  local b_avail="$5"
+
+  local proj_file="$proot/$path"
+  if [[ ! -f "$proj_file" ]]; then
+    # Project doesn't have the file at all — nothing to preserve. The
+    # sync loop will fall through to its add path (or skip if upstream
+    # also lacks it). Treat as drop-inert.
+    echo "drop-inert"
+    return 0
+  fi
+
+  # Divergence check: project vs baseline.
+  local diverged=0
+  if [[ "$b_avail" == "1" && -n "$wold" && -f "$wold/$path" ]]; then
+    if ! cmp -s "$wold/$path" "$proj_file"; then
+      diverged=1
+    fi
+  else
+    # Baseline unreachable for this path. Conservative: compare project
+    # against new upstream. If they match, there's nothing custom to
+    # preserve (drop-inert). If they differ, we cannot prove which
+    # change introduced the diff, so treat as diverged.
+    if [[ -f "$wnew/$path" ]] && cmp -s "$wnew/$path" "$proj_file"; then
+      diverged=0
+    else
+      diverged=1
+    fi
+  fi
+
+  if [[ $diverged -eq 0 ]]; then
+    echo "drop-inert"
+    return 0
+  fi
+
+  # Divergence is real. Now check the destination manifest's fresh-write
+  # declaration. Pass the project root so the helper consults the
+  # project's `.template-customizations`: preserved paths are excluded
+  # from the destination manifest by design and therefore cannot be
+  # "declared fresh-write" for this project (PR #197 / dogfood-2026-05-15
+  # fix for scaffold-canonical stub-fills).
+  if manifest_declares_fresh_write "$path" "$wnew" "$wold" "$proot"; then
+    echo "refuse-conflict"
+  else
+    echo "preserve"
+  fi
+  return 0
+}
+
+# --- FW-ADR-0014: preservation refusal block-artefact writer -----------------
+#
+# Mirrors the FW-ADR-0010 pre-bootstrap block-artefact writer. Emits
+# .template-preservation-blocked.json at project root. Reads three
+# parallel arrays populated by the sync loop's classification pass:
+#
+#   preservation_refused_paths[]
+#   preservation_refused_project_shas[]
+#   preservation_refused_baseline_shas[]
+#   preservation_refused_manifest_shas[]
+#
+# Format: schema parallel to .template-prebootstrap-blocked.json
+# (version 1, generated, reason_summary, blocked[] sorted by path).
+write_preservation_block_artefact() {
+  local out="$1"
+  local tmp
+  tmp="$(mktemp "$out.tmp.XXXXXX")"
+  {
+    printf '{\n'
+    printf '  "version": 1,\n'
+    printf '  "generated": "%s",\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf '  "reason_summary": "manifest-fresh-write-vs-customisation",\n'
+    printf '  "blocked": [\n'
+    # Build a sortable list (path -> index) so output is deterministic.
+    local sorted_idx=()
+    while IFS= read -r idx_line; do
+      sorted_idx+=("${idx_line#*:}")
+    done < <(
+      for j in "${!preservation_refused_paths[@]}"; do
+        printf '%s:%s\n' "${preservation_refused_paths[$j]}" "$j"
+      done | LC_ALL=C sort
+    )
+    local first=1
+    for j in "${sorted_idx[@]}"; do
+      [[ $first -eq 0 ]] && printf ',\n'
+      first=0
+      printf '    {\n'
+      printf '      "path": "%s",\n' "${preservation_refused_paths[$j]}"
+      printf '      "project_sha": "%s",\n' "${preservation_refused_project_shas[$j]}"
+      printf '      "baseline_sha": "%s",\n' "${preservation_refused_baseline_shas[$j]}"
+      printf '      "manifest_declared_sha": "%s",\n' "${preservation_refused_manifest_shas[$j]}"
+      printf '      "reason": "manifest-fresh-write-vs-customisation"\n'
+      printf '    }'
+    done
+    printf '\n  ]\n}\n'
+  } > "$tmp"
+  mv "$tmp" "$out"
+}
 
 # Agent-name-aware compare (issue #64).
 #
@@ -970,6 +1449,89 @@ atomic_install() {
   mv "$dst.tmp.$$" "$dst"
 }
 
+# Issue #262: trivial SPDX-only delta auto-merge helper.
+#
+# Returns 0 (true) when ALL of the following hold:
+#   1. Every line added in project vs baseline matches
+#      ^#.*SPDX-License-Identifier: or ^#.*Copyright.
+#   2. The added-line count is <= 5.
+#   3. There are zero deletions (no baseline lines absent from project).
+#   4. There are zero other modifications (no in-place changes).
+# AND the upstream file already contains each of those added lines
+#   (diff project vs upstream reduces to zero non-SPDX-line differences).
+#
+# Arguments:
+#   $1  baseline path  (workdir/old/<f>)
+#   $2  project path   (project_root/<f>)
+#   $3  upstream path  (workdir/new/<f>)
+#
+# Conservative: any ambiguity returns 1 (fall through to conflict path).
+_is_trivial_spdx_delta() {
+  local baseline="$1"
+  local project="$2"
+  local upstream="$3"
+
+  # Require all three files to exist; without a baseline we cannot prove
+  # the delta is trivial.
+  [[ -f "$baseline" && -f "$project" && -f "$upstream" ]] || return 1
+
+  # --- Rule 1-4: analyse baseline→project diff --------------------------------
+  # Use comm after sorting to find lines added and deleted.
+  # comm -23 sorted-project sorted-baseline = lines only in project (added).
+  # comm -23 sorted-baseline sorted-project = lines only in baseline (deleted).
+  #
+  # Note: comm on sorted input does not detect in-place modifications;
+  # we check for those by requiring zero deletions AND that added+deleted
+  # account for the full diff (wc -l of diff output vs comm output).
+
+  local added_lines deleted_lines
+  added_lines="$(comm -23 \
+      <(sort "$project") \
+      <(sort "$baseline"))"
+  deleted_lines="$(comm -23 \
+      <(sort "$baseline") \
+      <(sort "$project"))"
+
+  # Rule 3: zero deletions.
+  [[ -z "$deleted_lines" ]] || return 1
+
+  # Rule 1: every added line must match the SPDX/Copyright pattern.
+  if [[ -n "$added_lines" ]]; then
+    local bad_lines
+    bad_lines="$(printf '%s\n' "$added_lines" \
+        | grep -v -E '^#.*(SPDX-License-Identifier:|Copyright)' || true)"
+    [[ -z "$bad_lines" ]] || return 1
+  fi
+
+  # Rule 2: added-line count <= 5.
+  local add_count
+  add_count="$(printf '%s\n' "$added_lines" | grep -c . || true)"
+  [[ "$add_count" -le 5 ]] || return 1
+
+  # Rule 4: zero other modifications.
+  # If the file content differs by more than just the added lines, there
+  # must be in-place edits. We detect this by confirming that the line
+  # count of the project equals the baseline count plus the added count.
+  local proj_lines base_lines
+  proj_lines="$(wc -l < "$project")"
+  base_lines="$(wc -l < "$baseline")"
+  [[ "$proj_lines" -eq $((base_lines + add_count)) ]] || return 1
+
+  # If nothing was added the files are byte-identical and we should not
+  # have reached this function (files_match would have caught it above).
+  # But if we somehow do, there is nothing to auto-merge.
+  [[ "$add_count" -gt 0 ]] || return 1
+
+  # --- Upstream containment check: every added line exists in upstream --------
+  # Each added line must already appear verbatim in the upstream file.
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    grep -qxF "$line" "$upstream" || return 1
+  done <<< "$added_lines"
+
+  return 0
+}
+
 shortstat_between() {
   local from="$1"
   local to="$2"
@@ -982,6 +1544,16 @@ shortstat_between() {
 }
 
 added=(); upgraded=(); kept=(); conflicts=(); local_only_kept=(); accepted_local=(); preserved=()
+# FW-ADR-0014: per-path classification of preserve-list entries.
+#   dropped_inert[]     — entries with no divergence (silently dropped).
+#   preservation_refused_paths[] (+ parallel SHA arrays) — entries that
+#     hit the manifest-fresh-write-vs-customisation conflict and need
+#     a block-artefact row.
+dropped_inert=()
+preservation_refused_paths=()
+preservation_refused_project_shas=()
+preservation_refused_baseline_shas=()
+preservation_refused_manifest_shas=()
 # Issue #110: pre-existing collisions — files that the project had
 # locally BEFORE upstream started shipping them. Identified by:
 # baseline-tree did NOT contain the file, project tree DOES, upstream
@@ -1012,14 +1584,77 @@ if [[ -f "$manifest_path_pre" ]]; then
   done < "$manifest_path_pre"
 fi
 
+# Issue #200: pre-load project_sha values for every "conflict"-classified
+# entry in .template-conflicts.json.  Used below to prevent the
+# accepted_via_manifest path from silently reclassifying a tracked
+# conflict to accepted_local on a plain re-run (without --resolve and
+# without an actual hand-merge having taken place).
+declare -A prior_conflict_sha=()
+_prerun_conflicts_path="$project_root/.template-conflicts.json"
+if [[ -f "$_prerun_conflicts_path" ]]; then
+  while IFS= read -r _c_line; do
+    # Match lines containing a "conflict"-classified entry.  The emit
+    # format is one JSON object per line inside the entries array.
+    [[ "$_c_line" == *'"classified": "conflict"'* ]] || continue
+    _c_path="$(printf '%s' "$_c_line" | sed -n 's/.*"path": "\([^"]*\)".*/\1/p')"
+    _c_proj="$(printf '%s' "$_c_line" | sed -n 's/.*"project_sha": "\([^"]*\)".*/\1/p')"
+    [[ -n "$_c_path" ]] || continue
+    prior_conflict_sha["$_c_path"]="$_c_proj"
+  done < "$_prerun_conflicts_path"
+fi
+unset _prerun_conflicts_path _c_line _c_path _c_proj
+
+# Track paths refused by the #200 guard so we can emit a diagnostic and
+# exit non-zero after the file loop.
+silent_reclassify_refused=()
+
 for f in $ship_files; do
   new_path="$workdir/new/$f"
   proj_path="$project_root/$f"
 
-  # Honor .template-customizations: skip preserved paths entirely.
+  # Honor .template-customizations, gated by FW-ADR-0014's
+  # divergence-AND-manifest-respecting rule (see should_preserve()).
   if [[ -n "${preserve_list[$f]:-}" ]]; then
-    preserved+=("$f")
-    continue
+    case "$(should_preserve "$f" "$workdir/new" "$workdir/old" "$project_root" "$baseline_available")" in
+      preserve)
+        preserved+=("$f")
+        continue
+        ;;
+      drop-inert)
+        # Inert entry — silently drop from the in-memory preserve set
+        # and fall through to the normal sync classifier so the path
+        # gets the upstream content. The on-disk file is not rewritten
+        # here; the opt-in pruning migration is the only writer.
+        dropped_inert+=("$f")
+        ;;
+      refuse-conflict)
+        # Manifest-fresh-write-vs-customisation collision. Record per-
+        # path detail; the post-loop refusal handler emits the block
+        # artefact (or, with SWDT_PRESERVATION_FORCE=1, appends an
+        # audit row and falls through to the normal classifier).
+        proj_sha_p=""
+        baseline_sha_p=""
+        manifest_sha_p=""
+        if [[ -f "$project_root/$f" ]]; then
+          proj_sha_p="$(manifest_file_sha "$project_root/$f")"
+        fi
+        if [[ $baseline_available -eq 1 && -f "$workdir/old/$f" ]]; then
+          baseline_sha_p="$(manifest_file_sha "$workdir/old/$f")"
+        fi
+        if [[ -f "$workdir/new/$f" ]]; then
+          manifest_sha_p="$(manifest_file_sha "$workdir/new/$f")"
+        fi
+        preservation_refused_paths+=("$f")
+        preservation_refused_project_shas+=("$proj_sha_p")
+        preservation_refused_baseline_shas+=("$baseline_sha_p")
+        preservation_refused_manifest_shas+=("$manifest_sha_p")
+        # Default action when not forced: preserve (do not overwrite
+        # the customisation). The post-loop handler will refuse the
+        # whole upgrade if any refusals remain unforced.
+        preserved+=("$f")
+        continue
+        ;;
+    esac
   fi
 
   if [[ "$f" == "AGENTS.md" ]] && memory_only_agents_stub "$proj_path"; then
@@ -1102,8 +1737,24 @@ for f in $ship_files; do
       proj_sha="$(manifest_file_sha "$proj_path")"
       new_sha_f="$(manifest_file_sha "$new_path")"
       if [[ "$proj_sha" == "${manifest_sha[$f]}" && "${manifest_sha[$f]}" != "$new_sha_f" ]]; then
-        accepted_local+=("$f")
-        accepted_via_manifest=1
+        # Issue #200: if this file is already tracked as a "conflict" in
+        # .template-conflicts.json, refuse to promote silently to
+        # accepted_local.  A plain re-run must not reclassify a tracked
+        # conflict — the operator must hand-merge and then run
+        # scripts/upgrade.sh --resolve.
+        #
+        # Note: --resolve mode exits at line 456 before reaching this
+        # loop, so resolve_mode is always 0 here.  The guard is stated
+        # without that branch for clarity.
+        if [[ -n "${prior_conflict_sha[$f]:-}" ]]; then
+          # Tracked conflict: refuse silent reclassification.  Fall
+          # through to the accepted_via_manifest=0 block so the file
+          # lands in conflicts[] and keeps the tracked conflict alive.
+          silent_reclassify_refused+=("$f")
+        else
+          accepted_local+=("$f")
+          accepted_via_manifest=1
+        fi
       fi
     fi
     if [[ $accepted_via_manifest -eq 0 ]]; then
@@ -1120,6 +1771,23 @@ for f in $ship_files; do
          && cmp -s "$workdir/old/$f" "$workdir/new/$f"; then
         local_only_kept+=("$f")
       else
+        # Issue #262: before classifying as a conflict, check whether the
+        # local delta is a trivial SPDX-only addition that upstream already
+        # contains.  If so, take upstream silently and emit a log line.
+        # False negatives (delta not detected as trivial) are acceptable;
+        # false positives are not — when in doubt fall through to the
+        # conflict path below.
+        if [[ $baseline_available -eq 1 \
+           && -f "$workdir/old/$f" \
+           && $dry_run -eq 0 ]] \
+           && _is_trivial_spdx_delta \
+                "$workdir/old/$f" "$proj_path" "$new_path"; then
+          echo "auto-merged (trivial SPDX delta): $f"
+          upgraded+=("$f (auto-merge: SPDX)")
+          atomic_install "$new_path" "$proj_path"
+          [[ $is_agent -eq 1 ]] && agent_splice_name "$proj_path" "$agent_name_line"
+          continue
+        fi
         conflicts+=("$f")
         # Issue #110: pre-existing collision — file present in project
         # AND upstream but absent from baseline. Means upstream began
@@ -1146,6 +1814,136 @@ for f in $ship_files; do
     fi
   fi
 done
+
+# --- Issue #200: refuse silent conflict→accepted_local reclassification ------
+#
+# If a plain re-run (no --resolve) attempted to promote a file that is
+# already tracked as "conflict" in .template-conflicts.json to
+# accepted_local (via the accepted_via_manifest path), those files were
+# collected in silent_reclassify_refused[].  Emit a diagnostic naming
+# each path and exit non-zero so the tracked conflict is not silently lost.
+# The operator must either:
+#   (a) hand-merge the file and run: scripts/upgrade.sh --resolve
+#   (b) pin the path in .template-customizations and run: scripts/upgrade.sh --resolve
+if [[ ${#silent_reclassify_refused[@]} -gt 0 ]]; then
+  echo "ERROR: the following path(s) are tracked as unresolved conflicts in" >&2
+  echo "  .template-conflicts.json but would be silently accepted on this" >&2
+  echo "  re-run.  Refusing to reclassify without an explicit --resolve." >&2
+  echo "" >&2
+  for _sr in "${silent_reclassify_refused[@]}"; do
+    echo "  conflict (unresolved): $_sr" >&2
+  done
+  echo "" >&2
+  echo "To resolve: hand-merge each file above, then run:" >&2
+  echo "  scripts/upgrade.sh --resolve" >&2
+  echo "Or to accept the local version as-is, add the path to" >&2
+  echo "  .template-customizations, then run: scripts/upgrade.sh --resolve" >&2
+  echo "(Issue #200 / upgrade.sh re-run safety guard.)" >&2
+  exit 1
+fi
+unset _sr
+
+# --- FW-ADR-0014: preservation-vs-manifest refusal handler ------------------
+#
+# If any entry hit the refuse-conflict row, either:
+#   (a) honour SWDT_PRESERVATION_FORCE=1 — append one audit row per
+#       refused path to docs/pm/pre-release-gate-overrides.md with
+#       Gate=preservation, then atomically install the upstream
+#       content over the divergent project file. Removes any stale
+#       block artefact.
+#   (b) write .template-preservation-blocked.json and exit 2 (the
+#       refuse-on-uncertain posture; matches FW-ADR-0010).
+#
+# dry-run: print the planned refusal / override; change nothing.
+preservation_block_artefact="$project_root/.template-preservation-blocked.json"
+if [[ ${#preservation_refused_paths[@]} -gt 0 ]]; then
+  if [[ "${SWDT_PRESERVATION_FORCE:-}" == "1" ]]; then
+    override_log_p="$project_root/docs/pm/pre-release-gate-overrides.md"
+    if [[ ! -w "$override_log_p" ]]; then
+      echo "ERROR: SWDT_PRESERVATION_FORCE=1 set, but $override_log_p is unwritable." >&2
+      echo "       Refusing to bypass without an audit row. Fix permissions and re-run." >&2
+      exit 2
+    fi
+    date_iso_p="$(date -u +%Y-%m-%d)"
+    operator_p="$(git config user.email 2>/dev/null || echo "${USER:-unknown}@$(hostname 2>/dev/null || echo unknown)")"
+    force_reason_p="${SWDT_PRESERVATION_FORCE_REASON:-unspecified}"
+    new_sha_short_p="${new_sha:-}"
+    if [[ -n "$new_sha_short_p" ]]; then
+      new_sha_short_p="${new_sha_short_p:0:12}"
+    else
+      new_sha_short_p="(preservation)"
+    fi
+    if [[ $dry_run -eq 0 ]]; then
+      for j in "${!preservation_refused_paths[@]}"; do
+        row="| $date_iso_p | preservation | $new_sha_short_p | | $operator_p | manifest-fresh-write-vs-customisation:${preservation_refused_paths[$j]} ($force_reason_p) | |"
+        printf '%s\n' "$row" >> "$override_log_p"
+        echo "WARN: SWDT_PRESERVATION_FORCE=1 — overriding preservation block on ${preservation_refused_paths[$j]}" >&2
+      done
+      echo "WARN: preservation audit row(s) appended to $override_log_p" >&2
+      # Install upstream content over each refused project file. These
+      # paths were classified `preserved` during the sync loop; the
+      # force path now reclassifies them as `upgraded` and writes the
+      # upstream bytes.
+      for f_p in "${preservation_refused_paths[@]}"; do
+        # Remove the path from preserved[] (rebuild without it).
+        # NB: the `[@]:-` rebuild idiom is unsafe — when the source
+        # array is empty, `("${arr[@]:-}")` yields a one-element
+        # empty-string array, not an empty array. Guard on length
+        # instead. (CR blocker B-1, branch
+        # fix/blocker-4-preservation-vs-manifest.)
+        new_preserved=()
+        if [ "${#preserved[@]}" -gt 0 ]; then
+          for q in "${preserved[@]}"; do
+            [[ "$q" == "$f_p" ]] && continue
+            new_preserved+=("$q")
+          done
+        fi
+        if [ "${#new_preserved[@]}" -gt 0 ]; then
+          preserved=("${new_preserved[@]}")
+        else
+          preserved=()
+        fi
+        # Stage upstream content via the atomic helper used by the
+        # main sync loop.
+        if [[ -f "$workdir/new/$f_p" ]]; then
+          mkdir -p "$(dirname "$project_root/$f_p")"
+          atomic_install "$workdir/new/$f_p" "$project_root/$f_p"
+        fi
+        upgraded+=("$f_p")
+      done
+      rm -f "$preservation_block_artefact"
+    else
+      echo "(dry-run: would override preservation block on ${#preservation_refused_paths[@]} path(s) and append audit rows to $override_log_p)" >&2
+    fi
+  else
+    if [[ $dry_run -eq 0 ]]; then
+      write_preservation_block_artefact "$preservation_block_artefact"
+    fi
+    echo >&2
+    echo "ERROR: preservation refused — preserve-list path(s) collide with destination manifest fresh-write declaration." >&2
+    for j in "${!preservation_refused_paths[@]}"; do
+      echo "  ${preservation_refused_paths[$j]}: project diverges AND release ships new content (manifest-fresh-write-vs-customisation)" >&2
+    done
+    if [[ $dry_run -eq 0 ]]; then
+      echo >&2
+      echo "Block artefact: $preservation_block_artefact" >&2
+    else
+      echo "(dry-run: would have written $preservation_block_artefact)" >&2
+    fi
+    echo "Recovery:" >&2
+    echo "  - Inspect the diff at each blocked path and decide whether the" >&2
+    echo "    project customisation should win (remove the upstream change," >&2
+    echo "    re-run upgrade) or whether the release content should win" >&2
+    echo "    (SWDT_PRESERVATION_FORCE=1 — overwrites the project file)." >&2
+    echo "  - To bypass (overwrite every refused path, audit-logged):" >&2
+    echo "      SWDT_PRESERVATION_FORCE=1 scripts/upgrade.sh ..." >&2
+    echo "    (Optionally set SWDT_PRESERVATION_FORCE_REASON='<note>' for the audit row.)" >&2
+    exit 2
+  fi
+else
+  # No refusals — clear any stale block artefact from a prior run.
+  rm -f "$preservation_block_artefact"
+fi
 
 # --- Retrofit docs/intake-log.md (T041 / FR-013) -----------------------------
 # The template ships docs/templates/intake-log-template.md but does not
@@ -1212,6 +2010,179 @@ if [[ $dry_run -eq 0 && -f "$customizations_file" ]]; then
   fi
 fi
 
+# --- Additive merge for .claude/settings.json hook wiring (issue #201) --------
+# The framework ships PreToolUse hooks (tech-lead-authoring-guard.py,
+# customer-notes-guard.py), PostToolUse activity capture, TaskCompleted /
+# TaskCreated / SubagentStop / Stop handoff gates, and SessionStart reminders via
+# scripts/hooks/, but `.claude/settings.json` is customarily customised
+# by downstream projects (env, permissions, allow / deny lists). It
+# therefore lands in the `preserved` / `conflicts` bucket above and the
+# upstream hook wiring never reaches the file. Result: shipped-but-dead
+# hooks; Hard Rule #8 unenforced at the tool layer.
+#
+# Fix: after the main sync, parse the project's existing settings.json
+# and additively merge any missing framework hook entries (de-duped by
+# `command`). Existing customer entries — env, permissions, custom
+# hooks — are preserved verbatim; only missing framework hooks are added.
+# Idempotent: re-running the upgrade with all framework hooks already
+# present is a no-op.
+#
+# The merge runs in-process via a small Python helper (json module
+# only, no extra deps). It is gated on:
+#   - $dry_run -eq 0
+#   - The framework's source settings.json (workdir/new/.claude/settings.json)
+#     being present
+#   - The downstream's settings.json being present (if absent, the
+#     normal sync flow above already installed the framework copy
+#     verbatim, so no merge needed)
+upstream_settings="$workdir/new/.claude/settings.json"
+project_settings="$project_root/.claude/settings.json"
+if [[ $dry_run -eq 0 && -f "$upstream_settings" && -f "$project_settings" ]]; then
+  settings_merge_log="$(mktemp -t settings-merge-XXXXXX.log)"
+  if python3 - "$upstream_settings" "$project_settings" >"$settings_merge_log" 2>&1 <<'PYMERGE'
+"""Additive merge of framework hook entries into project settings.json.
+
+Reads two file paths from argv: the framework's settings.json (source
+of truth for hook wiring) and the project's settings.json (preserved
+otherwise). Merges missing PreToolUse, PostToolUse, TaskCompleted, TaskCreated,
+SubagentStop, Stop, and SessionStart hooks into the project file in place,
+de-duped by the inner hook ``command`` string.
+Prints a one-line summary per added entry; exit code 0 on success
+(including the no-op case) or 1 on parse error.
+"""
+import json
+import os
+import sys
+
+
+def _command_set(hook_entry):
+    """Set of inner-hook `command` strings for one matcher entry."""
+    out = set()
+    for hk in hook_entry.get("hooks", []) or []:
+        cmd = hk.get("command")
+        if isinstance(cmd, str):
+            out.add(cmd)
+    return out
+
+
+def _entry_key(entry):
+    """Match key for a PreToolUse / SessionStart top-level entry.
+
+    PreToolUse entries discriminate on ``matcher`` (e.g. ``"Write"``).
+    SessionStart entries may have no matcher (the bare default) or a
+    ``"compact"`` matcher. Use the literal matcher (or "" sentinel) so
+    same-matcher framework entries merge into same-matcher project
+    entries instead of being duplicated.
+    """
+    return entry.get("matcher", "") or ""
+
+
+def _merge_hook_section(project_section, upstream_section, section_label):
+    """Merge upstream_section hook entries into project_section in place.
+
+    Returns a list of human-readable strings describing each change.
+    """
+    changes = []
+    project_by_key = {_entry_key(e): e for e in project_section}
+    for up_entry in upstream_section:
+        key = _entry_key(up_entry)
+        if key in project_by_key:
+            proj_entry = project_by_key[key]
+            existing = _command_set(proj_entry)
+            for up_hook in up_entry.get("hooks", []) or []:
+                if not isinstance(up_hook, dict):
+                    continue
+                cmd = up_hook.get("command")
+                if not isinstance(cmd, str) or cmd in existing:
+                    continue
+                proj_entry.setdefault("hooks", []).append(up_hook)
+                existing.add(cmd)
+                label = key if key else "(no matcher)"
+                changes.append(
+                    "{}[{}]: added hook {}".format(section_label, label, cmd)
+                )
+        else:
+            project_section.append(up_entry)
+            label = key if key else "(no matcher)"
+            changes.append(
+                "{}[{}]: added matcher entry".format(section_label, label)
+            )
+            project_by_key[key] = up_entry
+    return changes
+
+
+def main():
+    if len(sys.argv) != 3:
+        sys.stderr.write("usage: merge_settings.py <upstream> <project>\n")
+        return 2
+    upstream_path, project_path = sys.argv[1], sys.argv[2]
+    with open(upstream_path, "r", encoding="utf-8") as fh:
+        upstream = json.load(fh)
+    with open(project_path, "r", encoding="utf-8") as fh:
+        project = json.load(fh)
+
+    upstream_hooks = (upstream.get("hooks") or {})
+    project_hooks = project.setdefault("hooks", {})
+
+    all_changes = []
+    for section in ("PreToolUse", "PostToolUse", "TaskCompleted", "TaskCreated", "SubagentStop", "Stop", "SessionStart"):
+        up_section = upstream_hooks.get(section)
+        if not isinstance(up_section, list):
+            continue
+        proj_section = project_hooks.setdefault(section, [])
+        if not isinstance(proj_section, list):
+            sys.stderr.write(
+                "WARN: project hooks.{} is not a list; skipping section.\n".format(
+                    section
+                )
+            )
+            continue
+        all_changes.extend(
+            _merge_hook_section(proj_section, up_section, section)
+        )
+
+    if not all_changes:
+        print("settings.json: framework hook wiring already current; no changes.")
+        return 0
+
+    # Write atomically: tmp + rename.
+    tmp_path = project_path + ".tmp." + str(os.getpid())
+    with open(tmp_path, "w", encoding="utf-8") as fh:
+        json.dump(project, fh, indent=2)
+        fh.write("\n")
+    os.replace(tmp_path, project_path)
+    print("settings.json: merged {} framework hook entr{} into project file:".format(
+        len(all_changes), "y" if len(all_changes) == 1 else "ies"
+    ))
+    for line in all_changes:
+        print("  + " + line)
+    return 0
+
+
+sys.exit(main())
+PYMERGE
+  then
+    merge_rc=0
+  else
+    merge_rc=$?
+  fi
+  if [[ $merge_rc -eq 0 ]]; then
+    # Surface the merge summary to the upgrade report.
+    if grep -q '^settings.json: merged' "$settings_merge_log" 2>/dev/null; then
+      echo "ACTION NOTICE: framework hook wiring merged into .claude/settings.json (issue #201):"
+      sed 's/^/  /' "$settings_merge_log"
+    fi
+    # Quiet "no changes" case stays silent; the upgrade report is
+    # otherwise unaffected.
+  else
+    echo "WARN: settings.json additive merge failed (rc=$merge_rc); leaving project file unchanged." >&2
+    sed 's/^/  /' "$settings_merge_log" >&2
+  fi
+  rm -f "$settings_merge_log"
+elif [[ $dry_run -eq 1 && -f "$upstream_settings" && -f "$project_settings" ]]; then
+  echo "(dry-run: would additively merge framework hook entries into .claude/settings.json if any are missing — issue #201)" >&2
+fi
+
 # Stamp the new TEMPLATE_VERSION (only if not dry-run AND there are no conflicts,
 # OR if the user accepts leaving conflicts in place — we do the latter by default).
 if [[ $dry_run -eq 0 ]]; then
@@ -1257,9 +2228,19 @@ EOF
         printf '    {"path": "%s", "classified": "%s", "baseline_sha": "%s", "upstream_sha": "%s", "project_sha": "%s"}' \
           "$path" "$classified" "$baseline_sha" "$upstream_sha" "$project_sha"
       }
-      for f in "${conflicts[@]:-}"; do [[ -n "$f" ]] && emit_entry "$f" "conflict"; done
-      for f in "${local_only_kept[@]:-}"; do [[ -n "$f" ]] && emit_entry "$f" "local_only_kept"; done
-      for f in "${accepted_local[@]:-}"; do [[ -n "$f" ]] && emit_entry "$f" "accepted_local"; done
+      # Avoid the `[@]:-` iteration idiom — under `set -u` on modern
+      # bash, `"${arr[@]}"` over an empty array is safe; the `[@]:-`
+      # form injects a phantom empty-string iteration. Gate on length
+      # instead. (CR blocker B-1.)
+      if [ "${#conflicts[@]}" -gt 0 ]; then
+        for f in "${conflicts[@]}"; do emit_entry "$f" "conflict"; done
+      fi
+      if [ "${#local_only_kept[@]}" -gt 0 ]; then
+        for f in "${local_only_kept[@]}"; do emit_entry "$f" "local_only_kept"; done
+      fi
+      if [ "${#accepted_local[@]}" -gt 0 ]; then
+        for f in "${accepted_local[@]}"; do emit_entry "$f" "accepted_local"; done
+      fi
       printf '\n  ]\n}\n'
     } > "$conflicts_path"
   else
@@ -1295,11 +2276,13 @@ fi
 # the 'added' list; no filtering needed here beyond the prefix match.
 # Upstream issue #36.
 new_agents=()
-for f in "${added[@]:-}"; do
-  case "$f" in
-    .claude/agents/*.md) new_agents+=("$f") ;;
-  esac
-done
+if [ "${#added[@]}" -gt 0 ]; then
+  for f in "${added[@]}"; do
+    case "$f" in
+      .claude/agents/*.md) new_agents+=("$f") ;;
+    esac
+  done
+fi
 if [[ ${#new_agents[@]} -gt 0 ]]; then
   echo "${prefix}ACTION REQUIRED: restart Claude Code to register ${#new_agents[@]} new agent(s)."
   echo "${prefix}  The agent registry is initialized at session start and does not rescan"
@@ -1382,7 +2365,9 @@ if [[ ${#preserved[@]} -gt 0 ]]; then
 fi
 
 if [[ $dry_run -eq 0 ]]; then
-  echo "Done. TEMPLATE_VERSION now $new_version / $new_sha."
+  # FW-ADR-0014 two-phase tail.
+  # Phase A — migration chain complete signal (grep-stable literal).
+  echo "Migration chain complete (TEMPLATE_VERSION now $new_version)."
   if [[ ${#conflicts[@]} -gt 0 ]]; then
     echo "Resolve the ${#conflicts[@]} conflict(s) above, then commit."
     echo "Unresolved conflicts persisted to .template-conflicts.json;"
@@ -1390,6 +2375,38 @@ if [[ $dry_run -eq 0 ]]; then
     echo "  After hand-merging, run scripts/upgrade.sh --resolve to clear."
   elif [[ ${#local_only_kept[@]} -gt 0 || ${#accepted_local[@]} -gt 0 ]]; then
     echo "Manifest verifies clean; remaining listed files are local customizations, not upgrade blockers."
+  fi
+
+  # Phase B — verification. Re-invoke the existing --verify formatter
+  # (manifest_verify from scripts/lib/manifest.sh) and map its result
+  # onto exit codes 0 / 1 / 2 per FW-ADR-0014 Q2.
+  #
+  # Exit codes:
+  #   0  clean      — verify reports OK and no preservation refusal.
+  #   1  drift      — verify reports drift (rc 1) or corrupt manifest
+  #                   (rc 3) — both indicate the post-upgrade project
+  #                   state is not in the shape the manifest claims.
+  #   2  refusal    — preservation refusal artefact present at project
+  #                   root (handled above via exit 2; never reaches
+  #                   this block, but the discriminator is documented
+  #                   here for completeness).
+  verify_rc=0
+  manifest_verify "$project_root" "$project_root/TEMPLATE_MANIFEST.lock" || verify_rc=$?
+  if [[ $verify_rc -eq 0 ]]; then
+    echo "Verification: clean."
+  else
+    # manifest_verify already printed its per-path drift report to
+    # stdout above; nothing extra needed here. Map rc to exit code.
+    if [[ -f "$preservation_block_artefact" ]]; then
+      # Unreachable in practice (refusal handler exits before stamping)
+      # but keep the mapping documented.
+      exit 2
+    fi
+    if [[ $verify_rc -eq 1 || $verify_rc -eq 3 ]]; then
+      exit 1
+    fi
+    # rc 2 means "manifest missing/unreadable" — surface as drift.
+    exit 1
   fi
 
   # Issue #155: when the upgrade preserves custom canonical agent files
@@ -1403,18 +2420,20 @@ if [[ $dry_run -eq 0 ]]; then
   lint_script="$project_root/scripts/lint-agent-contracts.sh"
   if [[ -x "$lint_script" ]]; then
     preserved_canonical_agents=()
-    for pf in "${preserved[@]:-}"; do
-      case "$pf" in
-        .claude/agents/*.md)
-          # Skip sme-* / *-local / sme-template — those aren't canonical
-          # contract surfaces per lint-agent-contracts.sh's surface 1.
-          case "$pf" in
-            .claude/agents/sme-*.md|.claude/agents/*-local.md) ;;
-            *) preserved_canonical_agents+=("$pf") ;;
-          esac
-          ;;
-      esac
-    done
+    if [ "${#preserved[@]}" -gt 0 ]; then
+      for pf in "${preserved[@]}"; do
+        case "$pf" in
+          .claude/agents/*.md)
+            # Skip sme-* / *-local / sme-template — those aren't canonical
+            # contract surfaces per lint-agent-contracts.sh's surface 1.
+            case "$pf" in
+              .claude/agents/sme-*.md|.claude/agents/*-local.md) ;;
+              *) preserved_canonical_agents+=("$pf") ;;
+            esac
+            ;;
+        esac
+      done
+    fi
     if [[ ${#preserved_canonical_agents[@]} -gt 0 ]]; then
       lint_log="$(mktemp -t upgrade-lint-XXXXXX.log)"
       lint_rc=0
@@ -1437,10 +2456,28 @@ if [[ $dry_run -eq 0 ]]; then
         echo "  Full lint output (read-only --canonical-only pass):"
         sed 's/^/    /' "$lint_log"
         echo
+        # Issue #169: find the latest migration in the upstream clone that
+        # touches the agent-contract schema (i.e. mentions the rc9-introduced
+        # required sections). That migration is the canonical backfiller
+        # regardless of whether the target version ships one itself.
+        schema_migration=""
+        if [[ -d "$workdir/new/migrations" ]]; then
+          for _mig in $(ls "$workdir/new/migrations/"*.sh 2>/dev/null | xargs -I{} basename {} .sh | { semver_sort_tags 2>/dev/null || sort; }); do
+            if grep -qE '## Hard rules|## Output format|agent.contract|lint-agent-contracts'                 "$workdir/new/migrations/$_mig.sh" 2>/dev/null; then
+              schema_migration="$_mig"
+            fi
+          done
+        fi
         if [ -f "migrations/$new_version.sh" ]; then
           echo "  Backfill the missing sections per the rc-specific migration at"
           echo "    migrations/$new_version.sh"
-          echo "  (or the latest migrations/<target>.sh that touches agent contracts)."
+          if [[ -n "$schema_migration" && "$schema_migration" != "$new_version" ]]; then
+            echo "  (the latest schema-touching migration is migrations/$schema_migration.sh)."
+          fi
+        elif [[ -n "$schema_migration" ]]; then
+          echo "  Backfill the missing sections per the latest schema-touching migration:"
+          echo "    migrations/$schema_migration.sh"
+          echo "  (no rc-specific migration exists for $new_version; issue #169)."
         else
           echo "  Backfill the missing sections per the latest migrations/<target>.sh"
           echo "  that touches agent contracts (no rc-specific migration exists for"

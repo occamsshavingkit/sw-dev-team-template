@@ -1,3 +1,10 @@
+---
+name: charter-template
+description: PMBOK Initiating project-charter template; one per project, customer-authorized.
+template_class: charter
+---
+
+
 # Project Charter — <project name>
 
 PMBOK Initiating artifact. One document per project. Owned by

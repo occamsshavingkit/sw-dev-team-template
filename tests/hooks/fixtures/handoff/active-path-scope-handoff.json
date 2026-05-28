@@ -1,0 +1,40 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "v1.1-handoff-active-path-scope",
+  "status": "active",
+  "mode": {
+    "execution": "bounded-codex",
+    "codex_allowed": true,
+    "codex_server": "codex"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Exercise active handoff path-scope gates.",
+  "allowed_paths": ["docs/allowed/**"],
+  "forbidden_paths": ["docs/private/**"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": ["tests/hooks/test-handoff-pre-tool-gate.sh"],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "Active handoff loading follows .devteam/active-handoff.json.",
+    "PreToolUse path gates honor allowed_paths and forbidden_paths."
+  ],
+  "hard_rule_traces": [],
+  "activity": [],
+  "verification": {
+    "tests": [],
+    "reviews": [],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

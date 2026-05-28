@@ -1,0 +1,79 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "smoke-evidence-acceptance-full-gates",
+  "status": "active",
+  "mode": {
+    "execution": "bounded-codex",
+    "codex_allowed": true,
+    "codex_server": "codex"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": ["security-engineer"],
+  "objective": "Smoke baseline: all required gates satisfied by proper accepted evidence.",
+  "allowed_paths": ["scripts/hooks/handoff-task-completed-gate.py"],
+  "forbidden_paths": ["CUSTOMER_NOTES.md"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": ["tests/hooks/test-handoff-task-completed-gate.sh"],
+    "review": true,
+    "security_review": true,
+    "human_approval": true
+  },
+  "acceptance_criteria": [
+    "Completion proceeds when all required gates carry accepted evidence with correct actor_role, evidence_kind=accepted, and researcher-stewarded customer truth."
+  ],
+  "hard_rule_traces": [
+    {
+      "rule_id": "HR-02",
+      "description": "No production code ships on safety-critical or domain-critical paths without explicit customer sign-off recorded in CUSTOMER_NOTES.md.",
+      "source": "CLAUDE.md §Hard rules"
+    },
+    {
+      "rule_id": "HR-04",
+      "description": "Safety-critical or customer-flagged critical logic requires live customer approval obtained by tech-lead; researcher stewards the resulting record in CUSTOMER_NOTES.md.",
+      "source": "CLAUDE.md §Hard rules"
+    }
+  ],
+  "activity": [],
+  "verification": {
+    "tests": [
+      {
+        "name": "tests/hooks/test-handoff-task-completed-gate.sh",
+        "result": "passed",
+        "source": "PostToolUse",
+        "actor_role": "qa-engineer",
+        "evidence_kind": "accepted"
+      }
+    ],
+    "reviews": [
+      {
+        "artifact": "docs/reviews/smoke-evidence-acceptance-full-gates.md",
+        "result": "approved",
+        "actor_role": "code-reviewer",
+        "evidence_kind": "accepted"
+      }
+    ],
+    "security": [
+      {
+        "artifact": "docs/security/smoke-evidence-acceptance-full-gates.md",
+        "result": "approved",
+        "actor_role": "security-engineer",
+        "evidence_kind": "accepted"
+      }
+    ],
+    "human_approval": [
+      {
+        "result": "approved",
+        "source": "CUSTOMER_NOTES.md",
+        "actor_role": "researcher",
+        "evidence_kind": "accepted"
+      }
+    ]
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

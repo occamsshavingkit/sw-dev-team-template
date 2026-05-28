@@ -1,3 +1,10 @@
+---
+name: team-charter-template
+description: PMBOK 8 §2.6 team-charter template; customer-ratified output of Plan Resource Management.
+template_class: team-charter
+---
+
+
 # Team Charter — <project name>
 
 PMBOK 8 Planning artifact (§2.6 Plan Resource Management output;

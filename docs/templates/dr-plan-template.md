@@ -1,3 +1,10 @@
+---
+name: dr-plan-template
+description: SWEBOK V4 ch. 6 §2.5 Disaster Recovery Plan template; backup, DR, failover; SRE-owned.
+template_class: dr-plan
+---
+
+
 # Disaster Recovery Plan — <project name>
 
 Shape per SWEBOK V4 ch. 6 §2.5 "Backup, DR, Failover" (library row

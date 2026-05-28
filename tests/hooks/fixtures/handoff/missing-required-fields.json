@@ -1,0 +1,18 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "status": "active",
+  "mode": {
+    "execution": "bounded-codex",
+    "codex_allowed": true,
+    "codex_server": "codex"
+  },
+  "owner_role": "software-engineer",
+  "allowed_paths": ["scripts/**"],
+  "forbidden_paths": ["scripts/secrets/**"],
+  "requires": {
+    "tests": [],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  }
+}

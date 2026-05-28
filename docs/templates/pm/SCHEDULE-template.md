@@ -1,3 +1,10 @@
+---
+name: schedule-template
+description: PMBOK Planning/Monitoring schedule template; baseline snapshot plus live forecast with variance log.
+template_class: schedule
+---
+
+
 # Schedule — <project name>
 
 PMBOK Planning / Monitoring artifact. Owned by `project-manager`.

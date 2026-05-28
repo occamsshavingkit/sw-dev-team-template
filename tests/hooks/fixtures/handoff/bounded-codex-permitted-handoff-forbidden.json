@@ -1,0 +1,48 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "bounded-codex-permitted-handoff-forbidden-001",
+  "status": "active",
+  "mode": {
+    "execution": "bounded-codex",
+    "codex_allowed": true,
+    "codex_server": "codex"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Fixture: permitted bounded-Codex where a path is allowed at exception level but forbidden at handoff level. Proves handoff-level forbidden overrides exception-level allowed.",
+  "allowed_paths": ["schemas/**", "docs/public/**", "src/**"],
+  "forbidden_paths": ["docs/private/**"],
+  "framework_scope": "product",
+  "requires": {
+    "tests": ["tests/hooks/test-codex-handoff-gate.sh"],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "Write to docs/private/secret.md is denied even though exception allowed_paths includes docs/private/**."
+  ],
+  "hard_rule_traces": [],
+  "bounded_codex_exception": {
+    "execution_mode": "bounded-codex",
+    "codex_permission_flag": true,
+    "permitted_role_owned_action": "update-docs",
+    "allowed_paths": ["docs/private/**", "schemas/**", "src/**"],
+    "forbidden_paths": [],
+    "required_evidence": [],
+    "expiry_or_completion_condition": "T025 task completion"
+  },
+  "activity": [],
+  "verification": {
+    "tests": [],
+    "reviews": [],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

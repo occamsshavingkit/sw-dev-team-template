@@ -1,3 +1,10 @@
+---
+name: unit-test-plan-template
+description: ISTQB Component-testing plus IEEE 829 Level Test Plan template for unit-level coverage.
+template_class: unit-test-plan
+---
+
+
 # Unit Test Plan — <project or subsystem>
 
 Shape per ISTQB Foundation "Component testing" + IEEE 829 Level

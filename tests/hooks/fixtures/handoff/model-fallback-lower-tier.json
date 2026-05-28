@@ -1,0 +1,52 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "model-fallback-lower-tier-001",
+  "status": "active",
+  "mode": {
+    "execution": "claude-code",
+    "codex_allowed": false,
+    "codex_server": "none"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Fixture: model_fallback record with capability_tier_comparison=lower, which must be rejected by validate-handoff.py (pause/escalate required).",
+  "allowed_paths": ["schemas/**", "scripts/**"],
+  "forbidden_paths": [".claude/**", "CUSTOMER_NOTES.md"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": ["tests/hooks/test-handoff-contracts.sh"],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "model_fallback record with capability_tier_comparison=lower is rejected by validate-handoff.py with a pause/escalate message."
+  ],
+  "hard_rule_traces": [
+    {
+      "rule_id": "HR-08",
+      "description": "tech-lead orchestrates; it does not author production artifacts directly — role authority boundaries apply to model selection delegation.",
+      "source": "CLAUDE.md hard rule #8"
+    }
+  ],
+  "model_fallback": {
+    "requested_role": "architect",
+    "requested_model_class": "opus",
+    "actual_model_class": "sonnet",
+    "capability_tier_comparison": "lower",
+    "fallback_reason": "Opus unavailable; sonnet assigned by provider (lower tier — requires pause/escalation)."
+  },
+  "activity": [],
+  "verification": {
+    "tests": [],
+    "reviews": [],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

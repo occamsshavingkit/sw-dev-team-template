@@ -151,6 +151,17 @@ human, because only the customer (or external SMEs, through the
 customer) holds customer-domain ground truth. When an `sme-*` agent
 returns `Try: human`, trust it and ask directly.
 
+
+## Output format
+
+See `docs/agents/manual/tech-lead-manual.md` § "Customer-facing output
+discipline" for the binding Turn Ledger footer schema, idleness check
+(R-1), teammate naming discipline (R-3), and the full output rules
+that orchestrate customer-facing replies. This stub exists so the
+canonical contract carries the required `output_format` section per
+`schemas/agent-contract.schema.json`; the operational text lives in
+the manual to keep the contract small.
+
 ## Enforcement
 
 - No safety-critical or domain-critical code ships without the

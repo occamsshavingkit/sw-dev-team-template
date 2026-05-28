@@ -138,33 +138,11 @@ deliverables).
 6. **Pronoun verification for teammate names.** When a teammate name
    goes into `docs/AGENT_NAMES.md`, verify pronouns against an
    authoritative source and record the citation in the row's
-   `Source` column. Source hierarchy (use the highest available):
-
-   - **Living persons** — (a) the person's own public
-     self-identification (official-site bio, verified profile,
-     first-person interview); (b) their label / publisher /
-     agency / employer bio; (c) a reference encyclopedia entry
-     **when that entry itself cites (a) or (b)** — record the URL
-     plus the date you checked it.
-   - **Historical figures** — a reference biography. Accept the
-     era's conventional pronouns as the default unless a modern
-     reference explicitly reconsiders them; in that case, cite
-     the reference and note the reconsideration.
-   - **Fictional characters** — the canon source (creator's
-     published work or the official franchise's current canonical
-     site).
-
-   Citation format in the `Source` column: one line — "<title of
-   source>, <URL or reference>, as of <YYYY-MM-DD>".
-
-   If pronouns cannot be verified to this bar, flag to `tech-lead`,
-   who either asks the customer to pick a different member of the
-   category or records the use of "they / them" as a documented
-   fallback in `CUSTOMER_NOTES.md`. Do not silently guess or default
-   to "they / them" without that record.
-
-   Re-verify pronouns before a new version of the project's
-   `AGENT_NAMES.md` ships if > 12 months since last check.
+   `Source` column. Source hierarchy, citation format, fallback
+   handling, and re-verification cadence: see
+   `docs/agents/manual/researcher-manual.md` § "Pronoun verification".
+   If pronouns cannot be verified to the manual's bar, flag to
+   `tech-lead`. Do not silently guess.
 7. **Archival + size budgets (binding).** Binding docs accumulate
    closed rows and grow past their useful density. You own rolling
    the closed content out.

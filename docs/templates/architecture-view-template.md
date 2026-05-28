@@ -1,3 +1,10 @@
+---
+name: architecture-view-template
+description: Guided per-view file template; one file per significant IEEE 1016-2009 view per FW-ADR-0004.
+template_class: architecture-view
+---
+
+
 # View — <viewpoint> — <name>
 
 One file per significant view per FW-ADR-0004. Each view is an instance

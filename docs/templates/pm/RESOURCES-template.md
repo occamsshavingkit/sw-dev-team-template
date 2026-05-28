@@ -1,3 +1,10 @@
+---
+name: resources-template
+description: PMBOK 8 §2.6 resources-register template tracking human, physical, and virtual resources across the five processes.
+template_class: resources
+---
+
+
 # Resources Register — <project name>
 
 PMBOK 8 Planning / Monitoring artifact (Performance Domain §2.6 —

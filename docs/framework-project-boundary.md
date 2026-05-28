@@ -16,8 +16,8 @@ This policy is FR-014 + M4.1 in `specs/006-template-improvement-program/spec.md`
 
 | Layer | Owner | Typical paths | Default handling |
 |---|---|---|---|
-| Framework-managed / template-upgrade files | Upstream `sw-dev-team-template` | `CLAUDE.md`, `AGENTS.md`, shipped `.claude/agents/*.md`, `scripts/`, `migrations/`, `docs/templates/`, `docs/INDEX-FRAMEWORK.md`, `docs/adr/fw-adr-*.md`, template versioning docs, rc stabilization docs, final checklist docs, scaffold / upgrade scripts, `TEMPLATE_MANIFEST.lock` | Change only during an explicit template upgrade or framework-maintenance task. Otherwise file an upstream issue. |
-| Project-filled registers | Downstream project, by named steward | `CUSTOMER_NOTES.md`, `docs/OPEN_QUESTIONS.md`, `docs/AGENT_NAMES.md`, `docs/pm/*.md`, `docs/glossary/PROJECT.md`, `.claude/agents/*-local.md`, `.template-customizations`, `TEMPLATE_VERSION` | Edit through the owning role and keep with the project work that changed the facts. |
+| Framework-managed / template-upgrade files | Upstream `sw-dev-team-template` | `CLAUDE.md`, `AGENTS.md`, shipped `.claude/agents/*.md`, `scripts/`, `migrations/`, `docs/templates/`, `docs/INDEX-FRAMEWORK.md`, `docs/adr/fw-adr-*.md`, `schemas/`, template versioning docs, rc stabilization docs, final checklist docs, scaffold / upgrade scripts, `TEMPLATE_MANIFEST.lock` | Change only during an explicit template upgrade or framework-maintenance task. Otherwise file an upstream issue. |
+| Project-filled registers | Downstream project, by named steward | `CUSTOMER_NOTES.md`, `docs/OPEN_QUESTIONS.md`, `docs/AGENT_NAMES.md`, `docs/pm/*.md`, `docs/glossary/PROJECT.md`, `.claude/agents/*-local.md`, `.template-customizations`, `TEMPLATE_VERSION` (see note below) | Edit through the owning role and keep with the project work that changed the facts. `TEMPLATE_VERSION` is project-filled but its write events are restricted to scaffold and template-upgrade flows; the framework-scope gate requires `framework-maintenance` scope to edit it (same as Layer 1 paths). |
 | Project-owned product files | Downstream project | Product source, tests, build config, deployment config, `README.md`, product requirements, project ADRs `docs/adr/[0-9][0-9][0-9][0-9]-*.md`, `docs/INDEX-PROJECT.md`, domain docs, runbooks | Normal product work. Review without framework churn. |
 
 When ownership is unclear in a scaffolded project, check
@@ -40,8 +40,9 @@ downstream project, classify each release / version artifact as one of:
   product release audits.
 - **Upstream framework / template artifact:** template versioning docs,
   rc stabilization docs, scaffold scripts, upgrade scripts, shipped
-  agent contracts, templates, manifests, migrations, and other paths
-  shipped by `sw-dev-team-template`.
+  agent contracts, templates, manifests, migrations, `schemas/` (machine-checked
+  contract schemas shipped by the template; classified canonical in
+  `schemas/README.md`), and other paths shipped by `sw-dev-team-template`.
 
 Product-only release audits may inspect framework artifacts only to
 avoid mixing scopes. They must not edit `TEMPLATE_VERSION`, template
@@ -72,7 +73,8 @@ git diff -- . \
   ':(exclude)docs/adr/fw-adr-*.md' \
   ':(exclude)docs/v*-stabilization.md' \
   ':(exclude)docs/v*-checklist.md' \
-  ':(exclude)TEMPLATE_MANIFEST.lock'
+  ':(exclude)TEMPLATE_MANIFEST.lock' \
+  ':(exclude)schemas/**'
 ```
 
 If a review tool does not support path filters, stage or commit the

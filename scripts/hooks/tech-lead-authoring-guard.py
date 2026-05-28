@@ -55,26 +55,14 @@ ALLOW_GLOBS_RECURSIVE = ("docs/tech-lead/**",)
 
 # ---------------------------------------------------------------------------
 # Role vocabulary (binding from CLAUDE.md § Agent roster).
+# Imported from the single authoritative source in lib/roles.py.
 # ---------------------------------------------------------------------------
 
-CANONICAL_ROLES = frozenset(
-    {
-        "tech-lead",
-        "project-manager",
-        "architect",
-        "software-engineer",
-        "researcher",
-        "qa-engineer",
-        "sre",
-        "tech-writer",
-        "code-reviewer",
-        "release-engineer",
-        "security-engineer",
-        "onboarding-auditor",
-        "process-auditor",
-    }
-)
-SME_ROLE_RE = re.compile(r"^sme-[a-z][a-z0-9_-]*$")
+_REPO_ROOT_FOR_ROLES = str(pathlib.Path(__file__).resolve().parents[2])
+if _REPO_ROOT_FOR_ROLES not in sys.path:
+    sys.path.insert(0, _REPO_ROOT_FOR_ROLES)
+
+from scripts.hooks.lib.roles import CANONICAL_ROLES, SME_ROLE_RE  # noqa: E402
 
 
 CUSTOMER_NOTES_BASENAME = "CUSTOMER_NOTES.md"
@@ -121,7 +109,7 @@ _CNG = _load_customer_notes_guard()
 #
 # Path token: any non-separator chars that don't look like a shell op. We
 # allow quoted forms with simple single/double quotes.
-_PATH_TOKEN = r"['\"]?([^|;&\s<>'\"]+)['\"]?"
+_PATH_TOKEN = r"['\"]?([^|;&\s<>'\"]+)['\"]?"  # nosec B105 - regex for path token, not a credential
 _INTERPRETER_RE = r"(?:python|python3|node|ruby|perl|bash|sh|php|lua|Rscript)"
 
 
@@ -158,28 +146,51 @@ def _extract_dd_targets(command: str):
     ]
 
 
+_IN_PLACE_COMMAND_NAMES = frozenset({"sed", "awk", "gawk", "perl", "ruby", "inplace"})
+_IN_PLACE_PATTERNS = (
+    r"\bsed\b[^|;&]*-i\b[^|;&]*",
+    r"\bg?awk\b[^|;&]*-i\s+inplace\b[^|;&]*",
+    r"\bperl\b[^|;&]*-i\b[^|;&]*",
+    r"\bruby\b[^|;&]*-i\b[^|;&]*",
+)
+
+
+def _looks_like_path_token(token: str) -> bool:
+    """Return True if ``token`` looks like a file-path argument.
+
+    A token is a path candidate when it contains ``/`` or ``.`` (typical
+    path separators / extensions) or when it is NOT a single-quoted string
+    (which would be a backup-suffix value for ``sed -i``). Skips option
+    flags and known command names before this check is applied.
+    """
+    return "/" in token or "." in token or not token.startswith("'")
+
+
+def _pick_path_token_from_segment(segment: str) -> str:
+    """Return the trailing path token from an in-place-edit command segment.
+
+    Scans tokens in reverse, skipping option flags and command names, and
+    returns the first token that looks like a path. Returns empty string
+    when no path is found.
+    """
+    tokens = [t.strip("'\"") for t in segment.split() if t]
+    for token in reversed(tokens):
+        if token.startswith("-") or token in _IN_PLACE_COMMAND_NAMES:
+            continue
+        if _looks_like_path_token(token):
+            return token
+    return ""
+
+
 def _extract_in_place_targets(command: str):
     # sed -i / gawk -i inplace / perl -i / ruby -i — file is the last
     # non-option positional arg on the same command segment.
     targets = []
-    in_place_patterns = (
-        r"\bsed\b[^|;&]*-i\b[^|;&]*",
-        r"\bg?awk\b[^|;&]*-i\s+inplace\b[^|;&]*",
-        r"\bperl\b[^|;&]*-i\b[^|;&]*",
-        r"\bruby\b[^|;&]*-i\b[^|;&]*",
-    )
-    for pattern in in_place_patterns:
+    for pattern in _IN_PLACE_PATTERNS:
         for m in re.finditer(pattern, command):
-            segment = m.group(0)
-            tokens = [t.strip("'\"") for t in segment.split() if t]
-            # Pick trailing tokens that look like paths.
-            for token in reversed(tokens):
-                if token.startswith("-") or token in {"sed", "awk", "gawk", "perl", "ruby", "inplace"}:
-                    continue
-                # Skip the -i argument's quoted backup-suffix value if any.
-                if "/" in token or "." in token or not token.startswith("'"):
-                    targets.append(token)
-                    break
+            tok = _pick_path_token_from_segment(m.group(0))
+            if tok:
+                targets.append(tok)
     return targets
 
 
@@ -216,6 +227,64 @@ _OPEN_WRITE_KWARG_RE = re.compile(
     r"""open\(\s*['"]([^'"]+)['"][^)]*\bmode\s*=\s*['"]([^'"]*[waxA+][^'"]*)['"]"""
 )
 
+# pathlib.Path write-method coverage (issue #184). The earlier regex set
+# only caught ``open(...)``-style writes; ``Path("x").write_text(...)``
+# and ``Path("x").open("w")`` slipped through as untracked writes.
+#
+# Path token: single- or double-quoted literal inside ``Path(...)`` /
+# ``pathlib.Path(...)`` / ``PurePath(...)``. Tracks both the bare class
+# and the qualified-module form.
+_PATHLIB_CTOR = r"(?:pathlib\.)?(?:Path|PurePath|PosixPath|WindowsPath)"
+
+# ``Path("foo").write_text(...)`` and ``Path("foo").write_bytes(...)``.
+# Both are write operations regardless of mode (they are the pathlib
+# equivalents of ``open(..., 'w').write(...)`` /
+# ``open(..., 'wb').write(...)``).
+_PATHLIB_WRITE_TEXT_RE = re.compile(
+    rf"""{_PATHLIB_CTOR}\(\s*['"]([^'"]+)['"]\s*\)\.write_(?:text|bytes)\("""
+)
+
+# ``Path("foo").open("w")`` (positional mode). Same mode-char set as
+# ``_OPEN_WRITE_RE``; non-write modes (``"r"``, ``"rb"``) do not match.
+_PATHLIB_OPEN_RE = re.compile(
+    rf"""{_PATHLIB_CTOR}\(\s*['"]([^'"]+)['"]\s*\)\.open\(\s*['"]([^'"]*[waxA+][^'"]*)['"]"""
+)
+
+# ``Path("foo").open(mode="w")`` (kwarg mode).
+_PATHLIB_OPEN_KWARG_RE = re.compile(
+    rf"""{_PATHLIB_CTOR}\(\s*['"]([^'"]+)['"]\s*\)\.open\([^)]*\bmode\s*=\s*['"]([^'"]*[waxA+][^'"]*)['"]"""
+)
+
+
+_WRITE_MODE_CHARS = frozenset("waxA+")
+
+
+def _has_write_mode(mode: str) -> bool:
+    """Return True if ``mode`` contains at least one write-mode character."""
+    return bool(_WRITE_MODE_CHARS & set(mode))
+
+
+def _scan_open_write_targets(body: str) -> list:
+    """Return paths from ``open('path', 'w'|...)`` and kwarg-mode forms."""
+    targets = []
+    for regex in (_OPEN_WRITE_RE, _OPEN_WRITE_KWARG_RE):
+        for m in regex.finditer(body):
+            if _has_write_mode(m.group(2)):
+                targets.append(m.group(1))
+    return targets
+
+
+def _scan_pathlib_write_targets(body: str) -> list:
+    """Return paths from ``Path(...).write_text/bytes(...)`` and ``.open('w'...)``."""
+    targets = []
+    for m in _PATHLIB_WRITE_TEXT_RE.finditer(body):
+        targets.append(m.group(1))
+    for regex in (_PATHLIB_OPEN_RE, _PATHLIB_OPEN_KWARG_RE):
+        for m in regex.finditer(body):
+            if _has_write_mode(m.group(2)):
+                targets.append(m.group(1))
+    return targets
+
 
 def _extract_write_targets_from_body(body: str, *, scan_redirects: bool = True):
     """Extract write-target paths from an interpreter / heredoc body.
@@ -225,15 +294,21 @@ def _extract_write_targets_from_body(body: str, *, scan_redirects: bool = True):
       - ``open('path', 'w'|'a'|'x'|'+'...)`` — positional mode contains
         a write char (covers binary ``'wb'`` / ``'ab'`` too).
       - ``open('path', mode='w')`` — kwarg mode contains a write char.
+      - ``Path('path').write_text(...)`` / ``write_bytes(...)`` —
+        unconditional pathlib writes (issue #184).
+      - ``Path('path').open('w')`` / ``Path('path').open(mode='w')`` —
+        pathlib open with a write mode (issue #184).
       - shell-style redirects ``> path`` / ``>> path`` inside the body
         (covers ``-c "... > file"`` and shell heredocs) — only when
         ``scan_redirects=True``.
 
-    Read-only ``open('foo.json')``, ``open('foo','r')``, and
-    ``open('foo', mode='r')`` do NOT match. Quoted path tokens that are
-    not the first arg of a write-mode open do NOT match. This is the
-    core fix for issue #175; the kwarg branch closes the bypass flagged
-    in code-reviewer tightening #4.
+    Read-only ``open('foo.json')``, ``open('foo','r')``,
+    ``open('foo', mode='r')``, ``Path('foo').read_text()``, and
+    ``Path('foo').open('r')`` do NOT match. Quoted path tokens that
+    are not the first arg of a write-mode open do NOT match. This is
+    the core fix for issues #175 (read-vs-write) and #184 (pathlib
+    coverage); the kwarg branch closes the bypass flagged in
+    code-reviewer tightening #4.
 
     ``scan_redirects=False`` is used for heredoc bodies (issue #180):
     a heredoc body is data, not shell syntax. Lines like prose with
@@ -248,15 +323,11 @@ def _extract_write_targets_from_body(body: str, *, scan_redirects: bool = True):
     """
     if not body:
         return []
-    targets = []
-    for regex in (_OPEN_WRITE_RE, _OPEN_WRITE_KWARG_RE):
-        for m in regex.finditer(body):
-            path, mode = m.group(1), m.group(2)
-            # Require an actual write-mode char (not just '+' which could
-            # theoretically appear in a weird mode; but 'r+' is a write so
-            # '+' alone is a write signal too).
-            if any(ch in mode for ch in ("w", "a", "x", "A", "+")):
-                targets.append(path)
+    targets = _scan_open_write_targets(body)
+    # pathlib write-method detection (issue #184). write_text/write_bytes
+    # are unconditional writes (no mode argument); Path(...).open(...)
+    # mirrors the open() mode-char check.
+    targets.extend(_scan_pathlib_write_targets(body))
     # Shell redirects inside the body. Skipped for heredoc bodies — see
     # docstring (issue #180 false-positive on prose containing ``>``).
     if scan_redirects:
@@ -490,8 +561,11 @@ def _normalise(path: str) -> str:
     - Strips leading `./`.
     - Resolves `..` segments lexically.
     - If absolute and inside CLAUDE_PROJECT_DIR, makes it relative.
-    - Otherwise returns the cleaned absolute path (which will not match the
-      allow-list and will be denied).
+    - Otherwise returns the cleaned absolute path. Issue #205: an
+      out-of-project absolute path is recognised by ``_is_outside_project``
+      and the decision layer short-circuits to proceed — HR-8 protects
+      project artefacts, not harness-internal writes (auto-memory,
+      ``/tmp``, ``/dev``, skill installation).
     """
     if not path:
         return ""
@@ -505,7 +579,9 @@ def _normalise(path: str) -> str:
         except ValueError:
             rel = p
         if rel.startswith(".."):
-            # Outside the project tree; preserve absolute form.
+            # Outside the project tree; preserve absolute form. The
+            # decision layer treats outside-project paths as out of HR-8
+            # scope and proceeds (issue #205).
             return os.path.normpath(p)
         return rel.replace(os.sep, "/")
 
@@ -514,6 +590,69 @@ def _normalise(path: str) -> str:
     if cleaned.startswith("./"):
         cleaned = cleaned[2:]
     return cleaned
+
+
+# Harness-internal write surfaces. Writes targeting these paths are not
+# project artefacts and lie outside FW-ADR-0012's scope (issues #205 +
+# #206). Patterns are evaluated against absolute paths (after _normalise
+# returns the absolute form for out-of-project inputs); ``~`` is
+# expanded once at import time so the comparison is a pure prefix check.
+_HARNESS_ALLOW_PREFIXES = (
+    os.path.expanduser("~/.claude/projects/"),  # auto-memory
+    os.path.expanduser("~/.claude/skills/"),    # skill installation
+    "/tmp/",  # nosec B108 - explicit allow-list entry, not a temp file creation
+    "/dev/",
+)
+# Exact-match harness paths (no trailing slash). ``/dev/null`` itself is
+# a device, not a directory; the prefix-match against ``/dev/`` catches
+# both ``/dev/null`` and ``/dev/fd/2``.
+_HARNESS_ALLOW_EXACT = frozenset({"/dev", "/tmp"})  # nosec B108 - explicit allow-list, not a temp file creation
+
+
+def _is_outside_project(path: str) -> bool:
+    """Return True if ``path`` resolves to an absolute location outside
+    the resolved CLAUDE_PROJECT_DIR.
+
+    Issue #205: HR-8 is project-scoped. Writes to harness-internal
+    surfaces (auto-memory under ``~/.claude/projects/**/memory/``, skill
+    installation under ``~/.claude/skills/``, ``/tmp``, ``/dev``) are
+    not the guard's jurisdiction. The decision layer uses this helper
+    to short-circuit before the allow-list lookup.
+
+    Returns False for relative paths (those remain project-scoped) and
+    for absolute paths inside the project tree.
+    """
+    if not path:
+        return False
+    p = path.strip()
+    if not os.path.isabs(p):
+        return False
+    project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    project_dir = os.path.abspath(project_dir)
+    try:
+        rel = os.path.relpath(p, project_dir)
+    except ValueError:
+        # Different drive on Windows; treat as outside.
+        return True
+    return rel.startswith("..")
+
+
+def _is_harness_path(path: str) -> bool:
+    """Return True if ``path`` is a known harness write surface.
+
+    Pattern set covers auto-memory, skills, ``/tmp``, and ``/dev``
+    (issues #205 + #206). Matched purely by absolute-path prefix; the
+    caller is responsible for passing an already-normalised path
+    (``_normalise`` returns absolute form for outside-project inputs).
+    """
+    if not path:
+        return False
+    p = path.strip()
+    if p in _HARNESS_ALLOW_EXACT:
+        return True
+    if not os.path.isabs(p):
+        return False
+    return any(p.startswith(pref) for pref in _HARNESS_ALLOW_PREFIXES)
 
 
 def _matches_recursive_glob(path: str, glob: str) -> bool:
@@ -563,7 +702,7 @@ def _is_customer_notes_path(path: str) -> bool:
 # normalised path. Refactored from a long if/elif chain (Codacy
 # cyclomatic-complexity finding on PR #173); behaviour and role mapping
 # are unchanged.
-_OWNERSHIP_RULES = (
+_OWNERSHIP_RULES = (  # nosemgrep: return-not-in-function - Semgrep FP: lambdas misread as top-level return context
     (lambda p: p.startswith("docs/adr/"), "architect"),
     (lambda p: p.startswith("tests/"), "qa-engineer"),
     (lambda p: p.startswith(".github/workflows/"), "release-engineer"),
@@ -699,7 +838,8 @@ def _decide_for_path(path: str):
     """Return (decision, audit_callable) for a single target path.
 
     decision is one of:
-      - None: proceed silently (path on allow-list or deferred to
+      - None: proceed silently (path on allow-list, outside the project
+        tree, on the harness allow-list, or deferred to
         customer-notes-guard).
       - dict: a hookSpecificOutput payload (deny).
 
@@ -707,6 +847,22 @@ def _decide_for_path(path: str):
     finalised to emit the override audit-log line on stderr.
     """
     if not path:
+        return None, None
+
+    # Issue #205: HR-8 is project-scoped. Absolute paths outside
+    # CLAUDE_PROJECT_DIR are not the guard's jurisdiction (auto-memory,
+    # ``/tmp``, ``/dev``, skill installs). Short-circuit before the
+    # customer-notes / allow-list checks.
+    if _is_outside_project(path):
+        return None, None
+
+    # Issue #205 + #206: known harness write surfaces always proceed,
+    # even when expressed as a relative path that happens to begin with
+    # ``/tmp`` or ``/dev`` (defence-in-depth — _normalise turns absolute
+    # outside-project paths into absolute form, but a caller passing
+    # ``/dev/null`` literally would already have hit the
+    # _is_outside_project branch).
+    if _is_harness_path(path):
         return None, None
 
     # Customer-notes paths defer to customer-notes-guard. We do not
@@ -724,6 +880,47 @@ def _decide_for_path(path: str):
     return _deny_output(_normalise(path), "path"), None
 
 
+def _is_target_in_scope(raw: str, norm: str) -> bool:
+    """Return True if the target is in-scope for the authoring guard.
+
+    Returns False for outside-project paths, customer-notes paths (deferred
+    to customer-notes-guard), and allow-listed paths. ``raw`` is the
+    original token (pre-normalise); ``norm`` is the already-normalised form.
+    """
+    if _is_outside_project(raw):
+        return False
+    if _is_customer_notes_path(norm):
+        return False
+    if is_on_allow_list(norm):
+        return False
+    return True
+
+
+def _filter_off_list_targets(targets: list) -> list:
+    """Filter a raw-target list down to the normalised off-allow-list entries.
+
+    Applies the harness-path, outside-project, customer-notes, and
+    allow-list gates per issue #205 / #206. Returns normalised paths only.
+    """
+    off_list = []
+    for t in targets:
+        # Pre-normalisation filter for harness device paths (issue #206):
+        # ``/dev/(null|stdout|stderr|fd/N|zero|random|urandom)`` and the
+        # broader ``/dev/**`` surface are not authoring targets. Checking
+        # on the raw token is sufficient — ``_is_harness_path`` early-
+        # returns False for any relative path, so absolute harness paths
+        # (e.g. ``/dev/null``) are caught here before normalisation.  No
+        # second ``_is_harness_path`` call is needed after normalisation.
+        if _is_harness_path(t):
+            continue
+        norm = _normalise(t)
+        if not norm:
+            continue
+        if _is_target_in_scope(t, norm):
+            off_list.append(norm)
+    return off_list
+
+
 def _decide_for_command(command: str):
     if not command:
         return None, None
@@ -732,18 +929,7 @@ def _decide_for_command(command: str):
     if not targets:
         return None, None
 
-    off_list = []
-    for t in targets:
-        norm = _normalise(t)
-        if not norm:
-            continue
-        if _is_customer_notes_path(norm):
-            # Defer to customer-notes-guard.
-            continue
-        if is_on_allow_list(norm):
-            continue
-        off_list.append(norm)
-
+    off_list = _filter_off_list_targets(targets)
     if not off_list:
         return None, None
 
@@ -753,6 +939,22 @@ def _decide_for_command(command: str):
         return None, lambda: _audit_override(first, role, "Bash target")
 
     return _deny_output(first, "Bash target"), None
+
+
+def _collect_list_paths(entries: list) -> list:
+    """Extract ``file_path``/``path`` strings from a list of dict entries.
+
+    Non-dict entries and non-string / empty values are skipped. Called by
+    ``_collect_target_paths`` for each array-valued field in ``tool_input``.
+    """
+    paths = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        candidate = entry.get("file_path") or entry.get("path") or ""
+        if isinstance(candidate, str) and candidate:
+            paths.append(candidate)
+    return paths
 
 
 def _collect_target_paths(tool_input: dict):
@@ -777,15 +979,54 @@ def _collect_target_paths(tool_input: dict):
     # Iterate every list value under tool_input and pull file_path/path
     # entries. Arrays we have seen named: edits, changes, files.
     for value in tool_input.values():
-        if not isinstance(value, list):
-            continue
-        for entry in value:
-            if not isinstance(entry, dict):
-                continue
-            candidate = entry.get("file_path") or entry.get("path") or ""
-            if isinstance(candidate, str) and candidate:
-                paths.append(candidate)
+        if isinstance(value, list):
+            paths.extend(_collect_list_paths(value))
     return paths
+
+
+def _evaluate_paths(target_paths: list):
+    """Evaluate every file-target path and return (decision, audit).
+
+    The first deny decision wins; the first audited-override is remembered
+    so the audit log fires even when later paths are silently allowed.
+    Returns (None, None) when all paths pass.
+    """
+    decision = None
+    audit = None
+    for path in target_paths:
+        path_decision, path_audit = _decide_for_path(path)
+        if path_decision is not None:
+            return path_decision, path_audit
+        if path_audit is not None and audit is None:
+            # Remember the first override-audit so we still log it even if
+            # later paths are silently allowed.
+            audit = path_audit
+    return decision, audit
+
+
+def _parse_tool_input(event: dict):
+    """Return the tool_input dict from a parsed event, or None if invalid."""
+    tool_input = event.get("tool_input") or {}
+    if not isinstance(tool_input, dict):
+        return None
+    return tool_input
+
+
+def _merge_command_result(decision, audit, command: str):
+    """Evaluate ``command`` when path evaluation found no denial.
+
+    Returns ``(decision, audit)`` updated with the command evaluation
+    result if applicable. When ``decision`` is already set (a path denied),
+    the command is not evaluated and the existing pair is returned unchanged.
+    """
+    if decision is not None or not (isinstance(command, str) and command):
+        return decision, audit
+    cmd_decision, cmd_audit = _decide_for_command(command)
+    if cmd_decision is not None:
+        return cmd_decision, cmd_audit
+    if cmd_audit is not None and audit is None:
+        audit = cmd_audit
+    return decision, audit
 
 
 def main() -> int:
@@ -797,41 +1038,18 @@ def main() -> int:
     if not isinstance(event, dict):
         return 0
 
-    tool_input = event.get("tool_input") or {}
-    if not isinstance(tool_input, dict):
+    tool_input = _parse_tool_input(event)
+    if tool_input is None:
         return 0
 
     target_paths = _collect_target_paths(tool_input)
     command = tool_input.get("command") or ""
 
-    decision = None
-    audit = None
-
-    # Check EVERY collected target path. If any one denies, deny the call.
-    # The first matching decision (deny or audited-override) wins so the
-    # surfaced diagnostic names a concrete path; the loop short-circuits on
-    # deny but continues past silent proceeds to find any off-list entry.
-    for path in target_paths:
-        path_decision, path_audit = _decide_for_path(path)
-        if path_decision is not None:
-            decision, audit = path_decision, path_audit
-            break
-        if path_audit is not None and audit is None:
-            # Remember the first override-audit so we still log it even if
-            # later paths are silently allowed.
-            audit = path_audit
-
-    if decision is None and isinstance(command, str) and command:
-        cmd_decision, cmd_audit = _decide_for_command(command)
-        if cmd_decision is not None:
-            decision = cmd_decision
-            audit = cmd_audit
-        elif cmd_audit is not None and audit is None:
-            audit = cmd_audit
+    decision, audit = _evaluate_paths(target_paths)
+    decision, audit = _merge_command_result(decision, audit, command)
 
     if audit is not None:
         audit()
-
     if decision is not None:
         print(json.dumps(decision))
     return 0

@@ -1,0 +1,45 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "bounded-codex-denied-valid-001",
+  "status": "active",
+  "mode": {
+    "execution": "claude-code",
+    "codex_allowed": false,
+    "codex_server": "none"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Fixture: bounded_codex_exception with explicit denial — codex_permission_flag=false, no action required.",
+  "allowed_paths": ["schemas/**"],
+  "forbidden_paths": [".claude/**", "CUSTOMER_NOTES.md"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": ["tests/hooks/test-handoff-contracts.sh"],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "Schema accepts bounded_codex_exception with codex_permission_flag=false and no permitted_role_owned_action."
+  ],
+  "hard_rule_traces": [],
+  "bounded_codex_exception": {
+    "execution_mode": "bounded-codex",
+    "codex_permission_flag": false,
+    "allowed_paths": [],
+    "forbidden_paths": []
+  },
+  "activity": [],
+  "verification": {
+    "tests": [],
+    "reviews": [],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

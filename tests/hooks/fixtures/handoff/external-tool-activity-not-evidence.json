@@ -1,0 +1,55 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "v1.1-external-tool-activity-not-evidence-001",
+  "status": "active",
+  "mode": {
+    "execution": "claude-code",
+    "codex_allowed": false,
+    "codex_server": "none"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Fixture: handoff with external_tool_activity present but evidence gates unsatisfied — proves structural separation.",
+  "allowed_paths": ["schemas/**", "scripts/**", "tests/**"],
+  "forbidden_paths": [".claude/**", "CUSTOMER_NOTES.md"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": ["tests/hooks/test-handoff-contracts.sh"],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "external_tool_activity entries are structurally separate from verification.* and cannot satisfy any evidence gate."
+  ],
+  "hard_rule_traces": [
+    {
+      "rule_id": "FR-018",
+      "description": "External-tool activity references live outside verification.* and completion.evidence; evidence helpers read none of their fields.",
+      "source": "specs/012-v1-1-handoff-contracts/data-model.md llmdc Activity + Speckit Artifact"
+    }
+  ],
+  "external_tool_activity": [
+    {
+      "tool_type": "llmdc",
+      "activity_type": "documentation",
+      "affected_artifact": "docs/handoffs/T031-external-tool-schema.json",
+      "canonical_role_owner": "software-engineer",
+      "cited_active_handoff": "v1.1-external-tool-activity-not-evidence-001",
+      "limitations": "Cannot mark role-owned work complete, approve evidence gates, or record customer truth independently."
+    }
+  ],
+  "activity": [],
+  "verification": {
+    "tests": [],
+    "reviews": [],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

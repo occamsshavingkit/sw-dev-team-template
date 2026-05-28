@@ -1,3 +1,10 @@
+---
+name: requirements-template-bare
+description: Bare ISO/IEC/IEEE 29148:2018-shaped requirements template carrying structure only; for fluent authors.
+template_class: requirements
+---
+
+
 # Requirements — <project name>
 
 Bare variant per FW-ADR-0003. For fluent authors and agents. The guided

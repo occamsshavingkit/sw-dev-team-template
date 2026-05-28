@@ -1,3 +1,10 @@
+---
+name: test-strategy-template
+description: ISTQB Foundation plus IEEE 829:2008 Master Test Plan template; one per project.
+template_class: test-strategy
+---
+
+
 # Test Strategy — <project name>
 
 Master-level test plan. Shape per ISTQB Foundation Level "Test

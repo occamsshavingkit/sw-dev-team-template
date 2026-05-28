@@ -1,0 +1,52 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "v1.1-completion-evidence-gate",
+  "status": "active",
+  "mode": {
+    "execution": "bounded-codex",
+    "codex_allowed": true,
+    "codex_server": "codex"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "S-1 gap-closure fixture: worker self-attested test entry with absent evidence_kind must not satisfy the test gate (FR-006).",
+  "allowed_paths": ["scripts/hooks/handoff-task-completed-gate.py"],
+  "forbidden_paths": ["CUSTOMER_NOTES.md"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": ["tests/hooks/test-handoff-task-completed-gate.sh"],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "A test entry with absent evidence_kind and worker actor_role does not satisfy the test gate (FR-006 conformance)."
+  ],
+  "hard_rule_traces": [],
+  "activity": [],
+  "verification": {
+    "tests": [
+      {
+        "name": "tests/hooks/test-handoff-task-completed-gate.sh",
+        "result": "passed",
+        "source": "worker-claim",
+        "actor_role": "software-engineer"
+      }
+    ],
+    "reviews": [
+      {
+        "artifact": "docs/reviews/v1.1-completion-evidence-gate.md",
+        "result": "approved",
+        "actor_role": "code-reviewer"
+      }
+    ],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

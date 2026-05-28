@@ -122,24 +122,16 @@ verification. Do not let plan mode become a substitute for ADRs,
 proposals, or issue templates when those are triggered by the workflow
 pipeline.
 
-## Role defaults
+## Class taxonomy
 
-| Role | Default tier | Default effort | Plan mode default | Escalation rule |
-|---|---|---|---|---|
-| `tech-lead` | `frontier` for scoping / orchestration; `strong` for routine turns | `high` | On for multi-step tasks and customer-impacting decisions | Escalate to `frontier` / `xhigh` for policy, architecture, release, or conflicting-specialist arbitration. |
-| `architect` | `frontier` | `xhigh` | On by default | Do not downgrade for ADRs, cross-boundary decisions, or technology selection. |
-| `software-engineer` | `strong` | `high` | On for triggered or multi-file work | Escalate to `frontier` for unfamiliar codebases, cross-module refactors, or repeated failed tests. |
-| `code-reviewer` | `frontier` | `xhigh` | Usually off; review stance is enough | Use plan mode for full release audits or large diff review strategy. |
-| `security-engineer` | `frontier` | `xhigh` | On for threat models and Rule #7 paths | Never use `fast`; escalate for auth, secrets, PII, network exposure, or supply-chain risk. |
-| `qa-engineer` | `strong` | `high` | On for test strategy, off for small test edits | Escalate for system/acceptance strategy or defect isolation after one failed pass. |
-| `researcher` | `standard` for lookup; `strong` for synthesis | `medium` lookup, `high` synthesis | Off for lookup, on for prior-art surveys | Escalate for conflicting official sources or standards interpretation. |
-| `project-manager` | `standard` | `medium` | On for milestone planning or change control | Escalate to `strong` for risk tradeoffs, multi-operator coordination, or release-scope decisions. |
-| `release-engineer` | `strong` | `high` | On for tagging, migration, packaging, CI changes | Escalate to `frontier` for failed release smoke, migration conflicts, or reproducibility gaps. |
-| `sre` | `strong` | `high` | On for production-impacting work | Escalate for SLO/capacity tradeoffs or incident-response policy. |
-| `tech-writer` | `standard` | `medium` | Off for ordinary docs, on for information architecture | Escalate to `strong` for release notes, binding docs, or cross-doc rewrites. |
-| `onboarding-auditor` | `strong` | `high` | Off; audit prompt defines the pass | Escalate only if the audit scope spans multiple product surfaces or release readiness. |
-| `process-auditor` | `strong` | `high` | Off; audit prompt defines the pass | Escalate for recommendations that would alter hard rules or agent contracts. |
-| `sme-<domain>` | `standard` | `medium` | Off unless asked to structure a domain decision | Escalate to `strong` for high-stakes domain ambiguity; never replace the customer or external SME. |
+Four capability tiers organize model selection across all agents and harnesses. These tiers are conceptual labels; the binding per-agent assignments are in the canonical table below.
+
+- **`fast`** — mechanical extraction, classification, short summaries. Maps to `claude-haiku`, `openai-mini`, `gemini-flash`.
+- **`standard`** — routine documentation, narrow project-management updates, simple lookups. Maps to `claude-sonnet`, `openai-coding`, or `gemini-pro` depending on task affinity.
+- **`strong`** — default for coding, QA, release work, and research synthesis. Typically `claude-sonnet` with `high` effort, or `openai-coding`/`gemini-pro` for their respective affinity workloads.
+- **`frontier`** — architecture decisions, security, code review, major cross-system tradeoffs. Maps to `claude-opus`, `openai-frontier`, or `gemini-pro` at its ceiling.
+
+Each harness resolves class abstractions to concrete model IDs at runtime. opencode reaches both Gemini and OpenAI providers; Claude Code reaches only Claude; Codex reaches only OpenAI. The binding table below is harness-agnostic; each harness applies the appropriate provider column at runtime.
 
 ## Elevation triggers
 
@@ -199,26 +191,128 @@ Every fallback event is logged to `docs/pm/fallback-log.jsonl` via `scripts/log-
 
 ## Frontier-only escalation
 
-Frontier-class models (`claude-opus`, `openai-frontier`, `gemini-pro`) are NOT the default for any agent. They are reserved for the per-agent escalation conditions in the binding default-class table below. Escalation is per-task: when the predicate fires, the routing wrapper selects the frontier model for that task only; subsequent tasks revert to the default.
+Frontier-class models (`claude-opus`, `openai-frontier`, `gemini-pro`) are NOT the default for any agent. They are reserved for the per-agent escalation conditions in the binding canonical table below. Escalation is per-task: when the predicate fires, the routing wrapper selects the frontier model for that task only; subsequent tasks revert to the default.
 
 ## Binding per-agent default-class table
 
-The table below is the binding default for fresh template scaffolds (FR-019 + spec clarification 5). Downstream projects MAY override per-agent assignments in a marked project-local supplement; the supplement MUST carry the `project_local_override_marker` per `schemas/model-routing.schema.json`.
+The table below is the single canonical binding default for fresh template scaffolds (FR-019 + spec clarification 5). It supersedes the retired `## Role defaults` tier table. Downstream projects MAY override per-agent assignments in a marked project-local supplement; the supplement MUST carry the `project_local_override_marker` per `schemas/model-routing.schema.json`.
 
 Class names use the enum from `schemas/model-routing.schema.json`: `claude-opus`, `claude-sonnet`, `claude-haiku`, `gemini-pro`, `gemini-flash`, `openai-frontier`, `openai-coding`, `openai-mini`.
 
-| Agent | Default class | Frontier only when |
-|---|---|---|
-| `tech-lead` | `claude-sonnet` | unresolved conflict, safety/customer-critical routing |
-| `architect` | `claude-sonnet` | ADR conflict, major boundary, safety/security architecture |
-| `software-engineer` | `openai-coding` | ambiguous design tradeoff |
-| `release-engineer` | `openai-coding` | release blocker or cross-harness failure |
-| `code-reviewer` | `claude-sonnet` | hard-block, ADR conflict, safety/security |
-| `qa-engineer` | `claude-sonnet` | safety/timing-critical validation |
-| `researcher` | `gemini-pro` | disputed source synthesis |
-| `project-manager` | `gemini-flash` | major scope/risk/stakeholder conflict |
-| `tech-writer` | `claude-sonnet` | release-critical public docs |
-| `security-engineer` | `claude-sonnet` | safety-critical authentication / secrets / network-exposed change |
-| `sre` | `claude-sonnet` | DR-tier escalation, performance-critical incident |
-| `onboarding-auditor` | `claude-sonnet` | (advisory-only role; frontier escalation not gating) |
-| `process-auditor` | `claude-sonnet` | (advisory-only role; frontier escalation not gating) |
+Provider column key: **Claude equivalent** = fallback used in Claude Code; **OpenAI equivalent** = class used in Codex; **Gemini equivalent** = class used in opencode. Harness adapters resolve these class abstractions to concrete model IDs at runtime.
+
+| Agent | default_class | Claude equivalent | OpenAI equivalent | Gemini equivalent | frontier_only_when |
+|---|---|---|---|---|---|
+| `tech-lead` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | unresolved conflict, safety/customer-critical routing |
+| `architect` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | ADR conflict, major boundary, safety/security architecture |
+| `software-engineer` | `openai-coding` | `sonnet` | `openai-coding` | `gemini-pro` | ambiguous design tradeoff |
+| `release-engineer` | `openai-coding` | `sonnet` | `openai-coding` | `gemini-pro` | release blocker or cross-harness failure |
+| `code-reviewer` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | hard-block, ADR conflict, safety/security |
+| `qa-engineer` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | safety/timing-critical validation |
+| `researcher` | `gemini-pro` | `sonnet` | `openai-coding` | `gemini-pro` | disputed source synthesis |
+| `project-manager` | `gemini-flash` | `haiku` | `openai-mini` | `gemini-flash` | major scope/risk/stakeholder conflict |
+| `tech-writer` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | release-critical public docs |
+| `security-engineer` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | safety-critical authentication / secrets / network-exposed change |
+| `sre` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | DR-tier escalation, performance-critical incident |
+| `onboarding-auditor` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | (advisory-only role; frontier escalation not gating) |
+| `process-auditor` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | (advisory-only role; frontier escalation not gating) |
+| `sme-template` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | (default for SMEs; haiku for tiny lookups) |
+
+## Multi-operator and coordination context
+
+*FR-012. Cross-reference: `docs/coordination/label-taxonomy.md`, `docs/coordination/multi-operator-model.md`.*
+
+The multi-operator coordination interface introduces shared work items (GitHub
+issues + durable handoffs) that any participating operator may claim and act
+on. Model-routing decisions in this context carry higher stakes than in
+single-operator work: a wrong routing choice compounds across operators and
+machines.
+
+### When to use plan mode
+
+In addition to the general plan-mode triggers above, treat the presence of
+the following coordination signals as mandatory plan-mode triggers:
+
+- The issue carries `priority:p0` or `priority:p1`. High-priority coordination
+  items may be claimed under time pressure; a written plan prevents a rushed
+  first edit from leaving the shared state inconsistent.
+- The issue carries `meta:customer-approval-required` or
+  `meta:security-review-required`. These labels mark the Hard Rule #4 and
+  Hard Rule #7 paths; coordination errors here are irreversible.
+- The task is a HANDBACK target: you are picking up an in-progress claim from
+  a different operator. The incoming HANDBACK comment describes what was done
+  and what remains, but the prior operator's mental model is not available.
+  Plan mode lets you verify scope before touching files.
+- The issue is transitioning to `status:in-review`. Review routing across
+  operators is a coordination boundary; plan mode confirms which reviewer and
+  which evidence gates are expected.
+
+Skip plan mode for:
+
+- `priority:p3` issues with `status:queued` and a single clear file target.
+- Read-only coordination actions (posting a PROGRESS comment, updating a label
+  without touching artifacts).
+
+### When to raise model tier
+
+Raise from default to `strong` (or from `strong` to `frontier`) when the
+coordination context includes any of the following:
+
+| Trigger | Minimum tier |
+|---|---|
+| `priority:p0` issue | `strong` |
+| `meta:customer-approval-required` | `frontier` |
+| `meta:security-review-required` | `frontier` |
+| Tie-break resolution between two concurrent claims | `strong` |
+| Claim picked up after a YIELD (prior operator released under pressure) | `strong` |
+| Cross-role HANDBACK where the target role differs from the source role | `strong` |
+
+The `meta:framework-maintenance` label does not alone trigger a tier raise,
+but if the framework-maintenance change also touches agent contracts, routing
+policy, or release gating, apply the cross-system-tradeoff criterion from the
+`Elevation triggers` section above.
+
+### When to raise reasoning effort
+
+Effort escalation in the coordination context follows the same predicates as
+the general `Elevation triggers` section. Coordination-specific additions:
+
+- A claim comment cites a collision (two operators claimed near-simultaneously):
+  raise effort to `high` or `xhigh` to carefully reconstruct the state the
+  other operator left.
+- The issue comment stream shows a BLOCKED entry that was subsequently
+  unblocked: raise effort to verify the blocker resolution is complete before
+  treating the task as resumable.
+- The durable handoff `verification.*` record is absent or inconsistent with
+  the issue's `status:done` label: raise effort to `xhigh` before posting
+  a GATE-PASSED comment. Remember that a GATE-PASSED comment does not
+  satisfy the gate — this effort level is for determining whether the binding
+  evidence actually exists.
+
+### Label-to-routing quick reference
+
+| Label(s) present | Plan mode | Minimum tier | Notes |
+|---|---|---|---|
+| `priority:p0` | Yes | `strong` | Drop-everything item; plan before touching anything |
+| `priority:p1` | Recommended | `standard` | Default for current-sprint items |
+| `priority:p2` or `priority:p3` | Normal rules apply | per default table | No coordination-specific override |
+| `meta:customer-approval-required` | Yes | `frontier` | Hard Rule #4; no agent-only path |
+| `meta:security-review-required` | Yes | `frontier` | Hard Rule #7; security-engineer sign-off required |
+| `meta:blocked-external` + `status:blocked` | Yes, when unblocking | `strong` | Verify the external blocker is fully resolved |
+| `status:in-review` | Yes, when routing | `strong` | Confirm reviewer, gates, and evidence before handoff |
+| `meta:framework-maintenance` + policy change | Yes | `strong` (min) | Applies when agent contracts or routing policy is affected |
+
+## Availability fallback
+
+The binding default-class table above specifies each agent's *preferred* class. When the preferred class is **unavailable** in the active harness — quota exhausted, model retired, provider outage — the routing wrapper (or operator, in harnesses without one) MUST escalate to the next-higher tier **within the same provider** before degrading across providers. Availability fallback does NOT require the per-task escalation predicate in `frontier_only_when` to be satisfied; it is an operator-level concern separate from per-task escalation.
+
+Provider-specific fallback chains:
+
+- **Claude Code** (Claude only): preferred `haiku` → fall up to `sonnet` → fall up to `opus` (frontier).
+- **Codex** (OpenAI only): preferred `openai-mini` → fall up to `openai-coding` → fall up to `openai-frontier`.
+- **opencode** (Gemini + OpenAI both reachable): preferred `gemini-flash` → fall up to `gemini-pro`. If both Gemini tiers exhausted: cross-provider degrade to the OpenAI equivalent column (`openai-mini` or `openai-coding` as appropriate). Same shape for an OpenAI starting point exhausted.
+
+Note that fallback **up the tier** (toward frontier) is the documented path. Falling **down** (toward `fast`) is only acceptable for non-load-bearing roles where the lower tier is explicitly listed as acceptable in the per-agent row — currently none of the 14 baseline roles have such an exception. The frontier class (`claude-opus`, `openai-frontier`, `gemini-pro` at ceiling) remains the upper bound; if frontier is also unavailable, work pauses or the operator escalates the availability issue to the customer.
+
+CI lint policy (per `scripts/lint-agent-model-routing.sh`): an agent contract's `model:` field MUST equal the preferred Claude equivalent OR the next-higher Claude tier (the availability-fallback). For example, a `sonnet`-defaulted role may declare `model: sonnet` (preferred) or `model: opus` (fallback) and pass the lint; `model: haiku` would fail. The same fallback-permissive rule applies to the Codex-side contract surface.
+

@@ -1,3 +1,10 @@
+---
+name: ai-use-policy-template
+description: PMBOK 8 Appendix X3 AI-use-policy template; one per project, customer-ratified.
+template_class: ai-use-policy
+---
+
+
 # AI Use Policy — <project name>
 
 PMBOK 8 Initiating artifact (Appendix X3 — Artificial Intelligence in

@@ -1,3 +1,10 @@
+---
+name: performance-test-plan-template
+description: ISTQB Performance-testing plus SWEBOK V4 ch. 5/6 template; SRE-owned non-functional targets with QA-owned execution.
+template_class: performance-test-plan
+---
+
+
 # Performance Test Plan — <project name>
 
 Shape per ISTQB "Performance testing" + SWEBOK V4 ch. 5 "Software

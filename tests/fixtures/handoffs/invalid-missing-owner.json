@@ -1,0 +1,36 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "v1.1-invalid-missing-owner",
+  "status": "active",
+  "mode": {
+    "execution": "standard",
+    "codex_allowed": false,
+    "codex_server": "none"
+  },
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Invalid handoff fixture: owner_role intentionally omitted.",
+  "allowed_paths": ["docs/**"],
+  "forbidden_paths": ["docs/private/**"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": [],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": ["Schema validation fails due to missing owner_role."],
+  "hard_rule_traces": [],
+  "activity": [],
+  "verification": {
+    "tests": [],
+    "reviews": [],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

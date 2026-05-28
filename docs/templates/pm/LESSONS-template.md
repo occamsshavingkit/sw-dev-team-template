@@ -1,3 +1,10 @@
+---
+name: lessons-template
+description: PMBOK Closing lessons-learned template captured continuously plus synthesised at every milestone.
+template_class: lessons
+---
+
+
 # Lessons Learned — <project name>
 
 PMBOK Closing artifact **captured continuously**, not only at closure.

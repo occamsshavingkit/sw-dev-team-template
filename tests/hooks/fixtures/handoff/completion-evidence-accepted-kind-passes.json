@@ -1,0 +1,68 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "v1.1-completion-evidence-gate",
+  "status": "active",
+  "mode": {
+    "execution": "bounded-codex",
+    "codex_allowed": true,
+    "codex_server": "codex"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": ["security-engineer"],
+  "objective": "Implement completion evidence gate behavior.",
+  "allowed_paths": ["scripts/hooks/handoff-task-completed-gate.py"],
+  "forbidden_paths": ["CUSTOMER_NOTES.md"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": ["tests/hooks/test-handoff-task-completed-gate.sh"],
+    "review": true,
+    "security_review": true,
+    "human_approval": true
+  },
+  "acceptance_criteria": [
+    "Evidence with evidence_kind accepted satisfies all required gates."
+  ],
+  "hard_rule_traces": [],
+  "activity": [],
+  "verification": {
+    "tests": [
+      {
+        "name": "tests/hooks/test-handoff-task-completed-gate.sh",
+        "result": "passed",
+        "source": "PostToolUse",
+        "actor_role": "qa-engineer",
+        "evidence_kind": "accepted"
+      }
+    ],
+    "reviews": [
+      {
+        "artifact": "docs/reviews/v1.1-completion-evidence-gate.md",
+        "result": "approved",
+        "actor_role": "code-reviewer",
+        "evidence_kind": "accepted"
+      }
+    ],
+    "security": [
+      {
+        "artifact": "docs/security/v1.1-completion-evidence-gate.md",
+        "result": "approved",
+        "actor_role": "security-engineer",
+        "evidence_kind": "accepted"
+      }
+    ],
+    "human_approval": [
+      {
+        "result": "approved",
+        "source": "CUSTOMER_NOTES.md",
+        "actor_role": "researcher",
+        "evidence_kind": "accepted"
+      }
+    ]
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

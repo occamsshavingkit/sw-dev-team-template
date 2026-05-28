@@ -1,3 +1,10 @@
+---
+name: operations-plan-template
+description: SWEBOK V4 ch. 6 Operations Plan template; SRE-owned with release-engineer contributions.
+template_class: operations-plan
+---
+
+
 # Operations Plan — <project name>
 
 Shape per SWEBOK V4 ch. 6 "Software Engineering Operations" (library

@@ -81,7 +81,9 @@ layer added later.
 1. Read the project's full history (files listed in Mode above).
 2. For every binding rule, ceremony, or artifact, ask the four
    diagnostic questions:
-   - **Origin.** When was this added? In response to what? Cite the
+   - **Origin.** When was this added?
+     In response to what specific need?
+     Cite the
      `LESSONS.md` entry, `CHANGES.md` row, issue number, or
      customer ruling.
    - **Current value.** What failure does it prevent today? Can you

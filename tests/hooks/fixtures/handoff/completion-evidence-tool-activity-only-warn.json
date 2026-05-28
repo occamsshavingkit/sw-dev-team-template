@@ -1,0 +1,55 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "v1.1-tool-activity-only-warn-001",
+  "status": "active",
+  "mode": {
+    "execution": "claude-code",
+    "codex_allowed": false,
+    "codex_server": "none"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Fixture: external_tool_activity present but NO accepted review/test evidence — warn mode should warn and allow, not deny.",
+  "allowed_paths": ["tests/**", "scripts/**"],
+  "forbidden_paths": ["CUSTOMER_NOTES.md"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": ["tests/hooks/test-handoff-task-completed-gate.sh"],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "In warn mode, completion is warned-and-allowed when external_tool_activity references are the only activity and required evidence is absent."
+  ],
+  "hard_rule_traces": [
+    {
+      "rule_id": "FR-018",
+      "description": "External-tool output is input-only; in warn mode missing gates produce a warning rather than a denial, but tool activity still does not count as accepted evidence.",
+      "source": "specs/012-v1-1-handoff-contracts/data-model.md llmdc Activity; FR-018..FR-023; SC-007"
+    }
+  ],
+  "external_tool_activity": [
+    {
+      "tool_type": "llmdc",
+      "activity_type": "planning",
+      "affected_artifact": "docs/handoffs/T032-tool-activity-gate.json",
+      "canonical_role_owner": "software-engineer",
+      "cited_active_handoff": "v1.1-tool-activity-only-warn-001",
+      "limitations": "Cannot approve evidence gates or record customer truth independently."
+    }
+  ],
+  "activity": [],
+  "verification": {
+    "tests": [],
+    "reviews": [],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

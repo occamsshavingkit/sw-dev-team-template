@@ -1,0 +1,22 @@
+# tests/release-gate/upgrade-matrix-skip.txt
+#
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
+# Skip file for the upgrade-matrix sub-gate iteration (spec 008 FR-006).
+# Pairs listed here are EXCLUDED from execution entirely — the round-trip
+# is not attempted, no PASS/FAIL is recorded. Use this for permanently
+# out-of-scope pairs (e.g., cross-MAJOR + extended variant whose generator
+# cannot produce a sane fixture).
+#
+# Distinct from tests/release-gate/upgrade-paths-allowlist.txt: that
+# allowlist RUNS the pair and demotes the failure to non-blocking; this
+# skip file does not run the pair at all.
+#
+# Format: one row per skipped pair.
+#   <tag>             — skip every variant of this tag
+#   <tag>:<variant>   — skip only this (tag, variant) pair
+#
+# Blank lines and lines starting with `#` are ignored.
+
+# (no skips defined as of spec 008 v1)

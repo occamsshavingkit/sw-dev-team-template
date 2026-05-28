@@ -1,0 +1,59 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "v1.1-completion-evidence-gate",
+  "status": "active",
+  "mode": {
+    "execution": "bounded-codex",
+    "codex_allowed": true,
+    "codex_server": "codex"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Implement completion evidence gate behavior.",
+  "allowed_paths": ["scripts/hooks/handoff-task-completed-gate.py"],
+  "forbidden_paths": ["CUSTOMER_NOTES.md"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": ["tests/hooks/test-handoff-task-completed-gate.sh"],
+    "review": true,
+    "security_review": false,
+    "human_approval": true
+  },
+  "acceptance_criteria": [
+    "Researcher-stewarded customer truth (actor_role=researcher, source=CUSTOMER_NOTES.md) satisfies the human_approval gate."
+  ],
+  "hard_rule_traces": [],
+  "activity": [],
+  "verification": {
+    "tests": [
+      {
+        "name": "tests/hooks/test-handoff-task-completed-gate.sh",
+        "result": "passed",
+        "source": "PostToolUse",
+        "actor_role": "qa-engineer",
+        "evidence_kind": "accepted"
+      }
+    ],
+    "reviews": [
+      {
+        "artifact": "docs/reviews/v1.1-completion-evidence-gate.md",
+        "result": "approved",
+        "actor_role": "code-reviewer"
+      }
+    ],
+    "security": [],
+    "human_approval": [
+      {
+        "result": "approved",
+        "source": "CUSTOMER_NOTES.md",
+        "actor_role": "researcher"
+      }
+    ]
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

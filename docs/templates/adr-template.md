@@ -1,3 +1,10 @@
+---
+name: adr-template
+description: MADR 3.0 ADR template with the Three-Path Rule and required/recommended/optional section discipline per FW-ADR-0006.
+template_class: adr
+---
+
+
 # ADR-NNNN — <short title>
 
 <!-- TOC -->

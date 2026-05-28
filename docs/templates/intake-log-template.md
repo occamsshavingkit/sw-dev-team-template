@@ -1,3 +1,10 @@
+---
+name: intake-log-template
+description: Append-only intake-log template for Step 2 scoping conversation captures.
+template_class: intake-log
+---
+
+
 # Intake Log — <project name>
 
 <!-- TOC -->

@@ -1,0 +1,52 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "model-fallback-invalid-tier-001",
+  "status": "active",
+  "mode": {
+    "execution": "claude-code",
+    "codex_allowed": false,
+    "codex_server": "none"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Fixture: model_fallback record with invalid capability_tier_comparison value (not in enum).",
+  "allowed_paths": ["schemas/**", "scripts/**"],
+  "forbidden_paths": [".claude/**", "CUSTOMER_NOTES.md"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": ["tests/hooks/test-handoff-contracts.sh"],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "model_fallback record with invalid capability_tier_comparison is rejected by schema."
+  ],
+  "hard_rule_traces": [
+    {
+      "rule_id": "HR-08",
+      "description": "tech-lead orchestrates; it does not author production artifacts directly — role authority boundaries apply to model selection delegation.",
+      "source": "CLAUDE.md hard rule #8"
+    }
+  ],
+  "model_fallback": {
+    "requested_role": "architect",
+    "requested_model_class": "opus",
+    "actual_model_class": "sonnet",
+    "capability_tier_comparison": "unknown",
+    "fallback_reason": "Requested model class unavailable."
+  },
+  "activity": [],
+  "verification": {
+    "tests": [],
+    "reviews": [],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

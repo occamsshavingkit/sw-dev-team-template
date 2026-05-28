@@ -1,0 +1,70 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "v1.1-tool-actor-smuggled-001",
+  "status": "active",
+  "mode": {
+    "execution": "claude-code",
+    "codex_allowed": false,
+    "codex_server": "none"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Fixture: attempt to smuggle tool output into verification arrays — actor_role is a tool/hook-ish role and evidence_kind is worker_report. Completion gate must deny because neither actor_role nor kind satisfies the code-reviewer/accepted requirements.",
+  "allowed_paths": ["tests/**", "scripts/**"],
+  "forbidden_paths": ["CUSTOMER_NOTES.md"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": ["tests/hooks/test-handoff-task-completed-gate.sh"],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "Completion is denied when verification entries carry a tool/hook actor_role and/or worker_report evidence_kind rather than proper independent evidence."
+  ],
+  "hard_rule_traces": [
+    {
+      "rule_id": "FR-018",
+      "description": "Tool/hook actor roles and worker_report evidence_kind cannot satisfy final evidence gates regardless of where the entries are placed in the verification arrays.",
+      "source": "specs/012-v1-1-handoff-contracts/data-model.md Evidence Gate; FR-018..FR-023; SC-007"
+    }
+  ],
+  "external_tool_activity": [
+    {
+      "tool_type": "llmdc",
+      "activity_type": "documentation",
+      "affected_artifact": "docs/handoffs/T032-tool-activity-gate.json",
+      "canonical_role_owner": "software-engineer",
+      "cited_active_handoff": "v1.1-tool-actor-smuggled-001",
+      "limitations": "Cannot approve evidence gates or record customer truth independently."
+    }
+  ],
+  "activity": [],
+  "verification": {
+    "tests": [
+      {
+        "name": "tests/hooks/test-handoff-task-completed-gate.sh",
+        "result": "passed",
+        "source": "PostToolUse",
+        "actor_role": "llmdc-hook",
+        "evidence_kind": "worker_report"
+      }
+    ],
+    "reviews": [
+      {
+        "artifact": "docs/reviews/T032-tool-output-review.md",
+        "result": "approved",
+        "actor_role": "llmdc-hook",
+        "evidence_kind": "worker_report"
+      }
+    ],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

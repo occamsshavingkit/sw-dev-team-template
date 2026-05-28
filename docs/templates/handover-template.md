@@ -1,3 +1,10 @@
+---
+name: handover-template
+description: Teammate handover-brief template covering role, state, open questions, blockers, and frozen decisions.
+template_class: handover
+---
+
+
 # Handover brief — `<teammate-name>` (`<canonical-role>`)
 
 <!-- TOC -->

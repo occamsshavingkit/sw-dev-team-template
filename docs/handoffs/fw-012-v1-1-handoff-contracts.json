@@ -1,0 +1,111 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "fw-012-v1-1-handoff-contracts",
+  "status": "active",
+  "mode": {
+    "execution": "standard",
+    "codex_allowed": false,
+    "codex_server": "none",
+    "gate_mode": "warn"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": [
+    "code-reviewer"
+  ],
+  "security_roles": [],
+  "objective": "Implement v1.1 handoff contract infrastructure: schema, validator, hook libraries, durable handoff examples, and active-handoff pointer wiring for the sw-dev-team-template framework.",
+  "allowed_paths": [
+    "docs/**",
+    "schemas/**",
+    "scripts/**",
+    "tests/**",
+    ".devteam/**",
+    "contracts/**",
+    "specs/012-v1-1-handoff-contracts/**"
+  ],
+  "forbidden_paths": [
+    ".claude/**",
+    "CUSTOMER_NOTES.md",
+    "TEMPLATE_VERSION",
+    ".specify/**"
+  ],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": [
+      "tests/hooks/test-handoff-contracts.sh"
+    ],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "All handoff JSON files under docs/handoffs/ validate against schemas/handoff.schema.json.",
+    ".devteam/active-handoff.json resolves to a valid active handoff via scripts/hooks/lib/handoff.py.",
+    "task_id values are unique across docs/handoffs/.",
+    "hard_rule_traces cover all applicable hard rules for this framework-maintenance task.",
+    "Gate mode is warn (non-blocking) for PreToolUse hooks.",
+    "tests/hooks/test-handoff-contracts.sh passes."
+  ],
+  "hard_rule_traces": [
+    {
+      "rule_id": "HR-03",
+      "description": "This handoff produces commits and requires a code-reviewer artifact before completion is accepted.",
+      "source": "CLAUDE.md ## Hard rules"
+    },
+    {
+      "rule_id": "HR-08",
+      "description": "Owner role is software-engineer; top-level tech-lead production authoring remains blocked for this task.",
+      "source": "CLAUDE.md ## Hard rules"
+    },
+    {
+      "rule_id": "HR-09",
+      "description": "The handoff-stop-gate.py hook enforces the pre-close audit before the top-level session stops.",
+      "source": "CLAUDE.md ## Hard rules"
+    },
+    {
+      "rule_id": "HR-10",
+      "description": "framework_scope is framework-maintenance, authorizing edits to shipped docs/, schemas/, scripts/, and tests/ paths for this task.",
+      "source": "CLAUDE.md ## Hard rules"
+    }
+  ],
+  "activity": [],
+  "verification": {
+    "tests": [
+      {
+        "gate_type": "test",
+        "required": true,
+        "accepted_evidence_refs": [
+          "tests/hooks/test-handoff-contracts.sh"
+        ],
+        "source_role": "qa-engineer",
+        "verification_result": "pending",
+        "timestamp": null
+      },
+      {
+        "name": "Bash: git -C sw-dev-team-template show v1.1.0:docs/handoffs/fw-012-v1-1-handoff-contra",
+        "result": "passed",
+        "evidence_kind": "accepted",
+        "source": "PostToolUse",
+        "actor_role": "hook",
+        "timestamp": "2026-05-28T04:55:08Z"
+      }
+    ],
+    "reviews": [
+      {
+        "gate_type": "review",
+        "required": true,
+        "accepted_evidence_refs": [],
+        "source_role": "code-reviewer",
+        "verification_result": "pending",
+        "timestamp": null
+      }
+    ],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

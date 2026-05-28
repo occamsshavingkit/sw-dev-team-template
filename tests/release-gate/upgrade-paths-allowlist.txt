@@ -3,19 +3,23 @@
 # SPDX-License-Identifier: MIT
 # Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
 #
-# Allowlist for the `upgrade-paths` sub-gate (FR-003). Each non-comment
-# non-empty line is a source-tag name whose scaffold → upgrade → verify
-# round-trip is documented-broken against the current candidate. The gate
-# still attempts the round-trip and logs the result, but a fail against an
-# allowlisted source does NOT block the sub-gate.
+# Allowlist for the `upgrade-paths` sub-gate (spec 007 FR-003, extended
+# by spec 008 FR-004). Each non-comment non-empty line names a pair
+# whose scaffold → upgrade → verify round-trip is documented-broken
+# against the current candidate. The gate still attempts the round-trip
+# and logs the result, but a fail against an allowlisted pair does NOT
+# block the sub-gate.
 #
 # Maintenance: add a row only when (a) the failure mode is understood and
 # documented, and (b) fixing it is out of scope for the current rc cut.
 # Delete rows as their upgrade paths are fixed.
 #
-# Format: one tag per line; comments start with `#`. Each entry SHOULD be
-# annotated with a follow-up issue or commit reference so reviewers can
-# trace the decision.
+# Format: one entry per line; comments start with `#`. Two row shapes:
+#   <tag>             — allowlist every variant of this source-rc (back-
+#                       compat with spec-007's tag-only allowlist).
+#   <tag>:<variant>   — allowlist just this (source-rc, variant) pair.
+# Each entry SHOULD be annotated with a follow-up issue or commit
+# reference so reviewers can trace the decision.
 
 # v1.0.0-rc3 — frozen-tag self-bootstrap defect: at rc3
 # scripts/pre-release-gate.sh line 188 executed `exec bash "$0" "$@"` AFTER
@@ -32,15 +36,36 @@
 # shipped in rc4 and forward.
 v1.0.0-rc3
 
-# v0.16.0 — scripts/upgrade.sh is a 3-way conflict between v0.16.0 (baseline),
-# the current candidate (upstream), and the pre-bootstrapped project copy
-# (the migrations/v0.14.0.sh pre-bootstrap landed modern upgrade.sh in the
-# project, so v0.16.0's sync sees both upstream and project diverged from
-# baseline). v0.16.0 is a single-version sliver between v0.15.x and v0.17.0
-# with negligible expected downstream presence; the fix is to teach v0.x
-# scaffold's conflict-detection to recognize pre-bootstrapped helpers as
-# accepted-local-merge. Deferred to a follow-up issue (Q-0017 customer
-# answer B on 2026-05-14). The pre-bootstrap fix itself (commit 19e39bc)
-# remains correct for the real-world v0.x → modern upgrade path; only the
-# gate's automated round-trip sees this as a "failure."
+# v0.16.0 — scripts/upgrade.sh 3-way conflict; the fix in f163897
+# (migrations/v0.14.0.sh marker-writing, issue #163) is broken by
+# migration ordering: v0.16.0's upgrade.sh self-bootstraps (exec's as
+# candidate upgrade.sh) before the migrations loop runs, so the
+# re-execed candidate skips v0.14.0.sh (v0.14.0 < v0.16.0 boundary)
+# and the .template-customizations marker is never written. The sync
+# loop then sees a 3-way conflict on scripts/upgrade.sh
+# (baseline=v0.16.0, project=candidate after pre-bootstrap,
+# upstream=candidate); --verify finds the persisted conflict entry and
+# exits 1. Root cause logged in follow-up issue [see rc14 PR body].
+# v0.16.0 is a single-version sliver between v0.15.x and v0.17.0 with
+# negligible expected downstream presence. Real fix requires a migration
+# at a boundary > v0.16.0 (e.g., v0.17.0.sh or a sync-loop preserve
+# heuristic). Restored for rc14 cut; re-allowlisted from rc11/rc12/rc13.
 v0.16.0
+
+# v0.17.0 — frozen-tag self-bootstrap defect: same shift-2/re-exec argv-drop
+# defect as v1.0.0-rc3 (see entry above). At v0.17.0, scripts/pre-release-gate.sh
+# executed `exec bash "$0" "$@"` AFTER a prior `shift 2` had already consumed
+# `--target <tag>` from the positional argv. The re-exec therefore ran the
+# candidate orchestrator with no `--target` flag, causing auto-selection of the
+# highest pre-release tag on the branch instead of staying on v0.17.0. The
+# resulting mismatch trips the upgrade-paths round-trip even though v0.17.0's
+# own logic was correct at cut time. Fixed in the current candidate by saving
+# the original argv into `original_args=("$@")` before the `shift` and
+# re-execing with `exec bash "$0" "${original_args[@]}"` (same fix as rc4).
+# Allowlisted because the defect lives in the frozen v0.17.0 tag and cannot
+# be retro-patched; fix is in the current upgrade.sh via original_args.
+# v0.17.0 is a narrow single-version sliver between v0.16.0 and the v1.0.0-rc
+# series with negligible expected downstream presence; this is not a v1.1.0
+# regression — the defect predates the v1.0.0 line entirely.
+v0.17.0
+

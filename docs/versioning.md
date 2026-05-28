@@ -132,3 +132,31 @@ the `v1` line:
 Anything that renames, removes, or substantively reshapes those
 surfaces in an incompatible way is a MAJOR change. It must be released
 as `v2.0.0` or later and include a migration path.
+
+## Known issues
+
+### v1.0.0 VERSION stamp mismatch (2026-05-27)
+
+The published `v1.0.0` annotated tag points to a commit whose `VERSION`
+file reads `v1.0.0-rc15`. The release was tagged without first bumping
+`VERSION` to `v1.0.0`.
+
+**Resolution policy (customer ruling 2026-05-27):** the `v1.0.0` tag is
+intentionally left immutable. Published tags are never re-tagged or
+force-pushed. The mismatch is a cosmetic defect: downstream projects
+see `TEMPLATE_VERSION` stamped to `v1.0.0` (the tag name used by
+`scripts/upgrade.sh`), not to the VERSION file content, so the
+practical impact is limited to the VERSION file content in the tagged
+tree.
+
+**Forward fix:** the `version-stamp` precondition sub-gate in
+`scripts/pre-release-gate.sh` now checks that `VERSION` matches the
+exact git tag at HEAD before any future release is cut. Any release
+workflow that calls the pre-release gate will catch this class of
+mismatch before the tag is pushed.
+
+**Stepwise smoke annotation:** the `v1.0.0-rc14 → v1.0.0` hop in
+`scripts/stepwise-smoke.sh` is annotated as a `known_cliff_hop` because
+the TEMPLATE_VERSION verification step hard-fails on this immutable
+stamp mismatch. It is listed alongside the existing `rc7 → rc8`
+known-cliff entry and does not count as a test failure.

@@ -1,0 +1,48 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "bounded-codex-permitted-valid-001",
+  "status": "active",
+  "mode": {
+    "execution": "bounded-codex",
+    "codex_allowed": true,
+    "codex_server": "codex"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Fixture: bounded_codex_exception with explicit permission and scoped action.",
+  "allowed_paths": ["schemas/**", "scripts/**"],
+  "forbidden_paths": [".claude/**", "CUSTOMER_NOTES.md"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": ["tests/hooks/test-handoff-contracts.sh"],
+    "review": true,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "bounded_codex_exception with codex_permission_flag=true and permitted_role_owned_action validates."
+  ],
+  "hard_rule_traces": [],
+  "bounded_codex_exception": {
+    "execution_mode": "bounded-codex",
+    "codex_permission_flag": true,
+    "permitted_role_owned_action": "update-schema-fields",
+    "allowed_paths": ["schemas/handoff.schema.json"],
+    "forbidden_paths": [".claude/**", "CUSTOMER_NOTES.md"],
+    "required_evidence": ["tests/hooks/test-handoff-contracts.sh"],
+    "expiry_or_completion_condition": "T023 task completion"
+  },
+  "activity": [],
+  "verification": {
+    "tests": [],
+    "reviews": [],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

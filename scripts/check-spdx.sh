@@ -42,7 +42,15 @@ missing_list=""
 # Collect candidates: any .sh under scripts/ or tests/.
 # Use find with -print to handle nested directories; null-delimit to be
 # safe with whitespace even though we control the filenames.
-candidates=$(find scripts tests -type f -name '*.sh' 2>/dev/null | LC_ALL=C sort)
+#
+# tests/release-gate/snapshots/ is excluded: it contains scaffolded
+# outputs from historical source-rc tags used as upgrade-paths
+# fixtures (spec 008). Those trees are not our code — they are the
+# template's own historical state captured for the gate to run
+# (source-rcs predating SPDX-on-every-file are part of the fixture).
+candidates=$(find scripts tests -type f -name '*.sh' \
+    -not -path 'tests/release-gate/snapshots/*' \
+    2>/dev/null | LC_ALL=C sort)
 
 if [ -z "$candidates" ]; then
     printf 'check-spdx.sh: no .sh files found under scripts/ or tests/\n' >&2

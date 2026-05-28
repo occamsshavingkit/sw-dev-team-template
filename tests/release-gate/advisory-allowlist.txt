@@ -30,3 +30,9 @@ docs/OLD_NAME.md
 docs/PART_A.md
 docs/PART_B.md
 docs/new/NEW_NAME.md
+
+# Class 2: doc-comment negative-example in migrations/v1.0.0-rc13.sh (lines 44-50).
+# The comment explains WHY scripts/lib/prebootstrap.sh was NOT extracted
+# (FW-ADR-0013: duplication is cheaper than the abstraction for pre-bootstrap
+# migrations). The file intentionally does not exist.
+scripts/lib/prebootstrap.sh
