@@ -25,7 +25,7 @@ A `tech-lead` agent — and any human or AI operator playing the tech-lead role 
 
 ### User Story 2 — Agent contracts trimmed to ≤80% of sizing cap (Priority: P1)
 
-Every `.claude/agents/<role>.md` file pays a fresh context cost on each spawn. v0.12.1+ moved explanatory prose to per-role manuals, but several contracts still echo the moved content; some carry duplicated escalation boilerplate; some carry behavior-neutral prose. A systematic word-count baseline followed by source-traceable cuts brings every contract to ≤80% of its sizing cap (per the archival sizing policy in `docs/agents/manual/researcher-manual.md`), preserving all binding rules and customer-truth references.
+Every `.claude/agents/<role>.md` file pays a fresh context cost on each spawn. v0.12.1+ moved explanatory prose to per-role manuals, but several contracts still echo the moved content; some carry duplicated escalation boilerplate; some carry behavior-neutral prose. A systematic word-count baseline followed by source-traceable cuts brings every contract to ≤80% of its sizing cap (per the archival sizing policy in `docs/pm/token-economy-baseline.md` (M0 table)), preserving all binding rules and customer-truth references.
 
 **Why this priority**: P1 because (a) it shares the same Q-0022 gate as User Story 1, and (b) prose audit results from this story feed back into the binding-section placement decision in User Story 1 (whether to put new content in the contract or the manual) — the two halves are coupled.
 
@@ -73,7 +73,7 @@ Per Q-0022 (+ addendum 2026-05-28 ratifying PM's wider gate), the composite desi
 - **FR-003**: System MUST produce a baseline word-count table covering every file in `.claude/agents/*.md` (excluding `sme-template.md`, which is a scaffold), each row showing word count, applicable sizing cap, and percentage of cap.
 - **FR-004**: System MUST identify reduction candidates in each contract file and tag each candidate with one of three rationales: duplicated escalation boilerplate; behavior-neutral explanatory prose; manual-echo (content already moved to the role manual but still present in the contract).
 - **FR-005**: System MUST publish a proposed-cut diff for every reduction candidate, showing before / after and confirming preservation of all binding rules and customer-truth references.
-- **FR-006**: After cuts are applied, every contract file MUST sit at or below 80% of its sizing cap per the archival sizing policy in `docs/agents/manual/researcher-manual.md`.
+- **FR-006**: After cuts are applied, every contract file MUST sit at or below 80% of its sizing cap per the archival sizing policy in `docs/pm/token-economy-baseline.md` (M0 table).
 - **FR-007**: System MUST NOT restructure the agent-roster shape, the escalation protocol, or the manual-extraction pattern.
 - **FR-008**: System MUST preserve every binding rule and every customer-truth reference; cuts that would alter behavior or drop a customer-truth pointer MUST be rejected and documented.
 - **FR-009**: System MUST produce a post-cut word-count table mirroring FR-003, so the before-and-after delta is auditable per file and in aggregate.
@@ -93,7 +93,7 @@ Per Q-0022 (+ addendum 2026-05-28 ratifying PM's wider gate), the composite desi
 
 - **Agent contract file**: A `.claude/agents/<role>.md` file. Carries the agent's frontmatter (`name`, `description`, `tools`, `model`) and the binding contract prose. Sized against the archival cap; expected to stay at ≤80% of cap.
 - **Role manual**: A `docs/agents/manual/<role>-manual.md` file. Carries explanatory prose that does NOT belong on the per-spawn context path. Receives content extracted from the contract during the audit.
-- **Sizing cap**: The per-file size ceiling defined in the archival sizing policy in `docs/agents/manual/researcher-manual.md`. Used as the denominator for the 80%-of-cap target.
+- **Sizing cap**: The per-file size ceiling defined in the archival sizing policy in `docs/pm/token-economy-baseline.md` (M0 table). Used as the denominator for the 80%-of-cap target.
 - **Cut proposal**: A before/after diff for a contiguous span of prose, tagged with one of {duplicated-boilerplate, behavior-neutral, manual-echo}, optionally referencing the manual section that now carries the moved content.
 - **Sign-off record**: A verbatim customer approval written to `CUSTOMER_NOTES.md` and pointed to from `docs/pm/release-plan-v1.x.md`. Unlocks v1.2.0 and v1.3.0 entry.
 
@@ -115,7 +115,7 @@ Per Q-0022 (+ addendum 2026-05-28 ratifying PM's wider gate), the composite desi
 - **A-1**: Binding-rules content (FR-001/FR-002) lands in the *contract* (`tech-lead.md`); any explanatory expansion lands in the *manual* (`docs/agents/manual/tech-lead-manual.md`). This preserves the manual-extraction pattern: contracts carry rules only; manuals carry explanation. If applying this rule pushes tech-lead.md above its own 80% cap, the audit prioritizes Half B cuts on `tech-lead.md` until both Half A and the cap target are satisfied.
 - **A-2**: Word count (`wc -w`) is the proxy for token count; this matches the existing AGT-1 scope language and the archival sizing policy. Token-exact measurement (via tokenizer) is out of scope for this design pass.
 - **A-3**: `sme-template.md` is a scaffold for downstream-created SME agents; it is not a runtime contract and is excluded from the audit roster.
-- **A-4**: The archival sizing policy in `docs/agents/manual/researcher-manual.md` is the authoritative source of per-file caps; the design pass cites it rather than redefining caps.
+- **A-4**: The archival sizing policy in `docs/pm/token-economy-baseline.md` (M0 table) is the authoritative source of per-file caps; the design pass cites it rather than redefining caps.
 - **A-5**: Codex adapter prose duplicated between `.claude/agents/*.md` and `AGENTS.md` is treated as duplicated-boilerplate; the per-agent contract retains a one-line pointer instead of the full adapter prose.
 - **A-6**: Reviews proceed in parallel where possible — architect (Half A semantics) and tech-writer (Half B prose) need not serialize, but code-reviewer's diff review runs after both have landed proposed changes.
 - **A-7**: This design pass produces only canonical markdown changes inside `.claude/agents/`, `docs/agents/manual/`, and the spec directory; no scripts, schemas, hooks, or migrations are touched (FR-013).
