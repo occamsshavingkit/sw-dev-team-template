@@ -65,6 +65,20 @@ git config core.hooksPath .git-hooks
 Or symlink manually: `ln -sf ../../.git-hooks/pre-push .git/hooks/pre-push`.
 Confirm with `git config core.hooksPath`.
 
+**BLOCKING: hook installation is a hard prerequisite for every release.**
+Before cutting any release tag, verify the hook is active:
+
+```sh
+git config core.hooksPath   # must print: .git-hooks
+```
+
+If the output is empty or wrong, install the hook before proceeding. A tag
+push without the hook installed bypasses the strict-mode gate silently — the
+hook is never invoked and the gate never runs. This is the root cause of the
+v1.1.0 incident (#282): `core.hooksPath` was unset at tag time, so the
+pre-push hook did not run and `template-contract-smoke` RED shipped with the
+release commit.
+
 **Hook behaviour.** In strict mode (push includes an annotated `v*`
 tag), the hook runs `scripts/pre-release-gate.sh` with no flags (R-2
 in the spec — `--only` / `--skip` are ignored in strict mode) and
@@ -187,10 +201,14 @@ commit where `VERSION` still reads the previous rc value creates a
 mismatch between `git describe` output, the `readme-current` sub-gate's
 check, and downstream `TEMPLATE_VERSION` stamps.
 
-**Pre-tag human checklist — stamp verification (added 2026-05-27):**
+**Pre-tag human checklist — stamp verification (added 2026-05-27; CI gate items added 2026-05-28 per #282):**
 
 Before cutting any release tag, verify the following manually, in order:
 
+- [ ] `git config core.hooksPath` prints `.git-hooks`. **If blank or wrong,
+      install the hook before proceeding** (`git config core.hooksPath .git-hooks`).
+      A missing hook silently bypasses the strict-mode pre-push gate — this was
+      the root cause of the v1.1.0 incident (#282).
 - [ ] `cat VERSION` prints the exact version string you intend to tag
       (e.g., `v1.0.0-rc16`, not `v1.0.0-rc15`).
 - [ ] The version string has no stale pre-release suffix relative to the
@@ -200,6 +218,14 @@ Before cutting any release tag, verify the following manually, in order:
       precondition sub-gate will fail automatically if the above two
       conditions are not met at the exact commit being tagged.
 - [ ] The tag name you are about to create matches `VERSION` byte-for-byte.
+- [ ] **All required CI workflows are GREEN on the exact release commit**
+      (the commit that will be tagged, not a prior commit on `main`).
+      Required blocking workflows: `template-contract-smoke`,
+      `agent-contract-check`, `agent-model-routing-lint`, `question-lint`.
+      Verify via `gh run list --commit <SHA> --json name,conclusion` and
+      confirm every listed workflow shows `"conclusion":"success"`. If any
+      required workflow is `"failure"` or is absent (did not run), **do not
+      tag**. Fix forward on a new commit and re-verify CI on that commit.
 
 Rationale: the `v1.0.0` tag was published with `VERSION=v1.0.0-rc15`
 because the VERSION file was not bumped before tagging. That tag is
