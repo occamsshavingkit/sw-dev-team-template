@@ -1,7 +1,9 @@
 # Open-Issue Baseline Burndown: rc13→rc14 Summary
 
 **Baseline**: 35 issues (A-003, 2026-05-16 start-of-burndown).
-**Final disposition**: 34 closed, 1 open (customer-blocked Q-0014 #189).
+**Final disposition**: 35/35 closed; fixed 31, wontfix 1 (#59), v2-deferred
+3 (#3, #27, #145), consolidated 0, duplicate 0, customer-blocked open 0;
+#189 closed via PR #252.
 
 Per **FR-005** (Release Disposition Tracking), all 35 baseline issues routed
 through the burndown dispatch log (`docs/pm/dispatch-log.md`), and final
@@ -13,12 +15,12 @@ counts recorded here.
 
 | Category | Count | Closed via | Notes |
 |---|---:|---|---|
-| **Fixed** | 30 | Fix-and-close PRs #204–#258 | Direct problem resolution (code, docs, tests) |
+| **Fixed** | 31 | Fix-and-close PRs #204–#258 | Direct problem resolution (code, docs, tests), including #189 via PR #252 |
 | **Wontfix** | 1 | PR #246 (audit close) | #59 — IEEE audit umbrella; findings deferred to fan-out |
 | **V2-deferred** | 3 | PR #225 (roadmap batch) | #3, #27, #145 → ROADMAP.md with v2 tag |
 | **Consolidated** | 0 | — | No baseline issues closed as duplicate-of-other-baseline |
 | **Duplicate** | 0 | — | No baseline issues closed as dup-of-already-closed |
-| **Open (blocked)** | 1 | — | #189 (Q-0014, customer-blocked; unresolved as of rc14 tag) |
+| **Customer-blocked open** | 0 | PR #252 | #189 closed via PR #252 after Q-0014 ruling |
 | **TOTAL** | 35 | | |
 
 ---
@@ -55,10 +57,10 @@ counts recorded here.
 - PR #249: supporting fix
 - PR #251: closes Q-0013 (orchestration, not baseline)
 - #59 closed wontfix (audit); fan-out #238–#245 filed
-- Baseline progress: 34/35 closed
+- Baseline progress: 35/35 closed after #189 closed via PR #252
 
 **Phase 5** (T042/T043 audit, meta-close):
-- 22+ new issues filed during burndown (14 immediate-cycle + 8 #59 fan-out)
+- 22 new issues filed during burndown (14 immediate-cycle + 8 #59 fan-out)
 - All non-blocking, implicit-owner labeling; target rc15 intake
 - T046 unblocked (rc14 cut authorized)
 
@@ -123,8 +125,7 @@ integration sequencing.
 - #207 (inherited-model cost overrun) → fixed via PR #214 (binding-table default-class
   mapping + CI enforcement)
 
-**Open blockers**:
-- #189 (Q-0014, customer-blocked): customer decision pending; does not block rc14 tag
+**Open blockers**: none; #189 closed via PR #252.
 
 ---
 
@@ -174,18 +175,19 @@ standard gate. No exceptional merges; all review + merge via GitHub Actions.
 
 ## Customer-Facing Summary
 
-**Baseline 35 open issues closed: 34/35 (97.1% completion).**
+**Baseline 35 open issues closed: 35/35 (100% completion).**
 
 The rc13→rc14 cycle completed the planned open-issue baseline burndown on
 2026-05-16. Of 35 starting issues:
 
-- **30 issues fixed** via direct problem resolution (code, tests, docs)
+- **31 issues fixed** via direct problem resolution (code, tests, docs), including
+  #189 closed via PR #252
 - **1 issue closed as wontfix** (#59) with 8 intentional follow-up findings filed
   for v2 integration
 - **3 issues added to v2 roadmap** (#3, #27, #145) with explicit customer
   acknowledgment
-- **1 issue remains open** (#189, Q-0014) pending customer decision that does not
-  block v1.0.0-rc14 release.
+- **0 issues remain customer-blocked open**; consolidated and duplicate counts are
+  both 0.
 
 **New findings (22 issues)** are non-blocking; all labeled with implicit owners
 and queued for rc15 or next non-release session intake. Recurring-pattern issue

@@ -509,3 +509,42 @@ axis after the stub-model exploration).
 
 **Supersedes:** none (first attestation on cross-harness parity validation for G-11)
 **Recorded by:** researcher
+
+## 2026-05-26 — v1.1 scope inputs: handoff contracts, llmdc, speckit (turn: pre-intake)
+
+**Question (from tech-lead, relayed):**
+> What customer-originated inputs should be recorded for the v1.1 scope?
+
+**Customer inputs (verbatim):**
+> "here is a lot to put into the way to v1.1: # Improved proposal: enforceable task contracts for `sw-dev-team-template`"
+
+> "right. also on the list for v1.1: llmdc is not well integrated."
+
+> "for 1.1 we should have a clear model for the best way to interact with speckit is."
+
+**Framing (paraphrase, not customer text):**
+The long proposal frames v1.1 around enforceable JSON handoff contracts,
+hook enforcement, optional bounded-Codex mode, independent evidence, and a
+warning-to-enforce rollout. v1.1 also needs llmdc integration work and a
+clear model for the best way to interact with speckit.
+
+**Cross-refs:** `ROADMAP.md` v1.1; `docs/v1.1-handoff-contracts.md`.
+
+**Supersedes:** none (first recorded v1.1 scope framing for these topics).
+**Recorded by:** researcher
+
+## 2026-05-26 — v1.1 scope addition: model-assignment failsafe (turn: pre-intake)
+
+**Question (from tech-lead, relayed):**
+> What additional fix should be added to the v1.1 scope?
+
+**Customer answer (verbatim):**
+> "add the lack of a failsafe on the model assignments to the list of fixes for 1.1"
+
+**Framing (paraphrase, not customer text):**
+v1.1 now includes fixing the missing failsafe around model assignments.
+
+**Cross-refs:** 2026-05-26 v1.1 scope inputs entry above.
+
+**Supersedes:** none (adds one more customer-originated v1.1 fix-list item).
+**Recorded by:** researcher
