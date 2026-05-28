@@ -23,7 +23,7 @@ description: "Task list for spec 016 — token economy design pass (composite #2
 
 **Purpose**: Stand up the design-pass artifact that the gates and reviews reference.
 
-- [ ] T001 Create scaffold for `specs/016-token-economy-design/audit-tables.md` with three empty sections: `## Baseline` (columns: Role / M0 words (cap) / 80% ceiling / Current words / % of cap / Status), `## Proposals` (columns: Role / Span / Tag / Before / After / Manual pointer / tech-writer notes / Status), `## Post-cut` (columns: Role / M0 words (cap) / 80% ceiling / Post-cut words / % of cap / Delta words / All cuts tagged?). Schemas pinned in plan D-2.
+- [X] T001 Create scaffold for `specs/016-token-economy-design/audit-tables.md` with three empty sections: `## Baseline` (columns: Role / M0 words (cap) / 80% ceiling / Current words / % of cap / Status), `## Proposals` (columns: Role / Span / Tag / Before / After / Manual pointer / tech-writer notes / Status), `## Post-cut` (columns: Role / M0 words (cap) / 80% ceiling / Post-cut words / % of cap / Delta words / All cuts tagged?). Schemas pinned in plan D-2.
 
 ---
 
@@ -33,12 +33,12 @@ description: "Task list for spec 016 — token economy design pass (composite #2
 
 **⚠️ CRITICAL**: Per plan OQ-1, `tech-lead.md` headroom must be confirmed in T004 before Half A is authored (US1).
 
-- [ ] T002 Run `wc -w` on every `.claude/agents/<role>.md` file in `sw-dev-team-template/.claude/agents/` excluding `sme-template.md`; record raw counts in `specs/016-token-economy-design/audit-tables.md` § Baseline `Current words` column for all 13 runtime-eligible contracts.
-- [ ] T003 [P] Copy M0 word counts from `sw-dev-team-template/docs/pm/token-economy-baseline.md` § "Per-agent contract sizes" into `audit-tables.md` § Baseline `M0 words (cap)` column for all 13 rows.
-- [ ] T004 [P] Compute `floor(M0 × 0.80)` for each of the 13 rows and populate `audit-tables.md` § Baseline `80% ceiling` and `% of cap` columns; set `Status` to `at-or-below-80%` / `above-80%` / `no-op` per D-2.
-- [ ] T005 Verify `tech-lead.md` row in Baseline shows ≥250 words of headroom under its 80% ceiling (plan OQ-1 estimate for the new section is ~200–300 words). If headroom is < 250 words, flag in plan Risks row 2 and prioritize US2 cuts on `tech-lead.md` (T020 below) before US1 authoring begins.
-- [ ] T006 Verify SC-005 aggregate reachability per plan OQ-2: sum `Current words` column in Baseline; compare to `0.85 × Σ M0`. If Σ Current ≤ Σ M0 × 0.85, mark "SC-005 reachable with modest cuts" in audit-tables.md notes; otherwise mark "thin margin — monitor".
-- [ ] T007 Gate 0 sign-off — `architect` confirms Baseline table is complete (13 rows, every column populated, T005/T006 results recorded). Record sign-off line in `audit-tables.md` § Baseline footer with date + reviewer.
+- [X] T002 Run `wc -w` on every `.claude/agents/<role>.md` file in `sw-dev-team-template/.claude/agents/` excluding `sme-template.md`; record raw counts in `specs/016-token-economy-design/audit-tables.md` § Baseline `Current words` column for all 13 runtime-eligible contracts.
+- [X] T003 [P] Copy M0 word counts from `sw-dev-team-template/docs/pm/token-economy-baseline.md` § "Per-agent contract sizes" into `audit-tables.md` § Baseline `M0 words (cap)` column for all 13 rows.
+- [X] T004 [P] Compute `floor(M0 × 0.80)` for each of the 13 rows and populate `audit-tables.md` § Baseline `80% ceiling` and `% of cap` columns; set `Status` to `at-or-below-80%` / `above-80%` / `no-op` per D-2.
+- [X] T005 Verify `tech-lead.md` row in Baseline shows ≥250 words of headroom under its 80% ceiling (plan OQ-1 estimate for the new section is ~200–300 words). If headroom is < 250 words, flag in plan Risks row 2 and prioritize US2 cuts on `tech-lead.md` (T020 below) before US1 authoring begins.
+- [X] T006 Verify SC-005 aggregate reachability per plan OQ-2: sum `Current words` column in Baseline; compare to `0.85 × Σ M0`. If Σ Current ≤ Σ M0 × 0.85, mark "SC-005 reachable with modest cuts" in audit-tables.md notes; otherwise mark "thin margin — monitor".
+- [X] T007 Gate 0 sign-off — `architect` confirms Baseline table is complete (13 rows, every column populated, T005/T006 results recorded). Record sign-off line in `audit-tables.md` § Baseline footer with date + reviewer.
 
 **Checkpoint (Gate 0)**: Baseline published and verified. US1 and US2 may now proceed.
 
