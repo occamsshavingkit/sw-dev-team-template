@@ -5,18 +5,6 @@ tools: Read, Grep, Glob, Bash, Write, Edit, SendMessage, Agent
 model: sonnet
 ---
 
-<!-- TOC -->
-
-- [Project-specific local supplement](#project-specific-local-supplement)
-- [Identity](#identity)
-- [Job](#job)
-- [Token economy (binding)](#token-economy-binding)
-- [Escalation protocol](#escalation-protocol)
-- [Enforcement](#enforcement)
-- [Operational procedures — see manual](#operational-procedures--see-manual)
-
-<!-- /TOC -->
-
 Operational recipes (Customer Question Gate procedure, Dispatch
 discipline rules, Memory-first lookup, Customer-facing output
 discipline including the R-1 / R-2 / R-3 rules and Turn Ledger schema,
@@ -98,21 +86,9 @@ facility from the top-level `tech-lead` session.
    parameter on every spawn (typically the canonical role name) so the
    teammate is visible on the agent-teams panel.
 
-   In Codex, ask one atomic spawning-authorization question at session
-   start unless already authorized; record in the Turn Ledger. If
-   spawning is unavailable or no slot is free, queue and wait — do
-   not implement specialist work locally unless the customer grants an
-   exception for the specific item.
-
-   Read `docs/model-routing-guidelines.md` for tier and
-   `reasoning_effort`, and `docs/agent-health-contract.md` for slot
-   queue, completion-state, and liveness vocabulary, before each
-   Codex dispatch. Use `docs/AGENT_NAMES.md` as the public name map;
-   Codex worker IDs are internal handles only.
-
-   Liveness windows, agent-health detection, and respawn procedure:
-   see `docs/agents/manual/tech-lead-manual.md` § "Agent health +
-   respawn" and `docs/agent-health-contract.md`.
+   Codex dispatch detail, liveness windows, agent-health detection, and
+   respawn procedure: see `docs/agents/manual/tech-lead-manual.md`
+   § "Job-step operational detail" and § "Agent health + respawn".
 
 4. **Handle escalations.** Specialists return with structured requests;
    dispatch the next specialist or — last resort — ask the human.
@@ -238,29 +214,4 @@ the manual to keep the contract small.
 
 ## Operational procedures — see manual
 
-The following operational sections moved to
-`docs/agents/manual/tech-lead-manual.md` to keep this contract small.
-Cross-references:
-
-- Customer Question Gate (the four-check procedure and queue
-  semantics) → manual § "Customer Question Gate".
-- Dispatch discipline (background-by-default, no in-flight status
-  narration, no role-stealing, no context-forking briefs, Rules
-  A / B / C / D) → manual § "Dispatch discipline".
-- Routing table (work-smells-like → agent map) → manual § "Routing
-  table".
-- Memory-first lookup (claude-mem query patterns) → manual §
-  "Memory-first lookup".
-- Parallelism default (fan-out at project start, anti-patterns) →
-  manual § "Parallelism default".
-- Prompt concision when dispatching → manual § "Prompt concision
-  when dispatching".
-- Customer-facing output discipline → manual § "Customer-facing
-  output discipline" (R-1 pre-send idleness check, R-2 Turn Ledger
-  footer schema, R-3 teammate naming discipline).
-- Scoping-transcript dump (debug mode) → manual § "Scoping-transcript
-  dump".
-- Design-intent tie-break (`architect` > `software-engineer`) →
-  manual § "Design-intent tie-break".
-- Agent health + respawn → manual § "Agent health + respawn" and
-  `docs/agent-health-contract.md`.
+All operational procedures moved to `docs/agents/manual/tech-lead-manual.md`.

@@ -5,24 +5,13 @@ tools: Read, Write, Edit, Grep, Glob, Bash, SendMessage
 model: sonnet
 ---
 
-<!-- TOC -->
-
-- [Project-specific local supplement](#project-specific-local-supplement)
-- [Job](#job)
-  - [Owned templates and artefacts](#owned-templates-and-artefacts)
-  - [Milestone-close routine](#milestone-close-routine)
-- [Hard rules](#hard-rules)
-- [Hand-offs (escalate through tech-lead; never contact customer)](#hand-offs-escalate-through-tech-lead-never-contact-customer)
-- [Escalation format](#escalation-format)
-- [Output](#output)
-
-<!-- /TOC -->
-
 Rationale, examples, and history live in
 [docs/agents/manual/qa-engineer-manual.md](../../docs/agents/manual/qa-engineer-manual.md)
 (Adversarial stance, Solution Duel, Critical-path considerations).
 
 ## Project-specific local supplement
+
+<!-- local-supplement: see .claude/agents/tech-lead.md § "Project-specific local supplement" for the generic boilerplate. -->
 
 Before starting role work, check whether `.claude/agents/qa-engineer-local.md`
 exists. If it exists, read it and treat it as project-specific routing
@@ -102,12 +91,7 @@ At every milestone close:
 
 ## Escalation format
 
-```
-Need: <one line>
-Why blocked: <one line>
-Best candidate responder: <agent name, or "customer">
-What I already checked: <CUSTOMER_NOTES / other agents>
-```
+<!-- escalation-format: see .claude/agents/architect.md § "Escalation format" for the standard 4-field form. -->
 
 ## Output
 

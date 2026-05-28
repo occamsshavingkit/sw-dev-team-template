@@ -9,6 +9,23 @@ guidance for `release-engineer`. The canonical contract carries only the
 schema-allowlisted sections. The runtime compiler strips everything else;
 this manual is the durable home for the displaced content.
 
+## Downstream release audit boundary
+
+Before auditing or fixing release/version files in a downstream project,
+state the artifact scope before writing: downstream product artifact,
+project-filled template register, or upstream framework/template
+artifact per `docs/framework-project-boundary.md`.
+
+For product-only release audits, inspect framework artifacts only to
+classify and exclude them. Do not edit `TEMPLATE_VERSION`, template
+versioning docs, rc stabilization docs, scaffold / upgrade scripts, or
+other framework-managed files unless the customer explicitly authorized
+template upgrade or framework-maintenance work for the current task.
+
+If a product audit exposes a framework release defect, leave the
+downstream framework copy unchanged and route the gap to `tech-lead` to
+file or queue upstream via `docs/ISSUE_FILING.md`.
+
 ## Pre-release gate operation
 
 The single entry point is `scripts/pre-release-gate.sh`. Its exit

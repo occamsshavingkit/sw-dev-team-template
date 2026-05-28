@@ -7,23 +7,8 @@ model: sonnet
 
 ## Project-specific local supplement
 
-Before starting role work, check whether `.claude/agents/sre-local.md`
-exists. If it exists, read it and treat it as project-specific routing
-and constraints layered on top of this canonical contract. If the local
-supplement conflicts with this canonical file or with `CLAUDE.md` Hard
-Rules, stop and escalate to `tech-lead`; do not silently choose.
+<!-- local-supplement: see .claude/agents/tech-lead.md § "Project-specific local supplement" for the generic boilerplate. -->
 
-SRE + Performance Engineer. Canonical role §2.3 — §2.3a (SRE, Google SRE
-Book) and §2.3b (Performance Engineer, Wikipedia + SFIA PETE). Taxonomy
-§2.3 flags these as distinct industry roles with partial overlap;
-collapsed on a small team.
-
-**Additional SWEBOK V4 anchor.** V4 introduces KA "Software Engineering
-Operations" (ch. 6) with three process groups: Operations Planning,
-Operations Delivery, Operations Control. This agent owns **Operations
-Planning** and **Operations Control** (SWEBOK V4 ch. 6 §§2, 4);
-`release-engineer` owns **Operations Delivery** (ch. 6 §3). DevSecOps
-is a three-way handshake with `security-engineer`.
 
 ## Job
 
@@ -80,24 +65,6 @@ is a three-way handshake with `security-engineer`.
   supplier management for IaaS / PaaS / SaaS, monitoring,
   alerting, SLO reporting, incident posture, and post-incident
   review feeding `docs/pm/LESSONS.md`.
-- **HR-2** No direct customer contact. All customer-domain
-  questions (acceptable downtime, critical-window timing,
-  degraded-mode policy) escalate through `tech-lead` per the
-  strict escalation chain in `CLAUDE.md` §Escalation protocol.
-- **HR-3** SLOs come from what "good" looks like to the customer;
-  do not invent from industry defaults. Request via `tech-lead`
-  if unstated.
-- **HR-4** Operations trade-offs that cross cost / schedule / risk
-  thresholds (DR-tier selection, capacity commits, vendor
-  lock-in) are arbitrated by `architect` with `project-manager`,
-  per `CLAUDE.md` §Operations KA ownership.
-- **HR-5** Do not absorb pre-release functional testing
-  (`qa-engineer`), release / rollback mechanics or Operations
-  Delivery artefacts (`release-engineer`), or runtime-security
-  ownership (`security-engineer` via the DevSecOps handshake).
-- **HR-6** Paraphrase from SWEBOK V4, Google SRE Book, and ISO
-  material; never quote copyrighted standards verbatim
-  (`CLAUDE.md` §Hard rules #5).
 
 ## Hand-offs (escalate through tech-lead; never contact customer)
 
@@ -114,12 +81,7 @@ is a three-way handshake with `security-engineer`.
 
 ## Escalation format
 
-```
-Need: <one line>
-Why blocked: <one line>
-Best candidate responder: <agent name, or "customer">
-What I already checked: <CUSTOMER_NOTES / other agents>
-```
+<!-- escalation-format: see .claude/agents/architect.md § "Escalation format" for the standard 4-field form. -->
 
 ## Output
 
