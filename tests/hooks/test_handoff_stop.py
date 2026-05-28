@@ -38,6 +38,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
 
+def _expect(cond: object, msg: str = "") -> None:
+    if not cond:
+        raise AssertionError(msg)
+
+
 # ---------------------------------------------------------------------------
 # Load gate module
 # ---------------------------------------------------------------------------
@@ -120,7 +125,7 @@ def _run_gate(
         os.environ.clear()
         os.environ.update(old_env)
 
-    assert rc == 0, f"gate exited non-zero: {rc}"
+    _expect(rc == 0, f"gate exited non-zero: {rc}")
     output = captured.getvalue().strip()
     if not output:
         return None
@@ -217,14 +222,14 @@ def test_f1_no_pointer_silent_allow_enforce(tmp_path: Path) -> None:
     result = _run_gate(
         _stop_event(), mode="enforce", handoff=None, tmp_path=tmp_path, write_pointer=False
     )
-    assert result is None, f"expected silent allow (no output), got {result}"
+    _expect(result is None, f"expected silent allow (no output), got {result}")
 
 
 def test_f1_no_pointer_silent_allow_warn(tmp_path: Path) -> None:
     result = _run_gate(
         _stop_event(), mode="warn", handoff=None, tmp_path=tmp_path, write_pointer=False
     )
-    assert result is None
+    _expect(result is None)
 
 
 # ---------------------------------------------------------------------------
@@ -235,7 +240,7 @@ def test_f1_no_pointer_silent_allow_warn(tmp_path: Path) -> None:
 def test_f2_complete_handoff_allowed_no_requires(tmp_path: Path) -> None:
     handoff = _make_handoff()  # active, no required gates
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    assert result is None
+    _expect(result is None)
 
 
 def test_f2_complete_handoff_all_evidence_present(tmp_path: Path) -> None:
@@ -244,7 +249,7 @@ def test_f2_complete_handoff_all_evidence_present(tmp_path: Path) -> None:
         review_evidence=[_ACCEPTED_REVIEW],
     )
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    assert result is None
+    _expect(result is None)
 
 
 # ---------------------------------------------------------------------------
@@ -255,29 +260,29 @@ def test_f2_complete_handoff_all_evidence_present(tmp_path: Path) -> None:
 def test_f3_incomplete_review_missing_enforce(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    assert result is not None
-    assert result.get("continue") is False
-    assert result.get("decision") == "block"
-    assert "INCOMPLETE" in result.get("reason", "")
-    assert "review" in result.get("reason", "")
+    _expect(result is not None)
+    _expect(result.get("continue") is False)
+    _expect(result.get("decision") == "block")
+    _expect("INCOMPLETE" in result.get("reason", ""))
+    _expect("review" in result.get("reason", ""))
 
 
 def test_f4_incomplete_review_missing_warn(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
     result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
-    assert result is not None
-    assert result.get("continue") is True
-    assert "INCOMPLETE" in result.get("systemMessage", "")
-    assert "review" in result.get("systemMessage", "")
+    _expect(result is not None)
+    _expect(result.get("continue") is True)
+    _expect("INCOMPLETE" in result.get("systemMessage", ""))
+    _expect("review" in result.get("systemMessage", ""))
 
 
 def test_f3_incomplete_test_missing_enforce(tmp_path: Path) -> None:
     handoff = _make_handoff(require_tests=["tests/hooks/test-suite.sh"])
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    assert result is not None
-    assert result.get("continue") is False
-    assert result.get("decision") == "block"
-    assert "INCOMPLETE" in result.get("reason", "")
+    _expect(result is not None)
+    _expect(result.get("continue") is False)
+    _expect(result.get("decision") == "block")
+    _expect("INCOMPLETE" in result.get("reason", ""))
 
 
 # ---------------------------------------------------------------------------
@@ -288,20 +293,20 @@ def test_f3_incomplete_test_missing_enforce(tmp_path: Path) -> None:
 def test_f5_falsely_completed_review_missing_enforce(tmp_path: Path) -> None:
     handoff = _make_handoff(status="completed", require_review=True)
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    assert result is not None
-    assert result.get("continue") is False
-    assert result.get("decision") == "block"
-    assert "FALSELY_COMPLETED" in result.get("reason", "")
-    assert "review" in result.get("reason", "")
+    _expect(result is not None)
+    _expect(result.get("continue") is False)
+    _expect(result.get("decision") == "block")
+    _expect("FALSELY_COMPLETED" in result.get("reason", ""))
+    _expect("review" in result.get("reason", ""))
 
 
 def test_f6_falsely_completed_review_missing_warn(tmp_path: Path) -> None:
     handoff = _make_handoff(status="completed", require_review=True)
     result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
-    assert result is not None
-    assert result.get("continue") is True
-    assert "FALSELY_COMPLETED" in result.get("systemMessage", "")
-    assert "review" in result.get("systemMessage", "")
+    _expect(result is not None)
+    _expect(result.get("continue") is True)
+    _expect("FALSELY_COMPLETED" in result.get("systemMessage", ""))
+    _expect("review" in result.get("systemMessage", ""))
 
 
 def test_f5_falsely_completed_multi_gate_missing(tmp_path: Path) -> None:
@@ -311,10 +316,10 @@ def test_f5_falsely_completed_multi_gate_missing(tmp_path: Path) -> None:
         require_tests=["tests/hooks/test-suite.sh"],
     )
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    assert result is not None
-    assert result.get("continue") is False
-    assert result.get("decision") == "block"
-    assert "FALSELY_COMPLETED" in result.get("reason", "")
+    _expect(result is not None)
+    _expect(result.get("continue") is False)
+    _expect(result.get("decision") == "block")
+    _expect("FALSELY_COMPLETED" in result.get("reason", ""))
 
 
 # ---------------------------------------------------------------------------
@@ -329,13 +334,13 @@ def test_f7_completed_with_all_evidence_allowed(tmp_path: Path) -> None:
         review_evidence=[_ACCEPTED_REVIEW],
     )
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    assert result is None
+    _expect(result is None)
 
 
 def test_f7_completed_no_requires_allowed(tmp_path: Path) -> None:
     handoff = _make_handoff(status="completed")
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    assert result is None
+    _expect(result is None)
 
 
 # ---------------------------------------------------------------------------
@@ -347,19 +352,19 @@ def test_f8_schema_invalid_missing_owner_enforce(tmp_path: Path) -> None:
     handoff = _make_handoff()
     del handoff["owner_role"]
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    assert result is not None
-    assert result.get("continue") is False
-    assert result.get("decision") == "block"
-    assert "INCONSISTENT" in result.get("reason", "")
+    _expect(result is not None)
+    _expect(result.get("continue") is False)
+    _expect(result.get("decision") == "block")
+    _expect("INCONSISTENT" in result.get("reason", ""))
 
 
 def test_f9_schema_invalid_missing_owner_warn(tmp_path: Path) -> None:
     handoff = _make_handoff()
     del handoff["owner_role"]
     result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
-    assert result is not None
-    assert result.get("continue") is True
-    assert "INCONSISTENT" in result.get("systemMessage", "")
+    _expect(result is not None)
+    _expect(result.get("continue") is True)
+    _expect("INCONSISTENT" in result.get("systemMessage", ""))
 
 
 # ---------------------------------------------------------------------------
@@ -374,10 +379,10 @@ def test_f10_pointer_malformed_enforce(tmp_path: Path) -> None:
     result = _run_gate(
         _stop_event(), mode="enforce", handoff=None, tmp_path=tmp_path, write_pointer=False
     )
-    assert result is not None
-    assert result.get("continue") is False
-    assert result.get("decision") == "block"
-    assert "INCONSISTENT" in result.get("reason", "")
+    _expect(result is not None)
+    _expect(result.get("continue") is False)
+    _expect(result.get("decision") == "block")
+    _expect("INCONSISTENT" in result.get("reason", ""))
 
 
 def test_f10_pointer_malformed_warn(tmp_path: Path) -> None:
@@ -387,9 +392,9 @@ def test_f10_pointer_malformed_warn(tmp_path: Path) -> None:
     result = _run_gate(
         _stop_event(), mode="warn", handoff=None, tmp_path=tmp_path, write_pointer=False
     )
-    assert result is not None
-    assert result.get("continue") is True
-    assert "INCONSISTENT" in result.get("systemMessage", "")
+    _expect(result is not None)
+    _expect(result.get("continue") is True)
+    _expect("INCONSISTENT" in result.get("systemMessage", ""))
 
 
 # ---------------------------------------------------------------------------
@@ -407,10 +412,10 @@ def test_f11_pointer_missing_target_enforce(tmp_path: Path) -> None:
     result = _run_gate(
         _stop_event(), mode="enforce", handoff=None, tmp_path=tmp_path, write_pointer=False
     )
-    assert result is not None
-    assert result.get("continue") is False
-    assert result.get("decision") == "block"
-    assert "INCONSISTENT" in result.get("reason", "")
+    _expect(result is not None)
+    _expect(result.get("continue") is False)
+    _expect(result.get("decision") == "block")
+    _expect("INCONSISTENT" in result.get("reason", ""))
 
 
 # ---------------------------------------------------------------------------
@@ -421,19 +426,19 @@ def test_f11_pointer_missing_target_enforce(tmp_path: Path) -> None:
 def test_f12_draft_status_inconsistent_enforce(tmp_path: Path) -> None:
     handoff = _make_handoff(status="draft")
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    assert result is not None
-    assert result.get("continue") is False
-    assert result.get("decision") == "block"
-    assert "INCONSISTENT" in result.get("reason", "")
-    assert "draft" in result.get("reason", "")
+    _expect(result is not None)
+    _expect(result.get("continue") is False)
+    _expect(result.get("decision") == "block")
+    _expect("INCONSISTENT" in result.get("reason", ""))
+    _expect("draft" in result.get("reason", ""))
 
 
 def test_f12_cancelled_status_inconsistent_warn(tmp_path: Path) -> None:
     handoff = _make_handoff(status="cancelled")
     result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
-    assert result is not None
-    assert result.get("continue") is True
-    assert "INCONSISTENT" in result.get("systemMessage", "")
+    _expect(result is not None)
+    _expect(result.get("continue") is True)
+    _expect("INCONSISTENT" in result.get("systemMessage", ""))
 
 
 # ---------------------------------------------------------------------------
@@ -471,8 +476,8 @@ def test_f13_gate_inactive_when_env_unset(tmp_path: Path) -> None:
         os.environ.clear()
         os.environ.update(old_env)
 
-    assert rc == 0
-    assert captured.getvalue().strip() == ""
+    _expect(rc == 0)
+    _expect(captured.getvalue().strip() == "")
 
 
 # ---------------------------------------------------------------------------
@@ -484,14 +489,14 @@ def test_f14_wrong_event_name_silent(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
     event = {"hook_event_name": "TaskCompleted"}
     result = _run_gate(event, mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    assert result is None
+    _expect(result is None)
 
 
 def test_f14_subagent_stop_event_silent(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
     event = {"hook_event_name": "SubagentStop"}
     result = _run_gate(event, mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    assert result is None
+    _expect(result is None)
 
 
 # ---------------------------------------------------------------------------
@@ -502,42 +507,44 @@ def test_f14_subagent_stop_event_silent(tmp_path: Path) -> None:
 def test_f15_enforce_output_valid_stop_hook_shape(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    assert result is not None
+    _expect(result is not None)
     # All keys must be in the allowed Stop-hook set.
     extra = set(result.keys()) - _STOP_HOOK_ALLOWED_KEYS
-    assert not extra, f"unexpected keys in Stop-hook output: {extra}"
+    _expect(not extra, f"unexpected keys in Stop-hook output: {extra}")
     # hookSpecificOutput must NOT be present.
-    assert "hookSpecificOutput" not in result, (
-        "hookSpecificOutput must not appear in Stop-hook output"
+    _expect(
+        "hookSpecificOutput" not in result,
+        "hookSpecificOutput must not appear in Stop-hook output",
     )
 
 
 def test_f15_warn_output_valid_stop_hook_shape(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
     result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
-    assert result is not None
+    _expect(result is not None)
     extra = set(result.keys()) - _STOP_HOOK_ALLOWED_KEYS
-    assert not extra, f"unexpected keys in Stop-hook output: {extra}"
-    assert "hookSpecificOutput" not in result, (
-        "hookSpecificOutput must not appear in Stop-hook output"
+    _expect(not extra, f"unexpected keys in Stop-hook output: {extra}")
+    _expect(
+        "hookSpecificOutput" not in result,
+        "hookSpecificOutput must not appear in Stop-hook output",
     )
 
 
 def test_f15_enforce_uses_continue_false_and_decision_block(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    assert result is not None
-    assert result.get("continue") is False
-    assert result.get("decision") == "block"
-    assert isinstance(result.get("reason"), str) and result["reason"]
+    _expect(result is not None)
+    _expect(result.get("continue") is False)
+    _expect(result.get("decision") == "block")
+    _expect(isinstance(result.get("reason"), str) and result["reason"])
 
 
 def test_f15_warn_uses_continue_true_and_system_message(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
     result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
-    assert result is not None
-    assert result.get("continue") is True
-    assert isinstance(result.get("systemMessage"), str) and result["systemMessage"]
+    _expect(result is not None)
+    _expect(result.get("continue") is True)
+    _expect(isinstance(result.get("systemMessage"), str) and result["systemMessage"])
 
 
 # ---------------------------------------------------------------------------
@@ -596,19 +603,22 @@ def test_f16_inconsistent_missing_field_enforce_override_under_warn(
         os.environ.clear()
         os.environ.update(old_env)
 
-    assert rc == 0
+    _expect(rc == 0)
     output = captured.getvalue().strip()
-    assert output, "expected gate output for INCONSISTENT missing-field handoff"
+    _expect(output, "expected gate output for INCONSISTENT missing-field handoff")
     result = json.loads(output)
     # hookSpecificOutput must not be present.
-    assert "hookSpecificOutput" not in result, (
-        "hookSpecificOutput must not appear in Stop-hook output"
+    _expect(
+        "hookSpecificOutput" not in result,
+        "hookSpecificOutput must not appear in Stop-hook output",
     )
     # mode.gate_mode=enforce must tighten warn→enforce: result must be block.
-    assert result.get("continue") is False, (
-        f"expected continue=false (enforce tightening), got: {result}"
+    _expect(
+        result.get("continue") is False,
+        f"expected continue=false (enforce tightening), got: {result}",
     )
-    assert result.get("decision") == "block", (
-        f"expected decision=block (enforce tightening), got: {result}"
+    _expect(
+        result.get("decision") == "block",
+        f"expected decision=block (enforce tightening), got: {result}",
     )
-    assert "INCONSISTENT" in result.get("reason", "")
+    _expect("INCONSISTENT" in result.get("reason", ""))
