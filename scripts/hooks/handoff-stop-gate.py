@@ -69,20 +69,8 @@ _COMPLETED_STATUSES = {"completed", "done", "closed"}
 def _violation(mode: str, condition: str, reason: str) -> dict:
     full_reason = f"[{condition}] {reason}"
     if mode == "warn":
-        return {
-            "hookSpecificOutput": {
-                "hookEventName": _HOOK_EVENT_NAME,
-                "permissionDecision": "allow",
-                "warning": full_reason,
-            }
-        }
-    return {
-        "hookSpecificOutput": {
-            "hookEventName": _HOOK_EVENT_NAME,
-            "permissionDecision": "deny",
-            "permissionDecisionReason": full_reason,
-        }
-    }
+        return {"continue": True, "systemMessage": full_reason}
+    return {"continue": False, "decision": "block", "reason": full_reason}
 
 
 # ---------------------------------------------------------------------------

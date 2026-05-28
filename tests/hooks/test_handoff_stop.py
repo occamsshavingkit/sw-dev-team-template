@@ -6,19 +6,21 @@
 # IEEE 1008-1987 §3.2: features under test —
 #   F1.  No active handoff pointer → silent allow (no output).
 #   F2.  Consistent + complete handoff (all evidence present) → silent allow.
-#   F3.  Active handoff, evidence missing → INCOMPLETE deny (enforce).
+#   F3.  Active handoff, evidence missing → INCOMPLETE block (enforce).
 #   F4.  Active handoff, evidence missing → INCOMPLETE warn (warn).
-#   F5.  Status "completed", evidence missing → FALSELY_COMPLETED deny (enforce).
+#   F5.  Status "completed", evidence missing → FALSELY_COMPLETED block (enforce).
 #   F6.  Status "completed", evidence missing → FALSELY_COMPLETED warn (warn).
 #   F7.  Status "completed", all evidence present → silent allow.
-#   F8.  Schema validation failure → INCONSISTENT deny (enforce).
+#   F8.  Schema validation failure → INCONSISTENT block (enforce).
 #   F9.  Schema validation failure → INCONSISTENT warn (warn).
 #   F10. Pointer file present but JSON is malformed → INCONSISTENT.
 #   F11. Pointer references missing target file → INCONSISTENT.
 #   F12. Pointer has non-"active" / non-completed status → INCONSISTENT.
 #   F13. SWDT_HANDOFF_GATES absent → gate silent (off mode).
 #   F14. Event hook_event_name != Stop → gate silent.
-#   F15. hookEventName field in output is always "Stop".
+#   F15. Output is valid Stop-hook shape: top-level keys only, no hookSpecificOutput.
+#   F16. INCONSISTENT (missing-field) handoff with mode.gate_mode=enforce
+#        under env=warn → reported as block (enforce tightening), not warn.
 
 from __future__ import annotations
 
@@ -51,6 +53,19 @@ def _load_gate_module() -> types.ModuleType:
 
 _GATE = _load_gate_module()
 
+# Allowed top-level keys for Stop-hook output per Claude Code schema.
+_STOP_HOOK_ALLOWED_KEYS = {
+    "continue",
+    "suppressOutput",
+    "stopReason",
+    "decision",
+    "reason",
+    "systemMessage",
+    "terminalSequence",
+    "permissionDecision",
+    "hookSpecificOutput",
+}
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -67,7 +82,7 @@ def _run_gate(
 ) -> dict | None:
     """Invoke gate.main() with the given event on stdin.
 
-    Returns parsed hookSpecificOutput dict, or None when gate produced no output.
+    Returns the parsed top-level JSON dict, or None when gate produced no output.
 
     When handoff is not None and write_pointer is True, writes the pointer
     and durable handoff files to tmp_path.
@@ -109,8 +124,7 @@ def _run_gate(
     output = captured.getvalue().strip()
     if not output:
         return None
-    payload = json.loads(output)
-    return payload.get("hookSpecificOutput")
+    return json.loads(output)
 
 
 def _stop_event() -> dict:
@@ -200,7 +214,6 @@ _ACCEPTED_HUMAN_APPROVAL = {
 
 
 def test_f1_no_pointer_silent_allow_enforce(tmp_path: Path) -> None:
-    # No .devteam/active-handoff.json written; gate should be silent.
     result = _run_gate(
         _stop_event(), mode="enforce", handoff=None, tmp_path=tmp_path, write_pointer=False
     )
@@ -243,27 +256,28 @@ def test_f3_incomplete_review_missing_enforce(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
     assert result is not None
-    assert result["permissionDecision"] == "deny"
-    assert "INCOMPLETE" in result["permissionDecisionReason"]
-    assert "review" in result["permissionDecisionReason"]
+    assert result.get("continue") is False
+    assert result.get("decision") == "block"
+    assert "INCOMPLETE" in result.get("reason", "")
+    assert "review" in result.get("reason", "")
 
 
 def test_f4_incomplete_review_missing_warn(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
     result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
     assert result is not None
-    assert result["permissionDecision"] == "allow"
-    assert "warning" in result
-    assert "INCOMPLETE" in result["warning"]
-    assert "review" in result["warning"]
+    assert result.get("continue") is True
+    assert "INCOMPLETE" in result.get("systemMessage", "")
+    assert "review" in result.get("systemMessage", "")
 
 
 def test_f3_incomplete_test_missing_enforce(tmp_path: Path) -> None:
     handoff = _make_handoff(require_tests=["tests/hooks/test-suite.sh"])
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
     assert result is not None
-    assert result["permissionDecision"] == "deny"
-    assert "INCOMPLETE" in result["permissionDecisionReason"]
+    assert result.get("continue") is False
+    assert result.get("decision") == "block"
+    assert "INCOMPLETE" in result.get("reason", "")
 
 
 # ---------------------------------------------------------------------------
@@ -275,19 +289,19 @@ def test_f5_falsely_completed_review_missing_enforce(tmp_path: Path) -> None:
     handoff = _make_handoff(status="completed", require_review=True)
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
     assert result is not None
-    assert result["permissionDecision"] == "deny"
-    assert "FALSELY_COMPLETED" in result["permissionDecisionReason"]
-    assert "review" in result["permissionDecisionReason"]
+    assert result.get("continue") is False
+    assert result.get("decision") == "block"
+    assert "FALSELY_COMPLETED" in result.get("reason", "")
+    assert "review" in result.get("reason", "")
 
 
 def test_f6_falsely_completed_review_missing_warn(tmp_path: Path) -> None:
     handoff = _make_handoff(status="completed", require_review=True)
     result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
     assert result is not None
-    assert result["permissionDecision"] == "allow"
-    assert "warning" in result
-    assert "FALSELY_COMPLETED" in result["warning"]
-    assert "review" in result["warning"]
+    assert result.get("continue") is True
+    assert "FALSELY_COMPLETED" in result.get("systemMessage", "")
+    assert "review" in result.get("systemMessage", "")
 
 
 def test_f5_falsely_completed_multi_gate_missing(tmp_path: Path) -> None:
@@ -298,8 +312,9 @@ def test_f5_falsely_completed_multi_gate_missing(tmp_path: Path) -> None:
     )
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
     assert result is not None
-    assert result["permissionDecision"] == "deny"
-    assert "FALSELY_COMPLETED" in result["permissionDecisionReason"]
+    assert result.get("continue") is False
+    assert result.get("decision") == "block"
+    assert "FALSELY_COMPLETED" in result.get("reason", "")
 
 
 # ---------------------------------------------------------------------------
@@ -329,13 +344,13 @@ def test_f7_completed_no_requires_allowed(tmp_path: Path) -> None:
 
 
 def test_f8_schema_invalid_missing_owner_enforce(tmp_path: Path) -> None:
-    # Use a handoff that fails schema validation by omitting owner_role.
     handoff = _make_handoff()
     del handoff["owner_role"]
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
     assert result is not None
-    assert result["permissionDecision"] == "deny"
-    assert "INCONSISTENT" in result["permissionDecisionReason"]
+    assert result.get("continue") is False
+    assert result.get("decision") == "block"
+    assert "INCONSISTENT" in result.get("reason", "")
 
 
 def test_f9_schema_invalid_missing_owner_warn(tmp_path: Path) -> None:
@@ -343,9 +358,8 @@ def test_f9_schema_invalid_missing_owner_warn(tmp_path: Path) -> None:
     del handoff["owner_role"]
     result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
     assert result is not None
-    assert result["permissionDecision"] == "allow"
-    assert "warning" in result
-    assert "INCONSISTENT" in result["warning"]
+    assert result.get("continue") is True
+    assert "INCONSISTENT" in result.get("systemMessage", "")
 
 
 # ---------------------------------------------------------------------------
@@ -360,10 +374,10 @@ def test_f10_pointer_malformed_enforce(tmp_path: Path) -> None:
     result = _run_gate(
         _stop_event(), mode="enforce", handoff=None, tmp_path=tmp_path, write_pointer=False
     )
-    # File exists but is invalid JSON → INCONSISTENT.
     assert result is not None
-    assert result["permissionDecision"] == "deny"
-    assert "INCONSISTENT" in result["permissionDecisionReason"]
+    assert result.get("continue") is False
+    assert result.get("decision") == "block"
+    assert "INCONSISTENT" in result.get("reason", "")
 
 
 def test_f10_pointer_malformed_warn(tmp_path: Path) -> None:
@@ -374,9 +388,8 @@ def test_f10_pointer_malformed_warn(tmp_path: Path) -> None:
         _stop_event(), mode="warn", handoff=None, tmp_path=tmp_path, write_pointer=False
     )
     assert result is not None
-    assert result["permissionDecision"] == "allow"
-    assert "warning" in result
-    assert "INCONSISTENT" in result["warning"]
+    assert result.get("continue") is True
+    assert "INCONSISTENT" in result.get("systemMessage", "")
 
 
 # ---------------------------------------------------------------------------
@@ -395,8 +408,9 @@ def test_f11_pointer_missing_target_enforce(tmp_path: Path) -> None:
         _stop_event(), mode="enforce", handoff=None, tmp_path=tmp_path, write_pointer=False
     )
     assert result is not None
-    assert result["permissionDecision"] == "deny"
-    assert "INCONSISTENT" in result["permissionDecisionReason"]
+    assert result.get("continue") is False
+    assert result.get("decision") == "block"
+    assert "INCONSISTENT" in result.get("reason", "")
 
 
 # ---------------------------------------------------------------------------
@@ -408,18 +422,18 @@ def test_f12_draft_status_inconsistent_enforce(tmp_path: Path) -> None:
     handoff = _make_handoff(status="draft")
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
     assert result is not None
-    assert result["permissionDecision"] == "deny"
-    assert "INCONSISTENT" in result["permissionDecisionReason"]
-    assert "draft" in result["permissionDecisionReason"]
+    assert result.get("continue") is False
+    assert result.get("decision") == "block"
+    assert "INCONSISTENT" in result.get("reason", "")
+    assert "draft" in result.get("reason", "")
 
 
 def test_f12_cancelled_status_inconsistent_warn(tmp_path: Path) -> None:
     handoff = _make_handoff(status="cancelled")
     result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
     assert result is not None
-    assert result["permissionDecision"] == "allow"
-    assert "warning" in result
-    assert "INCONSISTENT" in result["warning"]
+    assert result.get("continue") is True
+    assert "INCONSISTENT" in result.get("systemMessage", "")
 
 
 # ---------------------------------------------------------------------------
@@ -481,31 +495,56 @@ def test_f14_subagent_stop_event_silent(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# F15: hookEventName field in output is always "Stop"
+# F15: output is a valid Stop-hook top-level shape — no hookSpecificOutput
 # ---------------------------------------------------------------------------
 
 
-def test_f15_hook_event_name_in_deny_output(tmp_path: Path) -> None:
+def test_f15_enforce_output_valid_stop_hook_shape(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
     result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
     assert result is not None
-    assert result.get("hookEventName") == "Stop"
+    # All keys must be in the allowed Stop-hook set.
+    extra = set(result.keys()) - _STOP_HOOK_ALLOWED_KEYS
+    assert not extra, f"unexpected keys in Stop-hook output: {extra}"
+    # hookSpecificOutput must NOT be present.
+    assert "hookSpecificOutput" not in result, (
+        "hookSpecificOutput must not appear in Stop-hook output"
+    )
 
 
-def test_f15_hook_event_name_in_warn_output(tmp_path: Path) -> None:
+def test_f15_warn_output_valid_stop_hook_shape(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
     result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
     assert result is not None
-    assert result.get("hookEventName") == "Stop"
+    extra = set(result.keys()) - _STOP_HOOK_ALLOWED_KEYS
+    assert not extra, f"unexpected keys in Stop-hook output: {extra}"
+    assert "hookSpecificOutput" not in result, (
+        "hookSpecificOutput must not appear in Stop-hook output"
+    )
+
+
+def test_f15_enforce_uses_continue_false_and_decision_block(tmp_path: Path) -> None:
+    handoff = _make_handoff(require_review=True)
+    result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
+    assert result is not None
+    assert result.get("continue") is False
+    assert result.get("decision") == "block"
+    assert isinstance(result.get("reason"), str) and result["reason"]
+
+
+def test_f15_warn_uses_continue_true_and_system_message(tmp_path: Path) -> None:
+    handoff = _make_handoff(require_review=True)
+    result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
+    assert result is not None
+    assert result.get("continue") is True
+    assert isinstance(result.get("systemMessage"), str) and result["systemMessage"]
 
 
 # ---------------------------------------------------------------------------
 # F16: INCONSISTENT (missing-field) handoff with mode.gate_mode=enforce
-#      under env=warn → reported as ENFORCE (deny), not warn.
-#      This proves SHOULD-FIX-1: resolve_gate_mode(raw_handoff) is called at
-#      the missing-field branches so the per-handoff tightening is honoured.
-#      These branches are only reachable when jsonschema is absent (schema
-#      validation would otherwise catch a missing required field at Step 4).
+#      under env=warn → reported as block (enforce tightening), not warn.
+#      Proves resolve_gate_mode(raw_handoff) is called at missing-field branches.
+#      These branches are only reachable when jsonschema is absent.
 # ---------------------------------------------------------------------------
 
 
@@ -513,8 +552,7 @@ def test_f16_inconsistent_missing_field_enforce_override_under_warn(
     tmp_path: Path,
 ) -> None:
     """SHOULD-FIX-1 proof: INCONSISTENT missing-field handoff with
-    mode.gate_mode=enforce under env=warn is reported as ENFORCE (deny)."""
-    import importlib
+    mode.gate_mode=enforce under env=warn is reported as block (deny)."""
     import unittest.mock as mock
 
     # Build a handoff that has mode.gate_mode=enforce and lacks allowed_paths.
@@ -561,11 +599,16 @@ def test_f16_inconsistent_missing_field_enforce_override_under_warn(
     assert rc == 0
     output = captured.getvalue().strip()
     assert output, "expected gate output for INCONSISTENT missing-field handoff"
-    payload = json.loads(output)
-    hso = payload.get("hookSpecificOutput")
-    assert hso is not None
-    # mode.gate_mode=enforce must tighten warn→enforce: result must be deny.
-    assert hso.get("permissionDecision") == "deny", (
-        f"expected deny (enforce tightening), got {hso.get('permissionDecision')!r}: {hso}"
+    result = json.loads(output)
+    # hookSpecificOutput must not be present.
+    assert "hookSpecificOutput" not in result, (
+        "hookSpecificOutput must not appear in Stop-hook output"
     )
-    assert "INCONSISTENT" in hso.get("permissionDecisionReason", "")
+    # mode.gate_mode=enforce must tighten warn→enforce: result must be block.
+    assert result.get("continue") is False, (
+        f"expected continue=false (enforce tightening), got: {result}"
+    )
+    assert result.get("decision") == "block", (
+        f"expected decision=block (enforce tightening), got: {result}"
+    )
+    assert "INCONSISTENT" in result.get("reason", "")
