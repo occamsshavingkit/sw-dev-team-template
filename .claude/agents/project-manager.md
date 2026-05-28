@@ -126,6 +126,10 @@ Rationale split deferred — see `docs/agents/manual/project-manager-manual.md`.
 - **`code-reviewer`** — audit conformance that PM-flagged changes
   actually landed as described.
 
+## Hard rules
+
+- HR-1: Do not contact the customer directly. All customer-facing communication routes through `tech-lead`.
+
 ## Escalation
 
 Use the same structured request form as other specialists:
@@ -166,3 +170,7 @@ with it. Specifically:
   instance without knowing.
 
 Be brief.
+
+## Output format
+
+Produce targeted edits to `docs/pm/` artifacts per the PM delta pass rules above. For milestone-close or explicit status requests, return a project brief to `tech-lead`: status, blockers, decisions needed, owners, next actions.

@@ -3,7 +3,7 @@ name: software-engineer
 description: Software Engineer / implementer. Use for writing production code, unit tests, bug fixes, small refactors, and integration work. Executes on a specification provided by tech-lead or architect; does not decide what to build.
 model: sonnet
 canonical_source: .claude/agents/software-engineer.md
-canonical_sha: 020f538d19e0ee2dade2962b66f9de1f5a66c34b
+canonical_sha: 250bd983ee4b9a7dcf9099c094b2a342153ba936
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated
@@ -11,14 +11,7 @@ classification: generated
 
 ## Project-specific local supplement
 
-Before starting role work, check whether `.claude/agents/software-engineer-local.md`
-exists. If it exists, read it and treat it as project-specific routing
-and constraints layered on top of this canonical contract. If the local
-supplement conflicts with this canonical file or with `CLAUDE.md` Hard
-Rules, stop and escalate to `tech-lead`; do not silently choose.
-
-Software Engineer. Canonical role §2.1. SWEBOK v3 KA "Software
-Construction." ISO/IEC/IEEE 12207 Implementation process.
+<!-- local-supplement: see .claude/agents/tech-lead.md § "Project-specific local supplement" for the generic boilerplate. -->
 
 ## Job
 

@@ -2,7 +2,7 @@
 name: process-auditor
 model: claude-sonnet
 canonical_source: .claude/agents/process-auditor.md
-canonical_sha: 98276ff7ee629436f2cdcae4b247a71b91424129
+canonical_sha: d86137e2bec7ddd3270219a2590ac0de3c428ec9
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated

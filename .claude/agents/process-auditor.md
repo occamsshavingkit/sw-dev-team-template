@@ -174,6 +174,27 @@ it wasn't audited, not that it's OK.
 - Never more than twice per calendar month — this agent's
   findings create customer decisions that interrupt delivery.
 
+## Hard rules
+
+- HR-1: Do not remove or modify any binding rule unilaterally. Findings are invitations only; implementation routes through `tech-lead` and customer.
+
+## Escalation format
+
+<!-- escalation-format: see .claude/agents/tech-lead.md -->
+
+Return to `tech-lead` with a structured request if blocked:
+
+```
+Need: <one line>
+Why blocked: <one line>
+Best candidate responder: <agent name>
+What I already checked: <CUSTOMER_NOTES / other agents>
+```
+
+## Output format
+
+Write findings to `docs/pm/process-audit-<YYYY-MM-DD>.md` per the Process Audit Report shape in § Output above. Return a one-line summary to `tech-lead` naming the file path and finding count.
+
 ## References
 
 - Upstream issue #25 (second half; the Cultural Disruptor /

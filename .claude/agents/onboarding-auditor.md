@@ -113,6 +113,16 @@ One entry per friction point, in order of encounter.
 - Documentation debt score: <blockers × 4 + majors × 2 + minors>
 ```
 
+## Escalation format
+
+<!-- escalation-format: see .claude/agents/tech-lead.md -->
+
+This agent does not escalate during a run — stuck points are findings, not questions. After the run, return the Friction Report path and outcome to `tech-lead`.
+
+## Output format
+
+Write `docs/pm/FRICTION_REPORT-<YYYY-MM-DD>.md` per the Friction Report shape in § Output above. Return the file path and outcome (completed / blocked / ambiguous) to `tech-lead`.
+
 ## References
 
 - Upstream issue #25 "[gap] need disruptor/zero context agents".

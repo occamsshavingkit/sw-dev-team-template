@@ -558,16 +558,16 @@ v1.1 now includes fixing the missing failsafe around model assignments.
 > SC-002 / SC-003 / SC-004 / SC-006: PASS per code-reviewer T032.
 > FR-007 / FR-013: PASS.
 > Gate sign-offs: Gate 0 architect / Gate 1 architect / Gate 1 tech-writer / Gate 2 code-reviewer all signed.
-> Per Q-0022 + addendum, your sign-off unlocks v1.2.0 and v1.3.0 implementation entry.
+> Per Q-0025 + addendum, your sign-off unlocks v1.2.0 and v1.3.0 implementation entry.
 > Approve the design pass as it stands (relaxed-bar SC-001, 7-file residual recorded as v1.4.0 carryover), or hold for further revision?
 
 **Customer answer (verbatim):**
 > approve
 
 **Material implications (paraphrase, not customer text):**
-Unlocks v1.2.0 and v1.3.0 implementation entry per Q-0022 + addendum. Residual 7-file SC-001 gap (worst: project-manager at 101.3%) is a documented v1.4.0 carryover; no further revision required on this pass.
+Unlocks v1.2.0 and v1.3.0 implementation entry per Q-0025 + addendum. Residual 7-file SC-001 gap (worst: project-manager at 101.3%) is a documented v1.4.0 carryover; no further revision required on this pass.
 
-**Cross-refs:** `specs/016-token-economy-design/spec.md` (SC-001/SC-005 amendments); `docs/OPEN_QUESTIONS.md` Q-0022; `docs/pm/release-plan-v1.x.md` (Gate 3 reference to be added by T037).
+**Cross-refs:** `specs/016-token-economy-design/spec.md` (SC-001/SC-005 amendments); `docs/OPEN_QUESTIONS.md` Q-0025; `docs/pm/release-plan-v1.x.md` (Gate 3 reference to be added by T037).
 
 **Supersedes:** none (first Gate 3 sign-off on spec 016 token-economy design pass).
 **Recorded by:** researcher

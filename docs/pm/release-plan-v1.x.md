@@ -3,7 +3,7 @@
 **Scope:** Framework maintenance and template-gap backfill across one year of operations.  
 **Date:** 2026-05-28  
 **Source:** GitHub issue triage (35 open issues as of 2026-05-28); updated 2026-05-28 post Gate 3 sign-off.  
-**Reviewer:** Customer ratified 2026-05-28 (Q-0020/Q-0021/Q-0022 + addendum + Gate 3 sign-off per CUSTOMER_NOTES.md); tech-lead orchestrated. Code-reviewer SHIP-with-nits 2026-05-28. Post-gate-3 update: v1.2.0 + v1.3.0 gates cleared; v1.4.0 expanded with SC-001 residual.
+**Reviewer:** Customer ratified 2026-05-28 (Q-0023/Q-0024/Q-0025 + addendum + Gate 3 sign-off per CUSTOMER_NOTES.md); tech-lead orchestrated. Code-reviewer SHIP-with-nits 2026-05-28. Post-gate-3 update: v1.2.0 + v1.3.0 gates cleared; v1.4.0 expanded with SC-001 residual.
 
 ---
 
@@ -30,8 +30,8 @@ Non-breaking template enhancements + framework-gap fills + upgrade-reliability i
 
 | # | Title | Labels | Est. Size | Role | Rationale |
 |---|-------|--------|-----------|------|-----------|
-| 262 | Upgrade path rc9→rc14 produces 7 manual conflicts in framework-owned scripts | enhancement, upgrade | M | architect + release-engineer | Multi-version upgrade reliability; pulled forward per Q-0021 customer ruling. |
-| 261 | rc14 agent contract schema: migration doesn't backfill required sections in preserved/customized agent files | enhancement, upgrade | M | architect + software-engineer | Schema evolution + migration completeness; pulled forward per Q-0021 customer ruling. |
+| 262 | Upgrade path rc9→rc14 produces 7 manual conflicts in framework-owned scripts | enhancement, upgrade | M | architect + release-engineer | Multi-version upgrade reliability; pulled forward per Q-0024 customer ruling. |
+| 261 | rc14 agent contract schema: migration doesn't backfill required sections in preserved/customized agent files | enhancement, upgrade | M | architect + software-engineer | Schema evolution + migration completeness; pulled forward per Q-0024 customer ruling. |
 | 273 | SW_DEV_ROLE_TAXONOMY.md not loaded at session start | template-gap | M | software-engineer | Ad-lib role boundaries in tech-lead; fix via startup contract. |
 | 271 | tests/upgrade/ missing rc9 migration test file | enhancement, upgrade | M | release-engineer | Test coverage gap; no shipped code broken, but blocks confidence. |
 | 270 | tech-lead.md Job §2: parallel background dispatch not mentioned | docs-drift | S | tech-writer | Contract prose gap; non-blocking but clarifies intent. |
@@ -80,7 +80,7 @@ Ambitious work, design-heavy, or low-urgency/high-cost items. May require archit
 
 | # | Title | Labels | Est. Size | Role | Rationale |
 |---|-------|--------|-----------|------|-----------|
-| 212 | concurrency: parallel specialist agents share one working tree, race over branch state | template-gap, ai-behavior | XL | architect | Core concurrency model; high design cost, low customer urgency. Left in v1.4.0 per Q-0020 customer ruling. |
+| 212 | concurrency: parallel specialist agents share one working tree, race over branch state | template-gap, ai-behavior | XL | architect | Core concurrency model; high design cost, low customer urgency. Left in v1.4.0 per Q-0023 customer ruling. |
 | SC-001 | Close residual SC-001 gap (7 contracts still > 85% cap after spec 016 design pass) | token-economy, technical-debt | XL | architect | 7 of 13 contracts exceed 85% capacity threshold per spec 016 findings. Worst case: project-manager.md at 101.3%. Requires FR-007 restructuring or D-3 redefinition. |
 
 **v1.4.0 Summary:** 2 issues, est. 16–24 person-days. **Gating:** Architect design review + customer sign-off on concurrency model scope + SC-001 remediation strategy.
@@ -108,7 +108,7 @@ None identified in current triage. All 35 issues fit into v1.x without contract 
 ## Cross-Phase Dependencies
 
 - **v1.1.1 → v1.2.0:** #268 (branch-guard fix) prerequisite to overall upgrade-reliability work in v1.2.0.
-- **Design gate → v1.2.0 entry:** Token-economy scope-validation design pass (#239+#245) must complete and be reviewed by architect+tech-writer before v1.2.0 implementation begins. This is a blocking entry condition (Q-0022 customer ruling).
+- **Design gate → v1.2.0 entry:** Token-economy scope-validation design pass (#239+#245) must complete and be reviewed by architect+tech-writer before v1.2.0 implementation begins. This is a blocking entry condition (Q-0025 customer ruling).
 - **Design gate → v1.3.0 entry:** Same token-economy composite design pass output gates v1.3.0 entry (confirms full scope and completeness before implementation).
 - **v1.2.0 → v1.3.0:** #273 (TAXONOMY loading) prerequisite to #274 (taxonomy refresh content).
 - **v1.3.0 → v1.4.0:** #239 (token-economy binding) informs #212 (concurrency model design).
@@ -119,7 +119,7 @@ None identified in current triage. All 35 issues fit into v1.x without contract 
 
 **Spec Kit integration:** Each phase will be broken into one or more specs in the Spec Kit (per phase or per cluster). This plan governs the phase structure and gating; detailed story/task breakdown happens in the specs as downstream artifacts.
 
-**Resolved customer decisions (Q-0020, Q-0021, Q-0022):** 
-- Q-0020: #212 concurrency → v1.4.0. 
-- Q-0021: #262, #261 multi-version reliability → v1.2.0 (pulled forward).
-- Q-0022: #239+#245 token-economy → single composite design-pass gate before v1.2.0 and v1.3.0 implementation.
+**Resolved customer decisions (Q-0023, Q-0024, Q-0025):** 
+- Q-0023: #212 concurrency → v1.4.0. 
+- Q-0024: #262, #261 multi-version reliability → v1.2.0 (pulled forward).
+- Q-0025: #239+#245 token-economy → single composite design-pass gate before v1.2.0 and v1.3.0 implementation.
