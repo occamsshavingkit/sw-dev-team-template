@@ -546,6 +546,12 @@ fi
 echo "-- upgrade bootstrap args and FIRST ACTIONS warning --"
 bootstrap_upstream="$tmp/bootstrap-upstream"
 stable_fixture_version="v0.17.0"
+# rc_fixture_version is a hardcoded synthetic RC tag used only in the
+# version-check / stable-track / rc-track fixture below.  It must have
+# a -rc suffix and must be semver-lower than final_fixture_version so
+# the assertions (final wins over rc, stable track ignores rc) hold
+# regardless of what the real VERSION file contains.
+rc_fixture_version="v1.0.0-rc1"
 final_fixture_version="v1.0.0"
 mkdir -p "$bootstrap_upstream"
 tar --exclude='./.git' -cf - . | (cd "$bootstrap_upstream" && tar -xf -)
@@ -558,10 +564,10 @@ tar --exclude='./.git' -cf - . | (cd "$bootstrap_upstream" && tar -xf -)
   git add .
   git commit -q -m "stable fixture"
   git tag "$stable_fixture_version"
-  printf '%s\n' "$expected_version" > VERSION
+  printf '%s\n' "$rc_fixture_version" > VERSION
   git add VERSION
   git commit -q -m "rc fixture"
-  git tag "$expected_version"
+  git tag "$rc_fixture_version"
   printf '%s\n' "$final_fixture_version" > VERSION
   mkdir -p migrations
   cat > migrations/v1.0.0.sh <<'EOF'
@@ -576,11 +582,18 @@ EOF
   git tag "$final_fixture_version"
 )
 
+# Stamp the target with the rc fixture version so version-check.sh sees a
+# pre-release-track project and evaluates final > rc ordering.  The stable
+# upgrade test below stamps v0.1.0 before it runs, so this is safe.
+printf '%s\nunknown\n2026-01-01\n' "$rc_fixture_version" > "$target/TEMPLATE_VERSION"
+git -C "$target" add TEMPLATE_VERSION >/dev/null 2>&1 || true
+git -C "$target" commit -q -m "rc fixture stamp for version-check test" 2>/dev/null || true
+
 vc_rc_final_output="$(
   cd "$target"
   SWDT_UPSTREAM_URL="$bootstrap_upstream" ./scripts/version-check.sh 2>&1 || true
 )"
-if echo "$vc_rc_final_output" | grep -q "Template upgrade available: $expected_version .* $final_fixture_version"; then
+if echo "$vc_rc_final_output" | grep -q "Template upgrade available: $rc_fixture_version .* $final_fixture_version"; then
   echo "  PASS: version-check orders final above rc for same base version"
   pass=$((pass + 1))
 else
@@ -602,14 +615,14 @@ printf 'v0.1.0\nunknown\n2026-01-01\n' > "$bootstrap_target/TEMPLATE_VERSION"
 # routed to baseline-unreachable refuse under the new ADR and was removed.
 rm -f "$bootstrap_target/scripts/lib/first-actions.sh"
 bootstrap_rc=$(run_capture "$tmp/bootstrap-dry-run.log" \
-               bash -c "cd '$bootstrap_target' && SWDT_UPSTREAM_URL='$bootstrap_upstream' ./scripts/upgrade.sh --dry-run --target '$expected_version'")
+               bash -c "cd '$bootstrap_target' && SWDT_UPSTREAM_URL='$bootstrap_upstream' ./scripts/upgrade.sh --dry-run --target '$final_fixture_version'")
 bootstrap_post_version="$(head -1 "$bootstrap_target/TEMPLATE_VERSION" | tr -d '[:space:]')"
 check "bootstrap dry-run with --target exits 0" \
   bash -c "[ $bootstrap_rc -eq 0 ]"
 check "bootstrap re-exec preserves --dry-run" \
   bash -c "grep -q '^\\[dry-run\\] Template upgrade:' '$tmp/bootstrap-dry-run.log'"
 check "bootstrap re-exec preserves --target" \
-  bash -c "grep -q 'Pinning upgrade to --target $expected_version' '$tmp/bootstrap-dry-run.log'"
+  bash -c "grep -q 'Pinning upgrade to --target $final_fixture_version' '$tmp/bootstrap-dry-run.log'"
 check "bootstrap dry-run leaves TEMPLATE_VERSION unchanged" \
   bash -c "[ '$bootstrap_post_version' = 'v0.1.0' ]"
 # FW-ADR-0010: dry-run must not install the missing helper into the project.
@@ -745,19 +758,20 @@ EOF
   rc_upgrade_rc=0
   (
     cd "$target_rc_opt_in"
-    SWDT_UPSTREAM_URL="$bootstrap_upstream" ./scripts/upgrade.sh --target "$expected_version"
+    SWDT_UPSTREAM_URL="$bootstrap_upstream" ./scripts/upgrade.sh --target "$rc_fixture_version"
   ) > "$tmp/upgrade-rc-target.log" 2>&1 || rc_upgrade_rc=$?
   check "explicit --target rc upgrade exits 0" \
     bash -c "[ $rc_upgrade_rc -eq 0 ]"
   check "explicit --target rc log pins rc tag" \
-    bash -c "grep -q 'Pinning upgrade to --target $expected_version' '$tmp/upgrade-rc-target.log'"
+    bash -c "grep -q 'Pinning upgrade to --target $rc_fixture_version' '$tmp/upgrade-rc-target.log'"
   rc_post_version="$(head -1 "$target_rc_opt_in/TEMPLATE_VERSION" | tr -d '[:space:]')"
-  check "explicit --target rc stamps current rc ($expected_version)" \
-    bash -c "[ '$rc_post_version' = '$expected_version' ]"
+  check "explicit --target rc stamps current rc ($rc_fixture_version)" \
+    bash -c "[ '$rc_post_version' = '$rc_fixture_version' ]"
 
   echo "-- upgrade rc-track default to final --"
   target_rc_track="$tmp/target-rc-track"
   ./scripts/scaffold.sh "$target_rc_track" "RC Track Smoke" >/dev/null
+  printf '%s\nunknown\n2026-01-01\n' "$rc_fixture_version" > "$target_rc_track/TEMPLATE_VERSION"
   rc_track_upgrade_rc=0
   (
     cd "$target_rc_track"
