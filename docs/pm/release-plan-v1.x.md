@@ -2,8 +2,8 @@
 
 **Scope:** Framework maintenance and template-gap backfill across one year of operations.  
 **Date:** 2026-05-28  
-**Source:** GitHub issue triage (35 open issues as of 2026-05-28).  
-**Reviewer:** Customer ratified 2026-05-28 (Q-0020/Q-0021/Q-0022 + addendum widening Q-0022 gate to v1.2.0); tech-lead orchestrated. Code-reviewer SHIP-with-nits 2026-05-28.
+**Source:** GitHub issue triage (35 open issues as of 2026-05-28); updated 2026-05-28 post Gate 3 sign-off.  
+**Reviewer:** Customer ratified 2026-05-28 (Q-0020/Q-0021/Q-0022 + addendum + Gate 3 sign-off per CUSTOMER_NOTES.md); tech-lead orchestrated. Code-reviewer SHIP-with-nits 2026-05-28. Post-gate-3 update: v1.2.0 + v1.3.0 gates cleared; v1.4.0 expanded with SC-001 residual.
 
 ---
 
@@ -26,7 +26,7 @@ Correctness and safety fixes for v1.1.0 production use. No contract breaks. Smal
 
 ## v1.2.0
 
-Non-breaking template enhancements + framework-gap fills + upgrade-reliability improvements. Natural checkpoint per ADR-0020 §676 to re-examine issues-based coordination. **Entry gate:** Token-economy scope design pass (#239+#245) must be completed and reviewed by architect+tech-writer before v1.2.0 implementation begins.
+Non-breaking template enhancements + framework-gap fills + upgrade-reliability improvements. Natural checkpoint per ADR-0020 §676 to re-examine issues-based coordination. **Entry gate:** Gate cleared 2026-05-28 — see CUSTOMER_NOTES.md § "Gate 3 sign-off: spec 016 token-economy design pass".
 
 | # | Title | Labels | Est. Size | Role | Rationale |
 |---|-------|--------|-----------|------|-----------|
@@ -51,7 +51,7 @@ Non-breaking template enhancements + framework-gap fills + upgrade-reliability i
 | 211 | tests/release-gate/test-gate-pass.sh: skip-untracked check blocks self-validation | template-friction | M | software-engineer | Test authoring friction; blocks dogfooding. |
 | 208 | test-settings-merge.sh + tech-lead-authoring-guard fallback path unexercised | template-friction | S | software-engineer | Test coverage gap; low risk but completeness. |
 
-**v1.2.0 Summary:** 20 issues, est. 14–16 person-days. **Entry gate:** Token-economy scope design pass (#239+#245) reviewed and approved. **Exit gating:** Template regression tests pass + downstream project upgrade validates cleanly + multi-version upgrade conflicts resolved.
+**v1.2.0 Summary:** 20 issues, est. 14–16 person-days. **Entry gate:** Gate cleared 2026-05-28 (CUSTOMER_NOTES.md). **Exit gating:** Template regression tests pass + downstream project upgrade validates cleanly + multi-version upgrade conflicts resolved.
 
 ---
 
@@ -70,7 +70,7 @@ Thematic clusters and larger composable enhancements: token-economy overhaul, ta
 | 242 | [framework-gap] requirements-template.md + architecture-template.md missing MSRS-style inline guidance | enhancement, template-gap | M | tech-writer | Author-assistance markers across two templates. |
 | 243 | [framework-gap] architecture-template.md missing IEEE 1016 viewpoints + explicit 42010 reasoning | enhancement, template-gap | L | architect | First-class viewpoints + reasoning chain; design layer. |
 
-**v1.3.0 Summary:** 8 issues, est. 18–22 person-days. **Entry gate:** Token-economy scope-validation design pass (#239+#245 composite design, not separate) must land and be reviewed by architect+tech-writer before v1.3.0 implementation begins (per Q-0022 customer ruling). **Exit gating:** Token economy binding documented + measured; taxonomy and IEEE gaps closed; downstream projects benefit from new template sections.
+**v1.3.0 Summary:** 8 issues, est. 18–22 person-days. **Entry gate:** Gate cleared 2026-05-28 (CUSTOMER_NOTES.md). **Exit gating:** Token economy binding documented + measured; taxonomy and IEEE gaps closed; downstream projects benefit from new template sections.
 
 ---
 
@@ -81,8 +81,9 @@ Ambitious work, design-heavy, or low-urgency/high-cost items. May require archit
 | # | Title | Labels | Est. Size | Role | Rationale |
 |---|-------|--------|-----------|------|-----------|
 | 212 | concurrency: parallel specialist agents share one working tree, race over branch state | template-gap, ai-behavior | XL | architect | Core concurrency model; high design cost, low customer urgency. Left in v1.4.0 per Q-0020 customer ruling. |
+| SC-001 | Close residual SC-001 gap (7 contracts still > 85% cap after spec 016 design pass) | token-economy, technical-debt | XL | architect | 7 of 13 contracts exceed 85% capacity threshold per spec 016 findings. Worst case: project-manager.md at 101.3%. Requires FR-007 restructuring or D-3 redefinition. |
 
-**v1.4.0 Summary:** 1 issue, est. 8–12 person-days. **Gating:** Architect design review + customer sign-off on concurrency model scope.
+**v1.4.0 Summary:** 2 issues, est. 16–24 person-days. **Gating:** Architect design review + customer sign-off on concurrency model scope + SC-001 remediation strategy.
 
 ---
 
@@ -97,10 +98,10 @@ None identified in current triage. All 35 issues fit into v1.x without contract 
 | Phase | Count | Est. Effort (person-days) | Gating Criteria |
 |-------|-------|---------------------------|-----------------|
 | **v1.1.1** | 6 | 4.5–5 | Bugs verified; regression tests green. |
-| **v1.2.0** | 20 | 14–16 | **Entry:** Token-economy scope design pass reviewed. **Exit:** Template regression tests + downstream upgrade validates + multi-version conflicts resolved. |
-| **v1.3.0** | 8 | 18–22 | **Entry:** Token-economy composite design pass reviewed + approved. **Exit:** Token economy binding + measured; taxonomy/IEEE gaps closed. |
-| **v1.4.0** | 1 | 8–12 | Architect design review; concurrency model scoped + signed. |
-| **TOTAL** | **35** | **44.5–55 person-days** | Rolling gating per phase. |
+| **v1.2.0** | 20 | 14–16 | **Entry:** Gate cleared 2026-05-28. **Exit:** Template regression tests + downstream upgrade validates + multi-version conflicts resolved. |
+| **v1.3.0** | 8 | 18–22 | **Entry:** Gate cleared 2026-05-28. **Exit:** Token economy binding + measured; taxonomy/IEEE gaps closed. |
+| **v1.4.0** | 2 | 16–24 | Architect design review; concurrency model + SC-001 remediation scoped + signed. |
+| **TOTAL** | **36** | **52.5–63 person-days** | Rolling gating per phase. |
 
 ---
 
