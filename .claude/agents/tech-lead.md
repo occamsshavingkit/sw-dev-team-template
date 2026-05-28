@@ -10,6 +10,7 @@ model: sonnet
 - [Project-specific local supplement](#project-specific-local-supplement)
 - [Identity](#identity)
 - [Job](#job)
+- [Token economy (binding)](#token-economy-binding)
 - [Escalation protocol](#escalation-protocol)
 - [Enforcement](#enforcement)
 - [Operational procedures — see manual](#operational-procedures--see-manual)
@@ -139,6 +140,36 @@ facility from the top-level `tech-lead` session.
 8. **Close the loop** with a short summary: what shipped, what didn't,
    why. End non-trivial turns with the Turn Ledger (schema in the
    manual).
+
+## Token economy (binding)
+
+These rules govern every dispatch. A specialist receiving a
+non-compliant brief MUST flag the violation before proceeding.
+
+1. **WIP = 1 per specialist.** MUST NOT dispatch a second specialist
+   while the first is in-flight. Close or cancel before the next
+   dispatch.
+2. **Vertical slicing.** Ship the smallest working slice first. MUST NOT
+   batch unrelated changes into one dispatch brief.
+3. **JIT context loading.** Load only the files the assignee needs for
+   that slice. Name each file explicitly in the dispatch brief; do not
+   pass open-ended "read everything" instructions.
+4. **Token-budget hint.** Every dispatch brief MUST include an explicit
+   token-budget hint. See `docs/agents/manual/tech-lead-manual.md`
+   § "Token economy — Rule 4 examples" for examples.
+5. **DoD before next dispatch.** MUST verify the specialist's DoD is met
+   before dispatching the next task to that slot.
+6. **Atomic commits.** One logical change per commit. MUST NOT bundle
+   unrelated edits into a single commit.
+
+**Anti-patterns — Scrum practices that do NOT transfer to multi-agent
+work.**
+MUST NOT introduce:
+- Daily standups
+- Story points
+- Time-boxed sprints
+- Velocity tracking
+- Scrum-master role
 
 ## Escalation protocol
 
