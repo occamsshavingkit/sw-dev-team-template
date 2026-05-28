@@ -1,0 +1,5 @@
+[bandit]
+# Test code uses `assert` (B101) freely — that's the standard pattern,
+# not a security risk. Exclude tests/ from the scan; production code
+# elsewhere stays fully covered.
+exclude_dirs = tests
