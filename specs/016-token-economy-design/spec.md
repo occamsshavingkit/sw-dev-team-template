@@ -108,7 +108,7 @@ Per Q-0022 (+ addendum 2026-05-28 ratifying PM's wider gate), the composite desi
 - **SC-005**: Aggregate context cost reduction across the roster is ≥15% (measured by total word count of contract files before vs. after), with no single file exceeding 100% of its cap.
 - **SC-006**: The "Token economy (binding)" section is present in tech-lead's contract surface (CA-003-permitted location per Assumption A-1) and contains every rule and anti-pattern listed in FR-001 / FR-002.
 - **SC-007**: Customer sign-off is recorded in `CUSTOMER_NOTES.md` and referenced from `docs/pm/release-plan-v1.x.md` before any v1.2.0 or v1.3.0 implementation work begins.
-- **SC-008**: Time from design-pass landing to customer sign-off is ≤2 sessions (no protracted review cycle), assuming all reviewers' findings are addressed in one revision.
+- **SC-008** *(SLO, not a release gate)*: Time from design-pass landing to customer sign-off is ≤2 sessions (no protracted review cycle), assuming all reviewers' findings are addressed in one revision. This is an execution SLO that informs cadence, not a buildable success criterion; no task or gate depends on meeting it.
 
 ## Assumptions
 

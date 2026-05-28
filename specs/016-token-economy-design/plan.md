@@ -48,6 +48,13 @@ proposed cuts).
 
 Column ordering is identical to the before table so diffs are visually scannable.
 
+**Proposals table** (same file, section "Proposals"):
+
+| Role | Span (line range or anchor) | Tag | Before (excerpt) | After (excerpt) | Manual pointer (if `manual-echo`) | tech-writer notes | Status |
+|---|---|---|---|---|---|---|---|
+
+One row per proposed cut. `Tag` ∈ {`duplicated-boilerplate`, `behavior-neutral`, `manual-echo`} per D-3. `Status` ∈ {`proposed`, `approved`, `rejected — <reason>`, `applied`}. `tech-writer notes` column is populated during T026 review.
+
 ### D-3: Cut rationale tag operational definitions
 
 Three tags, each exclusive:
@@ -186,7 +193,7 @@ No customer questions are currently queued. One design-level question the next-p
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| A proposed cut removes a binding rule by accident | Medium | High | code-reviewer diff review is mandatory (Gate 2); rejected cuts are documented per FR-005/FR-008 |
+| A proposed cut removes a binding rule by accident | Medium | High | code-reviewer diff review is mandatory (Gate 2); rejected cuts are documented in § Proposals with `Status: rejected — <reason>` per FR-008 |
 | New section pushes `tech-lead.md` above 80% cap | Low (current: 59% of cap; ~807-word headroom) | Medium | Gate 0 confirms headroom before Half A authors; if margin is thin, Half B cuts on `tech-lead.md` are prioritized first |
 | SC-005 (≥15% aggregate) unreachable without unsafe cuts | Low-Medium (depends on untrimmed contracts) | Medium | Gate 0 establishes true current aggregate; if shortfall is visible early, arch + tech-writer agree on scope extension or document the gap for the customer |
 | Sizing policy is not explicitly documented in `researcher-manual.md` | Confirmed (cap source is `token-economy-baseline.md` M0 table, not a named policy section) | Low | Plan pins the cap source explicitly (D-2); the absence of a formal "sizing policy" section in `researcher-manual.md` is a framework gap — `researcher` to file upstream (issue number assigned at filing time) after this pass lands |
