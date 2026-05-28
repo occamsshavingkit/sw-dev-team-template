@@ -52,3 +52,20 @@ v1.0.0-rc3
 # heuristic). Restored for rc14 cut; re-allowlisted from rc11/rc12/rc13.
 v0.16.0
 
+# v0.17.0 — frozen-tag self-bootstrap defect: same shift-2/re-exec argv-drop
+# defect as v1.0.0-rc3 (see entry above). At v0.17.0, scripts/pre-release-gate.sh
+# executed `exec bash "$0" "$@"` AFTER a prior `shift 2` had already consumed
+# `--target <tag>` from the positional argv. The re-exec therefore ran the
+# candidate orchestrator with no `--target` flag, causing auto-selection of the
+# highest pre-release tag on the branch instead of staying on v0.17.0. The
+# resulting mismatch trips the upgrade-paths round-trip even though v0.17.0's
+# own logic was correct at cut time. Fixed in the current candidate by saving
+# the original argv into `original_args=("$@")` before the `shift` and
+# re-execing with `exec bash "$0" "${original_args[@]}"` (same fix as rc4).
+# Allowlisted because the defect lives in the frozen v0.17.0 tag and cannot
+# be retro-patched; fix is in the current upgrade.sh via original_args.
+# v0.17.0 is a narrow single-version sliver between v0.16.0 and the v1.0.0-rc
+# series with negligible expected downstream presence; this is not a v1.1.0
+# regression — the defect predates the v1.0.0 line entirely.
+v0.17.0
+

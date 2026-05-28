@@ -34,17 +34,20 @@ Release candidate addressing critical edge cases and stabilizing core behaviors 
 
 ## v1.0.0-rc14 (2026-05-16)
 
-Release candidate completing baseline open-issue burndown (35 issues: 34 closed,
-1 customer-blocked). Consolidates upgrade-flow robustness, hook-behavior
+Release candidate completing baseline open-issue burndown (35/35 baseline closed).
+Consolidates upgrade-flow robustness, hook-behavior
 hardening, IEEE-paraphrase integration (deferred fan-out), and codifies
 dogfood gate in pre-release workflow.
 
 **Disposition summary** (FR-005):
-- **Fixed**: 30 issues closed via fix-and-close PRs (cycles 1–4, #203–#248,
+- **Fixed**: 31 issues closed via fix-and-close PRs (cycles 1–4, #203–#248,
   #251–#258).
 - **Wontfix**: 1 issue (#59, audit findings deferred to #238–#245 fan-out).
 - **V2-deferred**: 3 issues added to ROADMAP (#3, #27, #145 via PR #225).
-- **New findings**: 22+ issues filed during burndown (immediate-cycle + fan-out)
+- **Consolidated**: 0 issues.
+- **Duplicate**: 0 issues.
+- **Customer-blocked open**: 0 issues; #189 closed via PR #252.
+- **New findings**: 22 issues filed during burndown (immediate-cycle + fan-out)
   with implicit owners per label set; target intake window rc15 or first
   non-release session post-rc14.
 
@@ -61,7 +64,7 @@ dogfood gate in pre-release workflow.
 
 v1.0.0-rc14 tag `b421a60` at commit `1090ae1` post-#258 merge. Dogfood
 gate surface completed in `docs/agents/manual/release-engineer-manual.md` (PR
-#256). Last open baseline issue: #189 (Q-0014, customer-blocked).
+#256).
 
 ---
 
@@ -107,32 +110,81 @@ ruling 10 (2026-05-15 pivot back to in-tree rc-cycle).
 
 ## Unreleased
 
+---
+
+## v1.1.0 — 2026-05-28
+
+First MINOR release after v1.0.0 final. Adds machine-readable handoff
+contracts with hook enforcement, an issues-based multi-machine
+coordination interface, a hardened migration runner, a version-stamp
+release gate, claim-first task numbering, and the pre-release
+upgrade-regression gate that shipped as a forward-fix during the rc
+cycle.
+
 ### Added
 
+- **Machine-readable handoff contracts** (spec 012, US1–US5). JSON
+  handoffs under `docs/handoffs/` with a schema validator
+  (`scripts/validate-handoff.py`). Hooks enforce task boundaries:
+  `pre-tool-use` blocks tool calls that fall outside the active
+  handoff's `allowed_paths`; `stop` / `subagent_stop` gates block
+  completion without accepted evidence. Warning mode ships by default;
+  enforce mode activates when `.claude/settings.json` sets
+  `handoff_gate_mode: enforce`. `bounded_codex_exception` and
+  `model_fallback` fields handle cross-harness and capability-tier
+  variations. External-tool activity (`llmdc`, `speckit`) is
+  recordable without satisfying evidence gates. `github_issue` URL
+  field links handoffs to issue tracker records (FR-017).
+- **Issues-based multi-machine coordination interface** (spec 014).
+  Claim-first protocol using GitHub issue comments: operators
+  self-assign with a structured CLAIM comment (operator-id, machine,
+  session-id, UTC timestamp); earliest-timestamp wins ties; lexical
+  operator-id breaks equal-timestamp ties. Yield and release protocols
+  documented. Advisory by design — no hard lock — with stated
+  race-window bounds. Label taxonomy, issue/task templates
+  (`agent-task.yml`, `agent-review-request.yml`), project-board
+  field conventions, and setup guide included. Register-authority
+  table defines which state is canonical in `docs/handoffs/*.json`
+  vs `docs/DECISIONS.md` / `docs/OPEN_QUESTIONS.md` vs GitHub Issues.
+- **Migration-runner hardening** (spec 013). Migration scripts now
+  run in isolation with actionable failure reporting: non-zero exit
+  is detected and classified as FAILED; failure artifacts written to
+  `docs/pm/migration-failures/`; the runner prints the failing
+  migration name, exit code, and last output line. Rerun-safety
+  guard prevents double-application. Bare-nonzero-last-statement
+  detection (FR-001) catches migrations that forget `exit 0`.
+- **Version-stamp release gate** (`version-stamp` sub-gate in
+  `scripts/lib/gate-runner.sh`). Verifies that `VERSION` at HEAD
+  exactly equals the annotated git tag name before any release is
+  cut. Forward fix for the v1.0.0 incident (VERSION=v1.0.0-rc15 at
+  the v1.0.0 tag). Advisory when HEAD is not at an exact tag;
+  blocking at tag-cut time. Annotated-tag-only enforcement.
+  Incident record in `docs/versioning.md` § "Known issues".
+- **Claim-first task numbering** (spec 015). `scripts/reserve-number.sh`
+  atomically reserves the next available number in ADR, spec,
+  open-question, or decision registers before the document is
+  written, preventing number collisions in concurrent sessions.
+  Gap-detection: reserved numbers are not reused even if their
+  documents are later deleted.
 - **Pre-release upgrade-regression gate** (spec 007). New
-  `scripts/pre-release-gate.sh` orchestrator with seven v1 sub-gates:
+  `scripts/pre-release-gate.sh` orchestrator with v1 sub-gates:
   `worktree-clean`, `lint-contracts`, `check-spdx`, `upgrade-paths`
-  (one round-trip per published source tag, no track / recency /
-  MAJOR cap per FR-003), `advisory-pointers` (scans operator-facing
-  path references against the candidate tree per FR-006),
-  `migrations-standalone` (per-migration scaffold + standalone run +
-  placeholder detection per FR-007), and `readme-current` (README.md
-  mentions current VERSION or was modified since last v* tag —
-  customer ask 2026-05-14). Fail-all semantics: every
-  registered sub-gate runs to completion regardless of earlier
-  failures, and the orchestrator's exit code is the maximum
-  sub-gate exit. Strict exit-code propagation through wrappers
+  (one round-trip per published source tag), `advisory-pointers`
+  (scans operator-facing path references against the candidate
+  tree), `migrations-standalone` (per-migration scaffold + standalone
+  run + placeholder detection), and `readme-current` (README.md
+  mentions current VERSION or was modified since last v* tag).
+  Fail-all semantics; strict exit-code propagation through wrappers
   (FR-002, R-5).
 - **Scoped-strict pre-push hook** at `.git-hooks/pre-push`: blocks
   pushes that include an annotated `v*` tag unless the gate passes
   at HEAD; advisory (WARN-only) on all other pushes. Bypass via
-  `SKIP_PRE_RELEASE_GATE=1` appends an audit row to the new
-  `docs/pm/pre-release-gate-overrides.md` append-only log; refuses
-  the bypass if the log is unwritable.
-- 7 release-gate tests under `tests/release-gate/`: positive e2e,
-  5-fixture fail-each, wrapper-masking exit-code propagation, four
-  hook semantics tests (strict-fail / bypass / unwritable-log /
-  advisory), and a force-moved-tag regression (T047a / R-9).
+  `SKIP_PRE_RELEASE_GATE=1` appends an audit row to
+  `docs/pm/pre-release-gate-overrides.md`.
+- 7 release-gate tests under `tests/release-gate/`, 20 handoff
+  contract tests, 37 handoff pre-tool-gate tests, 38 task-completed
+  gate tests, 23 migration-runner tests, 16 claim-protocol tests,
+  17 reserve-number tests, and 82 handoff Python unit tests.
 
 ### Changed
 
@@ -140,6 +192,11 @@ ruling 10 (2026-05-15 pivot back to in-tree rc-cycle).
   guidance in `## Constraints` and `## Output` sections.
 - `docs/v1.0.0-final-checklist.md` updated to make the gate run a
   numbered precondition for tagging.
+- `docs/versioning.md` gains "Known issues" section recording the
+  v1.0.0 VERSION stamp mismatch and the forward-fix gate.
+- `docs/agents/manual/release-engineer-manual.md` gains
+  VERSION-bump discipline and pre-tag checklist (added post-v1.0.0
+  incident, 2026-05-27).
 
 ## v1.0.0-rc8 — 2026-05-06
 

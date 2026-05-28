@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
 #
 # tests/upgrade/fixtures/success-migration.sh — benign success fixture migration.
 #
