@@ -137,9 +137,9 @@ For each task: read the file, identify candidate spans, tag each with one of the
 
 **Purpose**: Close out the design-pass and discharge follow-ups.
 
-- [ ] T039 [P] `researcher` files the upstream framework gap on the missing "archival sizing policy" section in `researcher-manual.md` (plan Risks row 4); record the issue number in `audit-tables.md` Notes.
+- [X] T039 [P] `researcher` files the upstream framework gap on the missing "archival sizing policy" section in `researcher-manual.md` (plan Risks row 4); record the issue number in `audit-tables.md` Notes. **Filed 2026-05-28 as occamsshavingkit/sw-dev-team-template#277; recorded in audit-tables.md § T029 Customer Ruling footer.**
 - [ ] T040 [P] Update the GitHub issues: close #239 and #245 with a pointer to the merged design-pass commit set and the customer sign-off date.
-- [ ] T041 Push the framework chore branch `chore/release-plan-v1.x` + the spec branch `016-token-economy-design`; open PRs at PR time — framework PR targets `sw-dev-team-template@main`; meta-project PR target chosen by task-author at PR time (default `origin/main`). Per customer ruling (2026-05-28), the PR round happens after implementation, not before.
+- [X] T041 Push the framework chore branch `chore/release-plan-v1.x` + the spec branch `016-token-economy-design`; open PRs at PR time — framework PR targets `sw-dev-team-template@main`; meta-project PR target chosen by task-author at PR time (default `origin/main`). Per customer ruling (2026-05-28), the PR round happens after implementation, not before. **Done 2026-05-28:** PR-A #278, PR-B #279, PR-C #280 (meta targets `012-v1-1-handoff-contracts`).
 - [ ] T042 Mark spec 016 `Status: Complete` in `specs/016-token-economy-design/spec.md` after PR merges.
 
 ---
