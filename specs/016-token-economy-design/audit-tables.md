@@ -32,6 +32,8 @@ T006: SC-005 thin margin — monitor (Σ Current = 12446, Σ M0 = 14720, ratio =
 
 Gate 0 signed off: 2026-05-28 — architect.
 
+T012 (Half A post-edit verification, 2026-05-28): tech-lead.md = 1647 words = 42.1% of cap (3909) — well under 80% ceiling (3127). SC-006 verified by grep: all 6 FR-001 rules present (WIP, vertical slicing, JIT, token-budget, DoD, atomic commits) and all 5 FR-002 anti-patterns present (daily standups, story points, time-boxed sprints, velocity tracking, scrum-master).
+
 ---
 
 ## Proposals
