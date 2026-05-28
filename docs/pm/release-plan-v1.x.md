@@ -20,8 +20,10 @@ Correctness and safety fixes for v1.1.0 production use. No contract breaks. Smal
 | 222 | upgrade.sh: .template-conflicts.json parser fail-opens on malformed input | bug, upgrade, template-friction | M | release-engineer | Silent safety bypass in conflict handling; security posture. |
 | 269 | Auto-merged SPDX-delta files mislabeled in upgrade.sh summary report | template-friction | S | release-engineer | Reporting accuracy; low impact but shipping now avoids confusion. |
 | 254 | v0.16.0 → candidate upgrade-paths fix in PR #217 was dead code | bug, upgrade, template-friction | S | release-engineer | Dead code cleanup; low risk. |
+| 283 | handoff-stop-gate.py emits invalid Stop-hook JSON (schema rejection) | bug, template-friction | S | release-engineer, software-engineer | Stop hook visible to every operator; valid-shape rewrite + schema test. |
+| 284 | 012 handoff still 'active' with unsatisfied evidence gates after v1.1.0 shipped | bug, template-friction | S–M | release-engineer, tech-lead | Handoff lifecycle didn't close at release; ship-broken artifact. |
 
-**v1.1.1 Summary:** 7 issues, est. 5–6 person-days. **Gating:** All bugs verified closed + regression tests green.
+**v1.1.1 Summary:** 9 issues, est. 6–7 person-days. **Gating:** All bugs verified closed + regression tests green.
 
 ---
 
@@ -98,11 +100,11 @@ None identified in current triage. All 35 issues fit into v1.x without contract 
 
 | Phase | Count | Est. Effort (person-days) | Gating Criteria |
 |-------|-------|---------------------------|-----------------|
-| **v1.1.1** | 7 | 5–6 | Bugs verified; regression tests green. |
+| **v1.1.1** | 9 | 6–7 | Bugs verified; regression tests green. |
 | **v1.2.0** | 20 | 14–16 | **Entry:** Gate cleared 2026-05-28. **Exit:** Template regression tests + downstream upgrade validates + multi-version conflicts resolved. |
 | **v1.3.0** | 8 | 18–22 | **Entry:** Gate cleared 2026-05-28. **Exit:** Token economy binding + measured; taxonomy/IEEE gaps closed. |
 | **v1.4.0** | 2 | 16–24 | Architect design review; concurrency model + SC-001 remediation scoped + signed. |
-| **TOTAL** | **37** | **53.5–64 person-days** | Rolling gating per phase. |
+| **TOTAL** | **39** | **54.5–65 person-days** | Rolling gating per phase. |
 
 ---
 
