@@ -31,8 +31,11 @@ import os
 import sys
 import types
 from pathlib import Path
+from typing import TypeVar
 
 import pytest
+
+_T = TypeVar("_T")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
@@ -41,6 +44,12 @@ sys.path.insert(0, str(REPO_ROOT))
 def _expect(cond: object, msg: str = "") -> None:
     if not cond:
         raise AssertionError(msg)
+
+
+def _require(value: _T | None, msg: str = "") -> _T:
+    if value is None:
+        raise AssertionError(msg or "expected non-None value")
+    return value
 
 
 # ---------------------------------------------------------------------------
@@ -259,8 +268,7 @@ def test_f2_complete_handoff_all_evidence_present(tmp_path: Path) -> None:
 
 def test_f3_incomplete_review_missing_enforce(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
-    result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    _expect(result is not None)
+    result = _require(_run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path))
     _expect(result.get("continue") is False)
     _expect(result.get("decision") == "block")
     _expect("INCOMPLETE" in result.get("reason", ""))
@@ -269,8 +277,7 @@ def test_f3_incomplete_review_missing_enforce(tmp_path: Path) -> None:
 
 def test_f4_incomplete_review_missing_warn(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
-    result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
-    _expect(result is not None)
+    result = _require(_run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path))
     _expect(result.get("continue") is True)
     _expect("INCOMPLETE" in result.get("systemMessage", ""))
     _expect("review" in result.get("systemMessage", ""))
@@ -278,8 +285,7 @@ def test_f4_incomplete_review_missing_warn(tmp_path: Path) -> None:
 
 def test_f3_incomplete_test_missing_enforce(tmp_path: Path) -> None:
     handoff = _make_handoff(require_tests=["tests/hooks/test-suite.sh"])
-    result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    _expect(result is not None)
+    result = _require(_run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path))
     _expect(result.get("continue") is False)
     _expect(result.get("decision") == "block")
     _expect("INCOMPLETE" in result.get("reason", ""))
@@ -292,8 +298,7 @@ def test_f3_incomplete_test_missing_enforce(tmp_path: Path) -> None:
 
 def test_f5_falsely_completed_review_missing_enforce(tmp_path: Path) -> None:
     handoff = _make_handoff(status="completed", require_review=True)
-    result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    _expect(result is not None)
+    result = _require(_run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path))
     _expect(result.get("continue") is False)
     _expect(result.get("decision") == "block")
     _expect("FALSELY_COMPLETED" in result.get("reason", ""))
@@ -302,8 +307,7 @@ def test_f5_falsely_completed_review_missing_enforce(tmp_path: Path) -> None:
 
 def test_f6_falsely_completed_review_missing_warn(tmp_path: Path) -> None:
     handoff = _make_handoff(status="completed", require_review=True)
-    result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
-    _expect(result is not None)
+    result = _require(_run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path))
     _expect(result.get("continue") is True)
     _expect("FALSELY_COMPLETED" in result.get("systemMessage", ""))
     _expect("review" in result.get("systemMessage", ""))
@@ -315,8 +319,7 @@ def test_f5_falsely_completed_multi_gate_missing(tmp_path: Path) -> None:
         require_review=True,
         require_tests=["tests/hooks/test-suite.sh"],
     )
-    result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    _expect(result is not None)
+    result = _require(_run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path))
     _expect(result.get("continue") is False)
     _expect(result.get("decision") == "block")
     _expect("FALSELY_COMPLETED" in result.get("reason", ""))
@@ -351,8 +354,7 @@ def test_f7_completed_no_requires_allowed(tmp_path: Path) -> None:
 def test_f8_schema_invalid_missing_owner_enforce(tmp_path: Path) -> None:
     handoff = _make_handoff()
     del handoff["owner_role"]
-    result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    _expect(result is not None)
+    result = _require(_run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path))
     _expect(result.get("continue") is False)
     _expect(result.get("decision") == "block")
     _expect("INCONSISTENT" in result.get("reason", ""))
@@ -361,8 +363,7 @@ def test_f8_schema_invalid_missing_owner_enforce(tmp_path: Path) -> None:
 def test_f9_schema_invalid_missing_owner_warn(tmp_path: Path) -> None:
     handoff = _make_handoff()
     del handoff["owner_role"]
-    result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
-    _expect(result is not None)
+    result = _require(_run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path))
     _expect(result.get("continue") is True)
     _expect("INCONSISTENT" in result.get("systemMessage", ""))
 
@@ -376,10 +377,9 @@ def test_f10_pointer_malformed_enforce(tmp_path: Path) -> None:
     devteam = tmp_path / ".devteam"
     devteam.mkdir(parents=True, exist_ok=True)
     (devteam / "active-handoff.json").write_text("not-json{{{", encoding="utf-8")
-    result = _run_gate(
+    result = _require(_run_gate(
         _stop_event(), mode="enforce", handoff=None, tmp_path=tmp_path, write_pointer=False
-    )
-    _expect(result is not None)
+    ))
     _expect(result.get("continue") is False)
     _expect(result.get("decision") == "block")
     _expect("INCONSISTENT" in result.get("reason", ""))
@@ -389,10 +389,9 @@ def test_f10_pointer_malformed_warn(tmp_path: Path) -> None:
     devteam = tmp_path / ".devteam"
     devteam.mkdir(parents=True, exist_ok=True)
     (devteam / "active-handoff.json").write_text("not-json{{{", encoding="utf-8")
-    result = _run_gate(
+    result = _require(_run_gate(
         _stop_event(), mode="warn", handoff=None, tmp_path=tmp_path, write_pointer=False
-    )
-    _expect(result is not None)
+    ))
     _expect(result.get("continue") is True)
     _expect("INCONSISTENT" in result.get("systemMessage", ""))
 
@@ -409,10 +408,9 @@ def test_f11_pointer_missing_target_enforce(tmp_path: Path) -> None:
         json.dumps({"handoff_path": "docs/handoffs/nonexistent.json"}),
         encoding="utf-8",
     )
-    result = _run_gate(
+    result = _require(_run_gate(
         _stop_event(), mode="enforce", handoff=None, tmp_path=tmp_path, write_pointer=False
-    )
-    _expect(result is not None)
+    ))
     _expect(result.get("continue") is False)
     _expect(result.get("decision") == "block")
     _expect("INCONSISTENT" in result.get("reason", ""))
@@ -425,8 +423,7 @@ def test_f11_pointer_missing_target_enforce(tmp_path: Path) -> None:
 
 def test_f12_draft_status_inconsistent_enforce(tmp_path: Path) -> None:
     handoff = _make_handoff(status="draft")
-    result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    _expect(result is not None)
+    result = _require(_run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path))
     _expect(result.get("continue") is False)
     _expect(result.get("decision") == "block")
     _expect("INCONSISTENT" in result.get("reason", ""))
@@ -435,8 +432,7 @@ def test_f12_draft_status_inconsistent_enforce(tmp_path: Path) -> None:
 
 def test_f12_cancelled_status_inconsistent_warn(tmp_path: Path) -> None:
     handoff = _make_handoff(status="cancelled")
-    result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
-    _expect(result is not None)
+    result = _require(_run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path))
     _expect(result.get("continue") is True)
     _expect("INCONSISTENT" in result.get("systemMessage", ""))
 
@@ -506,8 +502,7 @@ def test_f14_subagent_stop_event_silent(tmp_path: Path) -> None:
 
 def test_f15_enforce_output_valid_stop_hook_shape(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
-    result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    _expect(result is not None)
+    result = _require(_run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path))
     # All keys must be in the allowed Stop-hook set.
     extra = set(result.keys()) - _STOP_HOOK_ALLOWED_KEYS
     _expect(not extra, f"unexpected keys in Stop-hook output: {extra}")
@@ -520,8 +515,7 @@ def test_f15_enforce_output_valid_stop_hook_shape(tmp_path: Path) -> None:
 
 def test_f15_warn_output_valid_stop_hook_shape(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
-    result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
-    _expect(result is not None)
+    result = _require(_run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path))
     extra = set(result.keys()) - _STOP_HOOK_ALLOWED_KEYS
     _expect(not extra, f"unexpected keys in Stop-hook output: {extra}")
     _expect(
@@ -532,8 +526,7 @@ def test_f15_warn_output_valid_stop_hook_shape(tmp_path: Path) -> None:
 
 def test_f15_enforce_uses_continue_false_and_decision_block(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
-    result = _run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path)
-    _expect(result is not None)
+    result = _require(_run_gate(_stop_event(), mode="enforce", handoff=handoff, tmp_path=tmp_path))
     _expect(result.get("continue") is False)
     _expect(result.get("decision") == "block")
     _expect(isinstance(result.get("reason"), str) and result["reason"])
@@ -541,8 +534,7 @@ def test_f15_enforce_uses_continue_false_and_decision_block(tmp_path: Path) -> N
 
 def test_f15_warn_uses_continue_true_and_system_message(tmp_path: Path) -> None:
     handoff = _make_handoff(require_review=True)
-    result = _run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path)
-    _expect(result is not None)
+    result = _require(_run_gate(_stop_event(), mode="warn", handoff=handoff, tmp_path=tmp_path))
     _expect(result.get("continue") is True)
     _expect(isinstance(result.get("systemMessage"), str) and result["systemMessage"])
 
