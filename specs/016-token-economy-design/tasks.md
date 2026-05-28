@@ -124,10 +124,10 @@ For each task: read the file, identify candidate spans, tag each with one of the
 
 **Purpose**: Customer sign-off unlocks v1.2.0 and v1.3.0 implementation entry per Q-0022 + addendum (FR-011 / SC-007).
 
-- [ ] T035 [US3] `tech-lead` brings the design-pass artifacts to the customer for sign-off: spec, plan, audit-tables, the new "Token economy (binding)" section, and the diff summary.
-- [ ] T036 [US3] `researcher` records the verbatim customer sign-off in `sw-dev-team-template/CUSTOMER_NOTES.md` with the date.
-- [ ] T037 [US3] Update `sw-dev-team-template/docs/pm/release-plan-v1.x.md` to reference the CUSTOMER_NOTES sign-off entry from the v1.2.0 and v1.3.0 entry-gate prose.
-- [ ] T038 [US3] Close Q-0022 in `sw-dev-team-template/docs/OPEN_QUESTIONS.md` Resolution column with a pointer to the CUSTOMER_NOTES sign-off entry.
+- [X] T035 [US3] `tech-lead` brings the design-pass artifacts to the customer for sign-off: spec, plan, audit-tables, the new "Token economy (binding)" section, and the diff summary. **Executed 2026-05-28:** Sign-off ask presented with digest of FRs/SCs/Gate states; residual 7-file gap explicitly disclosed.
+- [X] T036 [US3] `researcher` records the verbatim customer sign-off in `sw-dev-team-template/CUSTOMER_NOTES.md` with the date.
+- [X] T037 [US3] Update `sw-dev-team-template/docs/pm/release-plan-v1.x.md` to reference the CUSTOMER_NOTES sign-off entry from the v1.2.0 and v1.3.0 entry-gate prose.
+- [X] T038 [US3] Close Q-0022 in `sw-dev-team-template/docs/OPEN_QUESTIONS.md` Resolution column with a pointer to the CUSTOMER_NOTES sign-off entry. **Closed 2026-05-28:** Q-0022 row updated with closeout note + spec 016 pointers.
 
 **Checkpoint (Gate 3)**: Customer sign-off recorded. v1.2.0 and v1.3.0 entry unblocked.
 
