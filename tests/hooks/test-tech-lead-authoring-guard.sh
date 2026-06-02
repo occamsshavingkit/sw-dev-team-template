@@ -782,6 +782,60 @@ run_case "issue#206 regression: /dev/null + off-list write denies (off-list flag
     deny
 
 # ---------------------------------------------------------------------------
+# Issue #208: CLAUDE_PROJECT_DIR-unset fallback path.
+#
+# When CLAUDE_PROJECT_DIR is unset (or empty), _normalise() and
+# _is_outside_project() fall back to os.getcwd().  The guard must remain
+# fail-closed: project-path writes must still be denied, harness paths
+# (/tmp/, /dev/) must still proceed, and the fallback must not produce a
+# fail-open when cwd resolves to a location that makes all paths look
+# "inside the project".
+#
+# Strategy: set CLAUDE_PROJECT_DIR= (empty string) which is falsy in
+# Python, triggering the os.getcwd() branch identically to the unset case.
+# The test process's cwd is the repo root (REPO_ROOT), so:
+#   - relative project paths remain project-scoped → deny
+#   - /tmp/ absolute paths are harness-allow-listed → proceed
+#   - an absolute path under /tmp/ is outside the project tree → proceed
+# ---------------------------------------------------------------------------
+
+# Cases A–D use an env_line that both empties CLAUDE_PROJECT_DIR (triggering
+# the os.getcwd() fallback) AND unsets SWDT_AGENT_PUSH (to prevent override
+# leaking from the outer test environment).
+_UNSET_ENV="CLAUDE_PROJECT_DIR= SWDT_AGENT_PUSH="
+
+# Case A: empty CLAUDE_PROJECT_DIR + project-relative write to an off-allow-list
+# path (scripts/upgrade.sh is a production file, not on the tech-lead allow-list)
+# → still denied even when CLAUDE_PROJECT_DIR is absent.
+run_case "issue#208: CLAUDE_PROJECT_DIR unset — off-allow-list project write denied" \
+    "$_UNSET_ENV" \
+    '{"tool_input":{"file_path":"scripts/upgrade.sh","contents":"x"}}' \
+    deny
+
+# Case B: empty CLAUDE_PROJECT_DIR + /tmp/ absolute path → proceeds (harness path).
+run_case "issue#208: CLAUDE_PROJECT_DIR unset — /tmp/ write proceeds (harness path)" \
+    "$_UNSET_ENV" \
+    '{"tool_input":{"file_path":"/tmp/some-temp-output.txt","contents":"x"}}' \
+    proceed
+
+# Case C: empty CLAUDE_PROJECT_DIR + /dev/null → proceeds (harness path).
+run_case "issue#208: CLAUDE_PROJECT_DIR unset — /dev/null proceeds (harness path)" \
+    "$_UNSET_ENV" \
+    '{"tool_input":{"command":"echo hi > /dev/null"}}' \
+    proceed
+
+# Case D: empty CLAUDE_PROJECT_DIR + absolute path outside the project tree
+# (e.g. /var/log/app.log) → proceeds. This is by design (issue #205): HR-8
+# is project-scoped; the guard does not control writes to locations that are
+# already outside the project tree. The fallback to os.getcwd() must NOT
+# accidentally treat out-of-project absolute paths as project-relative —
+# this asserts the fallback doesn't break that boundary.
+run_case "issue#208: CLAUDE_PROJECT_DIR unset — out-of-project absolute proceeds (by design #205)" \
+    "$_UNSET_ENV" \
+    '{"tool_input":{"file_path":"/var/log/app.log","contents":"x"}}' \
+    proceed
+
+# ---------------------------------------------------------------------------
 # Summary.
 # ---------------------------------------------------------------------------
 
