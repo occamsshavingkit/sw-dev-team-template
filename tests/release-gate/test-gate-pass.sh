@@ -8,20 +8,45 @@
 #
 # Also captures wall-clock duration for SC-002 audit. Soft-warn if > 5 min;
 # hard-fail at > 10 min.
+#
+# Flags:
+#   --skip-untracked-check   Bypass the clean-worktree precondition check.
+#                            Use during PR authoring when untracked in-flight
+#                            files are present but the committed state is what
+#                            you want to validate (issue #211). The gate itself
+#                            still checks for a clean worktree (worktree-clean
+#                            sub-gate); this flag only skips the test's own
+#                            pre-flight guard, not the gate's check. Running
+#                            with --skip-untracked-check while the worktree
+#                            has modified tracked files will cause the gate's
+#                            worktree-clean sub-gate to FAIL as expected.
 
 set -u
 
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 gate="$repo_root/scripts/pre-release-gate.sh"
 
+# Parse flags.
+skip_untracked_check=0
+for arg in "$@"; do
+    case "$arg" in
+        --skip-untracked-check) skip_untracked_check=1 ;;
+        *) echo "test-gate-pass: unknown flag '$arg'" >&2; exit 2 ;;
+    esac
+done
+
 # Verify worktree is clean (otherwise this test isn't meaningful).
-dirty=$(git -C "$repo_root" status --porcelain \
-    | grep -vE '^\?\? tests/prompt-regression/results-' \
-    || true)
-if [ -n "$dirty" ]; then
-    echo "  SKIP: test-gate-pass requires a clean worktree (excluding known untracked clutter)"
-    printf '%s\n' "$dirty"
-    exit 0
+# Skippable with --skip-untracked-check for PR-authoring use (issue #211).
+if [ "$skip_untracked_check" -eq 0 ]; then
+    dirty=$(git -C "$repo_root" status --porcelain \
+        | grep -vE '^\?\? tests/prompt-regression/results-' \
+        || true)
+    if [ -n "$dirty" ]; then
+        echo "  SKIP: test-gate-pass requires a clean worktree (excluding known untracked clutter)"
+        echo "        Pass --skip-untracked-check to bypass this guard during PR authoring (issue #211)."
+        printf '%s\n' "$dirty"
+        exit 0
+    fi
 fi
 
 start_s=$(date +%s)
