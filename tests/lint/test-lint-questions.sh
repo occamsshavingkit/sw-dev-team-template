@@ -128,6 +128,55 @@ run_case "p2-compound-ask-fires: terminal-? paragraph fires (#148 true-positive)
     1 "$COMPOUND_FIXTURE"
 
 # ===========================================================================
+# Cases 4a–4c: Issue #230 — last_eff_had_q regex must catch `?` followed by
+# inline annotations (comment-close, emphasis, parenthetical) before EOL.
+# Each fixture is a multi-numbered compound ask whose terminal line ends with
+# `?` plus a trailing annotation; the linter must still fire.
+# ===========================================================================
+
+# 4a: `?` followed by HTML/markdown comment close `-->`
+COMPOUND_COMMENT_FIXTURE="$TMPDIR_BASE/compound_ask_comment.md"
+cat > "$COMPOUND_COMMENT_FIXTURE" << 'EOF'
+# Compound ask with trailing comment close
+
+We need to decide:
+
+1. Choose an OAuth provider.
+2. Decide on session-storage mechanism.
+3. Should we ship all three together? -->
+EOF
+run_case "p2-compound-ask-comment-close: terminal-?--> fires (#230)" \
+    1 "$COMPOUND_COMMENT_FIXTURE"
+
+# 4b: `?` followed by markdown bold `**note**`
+COMPOUND_BOLD_FIXTURE="$TMPDIR_BASE/compound_ask_bold.md"
+cat > "$COMPOUND_BOLD_FIXTURE" << 'EOF'
+# Compound ask with trailing bold annotation
+
+We need to decide:
+
+1. Choose an OAuth provider.
+2. Decide on session-storage mechanism.
+3. Should we ship all three together? **decide by Friday**
+EOF
+run_case "p2-compound-ask-bold-annotation: terminal-?-**note** fires (#230)" \
+    1 "$COMPOUND_BOLD_FIXTURE"
+
+# 4c: `?` followed by parenthetical `(see also ...)`
+COMPOUND_PAREN_FIXTURE="$TMPDIR_BASE/compound_ask_paren.md"
+cat > "$COMPOUND_PAREN_FIXTURE" << 'EOF'
+# Compound ask with trailing parenthetical
+
+We need to decide:
+
+1. Choose an OAuth provider.
+2. Decide on session-storage mechanism.
+3. Should we ship all three together? (see also milestone doc)
+EOF
+run_case "p2-compound-ask-parenthetical: terminal-?-(paren) fires (#230)" \
+    1 "$COMPOUND_PAREN_FIXTURE"
+
+# ===========================================================================
 # Case 5: Nested sub-bullets under checkbox are suppressed (issue #185 regression)
 # The outer `- [ ]` starts the checkbox; indented `- ` sub-bullets carry `?`s
 # that are UI prompts, not customer-facing questions.
