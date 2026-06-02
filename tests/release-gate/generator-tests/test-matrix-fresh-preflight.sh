@@ -21,6 +21,10 @@
 # does NOT require a clean worktree (unlike fixtures 06/07/08 in
 # test-gate-fail-each.sh which must commit + reset --hard).
 #
+# VERSION-mutation hygiene: the restore trap removes VERSION when it was
+# originally absent, and byte-for-byte restores it when it was present.
+# This keeps the working tree clean regardless of how the test exits.
+#
 # Owned by release-engineer (procedure gap, issue #288).
 
 set -eu
@@ -34,16 +38,26 @@ fail=0
 PREFLIGHT_MSG="pre-flight FAIL"
 FIX_CMD="bash scripts/generate-fixture-snapshots.sh"
 
-# Preserve real VERSION content for restore.
+# ---------------------------------------------------------------------------
+# Hermetic VERSION save/restore
+# ---------------------------------------------------------------------------
 version_file="$repo_root/VERSION"
+version_was_present=0
+real_version=""
 if [ -f "$version_file" ]; then
+    version_was_present=1
     real_version="$(cat "$version_file")"
-else
-    real_version=""
 fi
 
 restore_version() {
-    printf '%s' "$real_version" > "$version_file"
+    if [ "$version_was_present" -eq 1 ]; then
+        # printf '%s\n' matches the original: command substitution strips the
+        # trailing newline from cat's output, so we add it back on restore.
+        printf '%s\n' "$real_version" > "$version_file"
+    else
+        # File did not exist before — remove it so the tree is clean.
+        rm -f "$version_file"
+    fi
 }
 trap restore_version EXIT
 

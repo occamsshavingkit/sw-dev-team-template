@@ -403,22 +403,41 @@ fi
 # pre-release-gate.sh directly).
 
 fixture09_version_file="$repo_root/VERSION"
+fixture09_version_was_present=0
 if [ -f "$fixture09_version_file" ]; then
+    fixture09_version_was_present=1
     fixture09_real_version="$(cat "$fixture09_version_file")"
 else
     fixture09_real_version=""
 fi
 
+# Hermetic restore: remove VERSION when it was originally absent; otherwise
+# restore exact original bytes.  Used both in the inline restore below and
+# in the revert-trap registration so the tree is clean however the test exits.
+fixture09_restore_version() {
+    if [ "$fixture09_version_was_present" -eq 1 ]; then
+        # printf '%s\n' matches the original: command substitution strips the
+        # trailing newline from cat's output, so we add it back on restore.
+        printf '%s\n' "$fixture09_real_version" > "$fixture09_version_file"
+    else
+        rm -f "$fixture09_version_file"
+    fi
+}
+
 # --- 09-a: snapshot ABSENT — expect fast-fail ---
 fixture09_fake_version="v0.0.0-fixture-09-$$"
 printf '%s\n' "$fixture09_fake_version" > "$fixture09_version_file"
-register_revert "printf '%s\n' '$fixture09_real_version' > '$fixture09_version_file'"
+if [ "$fixture09_version_was_present" -eq 1 ]; then
+    register_revert "printf '%s\n' '${fixture09_real_version}' > '${fixture09_version_file}'"
+else
+    register_revert "rm -f '${fixture09_version_file}'"
+fi
 
 fixture09_out=$("$gate" --only upgrade-matrix-fresh 2>&1) || fixture09_rc=$?
 fixture09_rc=${fixture09_rc:-0}
 
 # Restore immediately (don't wait for trap).
-printf '%s\n' "$fixture09_real_version" > "$fixture09_version_file"
+fixture09_restore_version
 revert_actions=()
 
 if [ "$fixture09_rc" -eq 0 ]; then
