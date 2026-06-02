@@ -47,6 +47,7 @@ _cleanup_sandbox() {
     # (left by prior killed runs before hermeticity was enforced).
     rm -f "$repo_root"/migrations/v9.9.9-fixture-*.sh
     rm -f "$repo_root"/scripts/.fixture-04-no-spdx-*.sh
+    rm -f "$repo_root"/scripts/upgrade.sh.bak-*  # #308 nit-a: fixture-03 bak on SIGINT
     rm -f "$repo_root"/.claude/agents/.fixture-01-stray-*
     rm -f "$repo_root"/.claude/agents/fixture-*-no-hard-rules-*.md
 }
@@ -78,13 +79,15 @@ fi
 _assert_in_sandbox() {
     local target_dir="$1"
     local operation="$2"
-    local real_target real_sandbox real_root
+    local real_target real_sandbox
     real_target="$(cd "$target_dir" && pwd -P)"
     real_sandbox="$(cd "$sandbox" && pwd -P)"
-    real_root="$(cd "$repo_root" && pwd -P)"
-    if [ "$real_target" = "$real_root" ]; then
-        echo "FATAL: safety guard fired — '$operation' attempted on live repo_root '$real_root'" >&2
-        echo "       All git-history operations must target the sandbox '$real_sandbox'." >&2
+    # #308 nit-b: assert target IS sandbox (not just ≠ repo_root) so a third
+    # repo that is neither repo_root nor sandbox cannot slip past the guard.
+    if [ "$real_target" != "$real_sandbox" ]; then
+        echo "FATAL: safety guard fired — '$operation' attempted outside sandbox." >&2
+        echo "       target='$real_target' is not sandbox='$real_sandbox'." >&2
+        echo "       All git-history operations must target the sandbox." >&2
         exit 2
     fi
 }
@@ -256,13 +259,15 @@ if git -C "$sandbox" diff --quiet && git -C "$sandbox" diff --cached --quiet; th
     register_revert "git -C '$sandbox' tag -d '$fixture07_tag' >/dev/null 2>&1; git -C '$sandbox' reset --hard '$fixture07_orig_head' >/dev/null 2>&1"
     assert_subgate_fails "07-upgrade-paths-fail" "upgrade-paths" "$sandbox_gate"
     # Check the diagnostic line names the synthetic tag.
+    # Issue #308: gate-tags.sh emits "failing pairs:" (line ~359), not
+    # "failing source tags:" which was never emitted anywhere in scripts/.
     out=$("$sandbox_gate" 2>&1) || true
-    if printf '%s' "$out" | grep -qE "failing source tags:.*${fixture07_tag}"; then
-        echo "  PASS: [07-upgrade-paths-fail] '$fixture07_tag' surfaces in failing-source-tags diagnostic"
+    if printf '%s' "$out" | grep -qE "failing pairs:.*${fixture07_tag}"; then
+        echo "  PASS: [07-upgrade-paths-fail] '$fixture07_tag' surfaces in failing-pairs diagnostic"
         pass=$((pass + 1))
     else
-        echo "  FAIL: [07-upgrade-paths-fail] '$fixture07_tag' not in failing-source-tags diagnostic"
-        echo "       output: $(printf '%s' "$out" | grep 'failing source tags' || echo '<no failing-source-tags line>')"
+        echo "  FAIL: [07-upgrade-paths-fail] '$fixture07_tag' not in failing-pairs diagnostic"
+        echo "       output: $(printf '%s' "$out" | grep 'failing pairs' || echo '<no failing-pairs line>')"
         fail=$((fail + 1))
     fi
     # Revert sandbox.
