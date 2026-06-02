@@ -76,11 +76,11 @@ echo "-- #222 static checks --"
 check "#222-static-A: ERROR exit-1 guard for issue #222 present in upgrade.sh" \
   grep -q "ERROR: issue #222" "$upgrade"
 
-check "#222-static-B: writer uses atomic tmp file (conflicts_path.tmp.\$\$)" \
-  grep -q 'conflicts_path\.tmp\.\$\$' "$upgrade"
+check "#222-static-B: writer uses atomic tmp file via mktemp (issue #305 hardening)" \
+  grep -q 'mktemp.*conflicts_path.*tmp' "$upgrade"
 
-check "#222-static-C: atomic mv of conflicts_path.tmp.\$\$ into conflicts_path" \
-  grep -qP 'mv "\$conflicts_path\.tmp\.\$\$" "\$conflicts_path"' "$upgrade"
+check "#222-static-C: atomic mv of _conflicts_tmp into conflicts_path" \
+  grep -q 'mv.*_conflicts_tmp.*conflicts_path' "$upgrade"
 
 check "#222-static-D: guard checks prior_conflict_sha count == 0" \
   grep -q 'prior_conflict_sha\[@\]\}' "$upgrade"

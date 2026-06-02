@@ -333,14 +333,17 @@ if [[ $resolve_mode -eq 1 ]]; then
     done < "$resolve_customizations"
   fi
 
-  tmp_out="$conflicts_path.tmp.$$"
+  # Issue #305: use mktemp (random suffix) instead of PID suffix to avoid
+  # symlink-race / TOCTOU windows and PID-collision on shared CI runners
+  # (CWE-377 / CWE-59). mktemp pattern mirrors the correct usage at ~line 764.
+  tmp_out="$(mktemp "${conflicts_path}.tmp.XXXXXX")"
   removed=0
   kept_unresolved=0
   # Issue #152: collect "path<TAB>new_sha" lines for every conflict entry
   # cleared by hand-merge so we can refresh TEMPLATE_MANIFEST.lock rows
   # after the JSON rewrite. Without this, --verify fails on the very
   # next run because the manifest still carries pre-resolution SHAs.
-  resolved_paths_log="$conflicts_path.resolved.$$"
+  resolved_paths_log="$(mktemp "${conflicts_path}.resolved.XXXXXX")"
   : > "$resolved_paths_log"
   {
     printf '{\n'
@@ -433,7 +436,7 @@ if [[ $resolve_mode -eq 1 ]]; then
   manifest_for_resolve="$project_root/TEMPLATE_MANIFEST.lock"
   refreshed_manifest_rows=0
   if [[ -s "$resolved_paths_log" && -f "$manifest_for_resolve" ]]; then
-    manifest_tmp="$manifest_for_resolve.tmp.$$"
+    manifest_tmp="$(mktemp "${manifest_for_resolve}.tmp.XXXXXX")"  # Issue #305: mktemp, not PID suffix
     awk -F '\t' '
       NR == FNR { new_sha[$1] = $2; next }
       /^[[:space:]]*#/ || /^[[:space:]]*$/ { print; next }
@@ -2224,6 +2227,16 @@ EOF
   # state, not the desired post-merge state).
   conflicts_path="$project_root/.template-conflicts.json"
   if [[ ${#conflicts[@]} -gt 0 || ${#local_only_kept[@]} -gt 0 || ${#accepted_local[@]} -gt 0 ]]; then
+    # Issue #305: allocate the temp path BEFORE the { } writer block so the
+    # variable is set in the current shell scope (not a subshell). mktemp
+    # random suffix eliminates the CWE-377/CWE-59 symlink-race present with
+    # PID-suffixed names. The EXIT trap (set after conflicts_path is known)
+    # removes any stale tmp if the process is killed between write and mv.
+    _conflicts_tmp="$(mktemp "${conflicts_path}.tmp.XXXXXX")"
+    # Extend the EXIT trap to also remove this tmp (the workdir trap covers
+    # workdir but not project_root artefacts — issue #305 code-reviewer obs).
+    # shellcheck disable=SC2064  # intentional: expand _conflicts_tmp now
+    trap "rm -rf \"\$workdir\"; rm -f '${_conflicts_tmp}'" EXIT
     {
       printf '{\n'
       printf '  "schema": 1,\n'
@@ -2267,11 +2280,11 @@ EOF
         for f in "${accepted_local[@]}"; do emit_entry "$f" "accepted_local"; done
       fi
       printf '\n  ]\n}\n'
-    } > "$conflicts_path.tmp.$$"
+    } > "$_conflicts_tmp"
     # Issue #222: atomic rename so a kill mid-write never leaves a
     # truncated file on disk that the #200 parser would silently
     # misread as "no prior conflicts".
-    mv "$conflicts_path.tmp.$$" "$conflicts_path"
+    mv "$_conflicts_tmp" "$conflicts_path"
   else
     # No tracked entries — remove any stale file from a prior upgrade.
     rm -f "$conflicts_path"
