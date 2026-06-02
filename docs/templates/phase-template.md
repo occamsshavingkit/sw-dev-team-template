@@ -83,19 +83,38 @@ destination, and a verification activity.
 
 ---
 
-## V-model pairing (if applicable)
+## V&V activity table (IEEE 1012-2016 Part B paraphrase)
 
-For phases on the construction arm, state the verification phase that
-will check this phase's deliverable.
+State the verification and validation activities paired to this phase.
+Per IEEE 1012-2016 § 9, both verification (conformance to specification) and
+validation (fitness for intended use) activities are assigned at each phase;
+the required depth scales with the software integrity level assigned to the
+component (IL-1 minimal through IL-4 full — record the integrity level in the
+project charter or architecture document).
 
-| This phase produces | Verified against by |
-|---|---|
-| Requirements | Acceptance test phase |
-| Architecture | System integration phase |
-| Detailed design | Integration test phase |
-| Implementation | Unit + integration test |
+Fill in the rows applicable to this phase; delete inapplicable rows.
 
-Omit this section if not using a V-model life cycle.
+| Activity | Type | Description | Owner | Entry condition | Exit criterion |
+|---|---|---|---|---|---|
+| Requirements inspection | Verification | Check requirements for correctness, unambiguity, completeness, and testability; trace to stakeholder needs | `qa-engineer` + `architect` | Requirements draft available | All items dispositioned; traceability matrix updated |
+| Requirements validation | Validation | Confirm requirements reflect actual intended use; involve customer via `tech-lead` | `qa-engineer` | Customer available | Customer sign-off recorded in `CUSTOMER_NOTES.md` |
+| Design inspection | Verification | Check design for conformance to requirements; trace design elements to requirements | `code-reviewer` | Design draft available | No open Major findings; ADR updated |
+| Design validation | Validation | Evaluate design against operational constraints; prototype or model critical paths | `qa-engineer` | Design stable | Prototype results reviewed; risks logged |
+| Code inspection | Verification | Review implementation for conformance to design and coding standards | `code-reviewer` | Implementation complete for the unit | No open hard-block findings |
+| Unit test | Verification | Exercise individual units against their specification | `software-engineer` | Code inspection passed | Coverage targets met; no failing tests |
+| Integration test | Verification | Verify that combined components interact correctly across interfaces | `qa-engineer` | Units integrated in the test environment | All interface contracts satisfied |
+| System test | Verification + Validation | Verify system behaviour against requirements; validate against real or representative operational conditions | `qa-engineer` | Integration test passed | All requirements covered; no open Severity-1 defects |
+| Acceptance test | Validation | Confirm the system meets stakeholder needs in the target environment | `qa-engineer` + customer (via `tech-lead`) | System test passed | Customer sign-off recorded in `CUSTOMER_NOTES.md` |
+| Installation verification | Verification | Confirm installed system matches tested configuration | `release-engineer` | System deployed | Configuration matches release artefact |
+| Installation validation | Validation | Validate installed system in target operational environment | `sre` + `qa-engineer` | Installation verification passed | Smoke tests pass; operations team accepts |
+
+**Integrity-level tailoring note:** for IL-1 components, a subset of the
+above (e.g., code inspection + unit test + integration test) is sufficient.
+For IL-3 or IL-4, the full table applies and independent V&V should be
+considered — record the rationale in the project charter and route through
+`tech-lead` for customer sign-off.
+
+Omit this section if not using a V-model or V&V life cycle.
 
 ---
 
