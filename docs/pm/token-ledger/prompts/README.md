@@ -1,6 +1,6 @@
 # docs/pm/token-ledger/prompts/
 
-Verbatim-prompt archive supporting `docs/pm/token-ledger.md` rows per
+Verbatim-prompt archive supporting `docs/pm/TOKEN_LEDGER.md` rows per
 FR-005. Each file holds one dispatched prompt; the live ledger row
 references the file via its `Prompt hash` cell.
 

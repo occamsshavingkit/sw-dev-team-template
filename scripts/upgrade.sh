@@ -1543,7 +1543,7 @@ shortstat_between() {
   fi
 }
 
-added=(); upgraded=(); kept=(); conflicts=(); local_only_kept=(); accepted_local=(); preserved=()
+added=(); upgraded=(); auto_merged=(); kept=(); conflicts=(); local_only_kept=(); accepted_local=(); preserved=()
 # FW-ADR-0014: per-path classification of preserve-list entries.
 #   dropped_inert[]     — entries with no divergence (silently dropped).
 #   preservation_refused_paths[] (+ parallel SHA arrays) — entries that
@@ -1808,7 +1808,7 @@ for f in $ship_files; do
            && _is_trivial_spdx_delta \
                 "$workdir/old/$f" "$proj_path" "$new_path"; then
           echo "auto-merged (trivial SPDX delta): $f"
-          upgraded+=("$f (auto-merge: SPDX)")
+          auto_merged+=("$f")
           atomic_install "$new_path" "$proj_path"
           [[ $is_agent -eq 1 ]] && agent_splice_name "$proj_path" "$agent_name_line"
           continue
@@ -2318,6 +2318,12 @@ if [[ ${#new_agents[@]} -gt 0 ]]; then
   echo "${prefix}  .claude/agents/ mid-session. Dispatches via subagent_type will fail with"
   echo "${prefix}  \"Agent type not found\" until the session is restarted. Upstream issue #36."
   for f in "${new_agents[@]}"; do echo "${prefix}  · $f"; done
+  echo
+fi
+
+if [[ ${#auto_merged[@]} -gt 0 ]]; then
+  echo "${prefix}Auto-merged (trivial SPDX delta) (${#auto_merged[@]}):"
+  for f in "${auto_merged[@]}"; do echo "  ~ $f"; done
   echo
 fi
 
