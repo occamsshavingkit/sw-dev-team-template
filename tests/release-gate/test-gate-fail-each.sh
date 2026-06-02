@@ -6,18 +6,88 @@
 # row drops a deliberate break and asserts the orchestrator surfaces that
 # sub-gate in the failing list.
 #
-# Each "fixture" is a small in-test perturbation of the live tree (creating
-# a stray file, mutating one canonical agent, etc.), reverted on exit so
-# the worktree returns to its pre-test state. This avoids the maintenance
-# cost of static fixtures while still proving each sub-gate triggers
-# correctly.
+# HERMETICITY (issues #306 + #216):
+#   Fixtures that need git commit / reset --hard (06, 07, 08) operate
+#   exclusively inside a throwaway sandbox clone created at test startup
+#   via `git clone --no-hardlinks`.  The canonical checkout (repo_root)
+#   is NEVER touched by any git-history-mutating operation.
+#
+#   Fixtures that only create/delete working-tree files (01, 03, 04, 05)
+#   continue to run against repo_root but are cleaned up inline; they
+#   carry no git-state risk because they write no commits.
+#
+#   Fixture 09 (VERSION file swap) already restores hermetically.
+#
+#   A top-of-file guard asserts the sandbox is in place before any
+#   history-mutating operation executes.
 
 set -u
 
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
+# The gate script inside the SANDBOX is used for history-mutating fixtures;
+# file-only fixtures still invoke the gate from repo_root directly.
 gate="$repo_root/scripts/pre-release-gate.sh"
 pass=0
 fail=0
+
+# ---------------------------------------------------------------------------
+# Sandbox: a throwaway clone for all git-history-mutating fixtures (06/07/08).
+# Created once; removed on EXIT/INT/TERM.
+# ---------------------------------------------------------------------------
+sandbox=""          # set after clone succeeds
+sandbox_gate=""     # pre-release-gate.sh inside the sandbox
+
+_cleanup_sandbox() {
+    # Remove the sandbox clone.  Also sweep any stale bak/fixture artefacts
+    # that escaped the sandbox into repo_root (defensive belt-and-suspenders).
+    if [ -n "$sandbox" ] && [ -d "$sandbox" ]; then
+        rm -rf "$sandbox"
+    fi
+    # #216 safety glob: kill any orphan fixture migration files in repo_root
+    # (left by prior killed runs before hermeticity was enforced).
+    rm -f "$repo_root"/migrations/v9.9.9-fixture-*.sh
+    rm -f "$repo_root"/scripts/.fixture-04-no-spdx-*.sh
+    rm -f "$repo_root"/.claude/agents/.fixture-01-stray-*
+    rm -f "$repo_root"/.claude/agents/fixture-*-no-hard-rules-*.md
+}
+trap '_cleanup_sandbox' EXIT INT TERM
+
+# Create the sandbox clone.  --no-hardlinks ensures the clone has its own
+# independent object store so resets in the sandbox never affect repo_root.
+sandbox="$(mktemp -d -t gate-hermeticity-XXXXXX)"
+git clone --no-hardlinks --local "$repo_root" "$sandbox" >/dev/null 2>&1
+# Copy gitignored snapshot dir into sandbox so upgrade-matrix-fresh sub-gate
+# (fixture 09b) finds snapshots when VERSION matches.
+if [ -d "$repo_root/tests/release-gate/snapshots" ]; then
+    cp -r "$repo_root/tests/release-gate/snapshots" \
+          "$sandbox/tests/release-gate/snapshots" 2>/dev/null || true
+fi
+sandbox_gate="$sandbox/scripts/pre-release-gate.sh"
+
+# Guard: if sandbox creation failed, abort loudly rather than mutating repo_root.
+if [ ! -x "$sandbox_gate" ]; then
+    echo "FATAL: sandbox clone failed or gate script missing at '$sandbox_gate'" >&2
+    echo "       Aborting — no git state was mutated in '$repo_root'." >&2
+    exit 2
+fi
+
+# ---------------------------------------------------------------------------
+# Safety guard: called before every history-mutating git operation.
+# Fails fast if the target dir is repo_root rather than the sandbox.
+# ---------------------------------------------------------------------------
+_assert_in_sandbox() {
+    local target_dir="$1"
+    local operation="$2"
+    local real_target real_sandbox real_root
+    real_target="$(cd "$target_dir" && pwd -P)"
+    real_sandbox="$(cd "$sandbox" && pwd -P)"
+    real_root="$(cd "$repo_root" && pwd -P)"
+    if [ "$real_target" = "$real_root" ]; then
+        echo "FATAL: safety guard fired — '$operation' attempted on live repo_root '$real_root'" >&2
+        echo "       All git-history operations must target the sandbox '$real_sandbox'." >&2
+        exit 2
+    fi
+}
 
 # stash dirtying files so we can roll back atomically.
 revert_actions=()
@@ -28,26 +98,14 @@ do_revert() {
     done
     revert_actions=()
 }
-trap do_revert EXIT
+trap 'do_revert; _cleanup_sandbox' EXIT
 
-# Sanitiser hook (sub-gate contract § Negative-fixture contract, guarantee
-# 4): `trap do_revert EXIT` does not fire on SIGKILL / OOM, so stale
-# fixture artifacts from prior crashed runs can accumulate. Scan once at
-# startup and clear them; print a one-line WARN per artifact so a crashed
-# prior run is visible (not silently swept under the rug).
-#
-# Scope per architect's amended contract + customer rulings 2026-05-14:
-#   - files: `.fixture-*-*` (fixtures 01, 04) anywhere outside .git/
-#   - files: `fixture-*-no-hard-rules-*.md` (fixture 05 synthetic agent)
-#   - files: `migrations/v9.9.9-fixture-*.sh` (fixture 06 stub migration)
-#   - tags:  `v0.0.0-fixture-*` (fixtures 07, 08) + `v9.9.9-fixture-*`
-#            (fixture 06 rehabilitation)
+# Sanitiser hook: scan once at startup and clear stale fixture artifacts
+# from prior crashed runs in repo_root (pre-hermeticity orphans).
+# Scope: file-level stale artifacts only (git tags are in the sandbox now).
 sanitize_stale_fixture_artifacts() {
     local found=0
     local f
-    # File-level stale artifacts. Use NUL-separated find output so paths
-    # with spaces survive (defensive — none today, but the pattern is
-    # repo-wide).
     while IFS= read -r -d '' f; do
         echo "  WARN: sanitiser removing stale fixture file '$f' (prior crashed run?)"
         rm -f "$f"
@@ -58,47 +116,39 @@ sanitize_stale_fixture_artifacts() {
         -o -path "$repo_root/migrations/v9.9.9-fixture-*.sh" \) \
         -not -path "$repo_root/.git/*" \
         -print0 2>/dev/null)
-    # Tag-level stale artifacts.
-    local t
-    while IFS= read -r t; do
-        [ -z "$t" ] && continue
-        echo "  WARN: sanitiser removing stale fixture tag '$t' (prior crashed run?)"
-        git -C "$repo_root" tag -d "$t" >/dev/null 2>&1 || true
-        found=$((found + 1))
-    done < <(git -C "$repo_root" tag --list 'v0.0.0-fixture-*' 'v9.9.9-fixture-*' 2>/dev/null)
+    # Stale fixture tags are now in the sandbox (not repo_root); nothing to sweep here.
     if [ "$found" -eq 0 ]; then
-        : # clean — no stale artifacts to report.
+        : # clean
     fi
 }
 sanitize_stale_fixture_artifacts
 
-# Helper: assert post-revert HEAD matches pre-test HEAD (sub-gate contract
-# § Negative-fixture contract, guarantee 2). History-mutating fixtures
-# (06, 07, 08) commit + tag + reset --hard on revert; if `reset --hard`
-# silently failed (e.g., racing with a concurrent process, or the
-# captured SHA is stale), the worktree could be left at the wrong
-# commit. Hard-fail loudly here so the contributor sees the corrupt
-# state instead of green coverage on a poisoned tree.
-assert_revert_clean() {
-    label="$1"
-    expected_head="$2"
-    actual_head=$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || echo '<rev-parse-failed>')
+# Helper: assert post-revert HEAD in the SANDBOX matches expected SHA.
+# (Replaces the old repo_root HEAD check — sandbox is the only repo that
+# should be mutated by history fixtures.)
+assert_sandbox_revert_clean() {
+    local label="$1"
+    local expected_head="$2"
+    local actual_head
+    actual_head=$(git -C "$sandbox" rev-parse HEAD 2>/dev/null || echo '<rev-parse-failed>')
     if [ "$actual_head" != "$expected_head" ]; then
-        echo "  FAIL: [$label] post-revert HEAD mismatch — expected '$expected_head', got '$actual_head'"
-        echo "       worktree is in an unexpected state; investigate before further test runs"
+        echo "  FAIL: [$label] post-revert sandbox HEAD mismatch — expected '$expected_head', got '$actual_head'"
+        echo "       sandbox is in an unexpected state; investigate"
         fail=$((fail + 1))
         return 1
     fi
     return 0
 }
 
-# Helper: run gate and assert (a) non-zero exit AND (b) named sub-gate appears
-# in the failing list.
+# Helper: run gate (against repo_root) and assert (a) non-zero exit AND
+# (b) named sub-gate appears in the failing list.
 assert_subgate_fails() {
-    label="$1"
-    target_subgate="$2"
-    rc=0
-    out=$("$gate" 2>&1) || rc=$?
+    local label="$1"
+    local target_subgate="$2"
+    local gate_bin="${3:-$gate}"   # default: real gate; overrideable for sandbox gate
+    local rc=0
+    local out
+    out=$("$gate_bin" 2>&1) || rc=$?
     if [ "$rc" -eq 0 ]; then
         echo "  FAIL: [$label] gate exited 0 (expected non-zero)"
         fail=$((fail + 1))
@@ -115,6 +165,7 @@ assert_subgate_fails() {
 }
 
 # ----- Fixture 01: dirty worktree → worktree-clean -----------------------
+# File-only: safe to run in repo_root.
 sentinel="$repo_root/.claude/agents/.fixture-01-stray-$$"
 : > "$sentinel"
 register_revert "rm -f '$sentinel'"
@@ -123,6 +174,7 @@ rm -f "$sentinel"
 revert_actions=()
 
 # ----- Fixture 04: missing SPDX header → check-spdx ---------------------
+# File-only: safe to run in repo_root.
 target_script="$repo_root/scripts/.fixture-04-no-spdx-$$.sh"
 {
     echo "#!/bin/sh"
@@ -136,19 +188,7 @@ rm -f "$target_script"
 revert_actions=()
 
 # ----- Fixture 05: canonical agent missing Hard rules → lint-contracts --
-# Coverage hardening (qa-engineer T050 finding, 2026-05-14): the previous
-# implementation pointed at .claude/agents/sre.md and SKIPped silently if
-# the file was missing or lacked '## Hard rules'. That made coverage
-# disappear if a future rename / refactor moved Hard rules out of sre.md,
-# with the runner reporting green. Remediation per qa-engineer option (c):
-# drop a synthetic canonical-shaped agent contract under .claude/agents/
-# so the fixture does not depend on any production agent file's section
-# structure. The linter's --canonical-only scan walks every .md under
-# AGENTS_DIR whose basename matches ^[a-z0-9][a-z0-9-]*$ (lint-agent-
-# contracts.sh:474-481), so the synthetic file participates. Removing its
-# Hard rules section then deterministically trips the schema's
-# required-section check on the synthetic, regardless of any rename of
-# sre.md or other canonical roles.
+# File-only: safe to run in repo_root.
 synth="$repo_root/.claude/agents/fixture-05-no-hard-rules-$$.md"
 cat > "$synth" <<'SYNTH'
 ---
@@ -174,8 +214,7 @@ rm -f "$synth"
 revert_actions=()
 
 # ----- Fixture 03: dangling advisory pointer → advisory-pointers --------
-# Append a string to scripts/upgrade.sh that references a non-existent path
-# the advisory scanner will catch. Don't pick a path on the allowlist.
+# File-only: safe to run in repo_root (backup + restore, no git ops).
 victim_script="$repo_root/scripts/upgrade.sh"
 backup_script="$victim_script.bak-$$"
 cp "$victim_script" "$backup_script"
@@ -185,55 +224,39 @@ assert_subgate_fails "03-dangling-advisory" "advisory-pointers"
 mv "$backup_script" "$victim_script"
 revert_actions=()
 
+# ===========================================================================
+# History-mutating fixtures (07, 08, 06) — ALL git operations target $sandbox.
+# The gate is invoked as $sandbox_gate so GATE_CANDIDATE_TREE = $sandbox.
+# repo_root is NEVER mutated.
+# ===========================================================================
+
 # ----- Fixture 07: synthetic broken v* tag → upgrade-paths ---------------
-# Exercises the upgrade-paths sub-gate's failure surface (issue #166-A). The
-# sub-gate enumerates v* tags reachable from HEAD whose scripts/upgrade.sh
-# honours SWDT_UPSTREAM_URL, then runs a scaffold+upgrade+verify round-trip
-# from each. To produce a deliberate failure that doesn't touch shipped
-# history, we:
-#
-#   1. Create a commit B whose tree intentionally breaks scaffold.sh.
-#   2. Create a fixup commit C on top of B that restores scaffold.sh, so the
-#      candidate state (HEAD = C) is healthy AND B is reachable from HEAD.
-#   3. Tag B as a synthetic v* name (not in the allowlist) — gate enumerates
-#      it, runs the round-trip starting from B's broken tree, scaffold fails,
-#      round-trip fails, sub-gate reports it as a blocking failing source tag.
-#   4. On revert: git reset --hard <orig_head> drops both B and C; tag -d
-#      removes the synthetic tag.
-#
-# The synthetic tag name embeds the PID so concurrent test runs don't collide.
-#
-# Coverage hardening (qa-engineer T050 finding, 2026-05-14): the previous
-# implementation SKIPped silently when the worktree was dirty, so a
-# contributor running the test with uncommitted edits would see green
-# without exercising upgrade-paths at all. Remediation per qa-engineer
-# option (c): an unclean workspace is a contributor environment problem,
-# not a coverage problem, so we now hard-fail with an explicit diagnostic
-# instead of skipping. The test commits a synthetic broken-tag pair on top
-# of HEAD and `git reset --hard`s on revert — that pattern is unsafe on a
-# dirty tree.
+# Exercises the upgrade-paths sub-gate's failure surface (issue #166-A).
+# All commits and tags land in $sandbox; reset --hard restores $sandbox HEAD.
+# repo_root is untouched.
 fixture07_tag="v0.0.0-fixture-07-$$"
-fixture07_orig_head=$(git -C "$repo_root" rev-parse HEAD)
-if git -C "$repo_root" diff --quiet && git -C "$repo_root" diff --cached --quiet; then
-    fixture07_scaffold="$repo_root/scripts/scaffold.sh"
-    fixture07_backup="$fixture07_scaffold.bak-$$"
+fixture07_orig_head=$(git -C "$sandbox" rev-parse HEAD)
+_assert_in_sandbox "$sandbox" "fixture-07 git-commit"
+if git -C "$sandbox" diff --quiet && git -C "$sandbox" diff --cached --quiet; then
+    fixture07_scaffold="$sandbox/scripts/scaffold.sh"
+    fixture07_backup="$sandbox/scripts/scaffold.sh.bak-$$"
     cp "$fixture07_scaffold" "$fixture07_backup"
-    # Commit B: deliberately broken scaffold.sh (early exit 1) → scaffold step
-    # of round-trip fails immediately.
-    printf '#!/usr/bin/env bash\n# SPDX-License-Identifier: MIT\necho "fixture-07: deliberate scaffold break" >&2\nexit 1\n' > "$fixture07_scaffold"
-    git -C "$repo_root" add scripts/scaffold.sh >/dev/null 2>&1
-    git -C "$repo_root" -c commit.gpgsign=false commit -q \
+    # Commit B: deliberately broken scaffold.sh.
+    printf '#!/usr/bin/env bash\n# SPDX-License-Identifier: MIT\necho "fixture-07: deliberate scaffold break" >&2\nexit 1\n' \
+        > "$fixture07_scaffold"
+    git -C "$sandbox" add scripts/scaffold.sh >/dev/null 2>&1
+    git -C "$sandbox" -c commit.gpgsign=false commit -q \
         -m "test(fixture-07): broken scaffold.sh (synthetic, do-not-ship)" >/dev/null 2>&1
-    git -C "$repo_root" tag "$fixture07_tag" HEAD >/dev/null 2>&1
-    # Commit C: restore scaffold.sh so HEAD (the candidate) is healthy.
+    git -C "$sandbox" tag "$fixture07_tag" HEAD >/dev/null 2>&1
+    # Commit C: restore scaffold.sh so sandbox HEAD is healthy.
     mv "$fixture07_backup" "$fixture07_scaffold"
-    git -C "$repo_root" add scripts/scaffold.sh >/dev/null 2>&1
-    git -C "$repo_root" -c commit.gpgsign=false commit -q \
+    git -C "$sandbox" add scripts/scaffold.sh >/dev/null 2>&1
+    git -C "$sandbox" -c commit.gpgsign=false commit -q \
         -m "test(fixture-07): restore scaffold.sh (synthetic, do-not-ship)" >/dev/null 2>&1
-    register_revert "git -C '$repo_root' tag -d '$fixture07_tag' >/dev/null 2>&1; git -C '$repo_root' reset --hard '$fixture07_orig_head' >/dev/null 2>&1"
-    assert_subgate_fails "07-upgrade-paths-fail" "upgrade-paths"
+    register_revert "git -C '$sandbox' tag -d '$fixture07_tag' >/dev/null 2>&1; git -C '$sandbox' reset --hard '$fixture07_orig_head' >/dev/null 2>&1"
+    assert_subgate_fails "07-upgrade-paths-fail" "upgrade-paths" "$sandbox_gate"
     # Check the diagnostic line names the synthetic tag.
-    out=$("$gate" 2>&1) || true
+    out=$("$sandbox_gate" 2>&1) || true
     if printf '%s' "$out" | grep -qE "failing source tags:.*${fixture07_tag}"; then
         echo "  PASS: [07-upgrade-paths-fail] '$fixture07_tag' surfaces in failing-source-tags diagnostic"
         pass=$((pass + 1))
@@ -242,44 +265,25 @@ if git -C "$repo_root" diff --quiet && git -C "$repo_root" diff --cached --quiet
         echo "       output: $(printf '%s' "$out" | grep 'failing source tags' || echo '<no failing-source-tags line>')"
         fail=$((fail + 1))
     fi
-    # Revert via trap action.
-    git -C "$repo_root" tag -d "$fixture07_tag" >/dev/null 2>&1 || true
-    git -C "$repo_root" reset --hard "$fixture07_orig_head" >/dev/null 2>&1 || true
-    assert_revert_clean "07-upgrade-paths-fail" "$fixture07_orig_head"
+    # Revert sandbox.
+    git -C "$sandbox" tag -d "$fixture07_tag" >/dev/null 2>&1 || true
+    git -C "$sandbox" reset --hard "$fixture07_orig_head" >/dev/null 2>&1 || true
+    assert_sandbox_revert_clean "07-upgrade-paths-fail" "$fixture07_orig_head"
     revert_actions=()
 else
-    echo "  FAIL: [07-upgrade-paths-fail] worktree is dirty — fixture 07 needs to commit + reset --hard"
-    echo "         and a dirty tree would lose uncommitted work. Clean the worktree and re-run."
-    echo "         (Coverage cannot be exercised; see qa-engineer T050 finding 2026-05-14.)"
+    echo "  FAIL: [07-upgrade-paths-fail] sandbox is unexpectedly dirty — cannot proceed"
+    echo "         (sandbox was cloned clean at test startup; investigate)"
     fail=$((fail + 1))
 fi
 
 # ----- Fixture 08: README missing version + no diff since last tag → readme-current --
-# T050 finding (qa-engineer, 2026-05-14): readme-current was registered in
-# commit 7292792 after the negative-fixture phase ended, so this script
-# never exercised it. FR-009 + sub-gate-contract violation — every
-# registered sub-gate must have a negative fixture proving the runner
-# surfaces it in the failing list on a deliberate break. Closes T050
-# blocker for rc12.
-#
-# The gate (gate-runner.sh:236-261) passes if README.md either (a)
-# literally contains the candidate's VERSION string OR (b) was modified
-# since the most recent v* tag reachable from HEAD. To force FAIL we
-# need both signals off simultaneously:
-#   - (a) off: commit a scrubbed README that omits the VERSION literal.
-#   - (b) off: place the "last v* tag reachable from HEAD" AT the
-#             scrubbed-README commit so `git diff <last_tag> -- README.md`
-#             is empty.
-#
-# Pattern mirrors fixture-07: requires a clean tree (we commit + tag,
-# then reset --hard + tag -d on revert). Same option-(c) remediation
-# applies — dirty workspace is a contributor environment problem, not a
-# coverage problem.
+# All commits and tags land in $sandbox; repo_root is untouched.
 fixture08_tag="v0.0.0-fixture-08-$$"
-fixture08_orig_head=$(git -C "$repo_root" rev-parse HEAD)
-if git -C "$repo_root" diff --quiet && git -C "$repo_root" diff --cached --quiet; then
-    fixture08_readme="$repo_root/README.md"
-    fixture08_backup="$fixture08_readme.bak-$$"
+fixture08_orig_head=$(git -C "$sandbox" rev-parse HEAD)
+_assert_in_sandbox "$sandbox" "fixture-08 git-commit"
+if git -C "$sandbox" diff --quiet && git -C "$sandbox" diff --cached --quiet; then
+    fixture08_readme="$sandbox/README.md"
+    fixture08_backup="$sandbox/README.md.bak-$$"
     cp "$fixture08_readme" "$fixture08_backup"
     cat > "$fixture08_readme" <<'SCRUB'
 <!--
@@ -293,56 +297,30 @@ This file is a transient test fixture. It deliberately omits any
 VERSION-shaped string so the readme-current sub-gate (a) signal is off.
 Reverted on test exit.
 SCRUB
-    git -C "$repo_root" add README.md >/dev/null 2>&1
-    git -C "$repo_root" -c commit.gpgsign=false commit -q \
+    git -C "$sandbox" add README.md >/dev/null 2>&1
+    git -C "$sandbox" -c commit.gpgsign=false commit -q \
         -m "test(fixture-08): scrub README VERSION mention (synthetic, do-not-ship)" >/dev/null 2>&1
-    # Tag at the scrubbed-README commit so the "last v* tag reachable
-    # from HEAD" IS this commit; git diff <tag> -- README.md is empty,
-    # so signal (b) is off too.
-    git -C "$repo_root" tag "$fixture08_tag" HEAD >/dev/null 2>&1
-    register_revert "git -C '$repo_root' tag -d '$fixture08_tag' >/dev/null 2>&1; git -C '$repo_root' reset --hard '$fixture08_orig_head' >/dev/null 2>&1; mv '$fixture08_backup' '$fixture08_readme' 2>/dev/null || true"
-    assert_subgate_fails "08-readme-current" "readme-current"
-    # Revert via trap action.
-    git -C "$repo_root" tag -d "$fixture08_tag" >/dev/null 2>&1 || true
-    git -C "$repo_root" reset --hard "$fixture08_orig_head" >/dev/null 2>&1 || true
-    assert_revert_clean "08-readme-current" "$fixture08_orig_head"
-    # Backup may have been clobbered by reset --hard restoring the tracked
-    # README; remove it if it lingers.
+    git -C "$sandbox" tag "$fixture08_tag" HEAD >/dev/null 2>&1
+    register_revert "git -C '$sandbox' tag -d '$fixture08_tag' >/dev/null 2>&1; git -C '$sandbox' reset --hard '$fixture08_orig_head' >/dev/null 2>&1; rm -f '$fixture08_backup'"
+    assert_subgate_fails "08-readme-current" "readme-current" "$sandbox_gate"
+    # Revert sandbox.
+    git -C "$sandbox" tag -d "$fixture08_tag" >/dev/null 2>&1 || true
+    git -C "$sandbox" reset --hard "$fixture08_orig_head" >/dev/null 2>&1 || true
+    assert_sandbox_revert_clean "08-readme-current" "$fixture08_orig_head"
     rm -f "$fixture08_backup"
     revert_actions=()
 else
-    echo "  FAIL: [08-readme-current] worktree is dirty — fixture 08 needs to commit + reset --hard"
-    echo "         and a dirty tree would lose uncommitted work. Clean the worktree and re-run."
-    echo "         (Coverage cannot be exercised; see qa-engineer T050 finding 2026-05-14.)"
+    echo "  FAIL: [08-readme-current] sandbox is unexpectedly dirty — cannot proceed"
+    echo "         (sandbox was cloned clean at test startup; investigate)"
     fail=$((fail + 1))
 fi
 
 # ----- Fixture 06: migration writes placeholder body → migrations-standalone --
-# Create a one-shot stub migration that writes the placeholder marker into
-# a canonical agent file. The gate's per-migration scan will find it.
-#
-# Coverage hardening (qa-engineer T050 finding, 2026-05-14): the previous
-# stub was named v0.0.1-fixture-06.sh and was relied upon for coverage
-# only by accident — gate_migration_prior_tag() returned empty for the
-# stub's target version (it does NOT correspond to a real reachable tag),
-# so the standalone runner SKIPped the stub silently. The fixture
-# historically passed only because v0.14.0's migration was failing for an
-# unrelated reason (baseline-unreachable on WORKDIR_OLD, fixed in this
-# same commit set). Once that root-cause was fixed, the stub no longer
-# triggered any failure.
-#
-# Real fix: gate_migration_prior_tag() walks the sorted v* tag list and
-# returns the tag immediately before the stub's target — but only when
-# the target itself is a real tag. So we (a) name the stub
-# v9.9.9-fixture-06.sh so it sorts after every real tag, and (b) create
-# a transient tag of the same name at HEAD before invoking the gate.
-# The gate then sees v1.0.0-rcN as the prior, scaffolds from it, runs
-# the stub, observes the placeholder marker, and surfaces
-# migrations-standalone in the failing list. Revert removes both the
-# stub file and the transient tag.
-fixture06_orig_head=$(git -C "$repo_root" rev-parse HEAD)
-if git -C "$repo_root" diff --quiet && git -C "$repo_root" diff --cached --quiet; then
-    stub_mig="$repo_root/migrations/v9.9.9-fixture-06-$$.sh"
+# Stub migration committed in $sandbox; #216 safety glob covers repo_root orphans.
+fixture06_orig_head=$(git -C "$sandbox" rev-parse HEAD)
+_assert_in_sandbox "$sandbox" "fixture-06 git-commit"
+if git -C "$sandbox" diff --quiet && git -C "$sandbox" diff --cached --quiet; then
+    stub_mig="$sandbox/migrations/v9.9.9-fixture-06-$$.sh"
     fixture06_tag="v9.9.9-fixture-06-$$"
     cat > "$stub_mig" <<'STUB'
 #!/usr/bin/env bash
@@ -357,50 +335,29 @@ fi
 exit 0
 STUB
     chmod +x "$stub_mig"
-    git -C "$repo_root" add "migrations/v9.9.9-fixture-06-$$.sh" >/dev/null 2>&1
-    git -C "$repo_root" -c commit.gpgsign=false commit -q \
+    git -C "$sandbox" add "migrations/v9.9.9-fixture-06-$$.sh" >/dev/null 2>&1
+    git -C "$sandbox" -c commit.gpgsign=false commit -q \
         -m "test(fixture-06): synthetic placeholder migration (do-not-ship)" >/dev/null 2>&1
-    git -C "$repo_root" tag "$fixture06_tag" HEAD >/dev/null 2>&1
-    register_revert "git -C '$repo_root' tag -d '$fixture06_tag' >/dev/null 2>&1; git -C '$repo_root' reset --hard '$fixture06_orig_head' >/dev/null 2>&1; rm -f '$stub_mig'"
-    assert_subgate_fails "06-migration-placeholder" "migrations-standalone"
-    git -C "$repo_root" tag -d "$fixture06_tag" >/dev/null 2>&1 || true
-    git -C "$repo_root" reset --hard "$fixture06_orig_head" >/dev/null 2>&1 || true
-    rm -f "$stub_mig"
-    assert_revert_clean "06-migration-placeholder" "$fixture06_orig_head"
+    git -C "$sandbox" tag "$fixture06_tag" HEAD >/dev/null 2>&1
+    register_revert "git -C '$sandbox' tag -d '$fixture06_tag' >/dev/null 2>&1; git -C '$sandbox' reset --hard '$fixture06_orig_head' >/dev/null 2>&1"
+    assert_subgate_fails "06-migration-placeholder" "migrations-standalone" "$sandbox_gate"
+    git -C "$sandbox" tag -d "$fixture06_tag" >/dev/null 2>&1 || true
+    git -C "$sandbox" reset --hard "$fixture06_orig_head" >/dev/null 2>&1 || true
+    # #216: safety glob inside sandbox (+ belt-and-suspenders in repo_root via cleanup trap).
+    rm -f "$sandbox"/migrations/v9.9.9-fixture-06-*.sh
+    assert_sandbox_revert_clean "06-migration-placeholder" "$fixture06_orig_head"
     revert_actions=()
 else
-    echo "  FAIL: [06-migration-placeholder] worktree is dirty — fixture 06 needs to commit + reset --hard"
-    echo "         and a dirty tree would lose uncommitted work. Clean the worktree and re-run."
-    echo "         (Coverage cannot be exercised; see qa-engineer T050 finding 2026-05-14.)"
+    echo "  FAIL: [06-migration-placeholder] sandbox is unexpectedly dirty — cannot proceed"
+    echo "         (sandbox was cloned clean at test startup; investigate)"
     fail=$((fail + 1))
 fi
 
 # ----- Fixture 09: current-VERSION clean/ snapshot absent → upgrade-matrix-fresh fast-fail --
-# Issue #288: gate_subgate_upgrade-matrix-fresh must detect a missing
-# tests/release-gate/snapshots/<VERSION>/clean/ directory early — BEFORE
-# launching the expensive scaffold-and-mutate loop — and exit with a clear
-# actionable message naming the missing path and the fix command.
-#
-# Strategy:
-#   (a) ABSENT case: temporarily move the VERSION's clean/ dir aside (or
-#       create a synthetic VERSION whose snapshot never exists).  Run the
-#       gate with --only upgrade-matrix-fresh.  Assert: non-zero exit AND
-#       the fast-fail message is present in the output.
-#   (b) PRESENT case: restore (or keep) the real snapshot dir and confirm
-#       the pre-flight does NOT trigger (gate output must NOT contain the
-#       fast-fail message).
-#
-# We always use a synthetic VERSION value (fixture-09-<PID>) to avoid
-# touching production snapshot directories.  The synthetic version has no
-# snapshot on disk by definition, so the absent-snapshot condition is
-# guaranteed without any filesystem surgery.
-#
-# Synthetic VERSION is written to the VERSION file for the duration of the
-# fixture, then restored.  The worktree-clean sub-gate would block
-# --only upgrade-matrix-fresh from running; we use --only to bypass all
-# other sub-gates (the gate's flag is honoured outside strict mode, and
-# the pre-push hook's strict mode is irrelevant here — we invoke
-# pre-release-gate.sh directly).
+# Issue #288. VERSION file swap — file-only, no git-history mutation.
+# Runs against repo_root (the gate reads VERSION from GATE_CANDIDATE_TREE;
+# for --only upgrade-matrix-fresh we use the real gate against repo_root
+# because the snapshot dirs are only present there, not in the sandbox).
 
 fixture09_version_file="$repo_root/VERSION"
 fixture09_version_was_present=0
@@ -411,13 +368,8 @@ else
     fixture09_real_version=""
 fi
 
-# Hermetic restore: remove VERSION when it was originally absent; otherwise
-# restore exact original bytes.  Used both in the inline restore below and
-# in the revert-trap registration so the tree is clean however the test exits.
 fixture09_restore_version() {
     if [ "$fixture09_version_was_present" -eq 1 ]; then
-        # printf '%s\n' matches the original: command substitution strips the
-        # trailing newline from cat's output, so we add it back on restore.
         printf '%s\n' "$fixture09_real_version" > "$fixture09_version_file"
     else
         rm -f "$fixture09_version_file"
@@ -436,7 +388,6 @@ fi
 fixture09_out=$("$gate" --only upgrade-matrix-fresh 2>&1) || fixture09_rc=$?
 fixture09_rc=${fixture09_rc:-0}
 
-# Restore immediately (don't wait for trap).
 fixture09_restore_version
 revert_actions=()
 
@@ -444,7 +395,6 @@ if [ "$fixture09_rc" -eq 0 ]; then
     echo "  FAIL: [09a-matrix-fresh-absent] gate exited 0 — expected non-zero (pre-flight should have fired)"
     fail=$((fail + 1))
 else
-    # Verify the fast-fail message names both the missing path and the fix command.
     missing_path="tests/release-gate/snapshots/$fixture09_fake_version/clean/"
     fix_cmd="bash scripts/generate-fixture-snapshots.sh"
     msg_ok=1
@@ -467,14 +417,6 @@ else
 fi
 
 # --- 09-b: snapshot PRESENT — pre-flight must NOT trigger fast-fail ---
-# Use the real version.  If its clean/ snapshot dir exists on disk, confirm
-# that running --only upgrade-matrix-fresh does NOT emit the pre-flight
-# fast-fail message (the sub-gate may still fail for other reasons — drift,
-# etc. — but the fast-fail message must be absent).
-#
-# If the real VERSION's clean/ snapshot is absent (e.g., fresh clone after
-# a bump with no regen), this sub-case cannot verify the "present" path and
-# is skipped with a clear note.
 if [ -n "$fixture09_real_version" ]; then
     real_clean="$repo_root/tests/release-gate/snapshots/$fixture09_real_version/clean"
     if [ -d "$real_clean" ]; then
