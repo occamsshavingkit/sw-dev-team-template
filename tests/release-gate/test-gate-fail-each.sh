@@ -375,6 +375,107 @@ else
     fail=$((fail + 1))
 fi
 
+# ----- Fixture 09: current-VERSION clean/ snapshot absent → upgrade-matrix-fresh fast-fail --
+# Issue #288: gate_subgate_upgrade-matrix-fresh must detect a missing
+# tests/release-gate/snapshots/<VERSION>/clean/ directory early — BEFORE
+# launching the expensive scaffold-and-mutate loop — and exit with a clear
+# actionable message naming the missing path and the fix command.
+#
+# Strategy:
+#   (a) ABSENT case: temporarily move the VERSION's clean/ dir aside (or
+#       create a synthetic VERSION whose snapshot never exists).  Run the
+#       gate with --only upgrade-matrix-fresh.  Assert: non-zero exit AND
+#       the fast-fail message is present in the output.
+#   (b) PRESENT case: restore (or keep) the real snapshot dir and confirm
+#       the pre-flight does NOT trigger (gate output must NOT contain the
+#       fast-fail message).
+#
+# We always use a synthetic VERSION value (fixture-09-<PID>) to avoid
+# touching production snapshot directories.  The synthetic version has no
+# snapshot on disk by definition, so the absent-snapshot condition is
+# guaranteed without any filesystem surgery.
+#
+# Synthetic VERSION is written to the VERSION file for the duration of the
+# fixture, then restored.  The worktree-clean sub-gate would block
+# --only upgrade-matrix-fresh from running; we use --only to bypass all
+# other sub-gates (the gate's flag is honoured outside strict mode, and
+# the pre-push hook's strict mode is irrelevant here — we invoke
+# pre-release-gate.sh directly).
+
+fixture09_version_file="$repo_root/VERSION"
+if [ -f "$fixture09_version_file" ]; then
+    fixture09_real_version="$(cat "$fixture09_version_file")"
+else
+    fixture09_real_version=""
+fi
+
+# --- 09-a: snapshot ABSENT — expect fast-fail ---
+fixture09_fake_version="v0.0.0-fixture-09-$$"
+printf '%s\n' "$fixture09_fake_version" > "$fixture09_version_file"
+register_revert "printf '%s\n' '$fixture09_real_version' > '$fixture09_version_file'"
+
+fixture09_out=$("$gate" --only upgrade-matrix-fresh 2>&1) || fixture09_rc=$?
+fixture09_rc=${fixture09_rc:-0}
+
+# Restore immediately (don't wait for trap).
+printf '%s\n' "$fixture09_real_version" > "$fixture09_version_file"
+revert_actions=()
+
+if [ "$fixture09_rc" -eq 0 ]; then
+    echo "  FAIL: [09a-matrix-fresh-absent] gate exited 0 — expected non-zero (pre-flight should have fired)"
+    fail=$((fail + 1))
+else
+    # Verify the fast-fail message names both the missing path and the fix command.
+    missing_path="tests/release-gate/snapshots/$fixture09_fake_version/clean/"
+    fix_cmd="bash scripts/generate-fixture-snapshots.sh"
+    msg_ok=1
+    if ! printf '%s' "$fixture09_out" | grep -qF "$missing_path"; then
+        echo "  FAIL: [09a-matrix-fresh-absent] fast-fail message does not name missing path '$missing_path'"
+        echo "       output: $(printf '%s' "$fixture09_out" | grep 'Missing\|missing\|snapshot' | head -5 || echo '<no match>')"
+        msg_ok=0
+    fi
+    if ! printf '%s' "$fixture09_out" | grep -qF "$fix_cmd"; then
+        echo "  FAIL: [09a-matrix-fresh-absent] fast-fail message does not name fix command '$fix_cmd'"
+        echo "       output: $(printf '%s' "$fixture09_out" | grep 'generate\|Fix\|run' | head -5 || echo '<no match>')"
+        msg_ok=0
+    fi
+    if [ "$msg_ok" -eq 1 ]; then
+        echo "  PASS: [09a-matrix-fresh-absent] pre-flight fires on absent snapshot (rc=$fixture09_rc); message names path and fix"
+        pass=$((pass + 1))
+    else
+        fail=$((fail + 1))
+    fi
+fi
+
+# --- 09-b: snapshot PRESENT — pre-flight must NOT trigger fast-fail ---
+# Use the real version.  If its clean/ snapshot dir exists on disk, confirm
+# that running --only upgrade-matrix-fresh does NOT emit the pre-flight
+# fast-fail message (the sub-gate may still fail for other reasons — drift,
+# etc. — but the fast-fail message must be absent).
+#
+# If the real VERSION's clean/ snapshot is absent (e.g., fresh clone after
+# a bump with no regen), this sub-case cannot verify the "present" path and
+# is skipped with a clear note.
+if [ -n "$fixture09_real_version" ]; then
+    real_clean="$repo_root/tests/release-gate/snapshots/$fixture09_real_version/clean"
+    if [ -d "$real_clean" ]; then
+        fixture09b_out=$("$gate" --only upgrade-matrix-fresh 2>&1) || true
+        preflight_msg="pre-flight FAIL"
+        if printf '%s' "$fixture09b_out" | grep -qF "$preflight_msg"; then
+            echo "  FAIL: [09b-matrix-fresh-present] pre-flight message triggered even though clean/ snapshot exists"
+            echo "       output: $(printf '%s' "$fixture09b_out" | grep "$preflight_msg" | head -3)"
+            fail=$((fail + 1))
+        else
+            echo "  PASS: [09b-matrix-fresh-present] pre-flight silent when clean/ snapshot present (VERSION=$fixture09_real_version)"
+            pass=$((pass + 1))
+        fi
+    else
+        echo "  SKIP: [09b-matrix-fresh-present] real clean/ snapshot not on disk — regen not yet run; cannot verify present-path"
+    fi
+else
+    echo "  SKIP: [09b-matrix-fresh-present] VERSION file absent or empty — skipping present-path check"
+fi
+
 echo
 echo "------------------------------------------------------------"
 echo "test-gate-fail-each: $pass passed, $fail failed"
