@@ -11,6 +11,9 @@ template_class: architecture
 
 - [SDD viewpoint mapping](#sdd-viewpoint-mapping)
 - [1. Introduction and goals](#1-introduction-and-goals)
+  - [1.1 Stakeholder concerns](#11-stakeholder-concerns)
+  - [1.2 Selected viewpoints](#12-selected-viewpoints)
+  - [1.3 Design views and rationale chain](#13-design-views-and-rationale-chain)
 - [2. Constraints](#2-constraints)
 - [3. Context (C4 level 1)](#3-context-c4-level-1)
 - [4. Solution strategy](#4-solution-strategy)
@@ -18,11 +21,15 @@ template_class: architecture
 - [6. Component view (C4 level 3)](#6-component-view-c4-level-3)
 - [7. Runtime view](#7-runtime-view)
 - [8. Deployment view](#8-deployment-view)
-- [9. Cross-cutting concepts](#9-cross-cutting-concepts)
-- [10. Architecture decisions (index)](#10-architecture-decisions-index)
-- [11. Quality requirements (trade-off scenarios)](#11-quality-requirements-trade-off-scenarios)
-- [12. Risks and technical debt](#12-risks-and-technical-debt)
-- [13. Glossary delta](#13-glossary-delta)
+- [9. State dynamics view](#9-state-dynamics-view)
+- [10. Concurrency view](#10-concurrency-view)
+- [11. Information view](#11-information-view)
+- [12. Resource view](#12-resource-view)
+- [13. Cross-cutting concepts](#13-cross-cutting-concepts)
+- [14. Architecture decisions (index)](#14-architecture-decisions-index)
+- [15. Quality requirements (trade-off scenarios)](#15-quality-requirements-trade-off-scenarios)
+- [16. Risks and technical debt](#16-risks-and-technical-debt)
+- [17. Glossary delta](#17-glossary-delta)
 
 <!-- /TOC -->
 
@@ -46,15 +53,15 @@ Owned by `architect`.
 | § 5.2 Context | § 3 |
 | § 5.3 Composition | § 5 |
 | § 5.4 Logical | § 6 |
-| § 5.5 Dependency | § 6 / § 9 |
-| § 5.6 Information | § 9 |
+| § 5.5 Dependency | § 6 / § 13 |
+| § 5.6 Information | § 11 |
 | § 5.7 Patterns use | § 4 |
 | § 5.8 Interface | § 5 / § 6 |
 | § 5.9 Structure | § 6 |
-| § 5.10 Interaction | § 7 |
-| § 5.11 State dynamics | § 7 |
+| § 5.10 Interaction (concurrency overlay) | § 10 |
+| § 5.11 State dynamics | § 9 |
 | § 5.12 Algorithm | ADRs |
-| § 5.13 Resource | § 8 |
+| § 5.13 Resource | § 12 |
 
 ---
 
@@ -62,7 +69,28 @@ Owned by `architect`.
 
 - **Purpose:**
 - **Quality goals (top 3):**
-- **Stakeholders + concerns:**
+
+### 1.1 Stakeholder concerns
+
+| Stakeholder | Role / interest | Concern |
+|---|---|---|
+
+### 1.2 Selected viewpoints
+
+**Viewpoints instantiated:**
+
+| Viewpoint | Section | Addresses concern(s) of |
+|---|---|---|
+
+**Viewpoints omitted:**
+
+| Viewpoint | Rationale |
+|---|---|
+
+### 1.3 Design views and rationale chain
+
+| Stakeholder concern | Viewpoint(s) | ADR(s) | Quality attribute | Status |
+|---|---|---|---|---|
 
 ## 2. Constraints
 
@@ -98,32 +126,73 @@ Per significant scenario, sequence of interactions. Link to
 
 ## 8. Deployment view
 
+> **Scope:** infrastructure topology. For resource budgets, see § 12.
+
 | Environment | Components deployed | Resource notes |
 |---|---|---|
 
-## 9. Cross-cutting concepts
+## 9. State dynamics view
 
-- **Data model:**
+<!-- IEEE 1016-2009 §5.11 -->
+
+Per significant component, state-transition table or diagram.
+
+| Component | From state | Event / condition | To state | Side-effect |
+|---|---|---|---|---|
+
+## 10. Concurrency view
+
+<!-- IEEE 1016-2009 §5.10 Interaction — concurrency overlay -->
+
+- **Concurrency model:**
+
+| Shared resource | Concurrent accessors | Strategy | Failure mode |
+|---|---|---|---|
+
+## 11. Information view
+
+<!-- IEEE 1016-2009 §5.6 -->
+
+| Entity | Persistence | Owner (single writer) | Format | Retention |
+|---|---|---|---|---|
+
+- **Migration / evolution strategy:**
+
+## 12. Resource view
+
+<!-- IEEE 1016-2009 §5.13 -->
+
+| Service | CPU (nom/peak) | Memory (nom/peak) | Storage | Scaling model | First bottleneck |
+|---|---|---|---|---|---|
+
+- **DR standby footprint:**
+
+## 13. Cross-cutting concepts
+
+- **Domain model / ubiquitous language:**
 - **Error handling:**
-- **Security:**
-- **Logging / observability:**
+- **Observability:**
+- **Configuration and secrets:**
+- **Authentication / authorization / audit:**
+- **Data management (backup, restore, retention):** entity detail in § 11.
 - **i18n / a11y (if applicable):**
+- **Safety / compliance (if applicable):**
 
-## 10. Architecture decisions (index)
+## 14. Architecture decisions (index)
 
 | ADR | Title | Status |
 |---|---|---|
 
-## 11. Quality requirements (trade-off scenarios)
+## 15. Quality requirements (trade-off scenarios)
 
 | Scenario | Quality attribute | Response measure |
 |---|---|---|
 
-## 12. Risks and technical debt
+## 16. Risks and technical debt
 
 | Risk / debt | Impact | Mitigation / planned remediation |
 |---|---|---|
 
-## 13. Glossary delta
+## 17. Glossary delta
 
 Project-specific terms not in `docs/glossary/PROJECT.md`.
