@@ -216,20 +216,10 @@ M8 owners ledger, release-engineer row):
 3. Commit both files as the "tag-cut step 1" commit.
 4. **Human verification:** confirm `cat VERSION` == intended tag name
    (see pre-tag checklist above).
-5. Regenerate fixture snapshots (required after every VERSION bump — snapshots
-   are gitignored and the gate will fast-fail without them):
-   ```
-   bash scripts/generate-fixture-snapshots.sh
-   ```
-   This materialises `tests/release-gate/snapshots/<version>/` on disk.
-   Run this BEFORE `pre-release-gate.sh`; the `upgrade-matrix-fresh` sub-gate
-   will exit immediately with an actionable error if this step is skipped
-   (issue #288 — converts a silent ~13-min scaffold stall into a ~1-min
-   "you forgot step X" error).
-6. Run `scripts/pre-release-gate.sh` against that commit.
-7. If PASS: run `tests/release-gate/dogfood-downstream.sh` against that commit.
-8. If dogfood PASS: `git tag -a v1.0.0-rcN -m "v1.0.0-rcN"` at that commit.
-9. `git push origin main && git push origin v1.0.0-rcN`.
+5. Run `scripts/pre-release-gate.sh` against that commit.
+6. If PASS: run `tests/release-gate/dogfood-downstream.sh` against that commit.
+7. If dogfood PASS: `git tag -a v1.0.0-rcN -m "v1.0.0-rcN"` at that commit.
+8. `git push origin main && git push origin v1.0.0-rcN`.
 
 Post-tag `VERSION` bumps to the next development version are correct
 only for stable/final releases where the next commit starts a new MINOR
