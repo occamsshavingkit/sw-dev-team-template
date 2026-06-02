@@ -94,9 +94,10 @@ ruling 1):**
 1. Fixes land on `main` after `code-reviewer` review (Hard Rule #3).
 2. Run the dogfood harness against `main` via
    `scripts/upgrade.sh --target main`.
-3. Only after dogfood PASSes is the rc tag cut — at the same SHA that
-   passed dogfood.
-4. A smoke dogfood run against the cut tag confirms identity.
+3. Only after dogfood PASSes, run `scripts/release/pre-tag-ci-gate.sh`
+   to verify all required CI workflows are green on that commit (#285).
+4. Only after step 3 exits 0 is the rc tag cut — at the same SHA.
+5. A smoke dogfood run against the cut tag confirms identity.
 
 **Override audit log.** Any push that bypasses the gate with
 `SKIP_PRE_RELEASE_GATE=1` appends a row to
@@ -116,7 +117,13 @@ a green dogfood run on the exact commit being tagged.
 1. VERSION bump → commit (see VERSION-bump discipline below).
 2. `scripts/pre-release-gate.sh` → PASS required.
 3. `tests/release-gate/dogfood-downstream.sh` → PASS required.
-4. `git tag -a vX.Y.Z[-rcN] -m "..."` — only after step 3 exits 0.
+3.5. `scripts/release/pre-tag-ci-gate.sh` → all required CI workflows
+   must be SUCCESS on the candidate commit. Automated gate that fetches
+   `gh run list --commit <SHA>` and checks `template-contract-smoke`,
+   `agent-contract-check`, `agent-model-routing-lint`, and
+   `question-lint` are all green (issue #285 follow-up to #282 incident).
+   Do NOT cut the tag if this step exits non-zero.
+4. `git tag -a vX.Y.Z[-rcN] -m "..."` — only after step 3.5 exits 0.
 5. Push tag.
 
 Steps 2 and 3 are both required gates. Passing one does not excuse
