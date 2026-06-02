@@ -641,3 +641,40 @@ companion 2026-05-14 rulings (Routed-Through trailer scope, tool-bridge
 qualifier enumeration).
 
 **Recorded by:** researcher (via tech-lead).
+
+## 2026-06-02 — fw-adr-0021 semver + gate-default rulings (turn: pre-intake)
+
+**Question (from architect, relayed by tech-lead):**
+> (1) Should the fw-adr-0021 handoff-schema change ship as a minor
+> semver bump or wait for a v1.2 handoff-contract milestone?
+> (2) Should the new dispatch gate default to warn (enforce opt-in)
+> or enforce from day one?
+
+**Customer answer (verbatim):**
+> rulings look good.
+
+Accepting architect-recommended options: minor semver bump; warn
+default with enforce opt-in.
+
+**Pointer:** `docs/adr/fw-adr-0021-harness-agnostic-leaf-task-dispatch.md`
+**Recorded by:** researcher
+
+## 2026-06-02 — fw-adr-0022 description-source + lint-placement rulings (turn: pre-intake)
+
+**Question (from architect, relayed by tech-lead):**
+> (1) Where do Gemini per-agent `description` values live — dedicated YAML
+> vs a new `gemini_description` frontmatter field in `.claude/agents/<role>.md`?
+> (2) Lint placement — extend existing agent-contract lint vs a separate
+> gemini lint script?
+
+**Customer answer (verbatim):**
+> "1: how did we do it for codex? make it all match."
+
+Resolution (paraphrase): reuse the canonical `.claude/agents/<role>.md`
+`description:` field, generated into `.gemini/agents/` by
+`compile-runtime-agents.sh` (both proposed options rejected); lint via
+the existing canonical_sha path that already covers `.opencode/agents/`
+(no separate gemini lint script).
+
+**Pointer:** `docs/adr/fw-adr-0022-gemini-harness-adapter.md`
+**Recorded by:** researcher
