@@ -36,6 +36,9 @@ solutions to P2, P5, and the P11 enforcement layer.
 | P10 | Multi-model audits lack equivalent briefs and a divergence-reconciliation rule | open, lower priority | architect |
 | P11 | Through-line: prose-only discipline without enforcement gates | systemic finding | architect |
 | P12 | Gemini has no co-equal full-team harness adapter | DESIGNED, fw-adr-0022, impl open | architect + release-engineer |
+| P13 | No `ui-ux-designer` role; UX/accessibility ownership gap | open | architect + tech-lead |
+| P14 | No project-tailoring / integrity-level artifact | open | project-manager + architect + qa-engineer |
+| P15 | "Clarification-session" cadence mode unnamed and unblessed | open | tech-lead + tech-writer |
 
 ---
 
@@ -349,3 +352,131 @@ descriptions copied from canonical `.claude/agents/`; lint via
 existing `lint-agent-contracts.sh` / canonical SHA; require
 gemini-cli >= v0.38.1. Pairs with #293 (shared delegated-specialist
 mode).
+
+---
+
+## P13 — No `ui-ux-designer` role in the roster
+
+**Statement.** The 13-role roster has no agent owning visual /
+interaction design, accessibility (WCAG), or user-centric
+workflow. `software-engineer` implements UI; `tech-writer`
+documents it; neither owns UX design. The per-project SME
+mechanism partially covers the gap but is not a substitute
+for a first-class roster role.
+
+**Evidence.** `.claude/agents/` contains no `ui-ux-designer.md`.
+`SW_DEV_ROLE_TAXONOMY.md` has no UX-design entry. Neither
+`software-engineer.md` nor `architect.md` claims WCAG ownership
+or user-research responsibilities. Surfaced in a Gemini external
+review of the team design, 2026-06-02; triaged and confirmed as
+a real roster gap by `tech-lead`.
+
+**Root cause.** The roster was designed against SWEBOK /
+ISO 12207 / SFIA v9 engineering roles; UX design and
+accessibility (WCAG / ISO 9241) sit outside those standards'
+primary scope and were not mapped.
+
+**Status.** Open. Filed upstream.
+
+**Owner / next step.** `architect` (roster taxonomy decision) +
+`tech-lead` — evaluate adding `.claude/agents/ui-ux-designer.md`
+mapped to the taxonomy; define boundaries with `software-engineer`
+(implementation), `architect` (frontend architecture decisions),
+and `tech-writer` (user-facing documentation). Determine whether
+the role is a fixed roster slot or a per-project SME-class agent.
+
+---
+
+## P14 — No project-tailoring / integrity-level artifact
+
+**Statement.** The framework applies formal-standard ceremony
+(IEEE 1028 reviews, ISTQB test docs, ISO 12207 phase gates, etc.)
+uniformly across all projects with no per-project mechanism to
+dial formalism up or down based on integrity level. This is
+appropriate for high-integrity systems but imposes excess ceremony
+on typical application work.
+
+**Evidence.** No `docs/pm/TAILORING.md` template exists.
+`docs/FIRST_ACTIONS.md` Step 0–3a describes project scoping but
+does not produce an integrity-level declaration.
+`docs/workflow-pipeline.md` acknowledges "heavy ceremony kills
+trivial work" but provides only a trigger-threshold escape hatch,
+not a project-level formalism dial. Surfaced in a Gemini external
+review of the team design, 2026-06-02; triaged and confirmed by
+`tech-lead`.
+
+**Root cause.** The framework inherited ceremony from the standards
+it references (SWEBOK, ISTQB, ISO 12207) without providing a
+per-project profile selection step at setup. ISO/IEC/IEEE 12207:2017
+and ISO/IEC 15026 both support tailoring; the template does not
+expose that mechanism.
+
+**Status.** Open. Filed upstream.
+
+**Owner / next step.** `project-manager` + `architect` +
+`qa-engineer` — produce a `docs/templates/pm/tailoring-template.md`
+covering: project integrity-level declaration (low / medium /
+high); which formal processes are followed vs waived for each
+level; rationale record. Wire the template into
+`docs/FIRST_ACTIONS.md` Step 0 or Step 1 so every new project
+makes a deliberate, recorded formalism choice at setup.
+
+---
+
+## P15 — "Clarification-session" cadence mode is unnamed and unblessed
+
+**Statement.** Hard Rule #11 constrains question *shape* (one
+decision axis per prompt), but the operative framing — "one per
+turn, only when idle, final line" — biases toward drip-feeding one
+question per session. N queued questions then require N sessions,
+stripping context each time. The preferred mode — prepped queue,
+asked one-atomic-question-per-turn, back-to-back, while the
+customer is engaged — is compliant but is not named, described, or
+blessed anywhere in the framework documentation.
+
+**Evidence.** Customer ruling 2026-06-02: a prepped queue asked
+one-at-a-time, back-to-back, each atomic, in one engaged sitting
+is compliant and preferred — atomicity governs shape (no bundled
+axes), not inter-question cadence. No framework document names or
+blesses this mode (`CLAUDE.md` Hard Rule #11,
+`.claude/agents/tech-lead.md` Customer Question Gate FR-011,
+`docs/FIRST_ACTIONS.md`, `docs/templates/scoping-questions-template.md`
+all describe "one per turn" without distinguishing cadence from
+shape). Surfaced in a Gemini external review, 2026-06-02; customer
+ruling confirmed same session.
+
+**Root cause.** Hard Rule #11 was authored to stop bundled-axis
+violations; the cadence dimension was not separately addressed.
+The rule's phrasing conflates "one prompt = one axis" (the
+violation it targets) with "one question per session" (an
+overcorrection it did not intend).
+
+**Status.** Open. Filed upstream.
+
+**Owner / next step.** `tech-lead` + `tech-writer` — name and bless
+the "clarification-session" mode in `CLAUDE.md` Hard Rule #11,
+`.claude/agents/tech-lead.md` § Customer Question Gate, and
+`docs/OPEN_QUESTIONS.md` guidance. Wording must make clear:
+atomicity governs shape (one decision axis per prompt), not
+inter-question cadence; a clarification session may drain the
+queue turn-by-turn while the customer is engaged, provided each
+individual question remains single-axis and is the final line of
+its turn.
+
+---
+
+## Note — `qa-engineer` vs `code-reviewer` review-gate boundary
+
+*Not a filed issue; no process change required. Recorded for team
+clarity.*
+
+The two review gates target different failure altitudes.
+`qa-engineer` adversarial stance and Solution Duel operate at
+**design level** — they surface failure modes in the proposal
+before any code is written. `code-reviewer` operates at
+**implementation level** — it audits the actual diff for defects
+in code structure, correctness, standards conformance, and Hard
+Rule compliance. The two gates compose: a design-level pass by
+`qa-engineer` does not substitute for a `code-reviewer` diff
+review, and vice versa. When an overlap is perceived, escalate to
+`architect` to determine which altitude the concern belongs to.
