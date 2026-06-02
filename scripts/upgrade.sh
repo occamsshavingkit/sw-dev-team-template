@@ -1601,6 +1601,31 @@ if [[ -f "$_prerun_conflicts_path" ]]; then
     [[ -n "$_c_path" ]] || continue
     prior_conflict_sha["$_c_path"]="$_c_proj"
   done < "$_prerun_conflicts_path"
+  # Issue #222: sanity-check the parse result.  If the file is non-empty
+  # AND contains raw "classified": "conflict" markers BUT we extracted
+  # zero keys, the file is malformed (e.g. truncated mid-write by a
+  # prior kill).  Continuing would leave the #200 rerun-safety guard
+  # silently disarmed, so hard-fail here — consistent with the script's
+  # other integrity checks (pre-bootstrap, preservation-vs-manifest,
+  # --verify).  The three-condition gate is intentional: a legitimate
+  # conflicts file whose entries are all accepted_local/local_only_kept
+  # is non-empty with zero conflict keys and must NOT trigger this block.
+  # Residual risk: a truncation that corrupts the "classified": "conflict"
+  # token itself is indistinguishable from a no-conflict file and will not
+  # trip this gate.  Full JSON-schema validation would close that gap but
+  # is a larger change; tracked as a follow-up (issue #222 notes).
+  if [[ ${#prior_conflict_sha[@]} -eq 0 ]] \
+      && [[ -s "$_prerun_conflicts_path" ]] \
+      && grep -q '"classified": "conflict"' "$_prerun_conflicts_path"; then
+    echo "ERROR: issue #222: $_prerun_conflicts_path is non-empty and contains conflict markers but the line-parser extracted zero prior_conflict_sha keys — the file is likely malformed or truncated mid-write." >&2
+    echo "       The #200 rerun-safety guard cannot fire for the affected entries." >&2
+    echo "       Repair steps:" >&2
+    echo "         1. Inspect $_prerun_conflicts_path for truncation or corruption." >&2
+    echo "         2. If the tracked conflicts are gone (hand-merged or abandoned), delete the file and re-run." >&2
+    echo "         3. If the file is repairable, restore valid JSON and re-run." >&2
+    echo "         4. Run scripts/upgrade.sh --resolve after any hand-merges to clear resolved entries." >&2
+    exit 1
+  fi
 fi
 unset _prerun_conflicts_path _c_line _c_path _c_proj
 
@@ -2242,7 +2267,11 @@ EOF
         for f in "${accepted_local[@]}"; do emit_entry "$f" "accepted_local"; done
       fi
       printf '\n  ]\n}\n'
-    } > "$conflicts_path"
+    } > "$conflicts_path.tmp.$$"
+    # Issue #222: atomic rename so a kill mid-write never leaves a
+    # truncated file on disk that the #200 parser would silently
+    # misread as "no prior conflicts".
+    mv "$conflicts_path.tmp.$$" "$conflicts_path"
   else
     # No tracked entries — remove any stale file from a prior upgrade.
     rm -f "$conflicts_path"

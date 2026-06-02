@@ -367,6 +367,13 @@ gate_subgate_upgrade-paths() {
 #   the gate if any committed snapshot diverges from a fresh regen.
 #   Bounded by upgrade-paths' ~8 min budget (FR-005); the --check path
 #   uses the same scaffold-and-mutate pipeline as a generation run.
+#
+#   Pre-flight (issue #288): before launching the expensive generator
+#   pipeline, verify the clean/ snapshot for the current VERSION exists
+#   on disk.  A missing snapshot means the generator was not run after the
+#   VERSION bump; we fast-fail immediately with an actionable message so
+#   the operator pays <1 min to diagnose instead of ~13 min for the full
+#   scaffold-and-mutate loop to exhaust before reporting MISSING.
 gate_subgate_upgrade-matrix-fresh() {
     cd "$GATE_CANDIDATE_TREE" || return 1
     generator="$GATE_CANDIDATE_TREE/scripts/generate-fixture-snapshots.sh"
@@ -374,6 +381,26 @@ gate_subgate_upgrade-matrix-fresh() {
         echo "upgrade-matrix-fresh: $generator missing or not executable"
         return 1
     fi
+
+    # ----- Pre-flight: current-VERSION snapshot existence check (issue #288) ----
+    # Read the VERSION file once; skip the check only if VERSION is absent
+    # (edge case: brand-new repo with no VERSION file yet).
+    if [ -f "$GATE_CANDIDATE_TREE/VERSION" ]; then
+        current_version="$(tr -d '[:space:]' < "$GATE_CANDIDATE_TREE/VERSION")"
+        if [ -n "$current_version" ]; then
+            clean_snapshot="$GATE_CANDIDATE_TREE/tests/release-gate/snapshots/$current_version/clean"
+            if [ ! -d "$clean_snapshot" ]; then
+                echo "upgrade-matrix-fresh: pre-flight FAIL — snapshot missing for current VERSION."
+                echo "  Missing: tests/release-gate/snapshots/$current_version/clean/"
+                echo "  Snapshots are gitignored and must be regenerated after every VERSION bump."
+                echo "  Fix: run  bash scripts/generate-fixture-snapshots.sh"
+                echo "  Then re-run the gate."
+                return 1
+            fi
+        fi
+    fi
+    # -----------------------------------------------------------------------
+
     # Run --check; capture stderr (the generator's diagnostic surface).
     if "$generator" --check 2>&1; then
         return 0
