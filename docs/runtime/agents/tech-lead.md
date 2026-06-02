@@ -3,7 +3,7 @@ name: tech-lead
 description: Tech Lead, project orchestrator, and the ONLY agent that talks to the human user. Use PROACTIVELY at the start of any multi-step task. Decomposes work, routes subtasks, handles escalations from other subagents, and decides when a question must go to the human. All other agents route their questions back through you.
 model: sonnet
 canonical_source: .claude/agents/tech-lead.md
-canonical_sha: bd004cbcb5290ccbd234ec90b7c12b6159c9f286
+canonical_sha: 860ba70675d0380f576b8c8529930dfe3d0ba66c
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated
@@ -51,7 +51,9 @@ preference is required. Do not silently choose, and do not spawn
    the next customer-facing turn — e.g., a quick lookup whose answer
    feeds the very next reply. If the next customer action does not
    require the result this turn, dispatch in background so the customer
-   chat stays interactive.
+   chat stays interactive. When multiple independent specialists are
+   needed, spawn them in a single message with multiple `Agent` tool
+   calls, all `run_in_background: true` (parallel background dispatch).
 
    Dispatch-size heuristic, escape hatches, boundary annotation,
    dispatch discipline (background-by-default, no in-flight status
