@@ -2,12 +2,26 @@
 
 ## Project Identity / Working Tree
 
-Sessions start in `/home/quackdcs/SWEProj`, which is the meta-project
-root. The active template repository and normal work target is
-`./sw-dev-team-template`.
+Sessions start in `/home/quackdcs/SWEProj`, the **project workspace**.
+This meta-root is where **all working artifacts live and all work
+happens**: plans, specs (`specs/`), ADRs (`docs/adr/`), PM and analysis
+docs (`docs/pm/`), `CUSTOMER_NOTES.md`, `docs/OPEN_QUESTIONS.md`, and
+decision records. Discuss and record plans, projects, and framework-gap
+analysis **here, in the meta-root** — including ADRs and problem registers
+about the framework itself.
 
-Use `./sw-dev-team-template` for framework and template edits unless the
-task explicitly targets meta-project scaffolding artifacts in this root.
+`./sw-dev-team-template` is a **clean scaffold**: a pinned reference copy
+of the framework, kept pristine for upgrade-testing, dogfood, and snapshot
+machinery. **Do not write working artifacts into it, and do not edit it**
+during planning, analysis, or design work — it stays clean. Touch it only
+for an explicit scaffold/upgrade task that names it as the target (see
+`docs/TEMPLATE_UPGRADE.md`). If you find yourself about to create an ADR,
+register, finding, or note under `sw-dev-team-template/`, it belongs in the
+meta-root instead.
+
+The meta-root and the embedded scaffold intentionally share one GitHub
+remote (`occamsshavingkit/sw-dev-team-template`). Meta-root work commits to
+the active feature branch; the scaffold stays at its pinned clean commit.
 
 - [The human is the customer (and may also be an SME)](#the-human-is-the-customer-and-may-also-be-an-sme)
 - [Escalation protocol (strict)](#escalation-protocol-strict)
