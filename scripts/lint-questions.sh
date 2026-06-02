@@ -375,7 +375,11 @@ check_pattern2() {
         # At paragraph flush this tells us if the compound ask terminates
         # with a question (fire) or just contains internal rhetorical `?`s
         # (procedural checklist, suppress).
-        last_eff_had_q = (eff ~ /\?[[:space:]]*$/) ? 1 : 0
+        # Issue #230: also catch `?` followed by inline annotations before EOL
+        # (HTML comment close `-->`, markdown emphasis `**...**`/`*`/`_`, or
+        # parentheticals `(...)`) so compound asks with trailing context tokens
+        # are not silently suppressed.
+        last_eff_had_q = (eff ~ /\?([[:space:]]*(-->|\*\*[^*]*\*\*|\*[^*]*\*|_[^_]*_|\([^)]*\)))*[[:space:]]*$/) ? 1 : 0
         if (eff ~ /\?/) {
             if (numbered_count > 1 && !saw_question && !pending_fire) {
                 pending_fire = 1; fire_line = first_num_line; fire_snippet = line
