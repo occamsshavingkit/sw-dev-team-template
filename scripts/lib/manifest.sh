@@ -11,7 +11,10 @@
 #
 # Exports:
 #   manifest_ship_files <repo>           - list shipped files, sorted
-#   manifest_file_sha   <abs-path>       - sha256 hex of one file
+#   manifest_file_sha   <abs-path>       - sha256 hex of one file (raw)
+#   manifest_file_sha_normalized         - sha256 hex, stripping runtime-
+#     <abs-path> <repo-rel-path>           mutable "activity" from handoff
+#                                          JSON before hashing (issue #276)
 #   manifest_write      <repo> <out>     - write manifest from repo
 #   manifest_verify     <repo> <manifest-path>
 #                                        - verify; rc 0/1/2/3
@@ -74,6 +77,52 @@ manifest_ship_files() {
 # SHA256 of a file (hex hash only, no filename).
 manifest_file_sha() {
   sha256sum "$1" | awk '{print $1}'
+}
+
+# SHA256 of a file after stripping the runtime-mutable "activity" key
+# from handoff JSON files (issue #276).
+#
+# handoff-record-activity.py appends to docs/handoffs/*.json on every
+# PreToolUse/PostToolUse boundary, making the file's content hash
+# change at runtime even though the durable contract portions
+# (status/mode/allowed_paths/hard_rule_traces/acceptance_criteria/
+# verification) are framework-managed and should remain verified.
+#
+# Files matching docs/handoffs/*.json are normalized before hashing:
+# the top-level "activity" key and its entire array value are removed
+# from the JSON, and the result is re-serialised with sorted keys so
+# the hash is stable regardless of field ordering. All other files are
+# hashed from raw bytes (identical to manifest_file_sha).
+#
+# This function is applied symmetrically in manifest_write and
+# manifest_verify so the hash in the manifest and the hash at verify
+# time are computed identically — preserving durable-contract
+# verification while ignoring runtime telemetry.
+manifest_file_sha_normalized() {
+  local path="$1"
+  local relpath="${2:-}"
+  # Normalize only docs/handoffs/*.json files.
+  if [[ "$relpath" =~ ^docs/handoffs/[^/]+\.json$ ]] \
+     || [[ -z "$relpath" && "$path" =~ /docs/handoffs/[^/]+\.json$ ]]; then
+    # Use python3 (required by the hook layer already) to strip
+    # "activity", sort keys, and emit canonical JSON.  Falls back to
+    # raw sha256sum if python3 is unavailable so the function never
+    # silently produces a wrong answer — it fails loudly instead.
+    if command -v python3 >/dev/null 2>&1; then
+      python3 - "$path" <<'PYEOF' | sha256sum | awk '{print $1}'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as f:
+    doc = json.load(f)
+doc.pop("activity", None)
+print(json.dumps(doc, sort_keys=True, ensure_ascii=False))
+PYEOF
+    else
+      echo "ERROR: manifest_file_sha_normalized: python3 not found; cannot normalize $path" >&2
+      return 1
+    fi
+  else
+    sha256sum "$path" | awk '{print $1}'
+  fi
 }
 
 # Decide whether the destination release declares <path> as a fresh-write.
@@ -197,7 +246,7 @@ manifest_write() {
     while IFS= read -r f; do
       [[ -z "$f" ]] && continue
       if [[ -f "$project_repo/$f" ]]; then
-        printf '%s  %s\n' "$(manifest_file_sha "$project_repo/$f")" "$f"
+        printf '%s  %s\n' "$(manifest_file_sha_normalized "$project_repo/$f" "$f")" "$f"
       fi
     done < <(manifest_ship_files "$paths_repo" "$project_repo")
   } > "$out"
@@ -250,7 +299,7 @@ manifest_verify() {
       continue
     fi
     local actual
-    actual="$(manifest_file_sha "$repo/$path")"
+    actual="$(manifest_file_sha_normalized "$repo/$path" "$path")"
     if [[ "$actual" != "${expected[$path]}" ]]; then
       printf 'drift:    %s\n  expected %s\n  actual   %s\n' "$path" "${expected[$path]}" "$actual"
       drift=1
