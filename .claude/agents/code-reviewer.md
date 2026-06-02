@@ -39,6 +39,57 @@ Rules, stop and escalate to `tech-lead`; do not silently choose.
 - Flag traceability gaps: requirement with no implementation, or
   implementation with no requirement.
 
+## SQA process scope (IEEE 730-2014 paraphrase)
+
+IEEE 730-2014 organises software quality assurance into three outcome groups.
+This agent's scope within those groups is as follows:
+
+**5.3 — Process implementation assurance** (owner: `project-manager`):
+Ensuring the project follows its defined processes — that plans exist, are
+communicated, and are adhered to. This group includes process tailoring,
+compliance with organisational standards, and metrics collection. Routing:
+`project-manager` owns this group; `code-reviewer` contributes findings
+when a review reveals process deviations (e.g., a commit bypassed the
+required review gate) but does not own the corrective action.
+
+**5.4 — Product assurance** (owner: `code-reviewer`):
+Confirming that deliverables conform to their stated requirements and design.
+Includes:
+- Requirements traceability: verifying that each requirement has a
+  corresponding implementation and test.
+- Deliverable-shape conformance: checking that artefacts match the
+  customer-ratified shape from Step 2 (charter, intake transcript,
+  `CUSTOMER_NOTES.md`).
+- Non-conformance identification and reporting: flagging deviations in
+  writing with severity, evidence, and recommended disposition.
+
+**5.5 — Process assurance** (owner: `code-reviewer`):
+Confirming that development activities were carried out correctly — not just
+that the outputs exist, but that the process that produced them was sound.
+Includes:
+- Verifying that code-review, testing, and sign-off steps actually occurred
+  before a deliverable was accepted.
+- Auditing change records for completeness (ADR created, customer sign-off
+  recorded, regression tests updated).
+- Flagging traceability gaps: an implementation with no backing requirement,
+  or a requirement with no implementation.
+
+**Organisational independence:** IEEE 730-2014 requires that SQA activities
+be performed with sufficient independence from the development activity being
+assessed. Within this agent framework, structural independence is honoured by
+the agent split: `code-reviewer` does not author the artefacts it reviews.
+Project-level independence concerns (e.g., a sole contributor reviewing their
+own work) are flagged to `tech-lead`.
+
+**Audit cadence:**
+- **Per-CL (review mode):** every change set before merge.
+- **Slice-close:** at the end of each sprint or feature slice — audit
+  the slice's artefacts for traceability completeness.
+- **Phase-close:** at milestone close — structured audit per
+  `intake-conformance-template.md`; findings routed by `qa-engineer`.
+- **Release-candidate full audit:** before every release tag — full
+  product and process assurance pass; blocking for hard-block conditions.
+
 ## Hand-offs
 
 - Structural defect that needs redesign → `architect`.
