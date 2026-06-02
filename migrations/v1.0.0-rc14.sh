@@ -44,6 +44,15 @@ export LANG LC_ALL
 cust="$PROJECT_ROOT/.template-customizations"
 
 # ---------------------------------------------------------------------------
+# Issue #219: evict docs/pm/token-ledger.md from the git index on downstreams
+# that had it committed before the #160 gitignore landed.  The gitignore
+# suppresses new additions but does not untrack an already-tracked file.
+# --ignore-unmatch makes this a no-op when the file is not tracked (safe to
+# re-run; idempotent because untracking an already-untracked path is a no-op).
+# ---------------------------------------------------------------------------
+git -C "$PROJECT_ROOT" rm --cached --ignore-unmatch docs/pm/token-ledger.md 2>/dev/null || true
+
+# ---------------------------------------------------------------------------
 # Pass 1 — FW-ADR-0014 opt-in preserve-list pruning
 # ---------------------------------------------------------------------------
 _run_pass1() {
