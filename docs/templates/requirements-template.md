@@ -45,6 +45,16 @@ live in architecture docs and ADRs, not here.
 
 ## 1. Introduction
 
+State the purpose and scope of this requirements document in the first
+two fields. Limit Purpose to one paragraph. Scope must name what is
+explicitly excluded as well as what is included — an ambiguous boundary
+is a change-control risk. Add project-specific terms to
+`docs/glossary/PROJECT.md` and cite from Definitions rather than
+defining them inline here. Cross-reference: the project charter lives
+in `CUSTOMER_NOTES.md`; the binding glossaries are
+`docs/glossary/ENGINEERING.md` (generic) and
+`docs/glossary/PROJECT.md` (project-specific).
+
 **Purpose.** One paragraph: what this document specifies.
 
 **Scope.** What is in, what is out. Cite the project charter in
@@ -63,6 +73,13 @@ copyrighted external material, cite per `docs/glossary/ENGINEERING.md`
 
 ## 2. Stakeholders and their concerns
 
+List every party whose needs constrain or shape the requirements — not
+just users, but operators, regulators, and third-party integrators.
+The Primary concerns column drives scope: if a concern cannot be traced
+to at least one requirement, flag it to `tech-lead`. Cross-reference:
+`architect` uses this table to select viewpoints in the architecture
+doc; keep the two in sync when stakeholders change.
+
 | Stakeholder | Role | Primary concerns |
 |---|---|---|
 | <customer name> | Customer | <top 3 concerns> |
@@ -72,6 +89,14 @@ copyrighted external material, cite per `docs/glossary/ENGINEERING.md`
 ---
 
 ## 3. System context
+
+Describe the system boundary and its relationship to external actors in
+one paragraph. Link the C4 level-1 context diagram from the architecture
+doc if `architect` has produced one — do not duplicate it here. Tag each
+Assumption with the consequence if it proves false; untagged assumptions
+are invisible risks. Cross-reference: constraints listed here that have
+a corresponding entry in the architecture doc should use the same
+wording to avoid drift.
 
 One paragraph narrative. Include a context diagram (C4 level 1) if
 `architect` has produced one — link, don't duplicate.
@@ -96,6 +121,13 @@ Maps each requirement to the component or subsystem responsible for satisfying i
 ## 4. Functional requirements
 
 <!-- Verification Method / allocation / compliance shaped after ISO/IEC/IEEE 29148:2018 (paraphrased). -->
+
+Each requirement states what the system shall do — not how. Write the
+Statement in "The system shall <verb> <object> <condition>" form.
+Accept nothing that cannot be independently tested. Acceptance criteria
+are the observable evidence that the requirement is met. Cross-reference:
+once `architect` has produced the allocation table (§3.1), each FR
+must appear there with a component and release assigned.
 
 ID format: `FR-NNNN`. Never reused, even after deletion (mark as
 `SUPERSEDED BY FR-MMMM` or `WITHDRAWN`).
@@ -128,6 +160,15 @@ by `architect` + `qa-engineer`>.
 
 ## 5. Non-functional requirements (quality attributes)
 
+State measurable thresholds — "fast" and "reliable" are not
+requirements. Every NFR must carry a Measurement method that `sre` or
+`qa-engineer` can execute. Organize entries under the ISO/IEC 25010
+characteristic they address so reviewers can see coverage gaps at a
+glance. Omitting a mandatory category requires an explicit recorded
+rationale, not a silent gap. Cross-reference: NFRs that impose
+architectural trade-offs must appear in the architecture doc's §15
+quality-requirement scenarios.
+
 Organize by ISO/IEC 25010 quality characteristic. Use the same
 ID-and-AC format as FRs, but prefix `NFR-NNNN`.
 
@@ -144,6 +185,13 @@ Mandatory categories to consider (omit with explicit rationale):
 - Compliance (law, regulation, contract, industry scheme, licence — use `NFR-COMP-NNNN`)
 
 ### NFR-0001 — <characteristic>: <one-line title>
+
+Copy this block for each non-functional requirement. Include the ISO/IEC
+25010 characteristic in the title (e.g., "Performance efficiency: search
+response time under load"). The Statement must name a numeric threshold
+with units and a measurement context. The Measurement method describes
+the procedure `sre` or `qa-engineer` will follow — link to the test
+plan or monitoring runbook if one exists.
 
 **Statement.** Under <conditions>, the system shall <measurable
 threshold with units>.
@@ -415,6 +463,14 @@ distributions shift. Explicit drift gates and fast rollback limit exposure.
 
 ## 7. Constraints
 
+List non-negotiable externally-imposed limits that the solution cannot
+change — technology mandates, budget ceilings, regulatory absolutes,
+physical environment limits. A constraint reduces the solution space; it
+is not negotiable through design. If a constraint might change, record
+it as an Assumption in §3 instead. Cross-reference: constraints that
+directly affect architecture decisions should appear in the architecture
+doc §2 Constraints with matching wording.
+
 Separate from requirements: these are non-negotiable. ID format: `C-NNNN`.
 
 | ID | Constraint | Source |
@@ -488,6 +544,13 @@ Empty cells flag gaps. No row is "complete" until all cells are filled.
 ---
 
 ## 10. Change log
+
+Record every change to a requirement here immediately — do not batch
+entries. The log is append-only; never edit or delete a past entry.
+"Reworded-without-scope-change" is a valid change type only when the
+meaning is truly unchanged; if scope shifts at all, use "superseded"
+and create a new requirement ID. Cross-reference: ID-prefix migrations
+(see §8) must also be recorded here with the old-to-new mapping table.
 
 Append-only. Each change: date, requirement ID(s), change type (added /
 withdrawn / superseded / reworded-without-scope-change), author, source

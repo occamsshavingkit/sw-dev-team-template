@@ -59,6 +59,13 @@ be listed with rationale in § 1.2.
 <!-- IEEE 1016-2009 §4.5 — viewpoint selection is concern-driven;
      §5.2–§5.13 — the 11 standard viewpoints and their content. -->
 
+<!-- Author-guidance: Keep this table current whenever a viewpoint is
+     added, removed, or re-homed to a different section. When a
+     viewpoint is omitted in a specific SDD, record the rationale in
+     § 1.2 — do not simply delete its row here. The Algorithm viewpoint
+     (§ 5.12) routes to ADRs rather than a body section; update the
+     ADR reference if a bespoke algorithm is introduced. -->
+
 | 1016 § viewpoint | Section in this template |
 |---|---|
 | § 5.2 Context | § 3 Context (C4 level 1) |
@@ -78,6 +85,14 @@ be listed with rationale in § 1.2.
 
 ## 1. Introduction and goals
 
+<!-- Author-guidance: Write the narrative paragraph before filling in
+     the top-3 quality attributes — the narrative anchors the
+     architecture's purpose and the attributes should flow from it.
+     Rank the three attributes in priority order; that ranking governs
+     trade-off decisions throughout the document. Cross-reference: the
+     project charter lives in CUSTOMER_NOTES.md; each quality attribute
+     named here must appear in at least one scenario in § 15. -->
+
 One paragraph: what is being built, for whom, why. Link the project
 charter in `CUSTOMER_NOTES.md`.
 
@@ -88,6 +103,15 @@ charter in `CUSTOMER_NOTES.md`.
 <!-- ISO/IEC/IEEE 42010:2022 §6.2 — an architecture description identifies
      stakeholders and their concerns before viewpoints are selected.
      Paraphrased. -->
+
+<!-- Author-guidance: Add one row per distinct stakeholder concern, not
+     per person — a single person may hold multiple concerns and should
+     appear in multiple rows if needed. The Concern column is the key
+     column: phrase it as a statement of what that stakeholder needs
+     the architecture to make clear (e.g., "The path the system takes
+     to recover from a database failure"). Every viewpoint in § 1.2 must
+     trace to at least one row here; concerns with no governing viewpoint
+     are unaddressed gaps to resolve before architecture review. -->
 
 List the stakeholders whose concerns this architecture description
 addresses and the specific question each needs answered. Every viewpoint
@@ -107,6 +131,16 @@ Cross-reference the requirements doc; do not duplicate requirements here.
 <!-- IEEE 1016-2009 §4.5 — a conformant SDD selects viewpoints based on
      stakeholder concerns and states rationale for any omitted viewpoint.
      Paraphrased. -->
+
+<!-- Author-guidance: Fill the Instantiated table by confirming each
+     viewpoint maps to a real section with content, not a placeholder.
+     Remove placeholder rows for viewpoints that are genuinely present.
+     The Omitted table must have a rationale for every standard viewpoint
+     not instantiated — "not applicable" is acceptable only when no
+     stakeholder concern maps to it. Cross-reference: each row in the
+     Instantiated table should appear in the SDD viewpoint mapping
+     table above, and each addresses-concern-of cell should trace to a
+     row in § 1.1. -->
 
 State which viewpoints are instantiated in this SDD and which are
 omitted. Omit a viewpoint when no stakeholder has the corresponding
@@ -167,6 +201,14 @@ A concern with no governing ADR is an open design gap — mark it
 
 ## 2. Constraints
 
+<!-- Author-guidance: List only constraints the architecture must
+     accept as fixed — inputs the team did not choose and cannot
+     negotiate. Platform mandates, regulatory absolutes, and
+     hard delivery dates belong here. Design preferences and defaults
+     belong in § 4 Solution strategy as ADR-governed decisions.
+     Cross-reference: every constraint here should also appear in the
+     requirements doc §7 Constraints with matching wording. -->
+
 Non-negotiable inputs that bound the solution space.
 
 | Category | Constraint | Source |
@@ -185,6 +227,14 @@ Distinct from requirements: constraints are inherited, not chosen.
 <!-- IEEE 1016-2009 §5.2 Context viewpoint — system boundary, external actors,
      and data exchanges. -->
 
+<!-- Author-guidance: The diagram shows the system as a single opaque
+     box — internal structure belongs in §§ 5–6, not here. Each
+     external actor or system in the diagram gets one narrative
+     paragraph covering the protocol used, the data exchanged, and
+     the direction of flow. Cross-reference: the requirements doc §3
+     System context links to this diagram; keep the external-actor list
+     consistent between the two documents. -->
+
 **Diagram.** System-context diagram: the system as a single box, with
 users, external systems, and data exchanges around it.
 
@@ -198,6 +248,14 @@ protocol / data flow summary.
 <!-- IEEE 1016-2009 §5.7 Patterns use viewpoint — design patterns adopted
      and the rationale behind each choice. -->
 
+<!-- Author-guidance: Name only the three to five decisions that most
+     constrain everything else — the ones a new team member must know
+     before reading any other section. Each item is one sentence naming
+     the pattern or approach, followed by a link to its ADR. Avoid
+     restating detailed rationale here; the ADR carries it.
+     Cross-reference: each ADR linked here must appear in § 14 and in
+     at least one row of the § 1.3 rationale chain. -->
+
 Short: the handful of high-level decisions that most shape everything
 else. Examples: "monolith-first", "event-sourced core", "server-side
 rendered UI", "relational primary + document archive".
@@ -210,6 +268,17 @@ Each item links to its governing ADR.
 
 <!-- IEEE 1016-2009 §5.3 Composition viewpoint (deployable units) and
      §5.8 Interface viewpoint (inter-container contracts). -->
+
+<!-- Author-guidance: A "container" in C4 terms is any separately
+     deployable or runnable unit — a service, a web app, a database, a
+     message queue, a scheduled job. One row per container in the table.
+     The Dependencies column names other containers (not external systems
+     — those belong in § 3) by their table row name. Interfaces between
+     containers belong in the Interface subsection; link to the contract
+     (OpenAPI spec, proto file, event schema) rather than reproducing it.
+     Cross-reference: each container here should appear in the §3.1
+     allocation table in the requirements doc once `architect` has
+     completed that column. -->
 
 **Diagram.** Containers: deployable/runnable units (services, apps,
 databases, queues). One diagram per top-level system.
@@ -226,6 +295,16 @@ databases, queues). One diagram per top-level system.
 
 <!-- IEEE 1016-2009 §5.4 Logical, §5.5 Dependency, §5.8 Interface, and
      §5.9 Structure viewpoints — internal decomposition of each container. -->
+
+<!-- Author-guidance: Decompose only containers that carry non-trivial
+     internal structure — a container whose implementation is a single
+     module does not need a component diagram. The Traces to requirements
+     field is mandatory; leave it blank only before architecture review,
+     and flag it as a gap in the § 1.3 rationale chain if still empty
+     at review. Key design decisions must link ADRs — prose rationale
+     without an ADR citation is not sufficient. Cross-reference: component
+     names used here are the canonical names for the §3.1 allocation
+     table in the requirements doc. -->
 
 Per container, decompose into components. One diagram per
 non-trivial container.
@@ -244,6 +323,16 @@ non-trivial container.
 <!-- IEEE 1016-2009 §5.10 Interaction viewpoint — runtime collaboration
      sequences and timing. For concurrency-specific concerns, see §10. -->
 
+<!-- Author-guidance: Show the three mandatory scenarios as sequence or
+     activity diagrams — use Mermaid sequenceDiagram or a linked image.
+     Each diagram is followed by one prose paragraph naming the
+     components involved, the timing constraints (if any), and the
+     failure mode the error-handling scenario guards against. Avoid
+     duplicating concurrency-specific detail here; cross-reference § 10
+     for shared-state and ordering concerns. Keep diagrams at the
+     container boundary — component-internal sequences belong in the
+     component's ADR. -->
+
 The important scenarios, shown as sequence or activity diagrams with a
 one-paragraph narrative each. Cover at least:
 - happy path of the primary use case,
@@ -258,6 +347,15 @@ one-paragraph narrative each. Cover at least:
      Scope note: this section covers where containers run and
      network / environment configuration. Runtime resource budgets
      (CPU, memory, scaling policy, connection limits) belong in §12. -->
+
+<!-- Author-guidance: Draw or describe one topology diagram per
+     environment (dev / staging / prod) if they differ in meaningful
+     ways. Label network boundaries and security zones explicitly.
+     If infrastructure is managed as code, link the IaC module paths
+     rather than duplicating their content. Cross-reference: resource
+     budgets (CPU, memory, scaling policy, connection-pool limits) belong
+     in § 12 — do not repeat them here. The DR standby topology, if any,
+     belongs in § 12 as well. -->
 
 > **Scope:** infrastructure topology — where containers run, network
 > boundaries, environment configuration. For runtime resource budgets
@@ -458,6 +556,21 @@ will it break first under load?
 
 ## 13. Cross-cutting concepts
 
+<!-- Author-guidance: Write one subsection per concern listed below.
+     Each subsection is one paragraph naming the strategy adopted,
+     followed by a link to the governing ADR or external document.
+     Omit a subsection only when the concern is genuinely not present
+     in this system — record a one-sentence rationale for each omission.
+     Do not reproduce entity-level data structure or ownership detail
+     here; that belongs in § 11. Cross-reference: the authentication and
+     authorization subsection must align with the security controls
+     documented by `security-engineer` in the security assurance artefact.
+
+     Example (Observability subsection):
+     Structured JSON logs emitted at INFO and above; Prometheus metrics
+     scraped by the platform agent; distributed traces via OpenTelemetry
+     SDK with a 10 % sampling rate in production. See ADR-0014. -->
+
 Short sections on concerns that span the architecture:
 - Domain model / ubiquitous language (defer to
   `docs/glossary/ENGINEERING.md` + `docs/glossary/PROJECT.md`).
@@ -476,6 +589,16 @@ Each subsection: one paragraph + link to detailed ADR or external doc.
 ---
 
 ## 14. Architecture decisions (index)
+
+<!-- Author-guidance: Add one row per ADR file in docs/adr/ in
+     chronological order. Do not summarise or paraphrase ADR content
+     here — the title and status are sufficient. Mark superseded ADRs
+     with status "superseded by ADR-NNNN" rather than deleting the row.
+     Cross-reference: every ADR listed here must appear in at least one
+     row of the § 1.3 rationale chain; an ADR without a rationale-chain
+     entry is an untraced decision. New ADRs are required whenever any
+     trigger condition in `.claude/agents/architect.md` § "ADR trigger
+     list" fires. -->
 
 A chronological list of ADRs under `docs/adr/`. One row per ADR.
 Shape per `docs/templates/adr-template.md` (MADR-based with the
@@ -498,6 +621,15 @@ are required whenever any row of `.claude/agents/architect.md`
 
 ## 15. Quality requirements (trade-off scenarios)
 
+<!-- Author-guidance: Write one scenario per quality attribute named in
+     § 1. Use the six-part SEI form — Source, Stimulus, Environment,
+     Artifact, Response, Response measure — with measurable values in
+     the Response measure field ("≤ 200 ms at p99 under 500 concurrent
+     users" rather than "fast"). The Trade-off note is mandatory: state
+     which other quality attribute is degraded and by how much. Cross-
+     reference: each scenario here maps to at least one NFR in the
+     requirements doc; link the NFR ID. -->
+
 For each top-3 quality attribute, one concrete scenario with:
 - **Source** (stimulus origin), **Stimulus**, **Environment**,
   **Artifact**, **Response**, **Response measure**. (SEI
@@ -508,6 +640,16 @@ For each top-3 quality attribute, one concrete scenario with:
 
 ## 16. Risks and technical debt
 
+<!-- Author-guidance: List risks that could cause the architecture to
+     fail to meet its quality attributes, not general project risks
+     (those belong in the project-manager's risk register). Technical
+     debt rows describe known shortcuts taken with a plan to address
+     them; use "debt" as a prefix in the Description to distinguish
+     from open risks. The Mitigation / ADR column must not be blank —
+     if no mitigation exists yet, record "open" and flag it at
+     architecture review. Cross-reference: high-impact risks should
+     appear in the § 1.3 rationale chain as a concern driving an ADR. -->
+
 | ID | Description | Likelihood | Impact | Mitigation / ADR |
 |---|---|---|---|---|
 | R-01 | <risk> | L/M/H | L/M/H | <reference> |
@@ -515,6 +657,15 @@ For each top-3 quality attribute, one concrete scenario with:
 ---
 
 ## 17. Glossary delta
+
+<!-- Author-guidance: Record only terms introduced or given a specific
+     meaning in this architecture document that do not yet appear in
+     the binding glossaries. Define each term in one sentence. Once the
+     term is stable and reused across documents, promote it to
+     `docs/glossary/ENGINEERING.md` (generic) or
+     `docs/glossary/PROJECT.md` (project-specific) via `researcher` and
+     remove it from this delta. This section should shrink, not grow,
+     as the project matures. -->
 
 Project-specific architecture terms not already in
 `docs/glossary/ENGINEERING.md` or `docs/glossary/PROJECT.md`. If a term
