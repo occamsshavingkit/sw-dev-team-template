@@ -219,6 +219,43 @@ for canonical in "${AGENTS_DIR}"/*.md; do
     fi
 done
 
+# ---- Orphan check: runtime artefact exists but canonical source is absent --
+# Issue #223: the main loop iterates .claude/agents/ and can only detect
+# MISSING_ARTEFACT (canonical present, runtime absent). The inverse — a
+# runtime artefact whose canonical was deleted (agent retired) — is invisible
+# to that loop because the canonical is no longer enumerated. This pass
+# iterates the artefact directories and warns for each orphan found.
+# Emitted as WARN (non-fatal) so existing workflows are not disrupted;
+# promote to FAIL after a cleanup cycle if desired.
+
+for runtime_artefact in "${RUNTIME_DIR}"/*.md; do
+    [ -f "${runtime_artefact}" ] || continue
+    base="$(basename "${runtime_artefact}" .md)"
+    case "${base}" in
+        *[!a-z0-9-]*|"") continue ;;
+    esac
+    canonical="${AGENTS_DIR}/${base}.md"
+    if [ ! -f "${canonical}" ]; then
+        printf 'lint-canonical-sha: WARN: MISSING_CANONICAL: %s exists but %s is absent (orphan runtime artefact — delete it or restore the canonical source)\n' \
+            "${runtime_artefact}" "${canonical}" >&2
+    fi
+done
+
+if [ "${NO_OPENCODE}" -eq 0 ]; then
+    for opencode_artefact in "${OPENCODE_DIR}"/*.md; do
+        [ -f "${opencode_artefact}" ] || continue
+        base="$(basename "${opencode_artefact}" .md)"
+        case "${base}" in
+            *[!a-z0-9-]*|"") continue ;;
+        esac
+        canonical="${AGENTS_DIR}/${base}.md"
+        if [ ! -f "${canonical}" ]; then
+            printf 'lint-canonical-sha: WARN: MISSING_CANONICAL: %s exists but %s is absent (orphan opencode artefact — delete it or restore the canonical source)\n' \
+                "${opencode_artefact}" "${canonical}" >&2
+        fi
+    done
+fi
+
 if [ "${SUMMARY}" -eq 1 ]; then
     if [ "${overall_fail}" -eq 0 ]; then
         printf 'lint-canonical-sha: PASS\n'
