@@ -16,11 +16,8 @@
 #   7. --summary flag: FAIL summary line printed on stdout when stale -> FAIL
 #   8. --summary flag: PASS summary line printed on stdout when current -> PASS
 #
-# NOTE: orphan detection (runtime artefact exists but canonical is absent)
-# is NOT covered here; that gap is filed as a follow-up issue.
-# (lint detects STALE / MISSING_ARTEFACT / NO_SHA_FIELD but does NOT detect
-# MISSING_CANONICAL — a runtime artefact exists for which no canonical source
-# exists.)
+#   9. Orphan runtime artefact: runtime file exists but canonical deleted
+#      -> exit 0 (WARN only, non-fatal) + MISSING_CANONICAL on stderr (issue #223)
 #
 # Each case builds an isolated git repo fixture in a tempdir containing:
 #   .claude/agents/<role>.md      (canonical)
@@ -354,6 +351,79 @@ else
     fail=$((fail + 1))
     failures+=("summary-pass-line (exit=$ACTUAL_EXIT8 pass_line_found=$SUMMARY_PASS_FOUND8)")
     echo "FAIL  summary-pass-line (exit=$ACTUAL_EXIT8 pass_line_found=$SUMMARY_PASS_FOUND8)"
+fi
+
+# ==========================================================================
+# Case 9: orphan runtime artefact — runtime file exists, canonical absent
+# Issue #223: the main loop only iterates .claude/agents/; a runtime artefact
+# whose canonical was deleted is invisible to it. The orphan pass iterates
+# the artefact dirs and emits WARN: MISSING_CANONICAL on stderr (non-fatal,
+# so exit code is still 0).
+# ==========================================================================
+TMPDIR9="$(mktemp -d -p "$PARENT_TMPDIR")"
+REPO9="$(make_fixture_repo "$TMPDIR9")"
+
+# Write a canonical, commit an artefact pair, then DELETE the canonical so
+# only the runtime/opencode artefacts survive. This simulates agent retirement.
+write_canonical "$REPO9" "retired-agent" "canonical body for retired agent"
+commit_all "$REPO9" "add canonical"
+SHA9="$(get_blob_sha "$REPO9" ".claude/agents/retired-agent.md")"
+write_runtime_artefact "$REPO9" "retired-agent" "$SHA9"
+write_opencode_artefact "$REPO9" "retired-agent" "$SHA9"
+commit_all "$REPO9" "add artefacts"
+
+# Now remove the canonical (simulates retirement) and commit the deletion.
+rm "$REPO9/.claude/agents/retired-agent.md"
+commit_all "$REPO9" "retire agent (delete canonical)"
+
+# Lint should exit 0 (orphan is WARN, not FAIL) but emit MISSING_CANONICAL on stderr.
+ORPHAN_STDERR9="$(mktemp)"
+ACTUAL_EXIT9=0
+"$LINT" \
+    --agents-dir "$REPO9/.claude/agents" \
+    --runtime-dir "$REPO9/docs/runtime/agents" \
+    --opencode-dir "$REPO9/.opencode/agents" \
+    >/dev/null 2>"$ORPHAN_STDERR9" || ACTUAL_EXIT9=$?
+
+ORPHAN_RUNTIME_WARN9=0
+ORPHAN_OPENCODE_WARN9=0
+if grep -q "MISSING_CANONICAL.*runtime.*retired-agent" "$ORPHAN_STDERR9" || \
+   grep -q "MISSING_CANONICAL.*retired-agent.*runtime" "$ORPHAN_STDERR9" || \
+   grep -q "MISSING_CANONICAL" "$ORPHAN_STDERR9"; then
+    ORPHAN_RUNTIME_WARN9=1
+fi
+if grep -q "MISSING_CANONICAL.*opencode.*retired-agent" "$ORPHAN_STDERR9" || \
+   grep -q "MISSING_CANONICAL.*retired-agent.*opencode" "$ORPHAN_STDERR9" || \
+   ( grep -c "MISSING_CANONICAL" "$ORPHAN_STDERR9" | grep -qE "^[2-9]" ); then
+    ORPHAN_OPENCODE_WARN9=1
+fi
+rm -f "$ORPHAN_STDERR9"
+
+if [ "$ACTUAL_EXIT9" -eq 0 ]; then
+    pass=$((pass + 1))
+    echo "PASS  orphan-exit-0: orphan runtime artefact is WARN (non-fatal, exit 0)"
+else
+    fail=$((fail + 1))
+    failures+=("orphan-exit-0 (expected exit=0, got exit=$ACTUAL_EXIT9)")
+    echo "FAIL  orphan-exit-0 (expected exit=0, got exit=$ACTUAL_EXIT9)"
+fi
+
+if [ "$ORPHAN_RUNTIME_WARN9" -eq 1 ]; then
+    pass=$((pass + 1))
+    echo "PASS  orphan-runtime-warn-emitted: MISSING_CANONICAL WARN emitted for runtime artefact"
+else
+    fail=$((fail + 1))
+    failures+=("orphan-runtime-warn-emitted (MISSING_CANONICAL not found in stderr for runtime artefact)")
+    echo "FAIL  orphan-runtime-warn-emitted (MISSING_CANONICAL not found in stderr for runtime artefact)"
+fi
+
+if [ "$ORPHAN_OPENCODE_WARN9" -eq 1 ]; then
+    pass=$((pass + 1))
+    echo "PASS  orphan-opencode-warn-emitted: MISSING_CANONICAL WARN emitted for opencode artefact"
+else
+    fail=$((fail + 1))
+    failures+=("orphan-opencode-warn-emitted (MISSING_CANONICAL not found in stderr for opencode artefact)")
+    echo "FAIL  orphan-opencode-warn-emitted (MISSING_CANONICAL not found in stderr for opencode artefact)"
 fi
 
 # --------------------------------------------------------------------------
