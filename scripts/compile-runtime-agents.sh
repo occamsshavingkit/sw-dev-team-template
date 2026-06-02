@@ -762,10 +762,22 @@ compile_role() {
     fi
   fi
 
-  # Resolve canonical_sha from the git index.
+  # Resolve canonical_sha from the git index (staged content), NOT from HEAD.
+  # Issue #250: using HEAD:${src} resolves the prior commit's blob SHA when
+  # the canonical has been edited but not yet committed, producing stale
+  # canonical_sha in the mirror. git ls-files --stage resolves the index
+  # (staged) object SHA, which is correct both before and after commit.
   canonical_sha=""
   if command -v git >/dev/null 2>&1; then
-    canonical_sha="$(git rev-parse "HEAD:${src}" 2>/dev/null || true)"
+    canonical_sha="$(git ls-files --stage "${src}" 2>/dev/null \
+        | awk 'NR==1{print $2}' || true)"
+    # Fall back to HEAD if the file is not staged (e.g. clean committed state
+    # with no pending edits — ls-files --stage returns nothing for unmodified
+    # tracked files in older git; HEAD: is correct in that case).
+    if [ -z "${canonical_sha}" ] || \
+       ! printf '%s' "${canonical_sha}" | grep -qE '^[0-9a-f]{40}$'; then
+      canonical_sha="$(git rev-parse "HEAD:${src}" 2>/dev/null || true)"
+    fi
   fi
   if [ -z "${canonical_sha}" ] || \
      ! printf '%s' "${canonical_sha}" | grep -qE '^[0-9a-f]{40}$'; then

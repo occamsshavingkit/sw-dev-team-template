@@ -45,8 +45,10 @@ tamper-evident by design — do not edit or delete rows.
 
 **Cross-references.** Spec 007 / T042 / PR #162 define the gate's
 contract. `specs/007-pre-release-upgrade/contracts/pre-release-gate.cli.md`
-is the canonical CLI reference. `docs/pm/pre-release-gate-overrides.md`
-is the audit log.
+is the canonical CLI reference (S-3 note: this path lives in the
+meta-project `SWEProj/specs/` tree, not in the scaffold repo — it is
+not present at `specs/` in a downstream project).
+`docs/pm/pre-release-gate-overrides.md` is the audit log.
 
 ## rc tag procedure
 
@@ -86,17 +88,19 @@ blocks the push unless the gate exits 0. On any other push (feature
 branch, `main` without a tag), the hook is advisory: it emits a
 warning but does not block. See
 `specs/007-pre-release-upgrade/contracts/pre-push-hook.contract.md`
-for the full contract.
+for the full contract (S-3 note: this path lives in the meta-project
+`SWEProj/specs/` tree, not in the scaffold repo).
 
 **Canonical tag sequence (binding per CUSTOMER_NOTES.md 2026-05-15
-ruling 1):**
+§ "dogfood-before-rc sequencing ruling"):**
 
 1. Fixes land on `main` after `code-reviewer` review (Hard Rule #3).
 2. Run the dogfood harness against `main` via
    `scripts/upgrade.sh --target main`.
-3. Only after dogfood PASSes is the rc tag cut — at the same SHA that
-   passed dogfood.
-4. A smoke dogfood run against the cut tag confirms identity.
+3. Only after dogfood PASSes, run `scripts/release/pre-tag-ci-gate.sh`
+   to verify all required CI workflows are green on that commit (#285).
+4. Only after step 3 exits 0 is the rc tag cut — at the same SHA.
+5. A smoke dogfood run against the cut tag confirms identity.
 
 **Override audit log.** Any push that bypasses the gate with
 `SKIP_PRE_RELEASE_GATE=1` appends a row to
@@ -116,7 +120,13 @@ a green dogfood run on the exact commit being tagged.
 1. VERSION bump → commit (see VERSION-bump discipline below).
 2. `scripts/pre-release-gate.sh` → PASS required.
 3. `tests/release-gate/dogfood-downstream.sh` → PASS required.
-4. `git tag -a vX.Y.Z[-rcN] -m "..."` — only after step 3 exits 0.
+3.5. `scripts/release/pre-tag-ci-gate.sh` → all required CI workflows
+   must be SUCCESS on the candidate commit. Automated gate that fetches
+   `gh run list --commit <SHA>` and checks `template-contract-smoke`,
+   `agent-contract-check`, `agent-model-routing-lint`, and
+   `question-lint` are all green (issue #285 follow-up to #282 incident).
+   Do NOT cut the tag if this step exits non-zero.
+4. `git tag -a vX.Y.Z[-rcN] -m "..."` — only after step 3.5 exits 0.
 5. Push tag.
 
 Steps 2 and 3 are both required gates. Passing one does not excuse
@@ -234,7 +244,10 @@ intentionally left immutable (customer ruling 2026-05-27). The
 See `docs/versioning.md § Known issues` for the full incident record.
 
 The canonical bump order at rc-cut (per `docs/pm/SCHEDULE-EVIDENCE.md`
-M8 owners ledger, release-engineer row):
+§ "M8 — Pre-release upgrade-regression gate", owners ledger,
+release-engineer row; S-4 note: the M8 section heading is the stable
+anchor — if the ledger is restructured, search for the
+`release-engineer` entry under the M8 milestone block):
 
 1. Bump `VERSION` to the new rc string (e.g., `v1.0.0-rc13`).
 2. Touch `README.md` if it does not already mention the new version

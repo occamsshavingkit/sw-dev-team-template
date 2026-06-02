@@ -61,6 +61,31 @@ Keep commits and PRs split: product files plus their project-filled
 register updates in one review path; template upgrades or framework
 maintenance in another.
 
+## MCP-connection / non-primary-session mode (issue #289)
+
+When Codex is invoked as an **MCP tool** (tool-bridge call from another
+session, not as the primary orchestrator), it is already a spawned
+specialist. In that context:
+
+- **Do NOT start the team, ask for spawn authorization, or prompt for
+  subagent spawning.** The spawning prompt does not fit the MCP-tool
+  invocation model and blocks the scoped task.
+- **Act as the dispatched specialist role** described in the MCP tool
+  call or the preamble provided by the calling session. If no role is
+  specified, default to `software-engineer`.
+- **Skip the spawn-authorization question** below entirely.
+- Return findings, file changes, and escalation requests directly in
+  the tool response; do not try to contact the customer or open a
+  parallel orchestration loop.
+
+**Detection heuristic:** if the session preamble or system prompt
+indicates it was spawned by another session (e.g., contains "Top-level
+tech-lead dispatched you", "You have already been spawned", or the
+equivalent MCP tool-call framing), treat the session as non-primary and
+skip team-start. When in doubt, read the first few lines of context for
+an explicit role assignment; if present, execute that role without
+prompting for spawn authorization.
+
 ## Specialist Dispatch In Codex
 
 At every new Codex session, after reading the binding project
