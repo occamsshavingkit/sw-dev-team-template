@@ -4,6 +4,8 @@
 #
 # scripts/lib/manifest.sh — shared TEMPLATE_MANIFEST.lock helpers.
 #
+# Requires: python3 (for manifest_file_sha_normalized on handoff JSON files)
+#
 # Per FW-ADR-0002 (upgrade content verification, hash-based, manifest-
 # primary). Sourced by scripts/upgrade.sh (write at upgrade-end +
 # verify at --verify) and scripts/scaffold.sh (write at scaffold-end
@@ -109,13 +111,34 @@ manifest_file_sha_normalized() {
     # raw sha256sum if python3 is unavailable so the function never
     # silently produces a wrong answer — it fails loudly instead.
     if command -v python3 >/dev/null 2>&1; then
-      python3 - "$path" <<'PYEOF' | sha256sum | awk '{print $1}'
+      # Capture normalized JSON from python3 separately so a non-zero exit
+      # (malformed JSON, I/O error) is detected before it reaches sha256sum.
+      # Without this intermediate capture, a failing python3 still pipes an
+      # empty stream into sha256sum, which would produce the sha256 of the
+      # empty string — a silently wrong hash that could be persisted to the
+      # manifest lock.  Fail-closed: return 1 on any error.
+      local _normalized_json
+      _normalized_json="$(python3 - "$path" <<'PYEOF'
 import json, sys
 with open(sys.argv[1], encoding="utf-8") as f:
     doc = json.load(f)
 doc.pop("activity", None)
 print(json.dumps(doc, sort_keys=True, ensure_ascii=False))
 PYEOF
+      )" || {
+        echo "ERROR: manifest_file_sha_normalized: python3 failed normalizing $path" >&2
+        return 1
+      }
+      local _hash
+      _hash="$(printf '%s\n' "$_normalized_json" | sha256sum | awk '{print $1}')"
+      # Sanity-check: a valid sha256 hex is exactly 64 lowercase hex chars.
+      # An empty or malformed hash here means sha256sum itself failed or the
+      # pipeline was silently truncated; refuse to return a bad value.
+      if [[ ! "$_hash" =~ ^[0-9a-f]{64}$ ]]; then
+        echo "ERROR: manifest_file_sha_normalized: hash validation failed for $path (got '${_hash}')" >&2
+        return 1
+      fi
+      printf '%s\n' "$_hash"
     else
       echo "ERROR: manifest_file_sha_normalized: python3 not found; cannot normalize $path" >&2
       return 1
