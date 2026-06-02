@@ -392,8 +392,8 @@ is the worst-case outcome when that strategy fails?
 
 This view describes the data the system creates, transforms, persists, and
 exchanges — its structure, ownership, and how it moves between components
-or survives component restarts. It answers: what does the system know about,
-where is that knowledge stored, and how does it flow?
+or survives component restarts. It describes what the system knows about,
+where that knowledge is stored, and how it flows.
 
 **Design elements to capture:**
 - Core domain entities and their relationships (ER diagram or entity summary
