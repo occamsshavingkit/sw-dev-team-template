@@ -285,6 +285,17 @@ run_validator_case "validate-handoff.py rejects codex_permission_flag=true witho
 run_validator_case "validate-handoff.py rejects codex_permission_flag=true without task_ref (gate-only, #293 / fw-adr-0021)" \
     "$FIXTURES/delegated-specialist-missing-taskref.json" invalid
 
+# Leaf-task context fields: token_budget + jit_file_list (issue #296 / fw-adr-0021 §1):
+# Schema must accept a single_task handoff WITH both fields; reject an invalid
+# token_budget enum value; and continue to accept handoffs where both are absent
+# (fields are optional — feature-altitude handoffs are grandfathered).
+run_schema_case "schema accepts single_task handoff with token_budget and jit_file_list (#296 / fw-adr-0021)" \
+    "$FIXTURES/delegated-specialist-with-leaf-context.json" valid
+run_schema_case "schema rejects token_budget with invalid enum value (#296 / fw-adr-0021)" \
+    "$FIXTURES/delegated-specialist-invalid-token-budget.json" invalid
+run_schema_case "schema accepts single_task handoff with token_budget and jit_file_list absent (optional, #296)" \
+    "$FIXTURES/delegated-specialist-valid.json" valid
+
 printf '\nSummary: %s passed, %s failed\n' "$pass" "$fail"
 if [ "$fail" -ne 0 ]; then
     printf 'Failures:\n'
