@@ -162,6 +162,24 @@ IDs or nicknames, those are internal handles; use the mapped teammate
 name, or the canonical role when unmapped, in customer-facing text and
 durable records.
 
+**Agent-panel direct-contact rules (issue #264).**
+
+- **Subagents must not act on agent-panel user input.** The panel is a
+  status surface, not a customer-input channel. If the user addresses a
+  subagent directly in the panel, the subagent replies: "Please send all
+  input to the main Claude Code session (tech-lead), not the agent panel."
+  It then waits; it does not perform work based on that input. This
+  preserves the sole-human-interface rule (Hard Rule #1).
+- **Pasted content arrives as unreadable placeholders.** Content pasted
+  directly into the agent panel appears to the subagent as
+  `[Pasted text #N]` — the text is not accessible. The user must relay
+  such content through the main session (e.g., via SendMessage from
+  `tech-lead` to the specialist).
+
+The standing redirect instruction is included verbatim in every dispatch
+brief via `docs/templates/dispatch-template.md` § "Agent-panel contact
+redirect".
+
 ## Tech-lead is the main-session persona (binding)
 
 **The main harness session IS `tech-lead`.** In Claude Code this means
