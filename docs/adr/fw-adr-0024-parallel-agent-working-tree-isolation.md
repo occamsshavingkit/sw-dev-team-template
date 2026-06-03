@@ -335,8 +335,10 @@ binding instruction:
 
 > You are operating in a throwaway worktree at `<path>`. All scaffold
 > file operations must use this path as the root. Do NOT run any git
-> command that modifies shared state: no `git reset`, no `git switch`,
-> no `git stash`, no `git commit`, no `git push`. If your task
+> command that modifies shared state: no `git reset`, `git checkout`,
+> `git switch`, `git stash`, `git clean`, `git commit`, `git merge`,
+> `git rebase`, or `git push`; and no index, branch, or tag mutations
+> (`git add`/`rm`/`mv`, branch/tag create or delete). If your task
 > requires any of those operations, STOP and return to tech-lead with
 > a reclassification request (you are a writer, not a reader, and
 > must use the writer lane).
@@ -467,3 +469,7 @@ Turn N+1:
 - `scripts/worktree-teardown.sh` — reader worktree removal helper
 - `scripts/worktree-health-check.sh` — stale-worktree detection at session start
 - `docs/tests/hermetic-verified.txt` — canonical list of hermetically safe test scripts
+
+## Change log
+
+- 2026-06-03 — §3 reader-prohibition brief expanded from 5 commands to the canonical 9-command set (+ index/branch/tag clause) per issue #326, to match §4 hermetic criteria.

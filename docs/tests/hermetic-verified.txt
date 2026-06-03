@@ -10,7 +10,7 @@
 # ALL of the following criteria (fw-adr-0024 §4):
 #
 #   1. It does not call: git reset, git clean, git stash, git switch,
-#      git checkout, git commit, git merge, or git rebase.
+#      git checkout, git commit, git merge, git rebase, or git push.
 #   2. It does not write to the git index (git add, git rm, git mv).
 #   3. It does not create or delete branches or tags.
 #   4. All temporary files it creates are in $TMPDIR or within the

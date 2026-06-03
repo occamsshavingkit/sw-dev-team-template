@@ -200,8 +200,10 @@ Reclassified **Reader** only when both of the following hold:
 
 When operating as Reader, use the `scaffold_worktree` path as the root
 for all scaffold operations and observe the full reader prohibition: no
-`git reset`, no `git switch`, no `git stash`, no `git commit`, no
-`git push`. If any required test script is not in
+`git reset`, `git checkout`, `git switch`, `git stash`, `git clean`,
+`git commit`, `git merge`, `git rebase`, or `git push`; and no index,
+branch, or tag mutations (`git add`/`rm`/`mv`, branch/tag create or
+delete). If any required test script is not in
 `docs/tests/hermetic-verified.txt`, return a reclassification request
 to `tech-lead` immediately.
 

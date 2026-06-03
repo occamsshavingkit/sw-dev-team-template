@@ -72,13 +72,30 @@ FW-ADR-0006). Numbering is sequential within each namespace.
 
 | File | Decision |
 |---|---|
-| `docs/adr/fw-adr-0001-context-memory-strategy.md` | Adopt `claude-mem`; orchestration frameworks require a superseding ADR per project. |
+| `docs/adr/fw-adr-0001-context-memory-strategy.md` | Adopt `claude-mem` as the prior-session memory layer; orchestration frameworks require a superseding ADR per project. |
 | `docs/adr/fw-adr-0002-upgrade-content-verification.md` | `TEMPLATE_MANIFEST.lock` per-file SHA256 manifest as primary trust anchor for `upgrade.sh --verify`; on-demand re-fetch as fallback. (v0.14.0.) |
-| `docs/adr/fw-adr-0003-bare-template-variants.md` | Ship guided + bare template pair for `architecture-template` and `requirements-template`; bare ~50% smaller for fluent authors. (v0.14.0.) |
-| `docs/adr/fw-adr-0004-per-item-file-breakout.md` | Per-FR / per-NFR / per-view files indexed from a thin top-level template; agents load only what's in scope. (v0.14.0.) |
-| `docs/adr/fw-adr-0005-standards-paraphrase-cards.md` | Single `docs/standards/paraphrase-cards.md` file as the source for IEEE/ISO standards paraphrase content cited from agent contracts. (v0.14.0.) |
-| `docs/adr/fw-adr-0006-madr-required-optional-split.md` | Adopt MADR's required / recommended / optional split in `adr-template.md`; small ADRs ~40 lines, full ADRs ~200+. (v0.14.0.) |
-| `docs/adr/fw-adr-0007-external-reference-adoption.md` | Add LIB-0015..0018 (URL-only inventory rows for system-design-primer / jam01 templates / MADR); land "Inspire, don't paste" rule in glossary. **Note**: ADR-numbering split between framework (`FW-ADR-NNNN`, `fw-adr-NNNN-*.md`) and project (`ADR-NNNN`, plain `NNNN-*.md`) shipped in v0.15.0. |
+| `docs/adr/fw-adr-0003-bare-template-variants.md` | Ship guided + bare template pair per template family so fluent authors can use the structure-only form. (v0.14.0.) |
+| `docs/adr/fw-adr-0004-per-item-file-breakout.md` | Break requirements and architecture views into per-item files with a thin index; agents load only what's in scope. (v0.14.0.) |
+| `docs/adr/fw-adr-0005-standards-paraphrase-cards.md` | Extract IEEE/ISO paraphrases into a single `docs/standards/paraphrase-cards.md` as the source for standards citations cited from agent contracts. (v0.14.0.) |
+| `docs/adr/fw-adr-0006-madr-required-optional-split.md` | Split `adr-template.md` sections into MADR required, project required, and optional; small ADRs ~40 lines, full ADRs ~200+. (v0.14.0.) |
+| `docs/adr/fw-adr-0007-external-reference-adoption.md` | Adopt LIB-0015..0018 (URL-only inventory rows); land "Inspire, don't paste" rule in glossary. **Note**: ADR-numbering split between framework (`FW-ADR-NNNN`) and project (`ADR-NNNN`) shipped in v0.15.0. |
+| `docs/adr/fw-adr-0008-tech-lead-orchestration-boundary.md` | Tech-lead orchestrates; production artifacts and customer-truth records route to owning specialists (Hard Rule #8). |
+| `docs/adr/fw-adr-0009-opencode-harness-adapter.md` | Classify OpenCode as a harness/provider adapter; it must not redefine roles, escalation, source-of-truth, or customer interface. |
+| `docs/adr/fw-adr-0010-pre-bootstrap-local-edit-safety.md` | Pre-bootstrap uses a 3-SHA decision matrix with refuse-on-uncertain semantics and an explicit override env var. (Superseded by FW-ADR-0015/0019.) |
+| `docs/adr/fw-adr-0011-routed-through-trailer.md` | `Routed-Through:` commit-trailer plus lint/hook/tool-bridge carve-out enforces Hard Rule #8; primary-enforcement framing superseded by FW-ADR-0012. |
+| `docs/adr/fw-adr-0012-tech-lead-authoring-guard.md` | PreToolUse allow-list hook is the primary preventive enforcement for Hard Rule #8; supersedes FW-ADR-0011's primary-enforcement framing. |
+| `docs/adr/fw-adr-0013-rc-to-rc-pre-bootstrap.md` | Add a versioned pre-bootstrap migration (`v1.0.0-rc13.sh`) cloned from `v0.14.0.sh` so rc-to-rc upgrades on pre-v0.15.0 drivers self-bootstrap safely. (Superseded by FW-ADR-0015/0019.) |
+| `docs/adr/fw-adr-0014-preservation-vs-manifest.md` | Preservation honoured only on divergence-AND-non-manifest-fresh-write paths; upgrade tail emits a two-phase exit replacing single-line "Done." |
+| `docs/adr/fw-adr-0015-upgrade-orchestrator-stub-model.md` | `scripts/upgrade.sh` becomes a stable sub-100-line stub; the real upgrade orchestrator is fetched fresh per invocation from upstream. Foundational ADR for the upgrade-flow rearchitecture; supersedes FW-ADR-0010 and FW-ADR-0013. |
+| `docs/adr/fw-adr-0016-template-state-json-schema.md` | Defines `TEMPLATE_STATE.json` — the single project-owned state artefact consolidating version, manifest, customizations, and runner checksum into one declarative file. |
+| `docs/adr/fw-adr-0017-file-keyed-migration-discovery.md` | Replaces tag-keyed migration enumeration with file-presence discovery in the runner's `migrations/` tree, semver-ordered against `TEMPLATE_STATE.json`. |
+| `docs/adr/fw-adr-0018-transitional-rc-bridging.md` | One transitional in-tree rc bridges currently-deployed downstreams onto the FW-ADR-0015 stub model; consolidates legacy three-file project state into `TEMPLATE_STATE.json`. |
+| `docs/adr/fw-adr-0019-pre-bootstrap-retirement.md` | Formally retires the pre-bootstrap class; marks FW-ADR-0010 and FW-ADR-0013 superseded; deprecates `SWDT_PREBOOTSTRAP_FORCE` env var and `.template-prebootstrap-blocked.json`. (Status: proposed.) |
+| `docs/adr/fw-adr-0020-issues-based-coordination-model.md` | Replace GitHub Projects board with plain GitHub Issues (labels + milestones + optimistic-claim convention) as the v1.1.0 Half-B multi-machine coordination layer. |
+| `docs/adr/fw-adr-0021-harness-agnostic-leaf-task-dispatch.md` | Single leaf T### task as the harness-agnostic dispatch unit; delegated-specialist mode added to `AGENTS.md`; machine-checked enforcement gate. Implemented: issue #293. |
+| `docs/adr/fw-adr-0022-gemini-harness-adapter.md` | Classify gemini-cli as a co-equal harness adapter; `GEMINI.md` root adapter, `.gemini/agents/` generated roster, description-driven dispatch, three-surface drift control. Implemented: issue #300. |
+| `docs/adr/fw-adr-0023-handoff-activity-array-growth.md` | Two coupled decisions on handoff JSON integrity: (1) deliberate hash-exclusion of the runtime-mutable `activity` array from manifest verification, and (2) disposition of unbounded growth via sidecar migration. |
+| `docs/adr/fw-adr-0024-parallel-agent-working-tree-isolation.md` | Working-tree isolation strategy for parallel specialist agents: strict serialization (current interim), per-agent git worktrees, or read-only worktree for readers with a single canonical writer. |
 
 ## `docs/glossary/`
 
