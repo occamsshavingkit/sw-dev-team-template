@@ -1,0 +1,28 @@
+# Duplicate-ID CI backstop (issue #294, ruling Q-0029).
+#
+# Scans all four ID families (ADR, spec, open-question, decision) for
+# duplicate numbers and fails the build on any collision.
+#
+# Read-only check; default GITHUB_TOKEN permissions (contents: read) are
+# sufficient.
+
+name: duplicate-id-check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  duplicate-id-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run check-duplicate-ids.sh
+        run: ./scripts/check-duplicate-ids.sh --summary
