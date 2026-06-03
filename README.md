@@ -1,14 +1,17 @@
 # SW-dev Team Template for Claude Code and Codex
 
 A ready-to-use project scaffold that turns a single Claude Code or
-Codex session into a 13-role software-development team with a strict
+Codex session into a 16-role software-development team with a strict
 escalation protocol and a per-project SME pattern.
 
-**Status.** Current release: **`v1.1.1`** (patch — fixes v1.1.0 ship-broken regression; see
-`CHANGELOG.md` for full details). Version identity also lives in the
-`VERSION` file at the tagged commit; see `docs/versioning.md`. Each
-release updates this README (enforced by `scripts/pre-release-gate.sh`
-per spec 007's `readme-current` sub-gate).
+**Status.** Current release: **`v1.3.0`** (MINOR — adds Gemini harness
+adapter (`GEMINI.md`), 3 new specialist roles (librarian, ui-ux-designer,
+mcp-liaison), delegated-specialist mode across all harnesses, parallel
+agent working-tree isolation, handoff activity sidecars, and date-quarter
+register sharding; see `CHANGELOG.md` for full details). Version identity
+also lives in the `VERSION` file at the tagged commit; see
+`docs/versioning.md`. Each release updates this README (enforced by
+`scripts/pre-release-gate.sh` per spec 007's `readme-current` sub-gate).
 
 ---
 
@@ -233,7 +236,7 @@ contract, including per-version migration scripts under `migrations/`.
 |---|---|
 | `CLAUDE.md` | Claude Code entrypoint; defines FIRST ACTIONS, agent roster, and hard rules. |
 | `AGENTS.md` | Codex entrypoint; adapts Codex to the same top-level `tech-lead` and specialist contracts as Claude Code. |
-| `CUSTOMER_NOTES.md` | Append-only log of customer answers, stewarded by `researcher`. |
+| `CUSTOMER_NOTES.md` | Append-only log of customer answers, stewarded by `librarian`. |
 | `SW_DEV_ROLE_TAXONOMY.md` | Reference taxonomy (SWEBOK / ISO 12207 / IEEE 1028 / ISTQB / SFIA v9 / Google SRE / PMBOK) that CLAUDE.md cites. |
 | `docs/glossary/ENGINEERING.md` | **Binding** generic software-engineering terminology. All agents use these senses. |
 | `docs/glossary/PROJECT.md` | **Binding** project-specific jargon (customer-domain, vendor, site, codenames). |
@@ -255,7 +258,7 @@ contract, including per-version migration scripts under `migrations/`.
 | `docs/templates/retrofit-playbook-template.md` | Agent workflow for adopting the template into an existing codebase (v0.13.0+). See README § "Adopting the template into an existing codebase". |
 | `docs/templates/adr-template.md` | MADR 3.0-shaped ADR template with the **Three-Path Rule** (Minimalist / Scalable / Creative) (v0.13.0+). |
 | `docs/adr/` | Template-level ADRs. `0001-context-memory-strategy.md` is also the canonical worked example for the ADR template. |
-| `.claude/agents/*.md` | 13 specialist subagents + 1 SME template. |
+| `.claude/agents/*.md` | 16 specialist subagents + 1 SME template. |
 | `docs/sme/` | SME reference material, per-domain. `INVENTORY.md` per domain; copyrighted items in `local/` (gitignored). |
 
 ### IP policy, in one line
@@ -273,7 +276,10 @@ stay in `docs/sme/<domain>/local/` and are cited in the domain's
 | `project-manager` | PMBOK-aligned; owns charter, schedule, risk, stakeholders, change log, lessons |
 | `architect` | Software Architect |
 | `software-engineer` | Implementation / construction |
-| `researcher` | Standards librarian + `CUSTOMER_NOTES.md` steward |
+| `researcher` | Tier-1 source investigation, prior-art scans, pronoun verification |
+| `librarian` | Record custodian: `CUSTOMER_NOTES.md`, `OPEN_QUESTIONS.md`, glossaries, SME inventories, archival |
+| `ui-ux-designer` | UX/interaction design, WCAG accessibility auditing, accesslint integration |
+| `mcp-liaison` | Delegated MCP session construction + divergence reconciliation |
 | `qa-engineer` | Test strategy, integration/system/acceptance testing |
 | `sre` | Reliability + performance |
 | `tech-writer` | User-facing documentation |
