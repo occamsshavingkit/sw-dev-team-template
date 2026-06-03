@@ -175,11 +175,17 @@ _rc14_map_section() {
   case "${norm}" in
     "role overview"|"job"|"two modes"|"overview")
       echo "role_overview" ;;
-    "hard rules"|"hard block conditions"|"enforcement"|"constraints")
+    # hard_rules synonyms: canonical + common customisation headings.
+    # "rules" and "invariants" are the two most common alternatives
+    # used by customised agents and previously caused false-positive
+    # "missing hard_rules" reports (issue #261).
+    "hard rules"|"hard block conditions"|"enforcement"|"constraints"|"rules"|"invariants")
       echo "hard_rules" ;;
     "escalation"|"escalation protocol"|"escalation format"|"hand offs"|"handoffs")
       echo "escalation" ;;
-    "output"|"output format"|"customer facing output discipline")
+    # output_format synonyms: "return format" is the other common
+    # customisation heading not in the original list.
+    "output"|"output format"|"customer facing output discipline"|"return format")
       echo "output_format" ;;
     *)
       echo "" ;;
@@ -212,9 +218,9 @@ _rc14_extract_section_by_slug() {
     }
     function map_slug(n) {
       if (n == "role overview" || n == "job" || n == "two modes" || n == "overview") return "role_overview"
-      if (n == "hard rules" || n == "hard block conditions" || n == "enforcement" || n == "constraints") return "hard_rules"
+      if (n == "hard rules" || n == "hard block conditions" || n == "enforcement" || n == "constraints" || n == "rules" || n == "invariants") return "hard_rules"
       if (n == "escalation" || n == "escalation protocol" || n == "escalation format" || n == "hand offs" || n == "handoffs") return "escalation"
-      if (n == "output" || n == "output format" || n == "customer facing output discipline") return "output_format"
+      if (n == "output" || n == "output format" || n == "customer facing output discipline" || n == "return format") return "output_format"
       return ""
     }
     /^## / {
@@ -258,7 +264,9 @@ _rc14_insert_after_escalation() {
   local target="$1"
   local body_file="$2"
   local workfile
-  workfile=$(mktemp)
+  # Use mktemp next to the target so the mv is same-filesystem atomic
+  # (issue #319 pattern: avoids truncation on interrupted write).
+  workfile=$(mktemp "${target}.tmp.XXXXXX")
 
   local anchor_line
   anchor_line=$(awk '
