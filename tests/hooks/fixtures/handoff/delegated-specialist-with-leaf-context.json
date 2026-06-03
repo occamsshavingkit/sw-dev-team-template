@@ -1,0 +1,54 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "delegated-specialist-with-leaf-context-001",
+  "status": "active",
+  "mode": {
+    "execution": "bounded-codex",
+    "codex_allowed": true,
+    "codex_server": "codex"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": ["code-reviewer"],
+  "security_roles": [],
+  "objective": "Fixture: valid single_task handoff with token_budget and jit_file_list (issue #296 / fw-adr-0021 §1).",
+  "allowed_paths": ["scripts/**", "tests/**"],
+  "forbidden_paths": [".claude/**", "CUSTOMER_NOTES.md"],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": [],
+    "review": false,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [
+    "Schema accepts a single_task handoff carrying token_budget and jit_file_list."
+  ],
+  "hard_rule_traces": [],
+  "bounded_codex_exception": {
+    "execution_mode": "bounded-codex",
+    "codex_permission_flag": true,
+    "permitted_role_owned_action": "implement-task-t041",
+    "delegated_role": "software-engineer",
+    "task_ref": "T041",
+    "dispatch_scope": "single_task",
+    "token_budget": "small",
+    "jit_file_list": [
+      "scripts/validate-handoff.py",
+      "schemas/handoff.schema.json",
+      "tests/hooks/test-handoff-contracts.sh"
+    ],
+    "allowed_paths": ["scripts/**", "tests/**"],
+    "forbidden_paths": [".claude/**"]
+  },
+  "verification": {
+    "tests": [],
+    "reviews": [],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

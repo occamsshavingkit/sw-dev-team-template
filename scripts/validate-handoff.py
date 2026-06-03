@@ -64,6 +64,41 @@ def check_delegated_specialist(handoff: dict) -> list[str]:
     return errors
 
 
+def _advisory_leaf_context(handoff: dict) -> list[str]:
+    """Return advisory notes (not errors) for optional leaf-task context fields.
+
+    For ``dispatch_scope: "single_task"`` handoffs with ``codex_permission_flag``
+    true, ``token_budget`` and ``jit_file_list`` should be present to guide
+    context assembly (issue #296 / fw-adr-0021 §1). Their absence is schema-valid
+    (optional fields); these notes surface the gap without hard-rejecting.
+
+    Returns advisory strings; callers print them to stderr without incrementing
+    the error count.
+    """
+    exc = handoff.get("bounded_codex_exception")
+    if not isinstance(exc, dict):
+        return []
+    if not exc.get("codex_permission_flag", False):
+        return []
+    if exc.get("dispatch_scope") != "single_task":
+        return []
+
+    notes: list[str] = []
+    if not exc.get("token_budget"):
+        notes.append(
+            "ADVISORY: bounded_codex_exception.token_budget absent on a "
+            "single_task dispatch — populate from the T### task entry's "
+            "token-budget band (issue #296 / fw-adr-0021 §1)"
+        )
+    if not exc.get("jit_file_list"):
+        notes.append(
+            "ADVISORY: bounded_codex_exception.jit_file_list absent on a "
+            "single_task dispatch — populate from the T### task entry's JIT "
+            "file list (issue #296 / fw-adr-0021 §1)"
+        )
+    return notes
+
+
 def check_model_fallback_tier(handoff: dict) -> list[str]:
     """Enforce the data-model rule: model_fallback is acceptable only when
     capability_tier_comparison is 'same' or 'higher'.  A 'lower' value means
@@ -214,6 +249,16 @@ def main() -> int:
                 print(f"FAIL  {path_str}: {msg}", file=sys.stderr)
         else:
             print(f"PASS  {path_str}")
+
+        # Soft advisories: leaf-task context fields (#296). Printed to stderr
+        # as ADVISORY lines; do not affect exit code or PASS/FAIL verdict.
+        try:
+            with path.open(encoding="utf-8") as fh:
+                _h = json.load(fh)
+            for note in _advisory_leaf_context(_h):
+                print(f"ADVISORY  {path_str}: {note}", file=sys.stderr)
+        except (OSError, json.JSONDecodeError):
+            pass
 
     return 1 if any_fail else 0
 
