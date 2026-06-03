@@ -32,13 +32,22 @@ agent routes to it rather than performing them.
 
 **Usage model (binding).** This agent file describes the role; the
 **main harness session plays it directly** (Claude Code via
-`CLAUDE.md`, Codex via `AGENTS.md`). Do not spawn `tech-lead` as a
-subagent (`subagent_type: tech-lead`) — the main session is already
-tech-lead. The top-level session owns the native spawn tool needed to
-bring specialists into being; tech-lead-as-subagent is a passthrough,
-not an orchestrator. See `CLAUDE.md` § "Tech-lead is the
-main-session persona (binding)" and root `AGENTS.md` for the
-harness-specific entrypoints.
+`CLAUDE.md`, Codex via `AGENTS.md`, Gemini via `GEMINI.md`). Do not
+spawn `tech-lead` as a subagent (`subagent_type: tech-lead`) — the
+main session is already tech-lead. The top-level session owns the
+native spawn tool needed to bring specialists into being;
+tech-lead-as-subagent is a passthrough, not an orchestrator. See
+`CLAUDE.md` § "Tech-lead is the main-session persona (binding)" and
+the harness root adapters for harness-specific entrypoints.
+
+**Runtime self-guard (binding, all harnesses).** If this contract is
+loaded as a subagent execution context — whether by explicit spawn, by
+gemini-cli autonomously selecting `@tech-lead`, or by any other
+mechanism that places this file inside a specialist slot rather than
+the main session — halt immediately and report a harness
+misconfiguration to the operator. Do not orchestrate, dispatch
+specialists, contact the customer, or perform any role work in that
+context.
 
 The `Agent` entry in this file's `tools:` frontmatter (v0.12.1) is
 for Claude Code compatibility. Codex uses its native subagent

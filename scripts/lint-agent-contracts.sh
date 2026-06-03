@@ -56,6 +56,7 @@ cd "${REPO_ROOT}"
 AGENTS_DIR=".claude/agents"
 RUNTIME_DIR="docs/runtime/agents"
 OPENCODE_DIR=".opencode/agents"
+GEMINI_DIR=".gemini/agents"
 FIXTURES_DIR="tests/prompt-regression"
 SCHEMA_DIR="schemas"
 CONTRACT_SCHEMA="${SCHEMA_DIR}/agent-contract.schema.json"
@@ -495,8 +496,15 @@ scan_canonical() {
 }
 
 # ---- generated-artifact validation -----------------------------------
+# lint_generated_file <src> [gemini]
+#   Pass the literal string "gemini" as $2 when validating a file under
+#   .gemini/agents/; this enables the Gemini-specific description check
+#   (fw-adr-0022 §4: description must be present and non-empty).
+#   The schema itself does not enforce this for generated artifacts
+#   (doing so would break runtime/opencode adapters which omit the field).
 lint_generated_file() {
     src="$1"
+    is_gemini="${2:-}"
     workdir="$(mktemp -d)"
     tmpjson="${workdir}/fm.json"
     # Extract frontmatter to a JSON object. Same recipe used by the
@@ -534,6 +542,37 @@ lint_generated_file() {
         fi
         err "${src}" "${diag}"
     fi
+
+    # Gemini-specific: description must be present and non-empty
+    # (fw-adr-0022 §4 — load-bearing for autonomous Gemini role selection).
+    # Not enforced via the shared schema to avoid breaking runtime/opencode
+    # adapters that legitimately omit description.
+    if [ "${is_gemini}" = "gemini" ]; then
+        desc_val="$(awk -F'\t' '$1=="description" {print $0; exit}' "${tmpjson}" 2>/dev/null || true)"
+        # Re-extract directly from the raw frontmatter for reliability.
+        desc_val="$(awk '
+            BEGIN { state = "pre" }
+            {
+                if (state == "pre") {
+                    if ($0 == "---") { state = "fm"; next }
+                    exit
+                }
+                if (state == "fm") {
+                    if ($0 == "---") { exit }
+                    if ($0 ~ /^description[ \t]*:/) {
+                        v = $0
+                        sub(/^description[ \t]*:[ \t]*/, "", v)
+                        print v
+                        exit
+                    }
+                }
+            }
+        ' "${src}")"
+        if [ -z "${desc_val}" ]; then
+            err "${src}" "gemini adapter missing required description field (fw-adr-0022 §4)"
+        fi
+    fi
+
     rm -rf "${workdir}"
 }
 
@@ -543,13 +582,19 @@ scan_generated() {
         ERR_COUNT=$((ERR_COUNT + 1))
         return
     fi
-    for dir in "${RUNTIME_DIR}" "${OPENCODE_DIR}"; do
+    for dir in "${RUNTIME_DIR}" "${OPENCODE_DIR}" "${GEMINI_DIR}"; do
         [ -d "${dir}" ] || continue
         # Only validate role-shaped basenames; skip READMEs and any
         # non-role markdown the directories may hold (e.g.,
         # generated-artifacts.manifest.json sits in docs/runtime/agents/
         # at a sibling path but is not .md). The role check mirrors the
         # compiler's role walk (kebab-case slug, no sme-template).
+        #
+        # Pass "gemini" as the second arg when scanning .gemini/agents/ so
+        # lint_generated_file applies the description-required check
+        # (fw-adr-0022 §4) for that surface only.
+        _lint_extra=""
+        [ "${dir}" = "${GEMINI_DIR}" ] && _lint_extra="gemini"
         ls "${dir}" 2>/dev/null \
             | grep '\.md$' \
             | sed 's/\.md$//' \
@@ -559,7 +604,7 @@ scan_generated() {
             | LC_ALL=C sort \
             | sed 's/$/.md/' \
             | while IFS= read -r f; do
-                lint_generated_file "${dir}/${f}"
+                lint_generated_file "${dir}/${f}" "${_lint_extra}"
                 printf 'COUNTERS\t%d\t%d\n' "${ERR_COUNT}" "${WARN_COUNT}"
             done > "${TMP_COUNTERS}"
         last="$(tail -1 "${TMP_COUNTERS}" 2>/dev/null || true)"

@@ -16,10 +16,18 @@
 # claude-sonnet with a stderr WARN. Pass --no-opencode-adapters to
 # skip adapter generation (compact-runtime-only mode for self-tests).
 #
+# fw-adr-0022 scope: also writes a thin Gemini CLI adapter stub to
+# .gemini/agents/<role>.md. The adapter's model class is resolved from
+# the Gemini-equivalent column of the same binding table in
+# docs/model-routing-guidelines.md. The Gemini adapter MUST include the
+# description field (load-bearing for Gemini autonomous role selection).
+# Pass --no-gemini-adapters to skip Gemini adapter generation.
+#
 # Usage:
 #   scripts/compile-runtime-agents.sh [--check] [--verify] [--strict] \
 #                                     [--out-dir <path>] \
-#                                     [--no-opencode-adapters] [role...]
+#                                     [--no-opencode-adapters] \
+#                                     [--no-gemini-adapters] [role...]
 #
 # Inputs:
 #   * Zero positional args -> walk every .claude/agents/*.md (excluding
@@ -55,6 +63,12 @@
 #                   Default behaviour generates both compact-runtime
 #                   contracts and adapter stubs. In --verify mode this
 #                   restricts verification to compact-runtime only.
+#   --no-gemini-adapters
+#                   Skip writing .gemini/agents/<role>.md adapters
+#                   (fw-adr-0022). Default behaviour generates Gemini
+#                   adapters alongside OpenCode adapters. In --verify
+#                   mode this restricts verification to compact-runtime
+#                   and OpenCode only.
 #
 # Section-heading mapping (canonical-slug <- accepted heading patterns,
 # case-insensitive, whitespace-tolerant; punctuation/parentheticals
@@ -90,8 +104,10 @@ DEFAULT_OUT_DIR="docs/runtime/agents"
 GENERATED_SCHEMA="${SCHEMA_DIR}/generated-artifact.schema.json"
 OPENCODE_OUT_DIR=".opencode/agents"
 OPENCODE_LOCAL_DIR=".opencode/agents/local"
+GEMINI_OUT_DIR=".gemini/agents"
 ROUTING_DOC="docs/model-routing-guidelines.md"
 DEFAULT_MODEL_CLASS="claude-sonnet"
+DEFAULT_GEMINI_MODEL_CLASS="gemini-pro"
 
 # ---- arg parsing -----------------------------------------------------
 CHECK_MODE=0
@@ -101,6 +117,7 @@ REPRO_MODE=0
 OUT_DIR="${DEFAULT_OUT_DIR}"
 ROLES=""
 NO_OPENCODE_ADAPTERS=0
+NO_GEMINI_ADAPTERS=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -140,6 +157,10 @@ while [ $# -gt 0 ]; do
       ;;
     --no-opencode-adapters)
       NO_OPENCODE_ADAPTERS=1
+      shift
+      ;;
+    --no-gemini-adapters)
+      NO_GEMINI_ADAPTERS=1
       shift
       ;;
     -h|--help)
@@ -255,6 +276,10 @@ if [ "${REPRO_MODE}" -eq 1 ]; then
   if [ "${NO_OPENCODE_ADAPTERS}" -eq 1 ]; then
     repro_args_a="${repro_args_a} --no-opencode-adapters"
     repro_args_b="${repro_args_b} --no-opencode-adapters"
+  fi
+  if [ "${NO_GEMINI_ADAPTERS}" -eq 1 ]; then
+    repro_args_a="${repro_args_a} --no-gemini-adapters"
+    repro_args_b="${repro_args_b} --no-gemini-adapters"
   fi
 
   # OPENCODE_OUT_DIR is read from the script's own default; we need to
@@ -376,6 +401,22 @@ if [ "${REPRO_MODE}" -eq 1 ]; then
           fi
       fi
 
+      if [ "${NO_GEMINI_ADAPTERS}" -eq 0 ]; then
+          a_gm="${REPRO_A}/root/${GEMINI_OUT_DIR}/${r}.md"
+          b_gm="${REPRO_B}/root/${GEMINI_OUT_DIR}/${r}.md"
+          if [ -f "${a_gm}" ] || [ -f "${b_gm}" ]; then
+              if [ ! -f "${a_gm}" ] || [ ! -f "${b_gm}" ]; then
+                  echo "reproducibility FAIL: ${r} -- diff at ${a_gm} (one side missing)"
+                  role_ok=0
+                  repro_status=1
+              elif ! cmp -s "${a_gm}" "${b_gm}"; then
+                  echo "reproducibility FAIL: ${r} -- diff at ${a_gm}"
+                  role_ok=0
+                  repro_status=1
+              fi
+          fi
+      fi
+
       if [ "${role_ok}" -eq 1 ]; then
           echo "reproducibility OK: ${r}"
       fi
@@ -391,6 +432,7 @@ fi
 VERIFY_SCRATCH=""
 VERIFY_COMMITTED_RUNTIME=""
 VERIFY_COMMITTED_OPENCODE=""
+VERIFY_COMMITTED_GEMINI=""
 if [ "${VERIFY_MODE}" -eq 1 ]; then
   if [ "${CHECK_MODE}" -eq 1 ]; then
     echo "compile-runtime-agents: --verify and --check are mutually exclusive" >&2
@@ -399,9 +441,11 @@ if [ "${VERIFY_MODE}" -eq 1 ]; then
   VERIFY_SCRATCH="$(mktemp -d)"
   VERIFY_COMMITTED_RUNTIME="${OUT_DIR}"
   VERIFY_COMMITTED_OPENCODE="${OPENCODE_OUT_DIR}"
+  VERIFY_COMMITTED_GEMINI="${GEMINI_OUT_DIR}"
   OUT_DIR="${VERIFY_SCRATCH}/runtime"
   OPENCODE_OUT_DIR="${VERIFY_SCRATCH}/opencode"
-  mkdir -p "${OUT_DIR}" "${OPENCODE_OUT_DIR}"
+  GEMINI_OUT_DIR="${VERIFY_SCRATCH}/gemini"
+  mkdir -p "${OUT_DIR}" "${OPENCODE_OUT_DIR}" "${GEMINI_OUT_DIR}"
   # Trap cleanup; preserved across compile_role's own EXIT trap usage
   # by being installed last and re-installing after each compile.
 fi
@@ -616,6 +660,35 @@ resolve_model_class() {
   ' "${ROUTING_DOC}"
 }
 
+# ---- gemini model-class resolver ------------------------------------
+# Like resolve_model_class but reads column 6 (Gemini equivalent) of the
+# binding table instead of column 3 (default_class / Claude equivalent).
+resolve_gemini_model_class() {
+  role_slug="$1"
+  if [ ! -f "${ROUTING_DOC}" ]; then
+    echo ""
+    return 0
+  fi
+  awk -v role="${role_slug}" '
+    BEGIN { FS = "|"; in_table = 0 }
+    /^##[ \t]+Binding per-agent default-class table/ { in_table = 1; next }
+    /^##[ \t]+/ { if (in_table) in_table = 0 }
+    in_table == 0 { next }
+    /^\|[ \t]*`[a-z0-9-]+`[ \t]*\|[ \t]*`[a-z0-9-]+`[ \t]*\|/ {
+      agent = $2
+      gsub(/^[ \t]+|[ \t]+$/, "", agent)
+      gsub(/`/, "", agent)
+      if (agent == role) {
+        cls = $6
+        gsub(/^[ \t]+|[ \t]+$/, "", cls)
+        gsub(/`/, "", cls)
+        print cls
+        exit
+      }
+    }
+  ' "${ROUTING_DOC}"
+}
+
 # ---- opencode adapter writer ----------------------------------------
 # Writes .opencode/agents/<role>.md with frontmatter + the fixed
 # four-line body required by R-7. canonical_sha is the same 40-hex
@@ -645,6 +718,57 @@ write_opencode_adapter() {
     if [ -f "${local_supplement}" ]; then
       printf 'local_supplement: %s\n' "${local_supplement}"
     fi
+    printf 'generator: %s\n' "${GENERATOR_PATH}"
+    printf 'generator_version: %s\n' "${GENERATOR_VERSION}"
+    printf 'classification: generated\n'
+    printf -- '---\n'
+    printf '\n'
+    # shellcheck disable=SC2016  # literal backticks for Markdown output
+    printf 'Read `.claude/agents/%s.md` (canonical role contract).\n' "${role}"
+    # shellcheck disable=SC2016  # literal backticks for Markdown output
+    printf 'If `local_supplement` resolves to an existing file, read it after the canonical file.\n'
+    printf 'Act only as that role.\n'
+    printf "Return output in the role's required format.\n"
+  } > "${tmp_out}"
+
+  mv "${tmp_out}" "${out_path}"
+
+  if ! maybe_validate_output "${out_path}"; then
+    overall_status=1
+  fi
+}
+
+# ---- gemini adapter writer ------------------------------------------
+# Writes .gemini/agents/<role>.md with frontmatter + the fixed
+# four-line body (same thin-adapter shape as opencode). Key differences
+# from the opencode adapter (per fw-adr-0022 §2):
+#   - description field is REQUIRED (load-bearing for Gemini autonomous
+#     role selection); copied verbatim from the canonical frontmatter.
+#   - model comes from the Gemini-equivalent column of the binding table,
+#     not default_class.
+write_gemini_adapter() {
+  role="$1"
+  canonical_src="$2"
+  canonical_sha="$3"
+  canonical_desc="$4"
+
+  gemini_model="$(resolve_gemini_model_class "${role}")"
+  if [ -z "${gemini_model}" ]; then
+    echo "compile-runtime-agents: ${role} not in routing table (Gemini col), defaulting to ${DEFAULT_GEMINI_MODEL_CLASS}" >&2
+    gemini_model="${DEFAULT_GEMINI_MODEL_CLASS}"
+  fi
+
+  mkdir -p "${GEMINI_OUT_DIR}"
+  out_path="${GEMINI_OUT_DIR}/${role}.md"
+  tmp_out="${out_path}.tmp"
+
+  {
+    printf -- '---\n'
+    printf 'name: %s\n' "${role}"
+    printf 'description: %s\n' "${canonical_desc}"
+    printf 'model: %s\n' "${gemini_model}"
+    printf 'canonical_source: %s\n' "${canonical_src}"
+    printf 'canonical_sha: %s\n' "${canonical_sha}"
     printf 'generator: %s\n' "${GENERATOR_PATH}"
     printf 'generator_version: %s\n' "${GENERATOR_VERSION}"
     printf 'classification: generated\n'
@@ -794,6 +918,13 @@ compile_role() {
     write_opencode_adapter "${role}" "${src}" "${canonical_sha}"
   fi
 
+  # Gemini adapter (fw-adr-0022) — same conditions as opencode. The
+  # description is passed explicitly because it is load-bearing for
+  # Gemini autonomous role selection and must be copied verbatim.
+  if [ "${NO_GEMINI_ADAPTERS}" -eq 0 ]; then
+    write_gemini_adapter "${role}" "${src}" "${canonical_sha}" "${fm_desc}"
+  fi
+
   out_path="${OUT_DIR}/${role}.md"
 
   if [ "${role_incomplete}" -eq 1 ] && [ "${STRICT_MODE}" -eq 0 ]; then
@@ -910,6 +1041,23 @@ if [ "${VERIFY_MODE}" -eq 1 ]; then
           verify_status=1
         elif ! cmp -s "${gen_opencode}" "${cmt_opencode}"; then
           echo "verify FAIL: ${cmt_opencode} differs from generator output"
+          role_ok=0
+          verify_status=1
+        fi
+      fi
+    fi
+
+    # Gemini adapter (unless suppressed).
+    if [ "${NO_GEMINI_ADAPTERS}" -eq 0 ]; then
+      gen_gemini="${GEMINI_OUT_DIR}/${role}.md"
+      cmt_gemini="${VERIFY_COMMITTED_GEMINI}/${role}.md"
+      if [ -f "${gen_gemini}" ]; then
+        if [ ! -f "${cmt_gemini}" ]; then
+          echo "verify FAIL: ${cmt_gemini} differs from generator output (committed file missing)"
+          role_ok=0
+          verify_status=1
+        elif ! cmp -s "${gen_gemini}" "${cmt_gemini}"; then
+          echo "verify FAIL: ${cmt_gemini} differs from generator output"
           role_ok=0
           verify_status=1
         fi
