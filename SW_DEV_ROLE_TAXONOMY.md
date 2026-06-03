@@ -24,6 +24,9 @@
 - [§3 Cross-role boundary heatmap](#3-cross-role-boundary-heatmap)
   - [Key overlap / conflict zones](#key-overlap--conflict-zones)
   - [Industry-framework resolution patterns](#industry-framework-resolution-patterns)
+  - [§3.A Operator-vs-auditor pattern](#3a-operator-vs-auditor-pattern)
+  - [§3.B Agent-tool-capability constraint](#3b-agent-tool-capability-constraint)
+  - [§3.C Foreground-only agent execution model](#3c-foreground-only-agent-execution-model)
 - [§4 Mapping-crosswalk scaffold (per-project; populated downstream)](#4-mapping-crosswalk-scaffold-per-project-populated-downstream)
 - [§5 Known gaps in this taxonomy](#5-known-gaps-in-this-taxonomy)
 
@@ -41,6 +44,7 @@ contributor MUST use these role definitions in these senses.
 **Maintained by:** `librarian` + `architect` + `tech-lead` consensus.
 Disagreement is resolved by amending this file, not by diverging in practice.
 **First retrieved:** 2026-04-18.
+**Last refreshed:** 2026-06-03 (issue #274 — §3 boundary patterns, §5 gap sweep, §4 clarification).
 **Explicit non-goal:** mapping these canonical roles onto a specific
 project's named teammates. That mapping is per-project audit output and
 lives in the downstream project, not here. §4 is a scaffold only.
@@ -832,13 +836,99 @@ Where sources disagree:
 **No framework resolves all boundaries.** The audit cannot rely on a single
 framework; cross-referencing against multiple is load-bearing.
 
+### §3.A Operator-vs-auditor pattern
+
+A generalizable principle underlying several HIGH/MED overlaps in the matrix
+above: **the agent that performs gate-relevant work does not verify whether
+that work met requirements.** The performer (operator) and the verifier
+(auditor) must be distinct agents. Instantiations in this roster:
+
+- `sre` executes soak/load tests → `qa-engineer` verifies results.
+- `software-engineer` writes code → `code-reviewer` audits the change.
+- `architect` proposes ADRs and cites standards → `code-reviewer` verifies
+  citations and structural conformance.
+- `release-engineer` builds and packages → `qa-engineer` co-signs the
+  release gate.
+
+This principle is implicit in the §3 heatmap's HIGH (SWE ↔ Code Reviewer)
+and MED (SRE/Perf ↔ QA/Test) entries. It is reinforced structurally by the
+working-tree isolation model in `docs/adr/fw-adr-0024-parallel-agent-working-tree-isolation.md`,
+which classifies every specialist dispatch as either **writer** (operator) or
+**reader** (auditor/verifier) and routes them through separate isolation lanes —
+readers cannot mutate shared git state precisely to preserve their independence
+from the writer's actions.
+
+**Downstream implication for audits:** if a project has collapsed the operator
+and auditor into the same role for any gate-relevant path, flag it as a
+deviation from this pattern regardless of how the §3 heatmap classifies the
+pair's general overlap.
+
+### §3.B Agent-tool-capability constraint
+
+Not all roles carry the same tool surface. Some agents lack `Bash` in their
+`.claude/agents/` `tools:` declaration, which means they cannot run shell
+commands, invoke `git`, or execute scripts directly. Roles confirmed to
+**lack Bash** as of this refresh (2026-06-03):
+
+- `architect` — Read, Grep, Glob, Write, Edit, SendMessage only.
+- `tech-writer` — Read, Write, Edit, Grep, Glob, SendMessage only.
+- `librarian` — Read, Write, Edit, Grep, Glob, SendMessage only.
+- `researcher` — Read, Write, Edit, Grep, Glob, WebSearch, WebFetch, SendMessage only.
+- `ui-ux-designer` — Read, Write, Edit, Grep, Glob, SendMessage + accesslint MCPs only.
+- `mcp-liaison` — Read, Write, Edit, Grep, Glob, SendMessage only.
+- `security-engineer` — Read, Write, Edit, Grep, Glob, SendMessage only.
+- `sme-template` (baseline scaffold) — Read, Grep, Glob, Write, Edit, SendMessage only.
+
+These roles cannot `git commit`, execute build scripts, or run test runners
+without routing through a Bash-capable agent. Per Hard Rule #8 in `CLAUDE.md`,
+this commit/tool-bridge work routes through `tech-lead` (which carries Bash),
+or is delegated to a Bash-capable specialist (`software-engineer`, `sre`,
+`release-engineer`, `qa-engineer`, `code-reviewer`, `project-manager`,
+`onboarding-auditor`, or `process-auditor`).
+
+**Downstream implication for audits:** if a task assigned to a Bash-absent
+role requires shell execution, the design has a routing gap. The fix is either
+to chain through a Bash-capable agent or to note the tool-bridge delegation
+explicitly in the dispatch brief per Hard Rule #8.
+
+### §3.C Foreground-only agent execution model
+
+Agent context runs **foreground**: each agent occupies its context window,
+blocks during tool calls, and returns when its work is done. Agents have no
+mechanism to self-background, subscribe to remote events, or resume from a
+persistent daemon thread. `run_in_background: true` on a dispatch brief is
+a **tech-lead harness option** — invisible to the spawned agent, which still
+runs its own context to completion; it controls only whether the parent
+session blocks waiting for the return value.
+
+Consequence for long-running operations: an agent cannot issue a shell command
+and then loop-poll for its completion across dispatch boundaries. Long
+operations must be structured as bounded stages with explicit handoff state
+(the **Deferred-wait report** protocol). Tech-lead owns re-dispatch once a
+completion signal arrives, either via SendMessage-warm (specialist kept alive)
+or ScheduleWakeup re-dispatch.
+
+Cross-references:
+- `tech-lead.md` § "Token economy" Rule 7 (bounded long-op dispatch,
+  Deferred-wait report format, re-dispatch paths) — shipped in issue #287.
+- Background-by-default rule for all Agent calls — issue #265.
+
+**Downstream implication for audits:** any brief that asks an agent to "wait
+until X finishes" without a bounded-stage decomposition is a misuse of the
+execution model. The audit should flag unbounded polls or sleep loops in
+dispatch briefs and require Deferred-wait restructuring.
+
 ---
 
 ## §4 Mapping-crosswalk scaffold (per-project; populated downstream)
 
 This table is a **scaffold**, not a populated mapping. It enumerates the
 canonical roles defined in §2 and leaves a column for downstream projects
-to fill in their own teammate names.
+to fill in their own teammate names. This is intentional: the upstream
+template does not own per-project teammate assignments; §4 is complete as a
+scaffold. Downstream projects record their mapping in `docs/AGENT_NAMES.md`
+(per `docs/FIRST_ACTIONS.md` § "Step 3 — Agent naming (optional but encouraged)").
+The absence of filled-in project names is not an open gap — it is correct behavior.
 
 The right-most column ("Per-project teammate") is **not owned by the
 upstream template**. Each downstream project records its mapping in
@@ -929,8 +1019,9 @@ benchmark:
    §4's notes give the closest industry analogues.
 
 6. **The template uses two custom roles where the industry uses one (or none).**
-   The researcher/librarian split (issue #291, customer ruling Q-0023) partitions
-   a scope that no single Tier-1 framework defines:
+   *(Resolved — roster gap filled, issue #291, customer ruling Q-0023.)*
+   The researcher/librarian split partitions a scope that no single Tier-1
+   framework defines:
 
    - **`researcher` (investigation specialist):** retrieves and cites Tier-1 sources,
      runs prior-art scans, verifies pronouns for teammate names. Closest analogue:
@@ -942,14 +1033,37 @@ benchmark:
      curator — not covered by SWEBOK, IEEE, or SFIA at this granularity.
      Treat as template-specific.
 
+   Both roles are now implemented in `.claude/agents/` and registered in
+   `CLAUDE.md`. Not an open gap.
+
 7. **The UX/UI Designer role (§2.10) is new as of this template.**
+   *(Resolved — roster gap filled, issue #301, customer ruling Q-0021.)*
    Primary Tier-1 source: SFIA v9 HCEV (Human Factors) and ACCS (Accessibility).
    BLS OOH does not cover this role as a distinct occupation. Treat SFIA v9 as
    the authoritative source; BLS 15-1299 is a Tier-2 fallback for classification
-   only. Added by customer ruling Q-0021 / issue #301.
+   only. Role is implemented in `.claude/agents/ui-ux-designer.md`. Not an open gap.
 
 8. **The MCP Liaison role is custom (SINT analogue).**
+   *(Resolved — roster gap filled, issue #290, customer ruling Q-0022.)*
    Closest industry analogue: SFIA v9 SINT (Systems Integration and Build)
    adapted to external-model delegation via MCP. No Tier-1 framework defines
-   "MCP session delegation" as a discrete role. Treat as template-specific.
-   Added by customer ruling Q-0022 / issue #290.
+   "MCP session delegation" as a discrete role. Role is implemented in
+   `.claude/agents/mcp-liaison.md`. Treat as template-specific. Not an open gap.
+
+9. **Operator-vs-auditor boundary pattern was not named in the taxonomy.**
+   *(Resolved — named in §3.A, issue #274.)*
+   The pattern was implicit in §3's HIGH/MED heatmap entries but never stated as
+   a generalizable principle. Now captured in §3.A with roster-level instantiations
+   and cross-reference to fw-adr-0024.
+
+10. **Agent tool-capability constraints were not documented.**
+    *(Resolved — named in §3.B, issue #274.)*
+    Which roles lack Bash was not a stated architectural fact; auditors had to
+    inspect each `.claude/agents/` file individually. Now captured in §3.B with
+    a current role list. This list must be kept current when agent contracts change.
+
+11. **Foreground-only execution model was not documented as a named pattern.**
+    *(Resolved — named in §3.C, issue #274.)*
+    The constraint that agents cannot self-background or watch remote events
+    existed in tech-lead.md Token Economy Rule 7 and the bg-default rule but was
+    not articulated as a cross-cutting architectural pattern. Now captured in §3.C.
