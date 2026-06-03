@@ -1,6 +1,6 @@
 {
   "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
-  "task_id": "bounded-codex-permitted-product-scope-001",
+  "task_id": "delegated-specialist-valid-001",
   "status": "active",
   "mode": {
     "execution": "bounded-codex",
@@ -10,33 +10,30 @@
   "owner_role": "software-engineer",
   "review_roles": ["code-reviewer"],
   "security_roles": [],
-  "objective": "Fixture: permitted bounded-Codex (flag=true) but framework_scope=product. Proves framework-scope gate fires for bounded-Codex sessions targeting framework-managed paths.",
-  "allowed_paths": ["scripts/**", "docs/**"],
-  "forbidden_paths": [],
-  "framework_scope": "product",
+  "objective": "Fixture: valid delegated-specialist handoff with all fw-adr-0021 §3 fields present.",
+  "allowed_paths": ["scripts/**", "tests/**"],
+  "forbidden_paths": [".claude/**", "CUSTOMER_NOTES.md"],
+  "framework_scope": "framework-maintenance",
   "requires": {
-    "tests": ["tests/hooks/test-codex-handoff-gate.sh"],
-    "review": true,
+    "tests": [],
+    "review": false,
     "security_review": false,
     "human_approval": false
   },
   "acceptance_criteria": [
-    "Write to scripts/hooks/handoff-pre-tool-gate.py is denied because framework_scope is not framework-maintenance."
+    "Schema accepts a delegated-specialist handoff with delegated_role, task_ref, and dispatch_scope."
   ],
   "hard_rule_traces": [],
   "bounded_codex_exception": {
     "execution_mode": "bounded-codex",
     "codex_permission_flag": true,
-    "permitted_role_owned_action": "update-scripts",
+    "permitted_role_owned_action": "implement-task-t041",
     "delegated_role": "software-engineer",
-    "task_ref": "T025",
+    "task_ref": "T041",
     "dispatch_scope": "single_task",
-    "allowed_paths": ["scripts/**", "docs/**"],
-    "forbidden_paths": [],
-    "required_evidence": [],
-    "expiry_or_completion_condition": "T025 task completion"
+    "allowed_paths": ["scripts/**", "tests/**"],
+    "forbidden_paths": [".claude/**"]
   },
-  "activity": [],
   "verification": {
     "tests": [],
     "reviews": [],

@@ -11,6 +11,59 @@ from pathlib import Path
 import jsonschema
 
 
+def check_delegated_specialist(handoff: dict) -> list[str]:
+    """Validate delegated-specialist mode constraints (fw-adr-0021 §3 Assertion A).
+
+    When ``bounded_codex_exception.codex_permission_flag`` is true:
+    - ``delegated_role`` must be present and must not equal ``"tech-lead"``.
+    - ``dispatch_scope`` must equal ``"single_task"``.
+    - ``task_ref`` must be non-null and non-empty.
+
+    These constraints are also encoded in the JSON Schema ``if/then`` block,
+    but schema validation only fires one error per keyword; explicit checks here
+    surface precise, actionable messages for each violation independently.
+
+    Returns a list of error messages; empty list means no violation.
+    """
+    exc = handoff.get("bounded_codex_exception")
+    if not isinstance(exc, dict):
+        return []
+    if not exc.get("codex_permission_flag", False):
+        return []
+
+    errors: list[str] = []
+
+    delegated_role = exc.get("delegated_role")
+    if not delegated_role:
+        errors.append(
+            "bounded_codex_exception.codex_permission_flag is true but "
+            "delegated_role is absent or empty (fw-adr-0021 §3 Assertion A)"
+        )
+    elif delegated_role == "tech-lead":
+        errors.append(
+            "bounded_codex_exception.delegated_role is 'tech-lead': "
+            "delegated mode cannot adopt the orchestrator role — malformed handoff "
+            "(fw-adr-0021 §3 Assertion A)"
+        )
+
+    dispatch_scope = exc.get("dispatch_scope")
+    if dispatch_scope != "single_task":
+        errors.append(
+            f"bounded_codex_exception.dispatch_scope must be 'single_task' when "
+            f"codex_permission_flag is true, got {dispatch_scope!r} "
+            "(fw-adr-0021 §3 Assertion A)"
+        )
+
+    task_ref = exc.get("task_ref")
+    if not task_ref:
+        errors.append(
+            "bounded_codex_exception.task_ref is absent or empty when "
+            "codex_permission_flag is true (fw-adr-0021 §3 Assertion A)"
+        )
+
+    return errors
+
+
 def check_model_fallback_tier(handoff: dict) -> list[str]:
     """Enforce the data-model rule: model_fallback is acceptable only when
     capability_tier_comparison is 'same' or 'higher'.  A 'lower' value means
@@ -64,6 +117,7 @@ def validate_file(handoff_path: Path, schema: dict) -> list[str]:
         errors.append(exc.message)
 
     errors.extend(check_model_fallback_tier(handoff))
+    errors.extend(check_delegated_specialist(handoff))
 
     return errors
 
