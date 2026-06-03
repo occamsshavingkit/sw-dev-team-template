@@ -7,7 +7,7 @@ model: sonnet
 
 ## Project-specific local supplement
 
-<!-- local-supplement: see .claude/agents/tech-lead.md § "Project-specific local supplement" for the generic boilerplate. -->
+<!-- local-supplement: check .claude/agents/software-engineer-local.md; generic boilerplate in tech-lead.md § "Project-specific local supplement". -->
 
 ## Job
 

@@ -3,7 +3,7 @@ name: software-engineer
 description: Software Engineer / implementer. Use for writing production code, unit tests, bug fixes, small refactors, and integration work. Executes on a specification provided by tech-lead or architect; does not decide what to build.
 model: sonnet
 canonical_source: .claude/agents/software-engineer.md
-canonical_sha: 250bd983ee4b9a7dcf9099c094b2a342153ba936
+canonical_sha: 5b5ab8945b8e5a74a7798d4760b7beedf09503e6
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated
@@ -11,7 +11,7 @@ classification: generated
 
 ## Project-specific local supplement
 
-<!-- local-supplement: see .claude/agents/tech-lead.md § "Project-specific local supplement" for the generic boilerplate. -->
+<!-- local-supplement: check .claude/agents/software-engineer-local.md; generic boilerplate in tech-lead.md § "Project-specific local supplement". -->
 
 ## Job
 
