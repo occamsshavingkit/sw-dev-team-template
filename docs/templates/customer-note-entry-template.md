@@ -21,14 +21,14 @@ template_class: customer-note-entry
 
 This template defines the canonical structure for one entry in
 `CUSTOMER_NOTES.md`. The content-aware guard (`customer-notes-guard.py`)
-enforces this shape. Use it whenever `researcher` appends a new
+enforces this shape. Use it whenever `librarian` appends a new
 customer-truth record. Entries that deviate from this shape — missing
 fields, unquoted answers, oversized prose, or off-scope commentary —
 will be flagged by the guard.
 
 `CUSTOMER_NOTES.md` is the authoritative record of verbatim customer answers.
-`researcher` is the steward: only `researcher` appends entries. `tech-lead`
-routes verbatim answers to `researcher`; `researcher` writes the record.
+`librarian` is the steward: only `librarian` appends entries. `tech-lead`
+routes verbatim answers to `librarian`; `librarian` writes the record.
 
 ---
 
@@ -74,8 +74,8 @@ free-form paragraphs between fields. Additional context belongs in the
    the intake-log `decision:` or `notes:` field.
 2. **Blockquote syntax required.** The `>` prefix is structural, not stylistic.
    The guard checks for it. A missing blockquote is a schema violation.
-3. **`researcher` is the steward.** No other agent writes to `CUSTOMER_NOTES.md`.
-   If another agent needs to record a customer answer, it routes to `researcher`
+3. **`librarian` is the steward.** No other agent writes to `CUSTOMER_NOTES.md`.
+   If another agent needs to record a customer answer, it routes to `librarian`
    with the verbatim text.
 4. **Scope and size.** Each entry covers one question-answer pair. Do not combine
    multiple Q&As into one entry. The guard flags entries that are oversized

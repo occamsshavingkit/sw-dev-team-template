@@ -172,7 +172,7 @@ unavailable, but the top-level session has a live agent id or durable
 completed payload, classify the result as `failed` role drift and
 re-dispatch with a smaller prompt plus the standard preamble above.
 Exception: exact customer authorization text may be quoted only in the
-top-level Turn Ledger or a customer-truth record routed to `researcher`;
+top-level Turn Ledger or a customer-truth record routed to `librarian`;
 specialist briefs still use the non-transferable preface.
 
 **Rule E — Closing completed specialists is routine (binding).**
@@ -204,6 +204,9 @@ Map the canonical role files to Codex agent prompts:
 - `qa-engineer` -> `.claude/agents/qa-engineer.md`
 - `code-reviewer` -> `.claude/agents/code-reviewer.md`
 - `researcher` -> `.claude/agents/researcher.md`
+- `librarian` -> `.claude/agents/librarian.md`
+- `ui-ux-designer` -> `.claude/agents/ui-ux-designer.md`
+- `mcp-liaison` -> `.claude/agents/mcp-liaison.md`
 - `security-engineer` -> `.claude/agents/security-engineer.md`
 - `sre` -> `.claude/agents/sre.md`
 - `project-manager` -> `.claude/agents/project-manager.md`
@@ -290,7 +293,7 @@ config, mirror these matchers exactly.
 2. Confirm every direct `tech-lead` edit is within the allowed
    orchestration or tool-bridge scope from `CLAUDE.md` Hard Rule #8.
 3. Confirm customer-truth text and customer authorization records were
-   routed or queued for `researcher`, not written directly by
+   routed or queued for `librarian`, not written directly by
    `tech-lead`.
 4. Confirm required specialist work was dispatched, queued for a free
    slot, or covered by an explicit customer exception.

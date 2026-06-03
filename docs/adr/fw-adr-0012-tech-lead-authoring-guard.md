@@ -70,7 +70,7 @@ defense-in-depth tooling. See [Migration notes](#migration-notes).
 
 ## Context and problem statement
 
-Hard Rule #8 in `CLAUDE.md` (verbatim):
+Hard Rule #8 in `CLAUDE.md` (as worded at ADR authorship; HR-8 now names `librarian` in place of `researcher` per Q-0023 — see change-log):
 
 > 8. `tech-lead` orchestrates; it does not author production artifacts
 >    directly. Code, scripts, schemas, prose deliverables, requirements,
@@ -220,7 +220,7 @@ hook reads each tool invocation's target path and:
   the file to disk). The variable's value is the specialist
   whose work is being pushed; the hook still enforces a
   carve-out for `CUSTOMER_NOTES.md` (only widens when
-  `SWDT_AGENT_PUSH=researcher`, mirroring
+  `SWDT_AGENT_PUSH=librarian`, mirroring
   `customer-notes-guard.py`'s domain-specific rule).
 
 The trailer convention from FW-ADR-0011 stays as **audit and
@@ -466,7 +466,7 @@ override and extends it to the broader allow-list:
   named role legitimately owns* — for v1, this means **any
   path except `CUSTOMER_NOTES.md`**. CUSTOMER_NOTES.md
   retains its separate gate (`customer-notes-guard.py`)
-  and is only widened when `<role>` is `researcher`.
+  and is only widened when `<role>` is the canonical customer-truth steward (`librarian`).
 - The flag is **per-invocation**: the value lives in the
   environment for the single tool call the operator is
   about to make. The main session sets the flag, makes the
@@ -726,7 +726,7 @@ covered (mirroring the precedent):
 2. Merge into one hook
    (`tech-lead-authoring-guard.py`) that handles both the
    broader allow-list and the CUSTOMER_NOTES-specific
-   researcher-only rule.
+   steward-only rule.
 
 **Chosen shape: option 1 (keep two separate hooks).**
 
@@ -797,10 +797,14 @@ for `**`.
 **Escape-hatch parsing.** Read `SWDT_AGENT_PUSH` from
 `os.environ`. Allowed values: the canonical roster
 (`tech-lead`, `project-manager`, `architect`,
-`software-engineer`, `researcher`, `qa-engineer`, `sre`,
+`software-engineer`, `researcher`, `librarian`, `qa-engineer`, `sre`,
 `tech-writer`, `code-reviewer`, `release-engineer`,
 `security-engineer`, `onboarding-auditor`,
-`process-auditor`) plus the regex `^sme-[a-z][a-z0-9_-]*$`.
+`process-auditor`, `ui-ux-designer`, `mcp-liaison`) plus the regex
+`^sme-[a-z][a-z0-9_-]*$`. The role-generic mechanism accepts any
+canonical role; `CUSTOMER_NOTES.md` is the only path with a
+steward-specific restriction (the customer-notes guard widens only
+for the customer-truth steward, currently `librarian`).
 
 When set:
 
@@ -809,11 +813,11 @@ When set:
   (write proceeds).
 - For `CUSTOMER_NOTES.md` and `docs/customer-notes/**`:
   hook returns silently *only if* the value is
-  `researcher`; otherwise denies (the customer-notes
-  guard's `"ask"` may still fire on the same call —
-  that is correct composition; the operator gets the
-  CUSTOMER_NOTES prompt independent of this guard's
-  decision).
+  `librarian` (the canonical customer-truth steward);
+  otherwise denies (the customer-notes guard's `"ask"`
+  may still fire on the same call — that is correct
+  composition; the operator gets the CUSTOMER_NOTES
+  prompt independent of this guard's decision).
 
 When unset / empty / unrecognised: applies the allow-list
 as normal.
@@ -1023,12 +1027,12 @@ changes.
   This ADR's hook mirrors that hook's shape and runs in
   the same `PreToolUse` matchers. The two hooks compose:
   the customer-notes guard returns `"ask"` on
-  CUSTOMER_NOTES.md (researcher-routing reminder), this
+  CUSTOMER_NOTES.md (librarian-routing reminder), this
   ADR's hook returns `"deny"` on everything else off the
   allow-list. The escape-hatch env var
   (`SWDT_AGENT_PUSH=<role>`) widens this ADR's hook for
   any role, but only widens the customer-notes guard
-  when the role is `researcher`.
+  when the role is `librarian` (the customer-truth steward).
 
 ## Verification
 
@@ -1168,3 +1172,7 @@ discipline; none block acceptance.
 - External references: MADR 3.0 (`https://adr.github.io/madr/`);
   Claude Code PreToolUse hook reference (Anthropic
   documentation, accessed 2026-05-14).
+
+## Change log
+
+- 2026-06-03 — customer-truth steward role renamed researcher→librarian per ruling Q-0023; decision principle (single steward for customer truth) unchanged. SWDT_AGENT_PUSH roster expanded to include `librarian`, `ui-ux-designer`, and `mcp-liaison`; CUSTOMER_NOTES gate description updated to name `librarian` as the steward role. The SWDT_AGENT_PUSH mechanism is role-generic; the customer-notes restriction is steward-specific, not researcher-hardcoded.

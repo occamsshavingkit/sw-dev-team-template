@@ -41,8 +41,9 @@
 #   R3 — trailer / file-class mismatch (see file-class table below)
 #   R4 — tech-lead:<qualifier> trailer on a file class the qualifier's
 #        whitelist does not cover
-#   R5 — CUSTOMER_NOTES.md touched without a researcher trailer (or
-#        the tech-lead:agent-push + On-Behalf-Of: researcher pair)
+#   R5 — CUSTOMER_NOTES.md touched without a researcher or librarian
+#        trailer (or tech-lead:agent-push + On-Behalf-Of: researcher/
+#        librarian pair)
 #
 # File-class table for R3 / R4:
 #
@@ -51,9 +52,10 @@
 #   docs/adr/**                                architect | tech-writer
 #   CHANGELOG.md, README.md,                   tech-writer
 #   docs/**/*.md (non-ADR)
-#   CUSTOMER_NOTES.md                          researcher (sole; or
-#                                              tech-lead:agent-push +
-#                                              On-Behalf-Of: researcher)
+#   CUSTOMER_NOTES.md                          researcher | librarian
+#                                              (or tech-lead:agent-push +
+#                                              On-Behalf-Of: researcher/
+#                                              librarian)
 #   tests/**, *test*                           qa-engineer |
 #                                              software-engineer
 #   .github/workflows/**, release/**           release-engineer
@@ -181,7 +183,7 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 # separately. Space-delimited so we can grep it cheaply. Per
 # FW-ADR-0011 §"Allowed roles (binding)", tech-lead is the actor for
 # the tool-bridge carve-out; `tool-bridge` is NOT a role token.
-FIXED_ROLES="tech-lead software-engineer architect tech-writer researcher qa-engineer sre release-engineer security-engineer code-reviewer project-manager onboarding-auditor process-auditor"
+FIXED_ROLES="tech-lead software-engineer architect tech-writer researcher qa-engineer sre release-engineer security-engineer code-reviewer project-manager onboarding-auditor process-auditor librarian ui-ux-designer mcp-liaison"
 
 # Closed set of tool-bridge qualifiers per FW-ADR-0011 §"Tool-bridge
 # carve-out (binding)" / customer ruling 7 (2026-05-14): adds
@@ -370,8 +372,10 @@ role_allowed_for_class() {
             esac
             ;;
         customer_notes)
-            # R5: researcher only.
+            # R5: researcher or librarian (librarian is the customer-truth
+            # custodian per roster bundle #301/#290/#291).
             [ "$role" = "researcher" ] && return 0
+            [ "$role" = "librarian" ]  && return 0
             return 1
             ;;
         tests)
@@ -551,16 +555,17 @@ lint_commit() {
         klass=$(classify_path "$f")
 
         # R5 takes priority over R3 / R4 for CUSTOMER_NOTES.md.
-        # researcher direct, OR tech-lead:agent-push + On-Behalf-Of:
-        # researcher (ADR §"Pattern IDs (binding)" lines 378-381).
+        # researcher or librarian direct, OR tech-lead:agent-push +
+        # On-Behalf-Of: researcher/librarian (ADR §"Pattern IDs (binding)"
+        # lines 378-381; librarian added per roster bundle #301/#290/#291).
         if [ "$klass" = "customer_notes" ]; then
-            if [ "$role" = "researcher" ]; then
+            if [ "$role" = "researcher" ] || [ "$role" = "librarian" ]; then
                 :
             elif [ "$role" = "tech-lead" ] && [ "$qual" = "agent-push" ] \
-                 && [ "$on_behalf_role" = "researcher" ]; then
+                 && { [ "$on_behalf_role" = "researcher" ] || [ "$on_behalf_role" = "librarian" ]; }; then
                 :
             else
-                emit "$sha" "R5" "non-researcher trailer ($role) touches $f"
+                emit "$sha" "R5" "non-researcher/librarian trailer ($role) touches $f"
                 continue
             fi
         fi
@@ -795,7 +800,7 @@ _self_check() {
         if [ -n "$bad" ]; then
             _sc_fail "rule-table: FIXED_ROLES contains invalid token(s):$bad"
         else
-            _sc_pass "rule-table: FIXED_ROLES (14 expected) parses cleanly"
+            _sc_pass "rule-table: FIXED_ROLES (16 expected) parses cleanly"
         fi
     fi
 

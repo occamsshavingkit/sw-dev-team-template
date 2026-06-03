@@ -158,7 +158,7 @@ Four new (or one new + three existing-reuses) artifact classes:
 - **Retention:** **durable**. Git-tracked. Small (one page typical),
   high reuse value on follow-up tasks, and it's the audit trail for
   "why we picked library X." Stored under `docs/prior-art/`
-  permanently; archived via `researcher`'s archival rule only when the
+  permanently; archived via `librarian`'s archival rule only when the
   covered feature is removed.
 
 #### Three-path design options (collapsed into ADR)
@@ -339,4 +339,4 @@ recorded):
 - Prior-art template: `docs/templates/prior-art-template.md`
 - Proposal template: `docs/templates/proposal-template.md`
 - ADR template (Three-Path Rule in Alternatives considered): `docs/templates/adr-template.md`
-- Agent contracts: `.claude/agents/researcher.md`, `.claude/agents/architect.md`, `.claude/agents/software-engineer.md`, `.claude/agents/qa-engineer.md`, `.claude/agents/security-engineer.md`, `.claude/agents/tech-lead.md`
+- Agent contracts: `.claude/agents/researcher.md`, `.claude/agents/librarian.md`, `.claude/agents/architect.md`, `.claude/agents/software-engineer.md`, `.claude/agents/qa-engineer.md`, `.claude/agents/security-engineer.md`, `.claude/agents/tech-lead.md`

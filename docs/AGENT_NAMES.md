@@ -17,13 +17,13 @@ match beats a cosmetic or alphabetical one.
 
 Examples:
 
-- **Muppets** — Sam Eagle's pompous authoritativeness fits `researcher`;
-  Statler & Waldorf's critical streak fits `qa-engineer`; Miss Piggy's
-  drive and schedule discipline fits `project-manager`; Bunsen's design
-  instinct fits `architect`; Beaker's execution under Bunsen fits
-  `software-engineer`; Animal's relentless beat fits `sre`; Rowlf's
-  articulate calm fits `tech-writer`; Scooter's "get it out the door"
-  fits `release-engineer`.
+- **Muppets** — Sam Eagle's pompous authoritativeness and archival
+  instinct fits `librarian` (custodian); Statler & Waldorf's critical streak
+  fits `qa-engineer`; Miss Piggy's drive and schedule discipline fits
+  `project-manager`; Bunsen's design instinct fits `architect`; Beaker's
+  execution under Bunsen fits `software-engineer`; Animal's relentless
+  beat fits `sre`; Rowlf's articulate calm fits `tech-writer`; Scooter's
+  "get it out the door" fits `release-engineer`.
 - **Historical scientists** — Ada Lovelace's algorithmic foresight
   fits `architect`; Vera Rubin's painstaking observation fits
   `researcher`; Grace Hopper's compiler + standards work fits
@@ -118,6 +118,9 @@ assigned.
 | `tech-writer`        |               |          |                                         |       |
 | `code-reviewer`      |               |          |                                         |       |
 | `release-engineer`   |               |          |                                         |       |
+| `librarian`          |               |          |                                         |       |
+| `ui-ux-designer`     |               |          |                                         |       |
+| `mcp-liaison`        |               |          |                                         |       |
 
 **SMEs.** One row per `sme-<domain>` agent the project creates. Add as
 new SMEs are added.
@@ -137,12 +140,15 @@ artificially over-represent female characters.*)
 | `project-manager`    | Miss Piggy            | she / her | The Muppet Show | schedule / scope / drive |
 | `architect`          | Dr. Bunsen Honeydew   | he / him | The Muppet Show | designs things |
 | `software-engineer`  | Beaker                | he / him | The Muppet Show | builds things |
-| `researcher`         | Sam Eagle             | he / him | The Muppet Show | authoritative |
+| `researcher`         | TODO: reassign        | — | — | Sam Eagle moved to librarian (issue #291); researcher needs a new pick — pronoun verification required before committing |
+| `librarian`          | Sam Eagle             | he / him | The Muppet Show | authoritative custodian; archival instinct |
 | `qa-engineer`        | Statler & Waldorf     | he / him (both) | The Muppet Show | critics |
 | `sre`                | Animal                | he / him | The Muppet Show | keeps the beat |
 | `tech-writer`        | Rowlf                 | he / him | The Muppet Show | articulate |
 | `code-reviewer`      | Janice                | she / her | The Muppet Show | exacting, creative |
 | `release-engineer`   | Scooter               | he / him | The Muppet Show | ships things |
+| `ui-ux-designer`     | TODO: assign          | — | — | New role (issue #301); no Muppets pick yet — pronoun verification required |
+| `mcp-liaison`        | TODO: assign          | — | — | New role (issue #290); no Muppets pick yet — pronoun verification required |
 
 ## Example — Famous singers category (balanced)
 
@@ -161,10 +167,14 @@ representation across genders*)
 | `tech-writer`        | Leonard Cohen         | he / him   | solo |
 | `code-reviewer`      | Nina Simone           | she / her  | solo |
 | `release-engineer`   | Sam Smith             | they / them | solo |
+| `librarian`          | TODO: assign          | — | — | New role (issue #291); pronoun verification required before committing |
+| `ui-ux-designer`     | TODO: assign          | — | — | New role (issue #301); pronoun verification required before committing |
+| `mcp-liaison`        | TODO: assign          | — | — | New role (issue #290); pronoun verification required before committing |
 
 (5 women, 4 men, 1 non-binary — within the "roughly even" guideline,
 and includes a non-binary artist using they / them. `researcher` would
-confirm pronouns against an authoritative source at commit time.)
+confirm pronouns against an authoritative source at commit time.
+Three new rows above need names and pronoun verification by `researcher`.)
 
 ## Using teammate names
 

@@ -45,7 +45,7 @@ it for a specific item in `CUSTOMER_NOTES.md`.
   commit raw extracted text.
 
 Every `docs/sme/<domain>/` directory MUST have an `INVENTORY.md` based
-on `docs/sme/INVENTORY-template.md`. `researcher` maintains it.
+on `docs/sme/INVENTORY-template.md`. `librarian` maintains it.
 
 See `docs/glossary/ENGINEERING.md` § "Intellectual property" for the
 binding definitions of *project-created work*, *external material*,

@@ -4,11 +4,12 @@
 **Generated runtime contract**: [docs/runtime/agents/researcher.md](../../runtime/agents/researcher.md)
 **Classification**: canonical (manual; rationale companion)
 
-This manual carries rationale, formats, and example content that supports
-the researcher canonical contract but is not part of the compact runtime
-contract. The canonical contract names each rule; this manual carries
-elaboration, source-handling detail, and the verbatim `CUSTOMER_NOTES.md`
-entry format.
+This manual carries rationale and source-handling detail for the
+researcher canonical contract. As of issue #291 (customer ruling Q-0031),
+the custodial duties (CUSTOMER_NOTES.md format, archival mechanic,
+SME-inventory stewardship, glossary amendment procedure) moved to
+`librarian`. See `docs/agents/manual/librarian-manual.md` for those
+sections.
 
 ## Cite hygiene for restricted sources (binding)
 
@@ -57,34 +58,6 @@ Handling rules for restricted sources:
 
 When in doubt, treat as restricted-source and escalate via `tech-lead`
 for clarification.
-
-## CUSTOMER_NOTES.md format
-
-The canonical entry shape is defined and enforced by
-`docs/templates/customer-note-entry-template.md`. Use that template
-as the reference when appending any entry. The shape reproduced here
-must stay in sync with that template; if they diverge, the template
-is authoritative.
-
-```
-## YYYY-MM-DD — <issue/ref>: <short title> (turn: <intake-log ref>)
-
-**Question (from tech-lead, Q-NNNN):**
-> <verbatim question>
-
-**Customer answer (verbatim):**
-> <verbatim answer>
-
-**Recorded by:** <role>
-```
-
-Both the question and the answer are blockquoted (`>`) and verbatim —
-no paraphrase. `researcher` is the sole agent that appends entries.
-Additional context (implications, routing decisions) belongs in the
-corresponding intake-log entry's `notes:` or `decision:` fields, not
-in the `CUSTOMER_NOTES.md` entry itself. Entries that are oversized,
-off-scope, or structurally non-conformant are flagged by
-`scripts/hooks/customer-notes-guard.py`.
 
 ## Pronoun verification
 

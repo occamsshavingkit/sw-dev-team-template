@@ -451,7 +451,7 @@ and do not satisfy evidence gates on their own.
 Hook-captured activity  ──► verification.tests (accepted evidence, evidence_kind: "accepted")
 Reviewer artifact       ──► verification.reviews (code-reviewer)
 Security sign-off       ──► verification.security (security-engineer)
-Customer truth          ──► verification.human_approval (researcher-stewarded)
+Customer truth          ──► verification.human_approval (librarian-stewarded)
 Issue comment           ──► human-visible mirror only; not read by hooks
 ```
 
@@ -463,7 +463,7 @@ The coordination layer is **additive**. The following authority table is binding
 |---|---|---|
 | Open questions (unresolved) | `docs/OPEN_QUESTIONS.md` | May be referenced in issue body; not duplicated |
 | Decisions made | `docs/DECISIONS.md` | A decision entry may reference the triggering issue number; the issue is not the record |
-| Customer truth | `CUSTOMER_NOTES.md` (researcher-stewarded) | No issue comment may record or paraphrase customer truth |
+| Customer truth | `CUSTOMER_NOTES.md` (librarian-stewarded) | No issue comment may record or paraphrase customer truth |
 | PMBOK artifacts (risk log, lessons, changes) | `docs/pm/*.md` | Not mirrored to Issues |
 | Task scope and path boundaries | `docs/handoffs/<task_id>.json` | Issue body carries `task_id` reference |
 | Evidence gates and completion state | `docs/handoffs/<task_id>.json` | `status:done` label mirrors completion; not binding |
@@ -685,3 +685,7 @@ This ADR is accepted.
 - `.github/ISSUE_TEMPLATE/feature-request.yml`, `.github/ISSUE_TEMPLATE/framework-gap.yml` (existing templates)
 - `docs/framework-project-boundary.md` (path ownership for downstream issue templates)
 - `docs/model-routing-guidelines.md`
+
+## Change log
+
+- 2026-06-03 — customer-truth steward role renamed researcher→librarian per ruling Q-0023; decision principle (single steward for customer truth) unchanged.

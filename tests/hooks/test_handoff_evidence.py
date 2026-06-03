@@ -14,9 +14,10 @@
 #   F7.  has_review_evidence: worker_report → False.
 #   F8.  has_security_evidence: security-engineer approved → True.
 #   F9.  has_security_evidence: wrong actor_role → False.
-#   F10. has_human_approval_evidence: researcher + CUSTOMER_NOTES.md → True.
+#   F10. has_human_approval_evidence: librarian + CUSTOMER_NOTES.md → True.
+#   F10b.has_human_approval_evidence: researcher + CUSTOMER_NOTES.md → True (back-compat).
 #   F11. has_human_approval_evidence: source != CUSTOMER_NOTES.md → False.
-#   F12. has_human_approval_evidence: actor_role != researcher → False.
+#   F12. has_human_approval_evidence: actor_role not in {librarian,researcher} → False.
 #   F13. has_human_approval_evidence: worker_report → False.
 #   F14. missing_evidence_gates: all gates satisfied → empty list.
 #   F15. missing_evidence_gates: only required=False gates absent → empty list.
@@ -85,7 +86,7 @@ def _security_entry(actor_role: str = "security-engineer", result: str = "approv
 
 
 def _human_approval_entry(
-    actor_role: str = "researcher",
+    actor_role: str = "librarian",
     result: str = "approved",
     source: str = "CUSTOMER_NOTES.md",
     evidence_kind: str | None = None,
@@ -173,9 +174,15 @@ def test_has_security_evidence_wrong_role() -> None:
     assert has_security_evidence(handoff) is False
 
 
-# F10 — has_human_approval_evidence: researcher + CUSTOMER_NOTES.md
+# F10 — has_human_approval_evidence: librarian + CUSTOMER_NOTES.md (primary)
 def test_has_human_approval_evidence_satisfied() -> None:
-    handoff = _make_handoff(human_approval=[_human_approval_entry()])
+    handoff = _make_handoff(human_approval=[_human_approval_entry()])  # default: librarian
+    assert has_human_approval_evidence(handoff) is True
+
+
+# F10b — has_human_approval_evidence: researcher + CUSTOMER_NOTES.md (back-compat)
+def test_has_human_approval_evidence_researcher_backcompat() -> None:
+    handoff = _make_handoff(human_approval=[_human_approval_entry(actor_role="researcher")])
     assert has_human_approval_evidence(handoff) is True
 
 
@@ -185,7 +192,7 @@ def test_has_human_approval_evidence_wrong_source() -> None:
     assert has_human_approval_evidence(handoff) is False
 
 
-# F12 — has_human_approval_evidence: wrong actor_role
+# F12 — has_human_approval_evidence: actor_role not in {librarian, researcher}
 def test_has_human_approval_evidence_wrong_role() -> None:
     handoff = _make_handoff(human_approval=[_human_approval_entry(actor_role="project-manager")])
     assert has_human_approval_evidence(handoff) is False

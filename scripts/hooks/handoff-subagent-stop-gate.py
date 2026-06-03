@@ -13,7 +13,10 @@
 # Role-to-evidence mapping (conservative, additive):
 #   code-reviewer    → review evidence (has_review_evidence)
 #   security-engineer→ security evidence (has_security_evidence)
+#   librarian        → human_approval evidence (has_human_approval_evidence)
+#                      (primary custodian per roster bundle #301/#290/#291 / Q-0023)
 #   researcher       → human_approval evidence (has_human_approval_evidence)
+#                      (retained for backward-compat with historical handoffs)
 #   any other role   → all missing_evidence_gates (full set check)
 #
 # Environment:
@@ -50,7 +53,8 @@ _HOOK_EVENT_NAME = "SubagentStop"
 _ROLE_EVIDENCE_CHECKS: dict[str, str] = {
     "code-reviewer": "review",
     "security-engineer": "security_review",
-    "researcher": "human_approval",
+    "librarian": "human_approval",   # primary custodian (Q-0023)
+    "researcher": "human_approval",  # backward-compat: historical handoffs
 }
 
 
@@ -104,9 +108,15 @@ def _load_failure(mode: str, error: Exception) -> dict:
 def _missing_for_role(role: str, handoff: dict) -> list[str]:
     """Return missing evidence labels for the given returning role.
 
-    For roles with a specific evidence bucket (code-reviewer, security-engineer,
-    researcher), check only that bucket and only when the handoff requires it.
-    For any other role, fall back to the full missing_evidence_gates check.
+    For roles with a specific evidence bucket, check only that bucket and only
+    when the handoff requires it. For any other role, fall back to the full
+    missing_evidence_gates check.
+
+    Bucket ownership:
+      code-reviewer    → review
+      security-engineer→ security_review
+      librarian        → human_approval (primary custodian, Q-0023)
+      researcher       → human_approval (backward-compat for historical handoffs)
     """
     requires = handoff.get("requires", {})
 
@@ -120,7 +130,7 @@ def _missing_for_role(role: str, handoff: dict) -> list[str]:
             return ["security_review"]
         return []
 
-    if role == "researcher":
+    if role in {"librarian", "researcher"}:
         if requires.get("human_approval") is True and not has_human_approval_evidence(handoff):
             return ["human_approval"]
         return []

@@ -30,7 +30,7 @@ OpenCode is classified as a **HARNESS/PROVIDER ADAPTER**. It MAY configure model
 The four explicit prohibitions are binding from this ADR's acceptance date:
 
 1. **No competing role roster.** OpenCode MUST NOT define a parallel set of canonical roles; the roster in `CLAUDE.md` "Agent roster" remains authoritative.
-2. **No competing escalation chain.** The strict escalation protocol in `CLAUDE.md` (tech-lead as sole customer interface, researcher as customer-truth steward) applies inside OpenCode unchanged.
+2. **No competing escalation chain.** The strict escalation protocol in `CLAUDE.md` (tech-lead as sole customer interface, librarian as customer-truth steward) applies inside OpenCode unchanged.
 3. **No competing source-of-truth hierarchy.** Canonical authority remains in `.claude/agents/*.md`, `CLAUDE.md`, `AGENTS.md`, `docs/adr/*.md`, and `docs/workflow-pipeline.md` (M4.4 canonical). OpenCode-native files are derived artifacts.
 4. **No competing customer interface.** Only `tech-lead` (the main harness session) talks to the customer, regardless of which harness hosts the session.
 
@@ -73,3 +73,7 @@ The chosen path (harness adapter only; canonical role files remain `.claude/agen
 - `docs/model-routing-guidelines.md` (M4.3 binding-status + M5.2 extensions)
 - `schemas/model-routing.schema.json` (`binding` + `project_local_override_marker` fields)
 - `schemas/generated-artifact.schema.json` (canonical_sha + classification: generated; T059)
+
+## Change log
+
+- 2026-06-03 — customer-truth steward role renamed researcher→librarian per ruling Q-0023; decision principle (single steward for customer truth) unchanged.

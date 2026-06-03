@@ -38,7 +38,7 @@ interface.
 
 - **No issue comment records or substitutes for customer truth.** An
   issue comment is visible to operators, not a customer inbox.
-  Customer truth flows through `tech-lead` to `researcher` to
+  Customer truth flows through `tech-lead` to `librarian` to
   `CUSTOMER_NOTES.md` (Hard Rule #1). No issue, label, milestone, or
   comment creates an alternative escalation path to the customer.
 
@@ -53,8 +53,8 @@ interface.
 
 | State kind | Authoritative record | GitHub Issues role |
 |---|---|---|
-| Customer truth | `CUSTOMER_NOTES.md` (steward: `researcher`) | Issues are never authoritative; no issue comment may record or paraphrase customer truth |
-| Open questions (unresolved) | `docs/OPEN_QUESTIONS.md` | May be referenced in an issue body; not duplicated; Hard Rule #11 still governs batching |
+| Customer truth | `CUSTOMER_NOTES.md` (steward: `librarian`) | Issues are never authoritative; no issue comment may record or paraphrase customer truth |
+| Open questions (unresolved) | `docs/OPEN_QUESTIONS.md` (steward: `librarian`) | May be referenced in an issue body; not duplicated; Hard Rule #11 still governs batching |
 | Decisions made | `docs/DECISIONS.md` | A decision entry may reference a triggering issue number; the issue is not the record |
 | Schedule, risk log, lessons, change log | `docs/pm/*.md` | Not mirrored to Issues |
 | Task scope, file paths, role ownership | `docs/handoffs/<task_id>.json` | Issue body carries a `task_id` reference to the binding handoff |

@@ -49,7 +49,7 @@ facility from the top-level `tech-lead` session.
 1. **Clarify scope.** Queue customer questions internally in
    `docs/OPEN_QUESTIONS.md`; ask the customer one question per turn
    only when the Customer Question Gate passes. Mirror customer-domain
-   answers into `CUSTOMER_NOTES.md` via `researcher`. Append one
+   answers into `CUSTOMER_NOTES.md` via `librarian`. Append one
    `docs/intake-log.md` entry per customer question for later
    `qa-engineer` audit.
 
@@ -182,7 +182,7 @@ returns `Try: human`, trust it and ask directly.
   relevant `sme-<domain>` agent's sign-off (and for safety-critical,
   a `CUSTOMER_NOTES.md` authorization).
 - `code-reviewer` reviews before commit.
-- `researcher` writes customer-answer entries in `CUSTOMER_NOTES.md`;
+- `librarian` writes customer-answer entries in `CUSTOMER_NOTES.md`;
   you do not write those entries inline.
 - Before closing a non-trivial turn, inspect your own file changes.
   If any direct edit should have been routed to a specialist, flag
@@ -196,7 +196,7 @@ returns `Try: human`, trust it and ask directly.
   work for the current task.
 - In Codex, Claude Code hooks are not available. Run the Codex
   Pre-Close Checklist from root `AGENTS.md` before closing any
-  non-trivial turn: Rule #8 write scope, `researcher` stewardship
+  non-trivial turn: Rule #8 write scope, `librarian` stewardship
   of customer truth, queued specialist work, closed completed
   specialists, recorded rationale for any non-default
   `reasoning_effort`.

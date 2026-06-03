@@ -38,7 +38,7 @@ skills frameworks, body-of-knowledge guides).
 **Status:** Binding reference (per `CLAUDE.md` § "Binding references").
 Generic / industry-canonical role vocabulary — every agent and every human
 contributor MUST use these role definitions in these senses.
-**Maintained by:** `researcher` + `architect` + `tech-lead` consensus.
+**Maintained by:** `librarian` + `architect` + `tech-lead` consensus.
 Disagreement is resolved by amending this file, not by diverging in practice.
 **First retrieved:** 2026-04-18.
 **Explicit non-goal:** mapping these canonical roles onto a specific
@@ -704,6 +704,40 @@ management" (PROD) are distinct, typically level 4+ for full ownership.
 
 ---
 
+### 2.10 UX/UI Designer (user experience, interaction design, accessibility)
+
+**Canonical definition.** SFIA v9 defines two relevant skills:
+
+- **HCEV** (Human Factors) — applying knowledge of human factors, ergonomics,
+  and usability to the design of systems and user interfaces. Involves user
+  research, task analysis, prototype evaluation, and iterative design.
+- **ACCS** (Accessibility) — ensuring that systems, products, and services
+  meet accessibility standards (WCAG 2.1 / 2.2) for users with disabilities.
+  Covers audit, remediation, inclusive design, and conformance testing.
+
+BLS OOH does not distinguish UX/UI designer from general "Graphic Designer"
+(OOH 27-1024) or "Web Developer" (OOH 15-1254). Neither is a clean match.
+Use SFIA v9 HCEV/ACCS as the Tier-1 source for scope and level definitions.
+
+**Template implementation.** The `ui-ux-designer` agent in this template
+owns WCAG accessibility auditing via the accesslint MCP integration. Raw
+accesslint output is never the final deliverable; the agent synthesizes
+findings into WCAG-cited design recommendations. When no live URL is
+available, it produces a WCAG-annotated review from static artifacts.
+
+**Ambiguities.** The boundary between UX designer and frontend software
+engineer is organization-dependent. In this template, `ui-ux-designer`
+owns design artifacts and accessibility audits; `software-engineer` owns
+implementation. Code is never authored by `ui-ux-designer`.
+
+**Sources.**
+- SFIA v9 — HCEV (Human Factors) — https://sfia-online.org/en/sfia-9/skills/human-factors (retrieved 2026-06-03).
+- SFIA v9 — ACCS (Accessibility) — https://sfia-online.org/en/sfia-9/skills/accessibility (retrieved 2026-06-03).
+- W3C WCAG 2.1 — https://www.w3.org/TR/WCAG21/ (retrieved 2026-06-03).
+- W3C WCAG 2.2 — https://www.w3.org/TR/WCAG22/ (retrieved 2026-06-03).
+
+---
+
 ## §3 Cross-role boundary heatmap
 
 Matrix of canonical-role pairs and common industry overlap / conflict zones.
@@ -839,6 +873,10 @@ taxonomy file changes.
 | 2.8c DevOps Engineer | Atlassian / BMC (Tier-3) | CI/CD; IaC; observability; DORA metrics | *(downstream)* |
 | 2.9a Project Manager | PMI PMBOK | Schedule; budget; scope; risk; stakeholder comms | *(downstream)* |
 | 2.9b Product Manager | Industry consensus (no Tier-1) | Vision; roadmap; prioritization; market research | *(downstream)* |
+| 2.10 UX/UI Designer | SFIA v9 HCEV + ACCS | Interaction design; accessibility auditing (WCAG); inclusive design | *(downstream)* |
+| Custom — Researcher | Template-specific (see §5 note 6) | Tier-1 sourcing; prior-art scans; pronoun verification | *(downstream)* |
+| Custom — Librarian | Template-specific (see §5 note 6) | CUSTOMER_NOTES.md, glossary, SME inventory, archival (record custodian) | *(downstream)* |
+| Custom — MCP Liaison | Template-specific (SINT analogue, see §5 note 8) | Delegated MCP session construction; divergence reconciliation | *(downstream)* |
 
 **Notes for downstream-project fill:**
 - Canonical roles that are *levels* rather than *roles* (Staff Engineer per
@@ -890,8 +928,28 @@ benchmark:
    §2 roles should treat them as project-specific rather than canonical;
    §4's notes give the closest industry analogues.
 
-6. **The "researcher / librarian" role used in this template is custom.**
-   Closest industry analogues are technical writer (author role) and SME
-   (domain authority role), but neither captures a research-librarian scope
-   (retrieves and cites Tier-1 sources, does not adjudicate). Treat as a
-   template-specific role not covered by a single Tier-1 source.
+6. **The template uses two custom roles where the industry uses one (or none).**
+   The researcher/librarian split (issue #291, customer ruling Q-0023) partitions
+   a scope that no single Tier-1 framework defines:
+
+   - **`researcher` (investigation specialist):** retrieves and cites Tier-1 sources,
+     runs prior-art scans, verifies pronouns for teammate names. Closest analogue:
+     technical writer (author) or research librarian — neither is a full match.
+     Treat as template-specific; no single Tier-1 source covers this scope.
+   - **`librarian` (record custodian):** maintains CUSTOMER_NOTES.md, OPEN_QUESTIONS.md,
+     glossaries (ENGINEERING.md + PROJECT.md), SME inventories, and archival of
+     closed register rows. Closest analogue: records manager or knowledge-base
+     curator — not covered by SWEBOK, IEEE, or SFIA at this granularity.
+     Treat as template-specific.
+
+7. **The UX/UI Designer role (§2.10) is new as of this template.**
+   Primary Tier-1 source: SFIA v9 HCEV (Human Factors) and ACCS (Accessibility).
+   BLS OOH does not cover this role as a distinct occupation. Treat SFIA v9 as
+   the authoritative source; BLS 15-1299 is a Tier-2 fallback for classification
+   only. Added by customer ruling Q-0021 / issue #301.
+
+8. **The MCP Liaison role is custom (SINT analogue).**
+   Closest industry analogue: SFIA v9 SINT (Systems Integration and Build)
+   adapted to external-model delegation via MCP. No Tier-1 framework defines
+   "MCP session delegation" as a discrete role. Treat as template-specific.
+   Added by customer ruling Q-0022 / issue #290.
