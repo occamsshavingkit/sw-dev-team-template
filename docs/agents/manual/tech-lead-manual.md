@@ -216,6 +216,44 @@ findings, blockers, and escalations to `tech-lead` instead.
 
 **Rule E — Delegated-specialist briefs carry no orchestrator instructions.** When a handoff carries `delegated_role`, the session that reads it is in delegated-specialist mode on any harness: it executes `task_ref`, suppresses spawning, and returns artifacts to the orchestrator. Do not include spawn-authorization language, team-start instructions, or orchestrator directives in leaf-task handoff briefs — a delegated session has no spawn surface and will not use them.
 
+### Per-task context assembly (FW-ADR-0021, issue #296)
+
+For handoffs with `dispatch_scope: "single_task"`, assemble the brief
+from the **leaf task's context only**. Do not include feature-altitude
+context (overall feature spec, sibling task context, or session
+history beyond what the task file names).
+
+**Procedure:**
+
+1. Read the task entry at `docs/tasks/T-NNNN.md` (or the equivalent
+   task tracker row). Extract:
+   - `Token budget` band (`tiny` | `small` | `medium` | `large` | `xl`)
+     from the task's Token budget section.
+   - `JIT file list` — the explicit list of files named in the task's
+     Token budget section as the files the assignee should load first.
+2. Populate the handoff's `token_budget` field (enum) and
+   `jit_file_list` field (array of paths) from those values. The
+   specialist loads only the listed files; it does not scan the repo
+   for additional context.
+3. The dispatch brief instructs the specialist: "Load the files in
+   `jit_file_list` first; do not read beyond them unless a listed file
+   explicitly references another and that reference is load-bearing for
+   your task."
+
+This bounds the dispatched agent's context and token budget to the
+leaf task — the core FW-ADR-0021 goal. A leaf-task agent that loads
+unrequested feature context is a budget violation equivalent to a
+context-forking brief (Rule B).
+
+**Feature-altitude handoffs (`dispatch_scope: "feature"`) are exempt.**
+They carry their own context scope by design and are grandfathered from
+this rule.
+
+References:
+- `docs/adr/fw-adr-0021-harness-agnostic-leaf-task-dispatch.md`
+- `docs/templates/task-template.md` § "Token budget" (band definitions
+  and JIT-file-list field)
+
 Closing completed, failed, or no-longer-needed specialists is routine
 slot hygiene; see `docs/agent-health-contract.md`.
 
