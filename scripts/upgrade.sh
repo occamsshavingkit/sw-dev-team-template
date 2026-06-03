@@ -128,8 +128,9 @@ ensure_prestaged_required_libs() {
     lib_name="$(basename "$upstream_lib")"
     local_lib="$script_dir/lib/$lib_name"
     if [[ ! -f "$local_lib" && -f "$upstream_lib" ]]; then
-      cp "$upstream_lib" "$local_lib.tmp.$$"
-      mv "$local_lib.tmp.$$" "$local_lib"
+      _lib_tmp="$(mktemp "${local_lib}.tmp.XXXXXX")"
+      cp "$upstream_lib" "$_lib_tmp"
+      mv "$_lib_tmp" "$local_lib"
     fi
   done
 }
@@ -866,8 +867,9 @@ if [[ "${SWDT_BOOTSTRAPPED:-}" != "1" ]]; then
       else
         install_mode=0644
       fi
-      install -m "$install_mode" "$new_file" "$proj_file.tmp.$$"
-      mv "$proj_file.tmp.$$" "$proj_file"
+      _pbs_tmp="$(mktemp "${proj_file}.tmp.XXXXXX")"
+      install -m "$install_mode" "$new_file" "$_pbs_tmp"
+      mv "$_pbs_tmp" "$proj_file"
     done
     # A successful pre-bootstrap clears any stale block artefact (idempotency).
     rm -f "$prebootstrap_block_artefact"
@@ -963,12 +965,13 @@ if [[ "$local_version" == "$new_version" ]]; then
       if [[ -n "$new_sha" && -n "$local_sha" && "$local_sha" != "$new_sha" ]]; then
         echo "WARN: TEMPLATE_VERSION stamp SHA drift detected: local=$local_sha_short upstream=$new_sha_short for version $local_version" >&2
         if [[ $dry_run -eq 0 ]]; then
-          cat > "$tv.tmp.$$" <<EOF
+          _tv_tmp="$(mktemp "${tv}.tmp.XXXXXX")"
+          cat > "$_tv_tmp" <<EOF
 $local_version
 $new_sha
 $(date -u +%Y-%m-%d)
 EOF
-          mv "$tv.tmp.$$" "$tv"
+          mv "$_tv_tmp" "$tv"
           echo "       TEMPLATE_VERSION SHA line refreshed to $new_sha_short (issue #138)." >&2
         else
           echo "       (dry-run: would refresh TEMPLATE_VERSION SHA line to $new_sha_short) (issue #138)" >&2
@@ -1419,7 +1422,8 @@ memory_only_agents_stub() {
 install_agents_adapter_over_memory_stub() {
   local src="$1"
   local dst="$2"
-  local tmp="$dst.tmp.$$"
+  local tmp
+  tmp="$(mktemp "${dst}.tmp.XXXXXX")"
   awk '
     /^<claude-mem-context>$/ { skip=1; next }
     /^<\/claude-mem-context>$/ { skip=0; next }
@@ -1448,8 +1452,10 @@ install_agents_adapter_over_memory_stub() {
 atomic_install() {
   local src="$1"
   local dst="$2"
-  cp "$src" "$dst.tmp.$$"
-  mv "$dst.tmp.$$" "$dst"
+  local _ai_tmp
+  _ai_tmp="$(mktemp "${dst}.tmp.XXXXXX")"
+  cp "$src" "$_ai_tmp"
+  mv "$_ai_tmp" "$dst"
 }
 
 # Issue #262: trivial SPDX-only delta auto-merge helper.
@@ -1988,8 +1994,9 @@ if [[ -f "$intake_template" && ! -f "$intake_target" ]]; then
     mkdir -p "$project_root/docs"
     # Derive a project name for the substitution: basename of project root.
     proj_name="$(basename "$project_root")"
-    sed "s|<project name>|$proj_name|g" "$intake_template" > "$intake_target.tmp.$$"
-    mv "$intake_target.tmp.$$" "$intake_target"
+    _intake_tmp="$(mktemp "${intake_target}.tmp.XXXXXX")"
+    sed "s|<project name>|$proj_name|g" "$intake_template" > "$_intake_tmp"
+    mv "$_intake_tmp" "$intake_target"
   fi
   added+=("docs/intake-log.md")
 fi
@@ -2016,7 +2023,8 @@ roadmap_target="$project_root/ROADMAP.md"
 if [[ ! -f "$roadmap_target" ]]; then
   if [[ $dry_run -eq 0 ]]; then
     proj_name_rm="$(basename "$project_root")"
-    cat > "$roadmap_target.tmp.$$" <<EOF
+    _roadmap_tmp="$(mktemp "${roadmap_target}.tmp.XXXXXX")"
+    cat > "$_roadmap_tmp" <<EOF
 # Roadmap — $proj_name_rm
 
 Project roadmap — owned by \`project-manager\`; entries map to
@@ -2027,7 +2035,7 @@ upstream \`sw-dev-team-template\` roadmap; that one lives in the template
 repo and is intentionally not shipped to downstream scaffolds (FR-015 /
 M4.2).
 EOF
-    mv "$roadmap_target.tmp.$$" "$roadmap_target"
+    mv "$_roadmap_tmp" "$roadmap_target"
   fi
   added+=("ROADMAP.md")
 fi

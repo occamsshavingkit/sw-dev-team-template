@@ -3,7 +3,7 @@
 # Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
 #
 # scripts/hooks/post-compact-refresh.sh — SessionStart:compact hook that
-# directs Claude to re-read three live working-state files after context
+# directs Claude to re-read four live working-state files after context
 # auto-compaction. The auto-compaction summary may have abstracted away
 # binding rules (CLAUDE.md Hard Rules), recent customer rulings
 # (CUSTOMER_NOTES.md), or queued customer questions
@@ -20,13 +20,14 @@ cat <<EOF
 POST-COMPACTION REFRESH
 
 Context compaction just occurred. Before continuing the session, Read
-the following three files to restore live working state (the
-auto-compaction summary may have abstracted away binding rules,
-recent customer rulings, or queued questions):
+the following files to restore live working state (the auto-compaction
+summary may have abstracted away binding rules, recent customer rulings,
+queued questions, or the canonical role vocabulary):
 
   1. ${CLAUDE_PROJECT_DIR}/CLAUDE.md
   2. ${CLAUDE_PROJECT_DIR}/docs/OPEN_QUESTIONS.md
   3. ${CLAUDE_PROJECT_DIR}/CUSTOMER_NOTES.md
+  4. ${CLAUDE_PROJECT_DIR}/SW_DEV_ROLE_TAXONOMY.md
 
 Skip files that don't exist. Re-read happens at the start of the next
 turn, before answering the user or dispatching agents.
