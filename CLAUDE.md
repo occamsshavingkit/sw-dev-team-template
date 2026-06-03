@@ -366,6 +366,19 @@ like "first session of the calendar week" in preference to
     with an inline note naming the unwritable queue path; atomicity,
     idle-agents-and-tools, and final-line placement still bind. See
     `docs/pm/LESSONS.md` 2026-05-14 for promotion history.
+12. **Parallel agent working-tree isolation (provisional numbering —
+    pending ratification).** Every specialist dispatched against the
+    scaffold is classified as either a **writer** (mutates files or
+    runs non-hermetic tests) or a **reader** (inspects only). Writers
+    are serialized on the canonical scaffold checkout — at most one
+    writer holds the writer-lane token at a time. Readers run in
+    throwaway `/tmp/` worktrees (`scaffold_worktree` field in the
+    brief) and must not mutate shared git state (`git reset`, `git
+    switch`, `git stash`, `git commit`, `git push`). `tech-lead`
+    classifies every dispatch before sending it; default is writer.
+    Full protocol and classification table:
+    `docs/agents/manual/tech-lead-manual.md` § "Working-tree
+    isolation".
 
 ## Taxonomy discipline
 

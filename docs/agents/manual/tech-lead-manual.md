@@ -348,6 +348,105 @@ brief, dispatch now; do not wait on an in-flight sibling.
 - Long-running subagents (surveys, audits) should not gate
   unrelated work. If you would be idle while they run, dispatch
   the next independent thing.
+- **Reader specialists** dispatched with a `scaffold_worktree` brief
+  field may be parallelized freely — their throwaway worktrees are
+  isolated from each other and from the canonical checkout.
+- **Writer specialists** must be serialized through the writer-lane
+  token. Never dispatch two writers in the same `Agent`-tool block;
+  do not release the token until the active writer returns and HEAD
+  is verified.
+
+## Working-tree isolation
+
+Implements `CLAUDE.md` Hard Rule #12 and FW-ADR-0024. Every specialist
+dispatched against the scaffold is classified before dispatch. Default:
+writer. Misclassification is a `tech-lead` protocol violation.
+
+### Classification table
+
+| Role | Default class | Override condition |
+|---|---|---|
+| `software-engineer` | Writer | Never overridden |
+| `release-engineer` | Writer | Never overridden |
+| `tech-writer` | Writer | Never overridden |
+| `code-reviewer` | Reader | Only if the brief explicitly prohibits test execution; otherwise Writer |
+| `qa-engineer` | Writer | Reclassified Reader only when the brief restricts it to the hermetic-verified test set AND includes `scaffold_worktree` |
+| `architect` | Reader | Reads only; produces ADR text routed back to meta-project |
+| `researcher` | Reader | Reads only; no scaffold mutations |
+| `librarian` | Reader | Record reads only; no scaffold mutations |
+| `ui-ux-designer` | Reader | Design and audit reads; Writer if the brief requires editing scaffold files (default Reader) |
+| `mcp-liaison` | Reader | Delegation only; no scaffold mutations |
+| `sre` | Reader | Reads only; no scaffold mutations |
+| `security-engineer` | Reader | Reads only unless running exploit-simulation scripts that mutate state |
+| `project-manager` | Reader | Meta-project artifacts only; scaffold reads are incidental |
+
+### Writer protocol
+
+- At most one writer active on the scaffold at any time.
+- Hold the writer-lane token for the duration; release only after the
+  writer returns and `git status` / HEAD is verified clean.
+- Include `working_branch: <name>` in the brief. Ensure the canonical
+  checkout is on that branch before dispatching (switch before dispatch,
+  not inside the writer).
+- Verify the canonical HEAD is on the expected branch before releasing
+  the token and before dispatching the next writer.
+- Use `scripts/worktree-setup.sh` / `scripts/worktree-teardown.sh` for
+  reader lifecycle; the canonical checkout needs no setup for writers.
+
+### Reader protocol
+
+Before dispatching a reader, create a throwaway worktree:
+
+```bash
+# Use the helper (recommended):
+WDIR=$(scripts/worktree-setup.sh ./sw-dev-team-template)
+
+# Or manually:
+WDIR=$(mktemp -d /tmp/agent-XXXXXX)
+git -C ./sw-dev-team-template worktree add "$WDIR" HEAD
+```
+
+Include `scaffold_worktree: <absolute-path>` in the brief. The binding
+reader-lane instruction to include verbatim in every reader brief:
+
+> You are operating in a throwaway worktree at `<path>`. All scaffold
+> file operations must use this path as the root. Do NOT run any git
+> command that modifies shared state: no `git reset`, no `git switch`,
+> no `git stash`, no `git commit`, no `git push`. If your task
+> requires any of those operations, STOP and return a reclassification
+> request — you need the writer lane.
+
+After the reader returns:
+
+```bash
+scripts/worktree-teardown.sh "$WDIR" ./sw-dev-team-template
+# or manually:
+git -C ./sw-dev-team-template worktree remove "$WDIR" --force
+rm -rf "$WDIR"
+```
+
+Multiple readers may be live simultaneously.
+
+### Test hermeticity
+
+A test script is safe for the reader lane only if it is listed in
+`docs/tests/hermetic-verified.txt` (maintained by `qa-engineer`).
+`test-gate-fail-each.sh` is explicitly **not hermetic** (calls
+`git reset --hard`). Any reader whose brief includes a non-hermetic
+script is automatically reclassified as a writer.
+
+### Reclassification request format
+
+When a reader discovers mid-task that it needs writer access, it returns:
+
+```
+Reclassification request: writer lane needed
+Reason: <one line — e.g., "test-gate-fail-each.sh is not in hermetic-verified.txt">
+Work done so far: <brief summary or "none">
+Resumable from: <file or state description>
+```
+
+Tech-lead queues the task into the writer lane and re-dispatches.
 
 ## Prompt concision when dispatching
 

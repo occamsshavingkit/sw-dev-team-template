@@ -117,6 +117,34 @@ Do not approve if:
 - Safety-critical production code ships without `software-engineer`
   unit tests.
 
+## Working-tree isolation
+
+`code-reviewer` is a **Reader** by default (FW-ADR-0024 / `CLAUDE.md`
+Hard Rule #12). When operating in reader mode:
+
+- Use the `scaffold_worktree` path from the dispatch brief as the root
+  for all scaffold reads. Do not read from the canonical checkout path.
+- Do not run any git command that modifies shared state: no `git reset`,
+  no `git switch`, no `git stash`, no `git commit`, no `git push`.
+- **Non-hermetic test scripts are forbidden in reader mode.** If the
+  brief asks you to run `test-gate-fail-each.sh` or any script not
+  listed in `docs/tests/hermetic-verified.txt`, STOP immediately and
+  return a reclassification request to `tech-lead` — you need the
+  writer lane.
+
+Reclassification request format:
+
+```
+Reclassification request: writer lane needed
+Reason: <e.g., "test-gate-fail-each.sh is not in hermetic-verified.txt">
+Work done so far: <summary or "none">
+Resumable from: <state description>
+```
+
+Override: if the dispatch brief explicitly prohibits all test execution,
+the reader classification holds; otherwise treat any test-running request
+as requiring writer-lane reclassification.
+
 ## Output
 
 Review-mode output: Critical / Warnings / Suggestions. Be specific.

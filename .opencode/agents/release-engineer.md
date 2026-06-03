@@ -2,7 +2,7 @@
 name: release-engineer
 model: openai-coding
 canonical_source: .claude/agents/release-engineer.md
-canonical_sha: 195a6610a16b38c60faa2e3e19036189e59a1ae9
+canonical_sha: 05d066a65cf6c7035463a91956c16b44f56b58e2
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated

@@ -358,3 +358,29 @@ Use `--dry-run` to list the labels without contacting GitHub. The
 script never deletes or recolors existing labels; new colors / labels
 introduced by a template upgrade require a manual update of
 `scripts/setup-github-labels.sh` followed by a re-run.
+
+## Recovery
+
+### Stale reader worktrees (FW-ADR-0024)
+
+When a session crashes or times out with live reader worktrees open,
+the scaffold's internal worktree reference list can become stale. The
+`/tmp/agent-*` directories may also become orphaned. Recovery is
+two-step:
+
+```bash
+# List all registered worktrees for the scaffold repo:
+git -C ./sw-dev-team-template worktree list
+
+# Prune any worktree entries whose /tmp/ directory no longer exists:
+git -C ./sw-dev-team-template worktree prune
+```
+
+`worktree prune` removes stale references only — it does not touch the
+canonical checkout or any live worktree. Orphaned `/tmp/agent-*`
+directories that were already removed by the OS or a prior cleanup
+require no further action; `prune` handles the dangling git reference.
+
+A startup check runs automatically via `scripts/worktree-health-check.sh`
+(invoked by `scripts/agent-health.sh`) and warns if stale worktrees
+are detected at session start.
