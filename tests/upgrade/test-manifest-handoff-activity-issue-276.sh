@@ -276,6 +276,103 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# NEW-F6. Migration v1.2.0 leaves an EMPTY "activity": [] BYTE-IDENTICAL.
+#         (fix for upgrade-conflict on v1.1.0→v1.3.0 downstream paths)
+# ---------------------------------------------------------------------------
+echo ""
+echo "-- NEW-F6: empty activity array — file left byte-identical (no SHA change) --"
+
+MIGTEST_EMPTY_RELPATH="docs/handoffs/test-empty-activity.json"
+mkdir -p "$tmp/docs/handoffs"
+
+cat > "$tmp/$MIGTEST_EMPTY_RELPATH" << 'EOF'
+{
+  "task_id": "test-empty",
+  "status": "active",
+  "activity": [],
+  "verification": {"tests": []}
+}
+EOF
+
+before_sha=$(sha256sum "$tmp/$MIGTEST_EMPTY_RELPATH" | awk '{print $1}')
+
+PROJECT_ROOT="$tmp" bash "$migration" >/dev/null
+
+after_sha=$(sha256sum "$tmp/$MIGTEST_EMPTY_RELPATH" | awk '{print $1}')
+
+if [[ "$before_sha" == "$after_sha" ]]; then
+  echo "  PASS: NEW-F6 — empty-activity file SHA unchanged (byte-identical)"
+  pass=$((pass + 1))
+else
+  echo "  FAIL: NEW-F6 — SHA changed! empty-activity file was rewritten" >&2
+  echo "        before=$before_sha after=$after_sha" >&2
+  fail=$((fail + 1))
+fi
+
+# activity key must still be present (we left it in place).
+has_activity_f6=$(python3 -c "
+import json, sys
+doc = json.load(open(sys.argv[1]))
+print('yes' if 'activity' in doc else 'no')
+" "$tmp/$MIGTEST_EMPTY_RELPATH")
+
+if [[ "$has_activity_f6" == "yes" ]]; then
+  echo "  PASS: NEW-F6 — activity key still present (inert empty array left in place)"
+  pass=$((pass + 1))
+else
+  echo "  FAIL: NEW-F6 — activity key was stripped (should have been left untouched)" >&2
+  fail=$((fail + 1))
+fi
+
+# No sidecar should have been created.
+empty_sidecar="$tmp/docs/handoffs/test-empty.activity.jsonl"
+if [[ ! -f "$empty_sidecar" ]]; then
+  echo "  PASS: NEW-F6 — no sidecar created for empty activity (correct)"
+  pass=$((pass + 1))
+else
+  echo "  FAIL: NEW-F6 — sidecar created for empty activity (should not be)" >&2
+  fail=$((fail + 1))
+fi
+
+# Idempotency: re-run is also a no-op.
+PROJECT_ROOT="$tmp" bash "$migration" >/dev/null
+after_sha2=$(sha256sum "$tmp/$MIGTEST_EMPTY_RELPATH" | awk '{print $1}')
+if [[ "$before_sha" == "$after_sha2" ]]; then
+  echo "  PASS: NEW-F6 — idempotent re-run: file still byte-identical"
+  pass=$((pass + 1))
+else
+  echo "  FAIL: NEW-F6 — second run changed the file (not idempotent)" >&2
+  fail=$((fail + 1))
+fi
+
+# ---------------------------------------------------------------------------
+# NEW-F7. Migration v1.2.0 leaves an already-absent activity key untouched.
+# ---------------------------------------------------------------------------
+echo ""
+echo "-- NEW-F7: absent activity key — file left byte-identical --"
+
+MIGTEST_ABSENT_RELPATH="docs/handoffs/test-absent-activity.json"
+cat > "$tmp/$MIGTEST_ABSENT_RELPATH" << 'EOF'
+{
+  "task_id": "test-absent",
+  "status": "active",
+  "verification": {"tests": []}
+}
+EOF
+
+before_sha_f7=$(sha256sum "$tmp/$MIGTEST_ABSENT_RELPATH" | awk '{print $1}')
+PROJECT_ROOT="$tmp" bash "$migration" >/dev/null
+after_sha_f7=$(sha256sum "$tmp/$MIGTEST_ABSENT_RELPATH" | awk '{print $1}')
+
+if [[ "$before_sha_f7" == "$after_sha_f7" ]]; then
+  echo "  PASS: NEW-F7 — absent-activity file SHA unchanged (byte-identical)"
+  pass=$((pass + 1))
+else
+  echo "  FAIL: NEW-F7 — SHA changed! absent-activity file was rewritten" >&2
+  fail=$((fail + 1))
+fi
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 echo ""
