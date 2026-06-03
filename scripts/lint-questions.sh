@@ -131,6 +131,11 @@ else
         full="$REPO_ROOT/$rel"
         [ -f "$full" ] && printf '%s\n' "$full" >> "$TMPFILES"
     done
+    # Quarter shards: OPEN_QUESTIONS-YYYY-QN.md (fw-adr-0025).
+    # Glob within docs/ so new shards are automatically covered.
+    for shard in "$REPO_ROOT/docs/OPEN_QUESTIONS-"[0-9][0-9][0-9][0-9]-Q[1-4].md; do
+        [ -f "$shard" ] && printf '%s\n' "$shard" >> "$TMPFILES" || true
+    done
 fi
 
 # Emit a single violation line. File path is relativized to REPO_ROOT.

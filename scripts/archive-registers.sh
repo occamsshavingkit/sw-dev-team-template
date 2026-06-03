@@ -68,6 +68,8 @@ DRY_RUN=0
 INCLUDE_CN=0
 CUTOFF=""
 ROOT=""
+QUARTER_ROLL=0
+QUARTER_ROLL_TARGET=""  # YYYY-QN to roll; empty = auto-detect previous quarter
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -88,6 +90,23 @@ while [ $# -gt 0 ]; do
             ;;
         --root=*)
             ROOT="${1#--root=}"
+            ;;
+        --quarter-roll)
+            QUARTER_ROLL=1
+            # Optional YYYY-QN argument (e.g. 2026-Q1). If next arg looks like
+            # YYYY-QN, consume it; otherwise auto-detect the previous quarter.
+            if [ $# -gt 1 ]; then
+                case "$2" in
+                    [0-9][0-9][0-9][0-9]-Q[1-4])
+                        shift
+                        QUARTER_ROLL_TARGET="$1"
+                        ;;
+                esac
+            fi
+            ;;
+        --quarter-roll=*)
+            QUARTER_ROLL=1
+            QUARTER_ROLL_TARGET="${1#--quarter-roll=}"
             ;;
         -h|--help) usage; exit 0 ;;
         *) echo "$PROG: unknown argument: $1" >&2; usage >&2; exit 2 ;;
@@ -737,6 +756,253 @@ process_lessons() {
 }
 
 # ---------------------------------------------------------------------------
+# Quarter-roll helpers (fw-adr-0025 Option S)
+# ---------------------------------------------------------------------------
+
+# Derive the previous quarter label (YYYY-QN) from today's date.
+# e.g. today=2026-04-15 → previous quarter = 2026-Q1
+prev_quarter() {
+    year=$(printf '%s' "$TODAY" | cut -c1-4)
+    month=$(printf '%s' "$TODAY" | cut -c6-7)
+    # Determine current quarter number (1-4).
+    case "$month" in
+        01|02|03) cur_q=1 ;;
+        04|05|06) cur_q=2 ;;
+        07|08|09) cur_q=3 ;;
+        *)         cur_q=4 ;;
+    esac
+    # Previous quarter.
+    if [ "$cur_q" -eq 1 ]; then
+        prev_year=$((year - 1))
+        prev_q=4
+    else
+        prev_year=$year
+        prev_q=$((cur_q - 1))
+    fi
+    printf '%s-Q%s' "$prev_year" "$prev_q"
+}
+
+# Return the cutoff date (YYYY-MM-DD) for a quarter label (YYYY-QN).
+# This is the FIRST day of the quarter AFTER the given one, which
+# equals the last day of the given quarter + 1 — but for our purposes
+# we use the first day of the next quarter as the exclusive upper bound
+# (i.e. entries with date < cutoff are "in the given quarter or earlier").
+# For rolling: we want entries whose date < first-of-current-quarter.
+quarter_cutoff() {
+    local label="$1"   # YYYY-QN
+    local year
+    local q
+    year=$(printf '%s' "$label" | cut -c1-4)
+    q=$(printf '%s' "$label" | cut -c7)
+    case "$q" in
+        1) next_year=$year;        next_month="04" ;;
+        2) next_year=$year;        next_month="07" ;;
+        3) next_year=$year;        next_month="10" ;;
+        4) next_year=$((year + 1)); next_month="01" ;;
+    esac
+    printf '%s-%s-01' "$next_year" "$next_month"
+}
+
+# Move entries older than a quarter cutoff from a register into a quarter shard.
+# Works for table registers (parses the same way as process_table_register).
+# Appends to the shard file; leaves the active file with only entries >= cutoff.
+# Idempotent: entries already in the shard are not duplicated.
+quarter_roll_table_register() {
+    local live="$1"          # project-relative path, e.g. docs/OPEN_QUESTIONS.md
+    local shard_label="$2"   # e.g. 2026-Q1
+    local cutoff_date="$3"   # YYYY-MM-DD exclusive upper bound
+
+    local live_abs="$ROOT/$live"
+    [ -f "$live_abs" ] || { note "[quarter-roll] not-present: $live (skipped)"; return 0; }
+
+    # Derive shard path: <dir>/<stem>-YYYY-QN.md
+    local dir
+    dir="$(dirname "$live_abs")"
+    local stem
+    stem="$(basename "$live" .md)"
+    local shard_abs="$dir/${stem}-${shard_label}.md"
+
+    archived_tmp="$TMPDIR_RUN/qr_${shard_label}_$(basename "$live").archived.md"
+    newlive_tmp="$TMPDIR_RUN/qr_${shard_label}_$(basename "$live").newlive.md"
+    summary_tmp="$TMPDIR_RUN/qr_${shard_label}_$(basename "$live").summary.txt"
+    : > "$archived_tmp"; : > "$newlive_tmp"; : > "$summary_tmp"
+
+    awk -v cutoff="$cutoff_date" -v today="$TODAY" \
+        -v archived_file="$archived_tmp" \
+        -v newlive_file="$newlive_tmp" \
+        -v summary_file="$summary_tmp" '
+        function lc(s) { return tolower(s) }
+        function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+        function latest_date(s,    best, t, r) {
+            best = ""; t = s
+            while (match(t, /[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/)) {
+                m = substr(t, RSTART, RLENGTH)
+                if (best == "" || m > best) best = m
+                t = substr(t, RSTART + RLENGTH)
+            }
+            return best
+        }
+        function parse_row(line,    s, n) {
+            s = line
+            sub(/^\|[ \t]*/, "", s); sub(/[ \t]*\|[ \t]*$/, "", s)
+            n = split(s, cells, /[ \t]*\|[ \t]*/)
+            return n
+        }
+        BEGIN {
+            in_target_table=0; seen_target=0; have_header=0
+            col_status=0; col_date=0; col_id=0; ncols=0
+            archived_n=0
+        }
+        {
+            line = $0
+            if (line ~ /^\|[ \t]*-+/ && !seen_target) {
+                if (cand_header_set) {
+                    nh = parse_row(cand_header)
+                    cs=0; cd=0; cid=0
+                    for (i=1; i<=nh; i++) {
+                        h = lc(trim(cells[i]))
+                        if (h == "status") cs=i
+                        else if (h == "answered date" || h == "last reviewed" || h == "resolution" || h == "opened" || h == "date") { if (!cd) cd=i }
+                        if (cid==0 && (h == "id" || h == "turn")) cid=i
+                    }
+                    if (cs && cd && cid) {
+                        col_status=cs; col_date=cd; col_id=cid; ncols=nh
+                        print cand_header >> newlive_file
+                        print line >> newlive_file
+                        in_target_table=1; seen_target=1
+                        next
+                    } else {
+                        print cand_header >> newlive_file
+                        print line >> newlive_file
+                        cand_header_set=0; next
+                    }
+                }
+            }
+            if (in_target_table) {
+                # Blank lines within the table region are skipped (not end-of-table).
+                # Some editors insert blank separators between rows; stopping on a blank
+                # would strand subsequent rows in the active file unsharded.
+                if (line ~ /^[ \t]*$/) { next }
+                if (line !~ /^\|/) { in_target_table=0; print line >> newlive_file; next }
+                n = parse_row(line)
+                if (n < ncols) { print line >> newlive_file; next }
+                id = trim(cells[col_id])
+                datecell = cells[col_date]
+                rdate = latest_date(datecell)
+                if (rdate != "" && rdate < cutoff) {
+                    print line >> archived_file
+                    archived_ids[++archived_n] = id
+                } else {
+                    print line >> newlive_file
+                }
+                next
+            }
+            if (!seen_target && line ~ /^\|/ && line !~ /^\|[ \t]*-+/) {
+                cand_header=line; cand_header_set=1; next
+            }
+            print line >> newlive_file
+        }
+        END {
+            if (cand_header_set && !seen_target) print cand_header >> newlive_file
+            printf "ARCHIVED=%d\n", archived_n > summary_file
+        }
+    ' "$live_abs"
+
+    local archived_n=0
+    if [ -s "$summary_tmp" ]; then
+        archived_n=$(sed -n 's/^ARCHIVED=\([0-9]*\)/\1/p' "$summary_tmp")
+        [ -n "$archived_n" ] || archived_n=0
+    fi
+
+    note "[quarter-roll $shard_label] $live: $archived_n row(s) moved to shard"
+
+    if [ "$DRY_RUN" -eq 0 ] && [ "$archived_n" -gt 0 ]; then
+        # Append to shard (create header if new).
+        if [ ! -s "$shard_abs" ]; then
+            {
+                printf '# %s — %s quarter shard\n\n' "$(basename "$live")" "$shard_label"
+                printf 'Quarter shard created by `scripts/archive-registers.sh --quarter-roll`.\n\n'
+            } > "$shard_abs"
+        fi
+        cat "$archived_tmp" >> "$shard_abs"
+        # Atomically replace active file.
+        local tmp_live
+        tmp_live="$(mktemp "${live_abs}.tmp.XXXXXX")"
+        cp "$newlive_tmp" "$tmp_live"
+        mv "$tmp_live" "$live_abs"
+    fi
+}
+
+# Quarter-roll for CUSTOMER_NOTES.md (section-based, ## YYYY-MM-DD).
+quarter_roll_customer_notes() {
+    local live="$1"
+    local shard_label="$2"
+    local cutoff_date="$3"
+
+    local live_abs="$ROOT/$live"
+    [ -f "$live_abs" ] || { note "[quarter-roll] not-present: $live (skipped)"; return 0; }
+
+    local dir
+    dir="$(dirname "$live_abs")"
+    local stem
+    stem="$(basename "$live" .md)"
+    local shard_abs="$dir/${stem}-${shard_label}.md"
+
+    archived_tmp="$TMPDIR_RUN/qr_cn_${shard_label}.archived.md"
+    newlive_tmp="$TMPDIR_RUN/qr_cn_${shard_label}.newlive.md"
+    summary_tmp="$TMPDIR_RUN/qr_cn_${shard_label}.summary.txt"
+    : > "$archived_tmp"; : > "$newlive_tmp"; : > "$summary_tmp"
+
+    awk -v cutoff="$cutoff_date" -v archived_file="$archived_tmp" \
+        -v newlive_file="$newlive_tmp" -v summary_file="$summary_tmp" '
+        function flush(d, eligible, idx,    i) {
+            if (eligible && d < cutoff) {
+                for (i=1; i<=idx; i++) print sect[i] >> archived_file
+                archived_n++
+            } else {
+                for (i=1; i<=idx; i++) print sect[i] >> newlive_file
+            }
+        }
+        BEGIN { in_section=0; archived_n=0; sect_n=0; sect_date="" }
+        /^## [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/ {
+            if (in_section) flush(sect_date, 1, sect_n)
+            in_section=1; sect_n=0
+            sect[++sect_n]=$0
+            if (match($0, /[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/))
+                sect_date=substr($0,RSTART,RLENGTH)
+            else sect_date=""
+            next
+        }
+        !in_section { print $0 >> newlive_file; next }
+        { sect[++sect_n]=$0 }
+        END {
+            if (in_section) flush(sect_date, 1, sect_n)
+            printf "ARCHIVED=%d\n", archived_n > summary_file
+        }
+    ' "$live_abs"
+
+    local archived_n=0
+    [ -s "$summary_tmp" ] && archived_n=$(sed -n 's/^ARCHIVED=\([0-9]*\)/\1/p' "$summary_tmp")
+    [ -n "$archived_n" ] || archived_n=0
+
+    note "[quarter-roll $shard_label] $live: $archived_n section(s) moved to shard"
+
+    if [ "$DRY_RUN" -eq 0 ] && [ "$archived_n" -gt 0 ]; then
+        if [ ! -s "$shard_abs" ]; then
+            {
+                printf '# %s — %s quarter shard\n\n' "$(basename "$live")" "$shard_label"
+                printf 'Quarter shard created by `scripts/archive-registers.sh --quarter-roll`.\n\n'
+            } > "$shard_abs"
+        fi
+        cat "$archived_tmp" >> "$shard_abs"
+        local tmp_live
+        tmp_live="$(mktemp "${live_abs}.tmp.XXXXXX")"
+        cp "$newlive_tmp" "$tmp_live"
+        mv "$tmp_live" "$live_abs"
+    fi
+}
+
+# ---------------------------------------------------------------------------
 # Driver
 # ---------------------------------------------------------------------------
 
@@ -762,6 +1028,52 @@ process_lessons "docs/pm/LESSONS.md" \
 
 process_customer_notes "CUSTOMER_NOTES.md" \
     "docs/customer-notes-archive.md" "CUSTOMER_NOTES"
+
+# ---------------------------------------------------------------------------
+# Quarter-roll pass (--quarter-roll [YYYY-QN])
+# ---------------------------------------------------------------------------
+if [ "$QUARTER_ROLL" -eq 1 ]; then
+    if [ -z "$QUARTER_ROLL_TARGET" ]; then
+        QUARTER_ROLL_TARGET="$(prev_quarter)"
+    fi
+    # Validate YYYY-QN shape.
+    case "$QUARTER_ROLL_TARGET" in
+        [0-9][0-9][0-9][0-9]-Q[1-4]) ;;
+        *) echo "$PROG: invalid quarter label: $QUARTER_ROLL_TARGET (expected YYYY-QN)" >&2; exit 2 ;;
+    esac
+    QR_CUTOFF="$(quarter_cutoff "$QUARTER_ROLL_TARGET")"
+
+    note ""
+    note "--- quarter-roll: $QUARTER_ROLL_TARGET (cutoff: $QR_CUTOFF) ---"
+
+    quarter_roll_table_register   "docs/OPEN_QUESTIONS.md" "$QUARTER_ROLL_TARGET" "$QR_CUTOFF"
+    quarter_roll_table_register   "docs/intake-log.md"     "$QUARTER_ROLL_TARGET" "$QR_CUTOFF"
+    quarter_roll_table_register   "docs/pm/RISKS.md"       "$QUARTER_ROLL_TARGET" "$QR_CUTOFF"
+    quarter_roll_table_register   "docs/pm/LESSONS.md"     "$QUARTER_ROLL_TARGET" "$QR_CUTOFF"
+    quarter_roll_customer_notes   "CUSTOMER_NOTES.md"      "$QUARTER_ROLL_TARGET" "$QR_CUTOFF"
+
+    # Regenerate INDEX files for each register that was touched.
+    # Look for gen-register-index.sh next to this script (same scripts/ dir),
+    # then fall back to $ROOT/scripts/ (the normal location).
+    if [ "$DRY_RUN" -eq 0 ]; then
+        _script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+        GEN_INDEX=""
+        for _candidate in "$_script_dir/gen-register-index.sh" "$ROOT/scripts/gen-register-index.sh"; do
+            if [ -x "$_candidate" ]; then
+                GEN_INDEX="$_candidate"
+                break
+            fi
+        done
+        if [ -n "$GEN_INDEX" ]; then
+            for reg in \
+                "docs/OPEN_QUESTIONS.md" "docs/intake-log.md" \
+                "docs/pm/RISKS.md" "docs/pm/LESSONS.md" "CUSTOMER_NOTES.md"
+            do
+                [ -f "$ROOT/$reg" ] && bash "$GEN_INDEX" "$reg" --root "$ROOT" || true
+            done
+        fi
+    fi
+fi
 
 # Print collected report (always to stdout).
 cat "$REPORT"

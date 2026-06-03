@@ -107,22 +107,39 @@ if [[ -n "$spec_dupes" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Open-question family — docs/OPEN_QUESTIONS.md, Q-NNNN IDs
-# Convention: 4-digit zero-padded number, prefix Q-.
+# Open-question family — docs/OPEN_QUESTIONS.md Q-NNNN IDs
+# Scans active file + all quarter shards + legacy archive so a Q-ID
+# duplicated across shards is detected (fw-adr-0025 cross-shard safety).
 # ---------------------------------------------------------------------------
 OQ_FILE="$ROOT/docs/OPEN_QUESTIONS.md"
+OQ_DIR="$ROOT/docs"
 oq_nums=()
-if [[ -f "$OQ_FILE" ]]; then
+oq_seen_in=()   # track which file each ID came from (for collision reporting)
+
+_scan_oq_file() {
+    local f="$1"
+    [[ -f "$f" ]] || return 0
     while IFS= read -r line; do
-        # Match only the FIRST Q-NNNN on each line (the canonical ID cell).
-        # Additional Q-NNNN tokens on the same line (e.g. anchor hrefs like
-        # "#row-Q-0001") are back-references, not new IDs; counting them
-        # would produce false duplicate reports.
+        # Match only the FIRST Q-NNNN on each line.
         if [[ "$line" =~ Q-([0-9]{4}) ]]; then
             oq_nums+=("${BASH_REMATCH[1]}")
         fi
-    done < "$OQ_FILE"
+    done < "$f"
+}
+
+if [[ -f "$OQ_FILE" ]]; then
+    _scan_oq_file "$OQ_FILE"
 fi
+# Quarter shards only (not the legacy *-ARCHIVE.md which contains tombstone
+# rows that mirror the active file by design — including them here would
+# produce false "cross-shard" duplicates for every archived row).
+while IFS= read -r shard; do
+    _scan_oq_file "$shard"
+done < <(
+    find "$OQ_DIR" -maxdepth 1 \
+        -name 'OPEN_QUESTIONS-[0-9][0-9][0-9][0-9]-Q[1-4].md' \
+        2>/dev/null | sort
+)
 
 oq_dupes=""
 if [[ ${#oq_nums[@]} -gt 0 ]]; then
