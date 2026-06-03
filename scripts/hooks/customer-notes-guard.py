@@ -486,16 +486,24 @@ def _content_findings(content: str) -> list[str]:
             )
 
         # --- Unstructured check: required headed sections (single-entry only) ---
-        missing_sections: list[str] = []
+        # Map each regex pattern to a human-readable label so the finding
+        # message never contains raw regex strings or quoted literals.
+        _SECTION_LABELS = {
+            r"^##\s+\d{4}-\d{2}-\d{2}":          "date header",
+            r"^\*\*Question":                      "Question",
+            r"^\*\*Customer answer \(verbatim\):": "Customer answer (verbatim)",
+            r"^\*\*Recorded by:":                  "Recorded by",
+        }
+        missing_labels: list[str] = []
         for pattern in _REQUIRED_SECTIONS:
             if not re.search(pattern, content, re.MULTILINE):
-                missing_sections.append(pattern)
-        if missing_sections:
+                missing_labels.append(_SECTION_LABELS.get(pattern, pattern))
+        if missing_labels:
             findings.append(
                 "UNSTRUCTURED: entry is missing required section(s). "
-                "Expected: ## YYYY-MM-DD header, **Question …, "
-                "**Customer answer (verbatim):, **Recorded by:. "
-                f"Absent pattern(s): {missing_sections!r}"
+                "Expected: ## YYYY-MM-DD header, Question, "
+                "Customer answer (verbatim), Recorded by. "
+                "Absent: " + ", ".join(missing_labels)
             )
 
     # --- Off-scope check: verbatim-quote blocks ---
@@ -509,8 +517,8 @@ def _content_findings(content: str) -> list[str]:
     quote_line_count = len(_VERBATIM_QUOTE_RE.findall(content))
     if quote_line_count < 2:
         findings.append(
-            "OFF-SCOPE (advisory): entry has fewer than 2 verbatim-quote lines "
-            f"(found {quote_line_count}, lines starting with '>'). "
+            "OFF-SCOPE (advisory): entry has fewer than 2 block-quote lines "
+            f"(found {quote_line_count}; lines beginning with a greater-than marker). "
             "A canonical CUSTOMER_NOTES entry must include block-quoted verbatim "
             "text for both the question and the customer answer. "
             "Approve only if this is intentional maintenance rather than a "
