@@ -75,7 +75,9 @@ facility from the top-level `tech-lead` session.
    the next customer-facing turn — e.g., a quick lookup whose answer
    feeds the very next reply. If the next customer action does not
    require the result this turn, dispatch in background so the customer
-   chat stays interactive.
+   chat stays interactive. When multiple independent specialists are
+   needed, spawn them in a single message with multiple `Agent` tool
+   calls, all `run_in_background: true` (parallel background dispatch).
 
    Dispatch-size heuristic, escape hatches, boundary annotation,
    dispatch discipline (background-by-default, no in-flight status

@@ -333,14 +333,17 @@ if [[ $resolve_mode -eq 1 ]]; then
     done < "$resolve_customizations"
   fi
 
-  tmp_out="$conflicts_path.tmp.$$"
+  # Issue #305: use mktemp (random suffix) instead of PID suffix to avoid
+  # symlink-race / TOCTOU windows and PID-collision on shared CI runners
+  # (CWE-377 / CWE-59). mktemp pattern mirrors the correct usage at ~line 764.
+  tmp_out="$(mktemp "${conflicts_path}.tmp.XXXXXX")"
   removed=0
   kept_unresolved=0
   # Issue #152: collect "path<TAB>new_sha" lines for every conflict entry
   # cleared by hand-merge so we can refresh TEMPLATE_MANIFEST.lock rows
   # after the JSON rewrite. Without this, --verify fails on the very
   # next run because the manifest still carries pre-resolution SHAs.
-  resolved_paths_log="$conflicts_path.resolved.$$"
+  resolved_paths_log="$(mktemp "${conflicts_path}.resolved.XXXXXX")"
   : > "$resolved_paths_log"
   {
     printf '{\n'
@@ -433,7 +436,7 @@ if [[ $resolve_mode -eq 1 ]]; then
   manifest_for_resolve="$project_root/TEMPLATE_MANIFEST.lock"
   refreshed_manifest_rows=0
   if [[ -s "$resolved_paths_log" && -f "$manifest_for_resolve" ]]; then
-    manifest_tmp="$manifest_for_resolve.tmp.$$"
+    manifest_tmp="$(mktemp "${manifest_for_resolve}.tmp.XXXXXX")"  # Issue #305: mktemp, not PID suffix
     awk -F '\t' '
       NR == FNR { new_sha[$1] = $2; next }
       /^[[:space:]]*#/ || /^[[:space:]]*$/ { print; next }
@@ -1543,7 +1546,7 @@ shortstat_between() {
   fi
 }
 
-added=(); upgraded=(); kept=(); conflicts=(); local_only_kept=(); accepted_local=(); preserved=()
+added=(); upgraded=(); auto_merged=(); kept=(); conflicts=(); local_only_kept=(); accepted_local=(); preserved=()
 # FW-ADR-0014: per-path classification of preserve-list entries.
 #   dropped_inert[]     — entries with no divergence (silently dropped).
 #   preservation_refused_paths[] (+ parallel SHA arrays) — entries that
@@ -1601,6 +1604,31 @@ if [[ -f "$_prerun_conflicts_path" ]]; then
     [[ -n "$_c_path" ]] || continue
     prior_conflict_sha["$_c_path"]="$_c_proj"
   done < "$_prerun_conflicts_path"
+  # Issue #222: sanity-check the parse result.  If the file is non-empty
+  # AND contains raw "classified": "conflict" markers BUT we extracted
+  # zero keys, the file is malformed (e.g. truncated mid-write by a
+  # prior kill).  Continuing would leave the #200 rerun-safety guard
+  # silently disarmed, so hard-fail here — consistent with the script's
+  # other integrity checks (pre-bootstrap, preservation-vs-manifest,
+  # --verify).  The three-condition gate is intentional: a legitimate
+  # conflicts file whose entries are all accepted_local/local_only_kept
+  # is non-empty with zero conflict keys and must NOT trigger this block.
+  # Residual risk: a truncation that corrupts the "classified": "conflict"
+  # token itself is indistinguishable from a no-conflict file and will not
+  # trip this gate.  Full JSON-schema validation would close that gap but
+  # is a larger change; tracked as a follow-up (issue #222 notes).
+  if [[ ${#prior_conflict_sha[@]} -eq 0 ]] \
+      && [[ -s "$_prerun_conflicts_path" ]] \
+      && grep -q '"classified": "conflict"' "$_prerun_conflicts_path"; then
+    echo "ERROR: issue #222: $_prerun_conflicts_path is non-empty and contains conflict markers but the line-parser extracted zero prior_conflict_sha keys — the file is likely malformed or truncated mid-write." >&2
+    echo "       The #200 rerun-safety guard cannot fire for the affected entries." >&2
+    echo "       Repair steps:" >&2
+    echo "         1. Inspect $_prerun_conflicts_path for truncation or corruption." >&2
+    echo "         2. If the tracked conflicts are gone (hand-merged or abandoned), delete the file and re-run." >&2
+    echo "         3. If the file is repairable, restore valid JSON and re-run." >&2
+    echo "         4. Run scripts/upgrade.sh --resolve after any hand-merges to clear resolved entries." >&2
+    exit 1
+  fi
 fi
 unset _prerun_conflicts_path _c_line _c_path _c_proj
 
@@ -1783,7 +1811,7 @@ for f in $ship_files; do
            && _is_trivial_spdx_delta \
                 "$workdir/old/$f" "$proj_path" "$new_path"; then
           echo "auto-merged (trivial SPDX delta): $f"
-          upgraded+=("$f (auto-merge: SPDX)")
+          auto_merged+=("$f")
           atomic_install "$new_path" "$proj_path"
           [[ $is_agent -eq 1 ]] && agent_splice_name "$proj_path" "$agent_name_line"
           continue
@@ -2199,6 +2227,16 @@ EOF
   # state, not the desired post-merge state).
   conflicts_path="$project_root/.template-conflicts.json"
   if [[ ${#conflicts[@]} -gt 0 || ${#local_only_kept[@]} -gt 0 || ${#accepted_local[@]} -gt 0 ]]; then
+    # Issue #305: allocate the temp path BEFORE the { } writer block so the
+    # variable is set in the current shell scope (not a subshell). mktemp
+    # random suffix eliminates the CWE-377/CWE-59 symlink-race present with
+    # PID-suffixed names. The EXIT trap (set after conflicts_path is known)
+    # removes any stale tmp if the process is killed between write and mv.
+    _conflicts_tmp="$(mktemp "${conflicts_path}.tmp.XXXXXX")"
+    # Extend the EXIT trap to also remove this tmp (the workdir trap covers
+    # workdir but not project_root artefacts — issue #305 code-reviewer obs).
+    # shellcheck disable=SC2064  # intentional: expand _conflicts_tmp now
+    trap "rm -rf \"\$workdir\"; rm -f '${_conflicts_tmp}'" EXIT
     {
       printf '{\n'
       printf '  "schema": 1,\n'
@@ -2242,7 +2280,11 @@ EOF
         for f in "${accepted_local[@]}"; do emit_entry "$f" "accepted_local"; done
       fi
       printf '\n  ]\n}\n'
-    } > "$conflicts_path"
+    } > "$_conflicts_tmp"
+    # Issue #222: atomic rename so a kill mid-write never leaves a
+    # truncated file on disk that the #200 parser would silently
+    # misread as "no prior conflicts".
+    mv "$_conflicts_tmp" "$conflicts_path"
   else
     # No tracked entries — remove any stale file from a prior upgrade.
     rm -f "$conflicts_path"
@@ -2289,6 +2331,12 @@ if [[ ${#new_agents[@]} -gt 0 ]]; then
   echo "${prefix}  .claude/agents/ mid-session. Dispatches via subagent_type will fail with"
   echo "${prefix}  \"Agent type not found\" until the session is restarted. Upstream issue #36."
   for f in "${new_agents[@]}"; do echo "${prefix}  · $f"; done
+  echo
+fi
+
+if [[ ${#auto_merged[@]} -gt 0 ]]; then
+  echo "${prefix}Auto-merged (trivial SPDX delta) (${#auto_merged[@]}):"
+  for f in "${auto_merged[@]}"; do echo "  ~ $f"; done
   echo
 fi
 

@@ -50,16 +50,16 @@
           },
           "claude_equivalent": {
             "type": "string",
+            "enum": [
+              "opus",
+              "sonnet",
+              "haiku"
+            ],
             "description": "Claude Code fallback alias for this agent's default_class (e.g. sonnet, haiku, opus)"
           },
           "openai_equivalent": {
             "type": "string",
             "enum": [
-              "claude-opus",
-              "claude-sonnet",
-              "claude-haiku",
-              "gemini-pro",
-              "gemini-flash",
               "openai-frontier",
               "openai-coding",
               "openai-mini"
@@ -69,14 +69,8 @@
           "gemini_equivalent": {
             "type": "string",
             "enum": [
-              "claude-opus",
-              "claude-sonnet",
-              "claude-haiku",
               "gemini-pro",
-              "gemini-flash",
-              "openai-frontier",
-              "openai-coding",
-              "openai-mini"
+              "gemini-flash"
             ],
             "description": "Gemini class abstraction used in opencode"
           }

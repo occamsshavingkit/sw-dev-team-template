@@ -2,7 +2,7 @@
 name: architect
 model: claude-sonnet
 canonical_source: .claude/agents/architect.md
-canonical_sha: d87e185f4b0687c0150814c1b5a13af301f53ae7
+canonical_sha: 14d62cd66bf0e345e395678de810887f236a0bbb
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated

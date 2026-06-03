@@ -99,8 +99,8 @@ FW-ADR-0006). Numbering is sequential within each namespace.
 | File | Purpose |
 |---|---|
 | `docs/templates/adr-template.md` | MADR 3.0 + Three-Path Rule. ADRs filed under `docs/adr/`. |
-| `docs/templates/architecture-template.md` | ISO/IEC/IEEE 42010:2022 + arc42 + C4 + IEEE 1016 viewpoint mapping. Guided variant. |
-| `docs/templates/architecture-template-bare.md` | Bare variant of the above; structure only, no guidance prose. ~50% smaller. (v0.14.0+ per FW-ADR-0003.) |
+| `docs/templates/architecture-template.md` | ISO/IEC/IEEE 42010:2022 + arc42 + C4. IEEE 1016-2009 viewpoint mapping with first-class sections for State dynamics (§9), Concurrency (§10), Information (§11), and Resource (§12). 42010 rationale chain in §1.1–§1.3. Guided variant. |
+| `docs/templates/architecture-template-bare.md` | Bare variant of the above; structure only, no guidance prose. Heading set matches the guided variant (smoke-check enforced). (v0.14.0+ per FW-ADR-0003.) |
 | `docs/templates/architecture-view-template.md` | Per-view file template (one IEEE 1016 viewpoint per file under `docs/views/`). Guided. (v0.14.0+ per FW-ADR-0004.) |
 | `docs/templates/architecture-view-template-bare.md` | Bare variant of the per-view template. (v0.14.0+.) |
 | `docs/templates/handover-template.md` | Respawn handover brief. |

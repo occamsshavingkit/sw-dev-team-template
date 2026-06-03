@@ -270,4 +270,40 @@ done < <(printf '%s\n' "$proceed_list")
 # Clear any stale block artefact from a prior refused run.
 rm -f "$prebootstrap_block_artefact"
 
+# Issue #254: write each bootstrap-critical path that is present in the
+# project into .template-customizations so the candidate upgrade.sh sync
+# loop treats them as accepted_local rather than 3-way conflicts.
+#
+# The failure mode this closes:
+#   When upgrading FROM v0.16.0, the v0.16.0 upgrade.sh self-bootstrap
+#   exec's the candidate upgrade.sh BEFORE the migrations loop runs.
+#   The re-exec'd candidate skips v0.14.0.sh (v0.14.0 < v0.16.0), so the
+#   marker-writing block in v0.14.0.sh never fires. The sync loop then
+#   sees scripts/upgrade.sh as baseline=v0.16.0 / project=candidate /
+#   upstream=candidate — project==upstream but baseline!=project, which
+#   with no marker present routes to the accepted_via_manifest path. If
+#   the manifest SHA also doesn't match, the file lands in conflicts[] and
+#   --verify exits 1. (Issue #163 original fix; issue #254 extends it.)
+#
+# We write the marker here unconditionally for every bootstrap-critical
+# path that is present in the project, regardless of whether THIS
+# migration's proceed list installed it or the caller's self-bootstrap did.
+# Idempotent: check before appending. (FW-ADR-0010.)
+customizations_file="$PROJECT_ROOT/.template-customizations"
+marker_comment="# pre-bootstrapped by migrations/v1.0.0-rc13.sh (issue #254)"
+while IFS= read -r rel; do
+    [ -z "$rel" ] && continue
+    # Only mark paths that exist locally (present after pre-bootstrap).
+    [ -f "$PROJECT_ROOT/$rel" ] || continue
+    # Escape the path for use in a grep extended-regex.
+    rel_escaped="$(printf '%s' "$rel" | sed 's/[]\.*^$[]/\\&/g')"
+    if [ -f "$customizations_file" ] && \
+       grep -E "^[[:space:]]*${rel_escaped}([[:space:]]|$)" \
+            "$customizations_file" >/dev/null 2>&1; then
+        continue  # already listed; idempotent
+    fi
+    printf '%s  %s\n' "$rel" "$marker_comment" >> "$customizations_file"
+    echo "  marked $rel in .template-customizations (pre-bootstrap marker; issue #254)"
+done < <(printf '%s\n' "$prebootstrap_paths")
+
 exit 0

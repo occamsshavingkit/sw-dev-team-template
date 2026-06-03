@@ -87,13 +87,22 @@ protected_check() {
 }
 
 # ----- numeric_validator_check ---------------------------------------------
-# Mirrors workflow "Identify target issue" numeric validation (issue #149).
-# Returns 0 = valid (positive integer or empty), 1 = invalid.
+# Mirrors workflow "Identify target issue" numeric validation (issue #149,
+# issue #227). Returns 0 = valid (positive integer or empty), 1 = invalid.
 numeric_validator_check() {
     issue_number=$1
     if [ -n "${issue_number}" ]; then
         case "${issue_number}" in
             *[!0-9]*)
+                # Contains a non-digit character.
+                return 1
+                ;;
+            0)
+                # Issue #227: 0 is not a valid GitHub issue number.
+                return 1
+                ;;
+            0*)
+                # Issue #227: leading zeros rejected (gh CLI sensitive).
                 return 1
                 ;;
         esac
@@ -173,14 +182,17 @@ run_one "hard-rule-content-with-proposal" PASS PASS
 # W2 fix: file already has HR text in unchanged lines; diff adds non-HR content -> PASS
 run_one "hard-rule-unchanged-no-proposal" PASS PASS
 
-# Numeric validator tests (issue #149)
+# Numeric validator tests (issue #149, issue #227)
 run_numeric "valid-integer"   "123"          PASS
-run_numeric "zero"            "0"            PASS
+run_numeric "zero"            "0"            FAIL   # #227: 0 is not a valid GH issue number
 run_numeric "empty"           ""             PASS
 run_numeric "alpha"           "abc"          FAIL
 run_numeric "inject-newline"  "12
 extra"        FAIL
 run_numeric "semicolon"       "12;rm -rf /" FAIL
+run_numeric "leading-zero-2"  "07"           FAIL   # #227: leading zero on valid number
+run_numeric "leading-zero-3"  "007"          FAIL   # #227: multiple leading zeros
+run_numeric "leading-zero-lone-0" "01"       FAIL   # #227: 01 is not 1
 
 printf 'test-improve-template-logic: %d pass, %d fail\n' "${pass_count}" "${fail_count}"
 
