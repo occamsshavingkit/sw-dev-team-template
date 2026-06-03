@@ -359,6 +359,118 @@ check "case5: audit row mentions 'not reachable'" \
 check "case5: lint passes" lint_one_agent "$proj5/.claude/agents/synthetic-agent.md"
 
 # ---------------------------------------------------------------------------
+# Case 6: synonym headings — must NOT be double-backfilled (issue #261 fix)
+# ---------------------------------------------------------------------------
+# A customised agent uses ## Rules instead of ## Hard rules.
+# Before the fix, _rc14_map_section didn't recognise "rules" → hard_rules
+# and treated the section as missing, causing a double-backfill.
+# After the fix, it must be detected as already-present; migration is no-op.
+echo ""
+echo "-- Case 6: synonym headings prevent false-positive backfill (issue #261) --"
+
+proj6a="$tmp/proj6a"
+upstream6a="$tmp/upstream6a"
+mkdir -p "$proj6a/.claude/agents" "$proj6a/docs"
+make_upstream "$upstream6a" "synthetic-agent.md"
+
+# Write an agent with ## Rules (synonym for hard_rules) and ## Output format.
+cat > "$proj6a/.claude/agents/synthetic-agent.md" <<'EOF'
+---
+name: synthetic-agent
+description: A synthetic test agent using non-standard synonym headings for rc14 issue #261 coverage.
+---
+
+## Job
+
+This is the role overview body for synthetic-agent.
+
+## Escalation format
+
+Route all unresolved questions to tech-lead. Do not contact the customer directly.
+
+## Rules
+
+1. Do not contact the customer directly; all customer communication flows through tech-lead.
+2. Do not commit production code without code-reviewer approval.
+
+## Output format
+
+Return diffs with short rationale. No essays. Include file paths when referencing code.
+EOF
+printf '.claude/agents/synthetic-agent.md\n' > "$proj6a/.template-customizations"
+
+before6a="$(cat "$proj6a/.claude/agents/synthetic-agent.md")"
+rc6a=$(run_migration "$proj6a" "$upstream6a" "$tmp/case6a.log")
+after6a="$(cat "$proj6a/.claude/agents/synthetic-agent.md")"
+
+check "case6a (synonym ## Rules): migration exits 0" bash -c "[ '$rc6a' = '0' ]"
+check "case6a (synonym ## Rules): file NOT modified (no double-backfill)" \
+  bash -c "[ '$before6a' = '$after6a' ]"
+check "case6a (synonym ## Rules): exactly one Rules/Hard-rules-family heading" \
+  bash -c "[ \"\$(grep -cE '^## (Rules|Hard rules)' '$proj6a/.claude/agents/synthetic-agent.md')\" = '1' ]"
+check "case6a (synonym ## Rules): no DECISIONS row written (already current)" \
+  bash -c "[ ! -f '$proj6a/docs/DECISIONS.md' ] || ! grep -q 'rc14 migration pass 2' '$proj6a/docs/DECISIONS.md'"
+
+# Case 6b: ## Invariants synonym for hard_rules, ## Return format synonym for output_format.
+proj6b="$tmp/proj6b"
+upstream6b="$tmp/upstream6b"
+mkdir -p "$proj6b/.claude/agents" "$proj6b/docs"
+make_upstream "$upstream6b" "synthetic-agent.md"
+
+cat > "$proj6b/.claude/agents/synthetic-agent.md" <<'EOF'
+---
+name: synthetic-agent
+description: Synonym heading test — Invariants + Return format (issue #261).
+---
+
+## Job
+
+Role overview body for synthetic-agent.
+
+## Escalation format
+
+Route all unresolved questions to tech-lead.
+
+## Invariants
+
+1. Never contact the customer directly.
+2. Never commit without reviewer approval.
+
+## Return format
+
+Return diffs with short rationale. No essays.
+EOF
+printf '.claude/agents/synthetic-agent.md\n' > "$proj6b/.template-customizations"
+
+before6b="$(cat "$proj6b/.claude/agents/synthetic-agent.md")"
+rc6b=$(run_migration "$proj6b" "$upstream6b" "$tmp/case6b.log")
+after6b="$(cat "$proj6b/.claude/agents/synthetic-agent.md")"
+
+check "case6b (## Invariants + ## Return format): migration exits 0" bash -c "[ '$rc6b' = '0' ]"
+check "case6b (## Invariants + ## Return format): file NOT modified (no double-backfill)" \
+  bash -c "[ '$before6b' = '$after6b' ]"
+check "case6b (## Invariants + ## Return format): no DECISIONS row written" \
+  bash -c "[ ! -f '$proj6b/docs/DECISIONS.md' ] || ! grep -q 'rc14 migration pass 2' '$proj6b/docs/DECISIONS.md'"
+
+# Case 6c: genuinely missing sections still get backfilled even with synonyms
+# recognised. Confirm the normal backfill path isn't broken by the synonym
+# additions — a file with NO hard_rules-family heading must still get one.
+proj6c="$tmp/proj6c"
+upstream6c="$tmp/upstream6c"
+make_project "$proj6c" "synthetic-agent.md"  # no hard_rules, no output_format
+make_upstream "$upstream6c" "synthetic-agent.md"
+
+rc6c=$(run_migration "$proj6c" "$upstream6c" "$tmp/case6c.log")
+check "case6c (genuinely missing — synonym fix doesn't suppress): migration exits 0" \
+  bash -c "[ '$rc6c' = '0' ]"
+check "case6c (genuinely missing): hard_rules inserted" \
+  grep -q "^## Hard rules" "$proj6c/.claude/agents/synthetic-agent.md"
+check "case6c (genuinely missing): output_format inserted" \
+  grep -q "^## Output format" "$proj6c/.claude/agents/synthetic-agent.md"
+check "case6c (genuinely missing): lint passes" \
+  lint_one_agent "$proj6c/.claude/agents/synthetic-agent.md"
+
+# ---------------------------------------------------------------------------
 # Additional exclusion checks
 # ---------------------------------------------------------------------------
 echo ""
