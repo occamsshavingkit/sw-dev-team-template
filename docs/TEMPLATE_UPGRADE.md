@@ -242,6 +242,16 @@ downstream maintainer reading this guide from a project tree may need to
 consult the upstream template repo for `migrations/README.md` and
 `migrations/TEMPLATE.sh`.
 
+**Gemini harness adapter (FW-ADR-0022).** The release that ships Gemini
+harness support adds `GEMINI.md` (root adapter) and `.gemini/agents/`
+(generated thin adapters). If you use gemini-cli, upgrade it to
+>= v0.38.1 before running `scripts/compile-runtime-agents.sh` — older
+versions have no named subagent surface and the `.gemini/agents/` output
+will be unused or unsupported. Run `compile-runtime-agents.sh` (all
+targets) after this template upgrade to emit the new `.gemini/agents/`
+files alongside the existing `.opencode/agents/` output. gemini-cli
+v0.44.0+ is the stable-surface version; v0.38.1 is the minimum floor.
+
 ## Known upgrade cliffs
 
 An upgrade cliff is a specific version hop where the project's existing
