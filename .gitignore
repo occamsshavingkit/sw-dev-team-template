@@ -56,3 +56,8 @@ tests/release-gate/snapshots/*
 # declared ephemeral session output and intentionally not tracked.
 docs/pm/token-ledger.md
 tests/prompt-regression/results-*.md
+
+# Handoff activity sidecars (fw-adr-0023 D2 Option S).
+# Runtime telemetry written by handoff-record-activity.py; never committed.
+# Durable handoff contract data lives in docs/handoffs/*.json (git-tracked).
+docs/handoffs/*.activity.jsonl

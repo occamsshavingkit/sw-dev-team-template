@@ -9,7 +9,9 @@
     "gate_mode": "warn"
   },
   "owner_role": "software-engineer",
-  "review_roles": ["code-reviewer"],
+  "review_roles": [
+    "code-reviewer"
+  ],
   "security_roles": [],
   "objective": "Implement v1.1 handoff contract infrastructure: schema, validator, hook libraries, durable handoff examples, and active-handoff pointer wiring for the sw-dev-team-template framework.",
   "allowed_paths": [
@@ -29,7 +31,9 @@
   ],
   "framework_scope": "framework-maintenance",
   "requires": {
-    "tests": ["tests/hooks/test-handoff-contracts.sh"],
+    "tests": [
+      "tests/hooks/test-handoff-contracts.sh"
+    ],
     "review": true,
     "security_review": false,
     "human_approval": false
@@ -64,13 +68,14 @@
       "source": "CLAUDE.md ## Hard rules"
     }
   ],
-  "activity": [],
   "verification": {
     "tests": [
       {
         "gate_type": "test",
         "required": true,
-        "accepted_evidence_refs": ["tests/hooks/test-handoff-contracts.sh"],
+        "accepted_evidence_refs": [
+          "tests/hooks/test-handoff-contracts.sh"
+        ],
         "name": "tests/hooks/test-handoff-contracts.sh",
         "actor_role": "qa-engineer",
         "result": "passed",

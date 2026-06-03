@@ -1,6 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "x-schema-version": "1.1.0",
+  "x-schema-changelog": "1.1.0 (fw-adr-0023 D2 Option S): removed 'activity' from required[]; property retained as optional/deprecated for backward-compat with handoff files written before the sidecar migration. Runtime telemetry now written to docs/handoffs/<task_id>.activity.jsonl.",
   "type": "object",
   "required": [
     "schema",
@@ -17,7 +19,6 @@
     "requires",
     "acceptance_criteria",
     "hard_rule_traces",
-    "activity",
     "verification",
     "completion"
   ],
@@ -237,7 +238,11 @@
       "items": {"$ref": "#/$defs/external_tool_activity_ref"},
       "description": "Optional INPUT-ONLY list of external-tool activity references (llmdc, Speckit). These are informational inputs to canonical-role work; they are structurally separate from verification.* and completion.evidence and cannot satisfy any evidence gate."
     },
-    "activity": {"type": "array"},
+    "activity": {
+      "type": "array",
+      "deprecated": true,
+      "description": "DEPRECATED (fw-adr-0023 D2 Option S, schema v1.1.0). Runtime telemetry moved to docs/handoffs/<task_id>.activity.jsonl sidecar. This property is retained as optional for backward-compatibility with handoff files written before the migration. New handoff files should omit it."
+    },
     "verification": {
       "type": "object",
       "required": ["tests", "reviews", "security", "human_approval"],

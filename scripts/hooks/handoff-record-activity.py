@@ -7,45 +7,44 @@ Design notes
 ------------
 **What it does**
     Reads a hook event from stdin (PostToolUse shape or any hook envelope)
-    and appends one evidence entry to the active handoff's
-    ``verification.tests`` list so the TaskCompleted gate can treat the
-    observed activity as ACCEPTED (hook-captured, not worker self-attestation).
+    and appends one evidence entry to the per-task activity sidecar
+    ``docs/handoffs/<task_id>.activity.jsonl`` (one JSON object per line,
+    append-only). The sidecar is gitignored so it never mutates the durable
+    handoff JSON file (fw-adr-0023 D2 Option S).
 
 **Where evidence is written**
-    Directly into the durable handoff file that the active-handoff pointer
-    resolves to (same file ``load_active_handoff`` reads).  The write is
-    *atomic*: the updated JSON is written to a sibling ``.tmp`` file first,
-    then renamed over the original.  This prevents corruption if the process
-    is interrupted between write and close, and preserves schema validity
-    because we (a) append only, never delete or mutate existing fields, and
-    (b) build the new evidence entry to match ``$defs/evidence_gate`` in
-    handoff.schema.json.
+    ``docs/handoffs/<task_id>.activity.jsonl`` — a newline-delimited JSON
+    log that lives beside the durable handoff JSON but is never committed.
+    Derivation of ``<task_id>``: read from the active-handoff pointer, or
+    fall back to extracting it from the resolved handoff file.
 
-    We do NOT write to a separate activity-log file because the gate helpers
-    (``lib/handoff.py``) read ``verification.tests`` (and the other sub-lists)
-    directly; a separate log would require gate changes.  The atomic-append
-    approach keeps the single source of truth.
+    The durable handoff JSON is **never mutated** by this hook. Handoff
+    JSON files are now fully static after creation; ``TEMPLATE_MANIFEST.lock``
+    can hash them raw without a normalizer (fw-adr-0023 §"Follow-up work").
 
-**Schema safety**
-    The appended entry has:
+**Entry shape**
+    Each JSONL line is a JSON object with:
       - ``evidence_kind`` = ``"accepted"``  (not ``"worker_report"``)
       - ``source``        = hook event name (e.g. ``"PostToolUse"``)
       - ``name``          = tool/command summary derived from the event
       - ``result``        = ``"passed"``
       - ``actor_role``    = ``"hook"``  (distinguishes from any human role)
-    All fields are present in ``$defs/evidence_gate``; none are required by
-    the schema so omitting extras is also valid.
+      - ``timestamp``     = ISO 8601 UTC
+    Matches the ``$defs/evidence_gate`` shape in handoff.schema.json.
 
 **Gate mode**
     Mirrors the other hooks: inactive (exit 0 silently) unless
     ``SWDT_HANDOFF_GATES`` is ``"warn"`` or ``"enforce"``.
     On load failure: warn-mode is non-blocking (logs to stderr, exits 0);
-    enforce-mode also exits 0 (recording activity should not block a tool
-    call — only the completion gate blocks).
+    enforce-mode also exits 0 (recording activity must not block a tool call).
 
 **Output**
     No stdout JSON is emitted (this hook does not make a permission
-    decision).  Diagnostic messages go to stderr.
+    decision). Diagnostic messages go to stderr.
+
+**Fail-safe**
+    Any write error appends to stderr and returns 0; recording activity
+    must never gate or block a tool call.
 """
 
 from __future__ import annotations
@@ -53,7 +52,6 @@ from __future__ import annotations
 import json
 import os
 import sys
-import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -62,7 +60,6 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.hooks.lib.handoff import (  # noqa: E402
-    load_active_handoff,
     resolve_gate_mode,
     _resolve_repo_relative,
 )
@@ -80,7 +77,6 @@ def _extract_tool_summary(event: dict) -> str:
     if isinstance(tool_input, dict):
         command = tool_input.get("command") or ""
         if isinstance(command, str) and command:
-            # Truncate long commands; strip newlines.
             cmd_summary = command.replace("\n", " ").strip()[:80]
             return f"{tool_name}: {cmd_summary}" if tool_name else cmd_summary
     if tool_name:
@@ -88,7 +84,7 @@ def _extract_tool_summary(event: dict) -> str:
     return event.get("hook_event_name") or "unknown"
 
 
-def _build_evidence_entry(event: dict) -> dict:
+def _build_activity_entry(event: dict) -> dict:
     """Return a schema-valid evidence_gate dict for the observed tool event."""
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     return {
@@ -101,76 +97,43 @@ def _build_evidence_entry(event: dict) -> dict:
     }
 
 
-def _resolve_handoff_path(repo_root: Path) -> Path:
-    """Return the resolved path of the durable handoff file.
+def _resolve_task_id(repo_root: Path) -> str:
+    """Return the task_id from the active-handoff pointer.
 
-    Applies the same containment guards as lib/handoff._resolve_repo_relative:
-    rejects absolute handoff_path values and requires the resolved path to be
-    contained under repo_root.  Raises ValueError on violation so the caller
-    can treat it as a non-blocking load failure.
+    Reads .devteam/active-handoff.json. Raises ValueError when the pointer
+    is absent or carries no usable task_id / handoff_path.
     """
     pointer_path = repo_root / ".devteam" / "active-handoff.json"
     with pointer_path.open(encoding="utf-8") as f:
         pointer = json.load(f)
 
-    handoff_path_str = pointer.get("handoff_path")
+    # Prefer explicit task_id.
     task_id = pointer.get("task_id")
-
-    if isinstance(handoff_path_str, str) and handoff_path_str:
-        # Delegate to the shared guard: raises ValueError if absolute or
-        # if the resolved path escapes the repo root.
-        return _resolve_repo_relative(repo_root, handoff_path_str)
-
     if isinstance(task_id, str) and task_id:
-        handoffs_dir = repo_root / "docs" / "handoffs"
-        for p in sorted(handoffs_dir.glob("*.json")):
-            try:
-                with p.open(encoding="utf-8") as f:
-                    payload = json.load(f)
-                if isinstance(payload, dict) and payload.get("task_id") == task_id:
-                    # task_id branch scans only within docs/handoffs/; verify
-                    # containment for defence-in-depth.
-                    p.relative_to(repo_root.resolve())
-                    return p
-            except (OSError, json.JSONDecodeError):
-                continue
+        return task_id
 
-    raise ValueError("Cannot resolve active handoff path from pointer")
+    # Fall back: derive from handoff_path filename (e.g. "docs/handoffs/foo.json" → "foo").
+    handoff_path_str = pointer.get("handoff_path")
+    if isinstance(handoff_path_str, str) and handoff_path_str:
+        # Containment guard — reject absolute or escaping paths.
+        resolved = _resolve_repo_relative(repo_root, handoff_path_str)
+        return resolved.stem  # filename without extension
+
+    raise ValueError("Cannot resolve task_id from active-handoff pointer")
 
 
-def _atomic_append_evidence(handoff_file: Path, entry: dict) -> None:
-    """Atomically append *entry* to handoff[verification][tests].
+def _append_to_sidecar(sidecar_path: Path, entry: dict) -> None:
+    """Append *entry* as a single JSON line to the sidecar JSONL file.
 
-    Write order: load → mutate → write to .tmp → rename over original.
-    The rename is atomic on POSIX (same filesystem).  The handoff is
-    re-validated by load_active_handoff before we modify it, so the
-    pre-mutation state is already known-valid; we only append a
-    schema-valid evidence entry, keeping the document valid.
+    Opens in append mode so concurrent writes are atomic at the OS level
+    (on POSIX, O_APPEND writes are atomic up to PIPE_BUF; for our small
+    JSON objects this is sufficient). No locking required: this is a
+    single-process hook.
     """
-    with handoff_file.open(encoding="utf-8") as f:
-        handoff = json.load(f)
-
-    tests_list = handoff.get("verification", {}).get("tests")
-    if not isinstance(tests_list, list):
-        raise ValueError("handoff.verification.tests is not a list; cannot append")
-
-    tests_list.append(entry)
-
-    tmp_fd, tmp_path = tempfile.mkstemp(
-        dir=handoff_file.parent,
-        prefix=".tmp-" + handoff_file.name + "-",
-    )
-    try:
-        with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
-            json.dump(handoff, f, indent=2)
-            f.write("\n")
-        os.replace(tmp_path, handoff_file)
-    except Exception:
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
-        raise
+    sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+    line = json.dumps(entry, ensure_ascii=False) + "\n"
+    with sidecar_path.open("a", encoding="utf-8") as f:
+        f.write(line)
 
 
 # ---------------------------------------------------------------------------
@@ -192,19 +155,25 @@ def main() -> int:
     repo_root = Path(os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd())
 
     try:
-        handoff = load_active_handoff(repo_root)
+        task_id = _resolve_task_id(repo_root)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
-        # Non-blocking in both modes: recording activity should not gate a tool.
-        print(f"handoff-record-activity: warn: cannot load active handoff: {exc}", file=sys.stderr)
+        # Non-blocking: recording activity must not gate a tool call.
+        print(
+            f"handoff-record-activity: warn: cannot resolve task_id: {exc}",
+            file=sys.stderr,
+        )
         return 0
 
-    entry = _build_evidence_entry(event)
+    entry = _build_activity_entry(event)
+    sidecar_path = repo_root / "docs" / "handoffs" / f"{task_id}.activity.jsonl"
 
     try:
-        handoff_file = _resolve_handoff_path(repo_root)
-        _atomic_append_evidence(handoff_file, entry)
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
-        print(f"handoff-record-activity: warn: cannot record activity evidence: {exc}", file=sys.stderr)
+        _append_to_sidecar(sidecar_path, entry)
+    except OSError as exc:
+        print(
+            f"handoff-record-activity: warn: cannot write sidecar {sidecar_path}: {exc}",
+            file=sys.stderr,
+        )
         return 0
 
     return 0

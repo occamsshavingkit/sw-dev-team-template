@@ -4,19 +4,21 @@
 #
 # scripts/lib/manifest.sh — shared TEMPLATE_MANIFEST.lock helpers.
 #
-# Requires: python3 (for manifest_file_sha_normalized on handoff JSON files)
-#
 # Per FW-ADR-0002 (upgrade content verification, hash-based, manifest-
 # primary). Sourced by scripts/upgrade.sh (write at upgrade-end +
 # verify at --verify) and scripts/scaffold.sh (write at scaffold-end
 # + immediate self-verify).
 #
+# fw-adr-0023 D2 Option S (v1.2.0): handoff JSON files are now fully
+# static after creation — the activity sidecar hook writes runtime
+# telemetry to docs/handoffs/<task_id>.activity.jsonl (gitignored)
+# instead of mutating the handoff JSON. The manifest_file_sha_normalized
+# normalizer (issue #276 / PR #304) is no longer needed; all files are
+# hashed raw by manifest_file_sha. The normalizer function is removed.
+#
 # Exports:
 #   manifest_ship_files <repo>           - list shipped files, sorted
 #   manifest_file_sha   <abs-path>       - sha256 hex of one file (raw)
-#   manifest_file_sha_normalized         - sha256 hex, stripping runtime-
-#     <abs-path> <repo-rel-path>           mutable "activity" from handoff
-#                                          JSON before hashing (issue #276)
 #   manifest_write      <repo> <out>     - write manifest from repo
 #   manifest_verify     <repo> <manifest-path>
 #                                        - verify; rc 0/1/2/3
@@ -79,73 +81,6 @@ manifest_ship_files() {
 # SHA256 of a file (hex hash only, no filename).
 manifest_file_sha() {
   sha256sum "$1" | awk '{print $1}'
-}
-
-# SHA256 of a file after stripping the runtime-mutable "activity" key
-# from handoff JSON files (issue #276).
-#
-# handoff-record-activity.py appends to docs/handoffs/*.json on every
-# PreToolUse/PostToolUse boundary, making the file's content hash
-# change at runtime even though the durable contract portions
-# (status/mode/allowed_paths/hard_rule_traces/acceptance_criteria/
-# verification) are framework-managed and should remain verified.
-#
-# Files matching docs/handoffs/*.json are normalized before hashing:
-# the top-level "activity" key and its entire array value are removed
-# from the JSON, and the result is re-serialised with sorted keys so
-# the hash is stable regardless of field ordering. All other files are
-# hashed from raw bytes (identical to manifest_file_sha).
-#
-# This function is applied symmetrically in manifest_write and
-# manifest_verify so the hash in the manifest and the hash at verify
-# time are computed identically — preserving durable-contract
-# verification while ignoring runtime telemetry.
-manifest_file_sha_normalized() {
-  local path="$1"
-  local relpath="${2:-}"
-  # Normalize only docs/handoffs/*.json files.
-  if [[ "$relpath" =~ ^docs/handoffs/[^/]+\.json$ ]] \
-     || [[ -z "$relpath" && "$path" =~ /docs/handoffs/[^/]+\.json$ ]]; then
-    # Use python3 (required by the hook layer already) to strip
-    # "activity", sort keys, and emit canonical JSON.  Falls back to
-    # raw sha256sum if python3 is unavailable so the function never
-    # silently produces a wrong answer — it fails loudly instead.
-    if command -v python3 >/dev/null 2>&1; then
-      # Capture normalized JSON from python3 separately so a non-zero exit
-      # (malformed JSON, I/O error) is detected before it reaches sha256sum.
-      # Without this intermediate capture, a failing python3 still pipes an
-      # empty stream into sha256sum, which would produce the sha256 of the
-      # empty string — a silently wrong hash that could be persisted to the
-      # manifest lock.  Fail-closed: return 1 on any error.
-      local _normalized_json
-      _normalized_json="$(python3 - "$path" <<'PYEOF'
-import json, sys
-with open(sys.argv[1], encoding="utf-8") as f:
-    doc = json.load(f)
-doc.pop("activity", None)
-print(json.dumps(doc, sort_keys=True, ensure_ascii=False))
-PYEOF
-      )" || {
-        echo "ERROR: manifest_file_sha_normalized: python3 failed normalizing $path" >&2
-        return 1
-      }
-      local _hash
-      _hash="$(printf '%s\n' "$_normalized_json" | sha256sum | awk '{print $1}')"
-      # Sanity-check: a valid sha256 hex is exactly 64 lowercase hex chars.
-      # An empty or malformed hash here means sha256sum itself failed or the
-      # pipeline was silently truncated; refuse to return a bad value.
-      if [[ ! "$_hash" =~ ^[0-9a-f]{64}$ ]]; then
-        echo "ERROR: manifest_file_sha_normalized: hash validation failed for $path (got '${_hash}')" >&2
-        return 1
-      fi
-      printf '%s\n' "$_hash"
-    else
-      echo "ERROR: manifest_file_sha_normalized: python3 not found; cannot normalize $path" >&2
-      return 1
-    fi
-  else
-    sha256sum "$path" | awk '{print $1}'
-  fi
 }
 
 # Decide whether the destination release declares <path> as a fresh-write.
@@ -269,7 +204,7 @@ manifest_write() {
     while IFS= read -r f; do
       [[ -z "$f" ]] && continue
       if [[ -f "$project_repo/$f" ]]; then
-        printf '%s  %s\n' "$(manifest_file_sha_normalized "$project_repo/$f" "$f")" "$f"
+        printf '%s  %s\n' "$(manifest_file_sha "$project_repo/$f")" "$f"
       fi
     done < <(manifest_ship_files "$paths_repo" "$project_repo")
   } > "$out"
@@ -322,7 +257,7 @@ manifest_verify() {
       continue
     fi
     local actual
-    actual="$(manifest_file_sha_normalized "$repo/$path" "$path")"
+    actual="$(manifest_file_sha "$repo/$path")"
     if [[ "$actual" != "${expected[$path]}" ]]; then
       printf 'drift:    %s\n  expected %s\n  actual   %s\n' "$path" "${expected[$path]}" "$actual"
       drift=1
