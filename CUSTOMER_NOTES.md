@@ -678,3 +678,143 @@ the existing canonical_sha path that already covers `.opencode/agents/`
 
 **Pointer:** `docs/adr/fw-adr-0022-gemini-harness-adapter.md`
 **Recorded by:** researcher
+
+## 2026-06-03 — fw-adr-0024 / #212: parallel-agent working-tree race — Hybrid adopted (turn: no intake-log entry; see flag to tech-lead)
+
+**Question (from architect, relayed by tech-lead, Q-0019):**
+> fw-adr-0024 / #212: which parallel-agent isolation strategy to adopt for readers vs writers sharing the canonical checkout?
+
+**Customer answer (verbatim):**
+> Hybrid adopted: readers (code-reviewer/researcher) run in throwaway git worktrees; writers serialized on the canonical checkout via a writer-lane token. Implement the 11 enumerated contract/helper changes. fw-adr-0024 → Accepted.
+
+**Recorded by:** researcher
+
+## 2026-06-03 — fw-adr-0023 / #276: handoff activity-array growth — Sidecar adopted (turn: no intake-log entry; see flag to tech-lead)
+
+**Question (from architect, relayed by tech-lead, Q-0020):**
+> fw-adr-0023 / #276: how to address unbounded growth of the handoff activity array?
+
+**Customer answer (verbatim):**
+> Sidecar adopted: move `activity` to a gitignored `docs/handoffs/<task>.activity.jsonl`; MINOR schema bump + one-time migration; removes the hash-exclusion normalizer. fw-adr-0023 → Accepted.
+
+**Recorded by:** researcher
+
+## 2026-06-03 — #301 (P13): add ui-ux-designer role (turn: no intake-log entry; see flag to tech-lead)
+
+**Question (from tech-lead, Q-0021):**
+> #301 (P13): should a ui-ux-designer role be added as the 14th canonical role?
+
+**Customer answer (verbatim):**
+> Add ui-ux-designer role (14th canonical role; owns UX design + WCAG/accessibility; likely wraps accesslint).
+
+**Recorded by:** researcher
+
+## 2026-06-03 — #290: add mcp-liaison role (turn: no intake-log entry; see flag to tech-lead)
+
+**Question (from tech-lead, Q-0022):**
+> #290: should an mcp-liaison role be added to own delegated external-model MCP sessions?
+
+**Customer answer (verbatim):**
+> Add mcp-liaison role (owns delegated external-model MCP sessions; brief construction + divergence reconciliation).
+
+**Recorded by:** researcher
+
+## 2026-06-03 — #291: split researcher into researcher + librarian (turn: no intake-log entry; see flag to tech-lead)
+
+**Question (from tech-lead, Q-0023):**
+> #291: should researcher be split into two roles — investigation vs record custodian?
+
+**Customer answer (verbatim):**
+> Split researcher into researcher (investigation) + librarian (record custodian: CUSTOMER_NOTES, OPEN_QUESTIONS, glossary, SME inventory, archival).
+
+**Recorded by:** researcher
+
+## 2026-06-03 — #302 (P14): project-tailoring/integrity-level artifact — declined (turn: no intake-log entry; see flag to tech-lead)
+
+**Question (from tech-lead, Q-0024):**
+> #302 (P14): should a project-tailoring/integrity-level artifact be added to support non-uniform ceremony across projects?
+
+**Customer answer (verbatim):**
+> Keep uniform ceremony — decline project-tailoring/integrity-level artifact; close #302 won't-fix.
+
+**Recorded by:** researcher
+
+## 2026-06-03 — #303 (P15): clarification-session mode (turn: no intake-log entry; see flag to tech-lead)
+
+**Question (from tech-lead, Q-0025):**
+> #303 (P15): should a clarification-session mode be documented that relaxes HR-11 cadence within an opted-in session?
+
+**Customer answer (verbatim):**
+> Document a clarification-session mode: inside an opted-in session, tech-lead asks sequential one-axis questions back-to-back (relaxing HR-11 cadence) while each stays atomic (one decision axis); shape rule stays binding.
+
+**Recorded by:** researcher
+
+## 2026-06-03 — #287: specialist poll-loop bounding (turn: no intake-log entry; see flag to tech-lead)
+
+**Question (from tech-lead, Q-0026):**
+> #287: how should specialists handle unbounded polling or long-running background tasks?
+
+**Customer answer (verbatim):**
+> Bounded + harness mechanism: specialists must not poll-loop unbounded; cap and escalate to tech-lead, with a background-task auto-re-invoke pattern (ties to #265).
+
+**Recorded by:** researcher
+
+## 2026-06-03 — #293: delegated-specialist mode across all supported providers (turn: no intake-log entry; see flag to tech-lead)
+
+**Question (from tech-lead, Q-0027):**
+> #293: should delegated-specialist mode be added to all supported harness providers, or only AGENTS.md?
+
+**Customer answer (verbatim):**
+> Add delegated-specialist mode across ALL supported providers (AGENTS.md/Codex, GEMINI.md/Gemini, opencode, etc.), not just AGENTS.md.
+
+**Recorded by:** researcher
+
+## 2026-06-03 — #300 (P12): Gemini full-team harness (turn: no intake-log entry; see flag to tech-lead)
+
+**Question (from tech-lead, Q-0028):**
+> #300 (P12): should the Gemini full-team harness be built now as a standalone, or deferred until delegated-specialist parity is resolved?
+
+**Customer answer (verbatim):**
+> Build the Gemini full-team harness now, standalone (GEMINI.md + .gemini/agents roster); retrofit delegated-specialist parity (#293) afterward. (fw-adr-0022 already accepted.)
+
+**Recorded by:** researcher
+
+## 2026-06-03 — #294 (P1): ID auto-allocation + CI backstop (turn: no intake-log entry; see flag to tech-lead)
+
+**Question (from tech-lead, Q-0029):**
+> #294 (P1): for preventing duplicate ADR/spec/Q IDs, should the solution be a script mechanism, a CI gate, or both?
+
+**Customer answer (verbatim):**
+> Both: auto-allocate next-free IDs via reserve-number.sh (mechanism) AND a CI backstop that fails on duplicate ADR/spec/Q IDs.
+
+**Recorded by:** researcher
+
+## 2026-06-03 — #297 (P9): dispatch-template mechanism (turn: no intake-log entry; see flag to tech-lead)
+
+**Question (from tech-lead, Q-0030):**
+> #297 (P9): should one-task-per-dispatch be enforced via a dispatch-template mechanism, a CI gate, or both?
+
+**Customer answer (verbatim):**
+> Dispatch-template mechanism only: structure dispatch so one-task-per-dispatch is the default shape (no CI gate — dispatch is ephemeral).
+
+**Recorded by:** researcher
+
+## 2026-06-03 — #292: structured CUSTOMER_NOTES + content-aware guard (turn: no intake-log entry; see flag to tech-lead)
+
+**Question (from tech-lead, Q-0031):**
+> #292: for improving CUSTOMER_NOTES integrity, should the solution be a structured entry template, a content-aware guard script, or both?
+
+**Customer answer (verbatim):**
+> Both: structured CUSTOMER_NOTES entry template (mechanism) AND make customer-notes-guard.py content-aware (flag oversized/off-scope/unstructured entries).
+
+**Recorded by:** researcher
+
+## 2026-06-03 — #299 (P11): authoring checklist for rule enforcement (turn: no intake-log entry; see flag to tech-lead)
+
+**Question (from tech-lead, Q-0032):**
+> #299 (P11): should a rule-authoring enforcement checklist be binding or non-binding guidance?
+
+**Customer answer (verbatim):**
+> Authoring checklist (non-binding): a guidance checklist reminding rule-authors to consider enforcement — NOT a new binding rule (respects the Q-0018 anti-proliferation concern).
+
+**Recorded by:** researcher
