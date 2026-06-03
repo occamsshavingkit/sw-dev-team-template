@@ -411,8 +411,10 @@ reader-lane instruction to include verbatim in every reader brief:
 
 > You are operating in a throwaway worktree at `<path>`. All scaffold
 > file operations must use this path as the root. Do NOT run any git
-> command that modifies shared state: no `git reset`, no `git switch`,
-> no `git stash`, no `git commit`, no `git push`. If your task
+> command that modifies shared state: no `git reset`, `git checkout`,
+> `git switch`, `git stash`, `git clean`, `git commit`, `git merge`,
+> `git rebase`, or `git push`; and no index, branch, or tag mutations
+> (`git add`/`rm`/`mv`, branch/tag create or delete). If your task
 > requires any of those operations, STOP and return a reclassification
 > request — you need the writer lane.
 

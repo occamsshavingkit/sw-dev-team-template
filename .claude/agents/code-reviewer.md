@@ -125,7 +125,9 @@ Hard Rule #12). When operating in reader mode:
 - Use the `scaffold_worktree` path from the dispatch brief as the root
   for all scaffold reads. Do not read from the canonical checkout path.
 - Do not run any git command that modifies shared state: no `git reset`,
-  no `git switch`, no `git stash`, no `git commit`, no `git push`.
+  `git checkout`, `git switch`, `git stash`, `git clean`, `git commit`,
+  `git merge`, `git rebase`, or `git push`; and no index, branch, or
+  tag mutations (`git add`/`rm`/`mv`, branch/tag create or delete).
 - **Non-hermetic test scripts are forbidden in reader mode.** If the
   brief asks you to run `test-gate-fail-each.sh` or any script not
   listed in `docs/tests/hermetic-verified.txt`, STOP immediately and
