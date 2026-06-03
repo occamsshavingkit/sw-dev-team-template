@@ -112,6 +112,29 @@ ruling 10 (2026-05-15 pivot back to in-tree rc-cycle).
 
 ---
 
+## v1.1.1 — 2026-05-28
+
+Patch release fixing the v1.1.0 ship-broken regression: pre-push hook was not
+installed at tag time, causing downstream `upgrade.sh` invocations to receive a
+broken release.
+
+### Fixed
+
+- **Pre-push hook not enforced at tag time (#281)**: `pre-push` hook was silently
+  skipped because `core.hooksPath` was unset; downstream upgrades received the
+  broken v1.1.0 artifact.
+- **Pre-release gate tightened (#282)**: `release-engineer-manual.md` now lists
+  `core.hooksPath` verification as a BLOCKING precondition before any rc or
+  release tag.
+- **CI B101 false-positive suppression (#283)**: Replaced bare `assert` statements
+  in `tests/` with `_expect` helpers to silence Codacy B101 warnings; excluded
+  `tests/` from bandit scope.
+- **Pyright Optional-narrowing suppression (#284)**: Added `_require` helper in
+  CI test helpers to satisfy Pyright narrowing for Optional values.
+- Two CI-suppression cleanups landed on the patch branch alongside the above.
+
+---
+
 ## v1.1.0 — 2026-05-28
 
 First MINOR release after v1.0.0 final. Adds machine-readable handoff

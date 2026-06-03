@@ -51,6 +51,16 @@ jobs:
                 echo "improve-template: invalid issue_number '${ISSUE_NUMBER}' (expected positive integer)" >&2
                 exit 2
                 ;;
+              0)
+                # Issue #227: GitHub issue numbers start at 1; zero is not valid.
+                echo "improve-template: invalid issue_number '${ISSUE_NUMBER}' (expected positive integer, got 0)" >&2
+                exit 2
+                ;;
+              0*)
+                # Issue #227: leading zeros not accepted (gh CLI may misparse).
+                echo "improve-template: invalid issue_number '${ISSUE_NUMBER}' (leading zeros not accepted; use '${ISSUE_NUMBER#"${ISSUE_NUMBER%%[!0]*}"}')" >&2
+                exit 2
+                ;;
             esac
             echo "issue=${ISSUE_NUMBER}" >> "$GITHUB_OUTPUT"
           else

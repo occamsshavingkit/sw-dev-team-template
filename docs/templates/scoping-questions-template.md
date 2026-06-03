@@ -45,9 +45,9 @@ ask them **one per turn** with all agents idle (see
    yes, which domains?
 5. **External SMEs — availability.** For SME domains you are NOT
    expert in — do you have external SMEs available to consult?
-5a. **External SMEs — substitute criteria.** For SME domains where
-   no external SME is available — what acceptance criteria must a
-   substitute meet?
+5a. **External SMEs — substitute criteria** *(skip if all domains have external SMEs available).*
+   For SME domains where no external SME is available — what acceptance
+   criteria must a substitute meet?
 6. **Step 3 — agent naming category.** Pick a naming category (e.g.,
    Muppets, famous singers, historical scientists), a custom name
    list, or keep canonical role names. `tech-lead` proposes
@@ -60,7 +60,7 @@ ask them **one per turn** with all agents idle (see
 ## Follow-ups to consider (ask only when genuinely thin)
 
 - Is any part of the scope safety-critical or regulated?
-- If yes, which standard(s) govern it?
+- If yes, which standard(s) govern it? *(only when safety-critical answer is yes)*
 - What is the expected delivery cadence (one-off, sprint, continuous)?
 - What is the target deployment environment?
 - Are there environment constraints that shape architecture (air-gapped,

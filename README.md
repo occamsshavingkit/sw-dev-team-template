@@ -4,8 +4,7 @@ A ready-to-use project scaffold that turns a single Claude Code or
 Codex session into a 13-role software-development team with a strict
 escalation protocol and a per-project SME pattern.
 
-**Status.** Current release: **`v1.1.0`** (stable minor — handoff
-contracts + issues-based coordination interface, opt-in; see
+**Status.** Current release: **`v1.1.1`** (patch — fixes v1.1.0 ship-broken regression; see
 `CHANGELOG.md` for full details). Version identity also lives in the
 `VERSION` file at the tagged commit; see `docs/versioning.md`. Each
 release updates this README (enforced by `scripts/pre-release-gate.sh`

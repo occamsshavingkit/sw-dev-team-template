@@ -2,45 +2,111 @@
 # SPDX-License-Identifier: MIT
 # Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
 #
-# .git-hooks/pre-commit — run the hook negative-corpus driver before any
-# commit. Spec 009 §Verification (a): catches missing / regressing corpus
-# at commit time (shift-left counterpart to the pre-release-gate sub-gate).
+# .git-hooks/pre-commit — pre-commit guards.
+#
+# Guards (independent; each has its own bypass):
+#
+#   1. Hook-negative-corpus driver (Spec 009 §Verification (a)):
+#      catches missing / regressing corpus at commit time.
+#      Bypass: SKIP_HOOK_NEGATIVE_CORPUS=1 git commit ...
+#
+#   2. canonical_sha staleness guard (issue #250):
+#      refuses a commit where a staged runtime mirror (docs/runtime/agents/*.md
+#      or .opencode/agents/*.md) records a canonical_sha that does not match
+#      the current index blob SHA of .claude/agents/<role>.md. Prevents the
+#      stale-SHA pitfall that hit PR #234 and PR #248.
+#      Bypass: SKIP_CANONICAL_SHA_CHECK=1 git commit ...
 #
 # Install: `git config core.hooksPath .git-hooks` (mirrors pre-push install).
-#
-# Bypass: `SKIP_HOOK_NEGATIVE_CORPUS=1 git commit ...` for emergencies.
-# Bypass is intentionally not audit-logged here; the release-gate sub-gate
-# catches drift before tag.
 
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"
 if [ -z "$repo_root" ]; then
     exit 0
 fi
 
+overall_rc=0
+
+# ---------------------------------------------------------------------------
+# Guard 1: hook-negative-corpus driver
+# ---------------------------------------------------------------------------
 if [ "${SKIP_HOOK_NEGATIVE_CORPUS:-0}" = "1" ]; then
     printf 'pre-commit: SKIP_HOOK_NEGATIVE_CORPUS=1 set; skipping hook-negative-corpus driver.\n' >&2
-    exit 0
+else
+    driver="$repo_root/tests/hooks/run-negative-corpus.sh"
+    if [ ! -x "$driver" ]; then
+        # Driver missing or not executable — fail open with a warning so the
+        # hook never blocks commits on infrastructure absence. The release gate
+        # is the hard backstop.
+        printf 'pre-commit: %s missing or not executable; skipping (advisory).\n' "$driver" >&2
+    else
+        # Run silently on PASS; surface the driver's diagnostic block on FAIL.
+        out_file=$(mktemp 2>/dev/null || echo /tmp/pre-commit-negcorpus.$$)
+        corpus_rc=0
+        "$driver" --all >"$out_file" 2>&1 || corpus_rc=$?
+        if [ "$corpus_rc" -ne 0 ]; then
+            printf 'pre-commit: hook-negative-corpus regression — commit blocked.\n' >&2
+            cat "$out_file" >&2
+            printf '\nOverride (rare): SKIP_HOOK_NEGATIVE_CORPUS=1 git commit ...\n' >&2
+            overall_rc=1
+        fi
+        rm -f "$out_file"
+    fi
 fi
 
-driver="$repo_root/tests/hooks/run-negative-corpus.sh"
-if [ ! -x "$driver" ]; then
-    # Driver missing or not executable — fail open with a warning so the
-    # hook never blocks commits on infrastructure absence. The release gate
-    # is the hard backstop.
-    printf 'pre-commit: %s missing or not executable; skipping (advisory).\n' "$driver" >&2
-    exit 0
+# ---------------------------------------------------------------------------
+# Guard 2: canonical_sha staleness guard (issue #250)
+#
+# For each staged runtime-mirror file under docs/runtime/agents/*.md or
+# .opencode/agents/*.md, extract the canonical_sha frontmatter field and
+# compare it against the current git index blob SHA of the corresponding
+# canonical file (.claude/agents/<role>.md). If they differ, the mirror
+# was compiled against a stale HEAD and will fail CI --verify.
+#
+# This gate fires at commit time (shift-left), giving an actionable message
+# before the bad SHA lands in history.
+# ---------------------------------------------------------------------------
+if [ "${SKIP_CANONICAL_SHA_CHECK:-0}" = "1" ]; then
+    printf 'pre-commit: SKIP_CANONICAL_SHA_CHECK=1 set; skipping canonical_sha staleness guard.\n' >&2
+else
+    stale_signal="$repo_root/.git/CANONICAL_SHA_STALE.$$"
+    git diff --cached --name-only 2>/dev/null \
+        | grep -E '^(docs/runtime/agents/|\.opencode/agents/)[^/]+\.md$' \
+        | while IFS= read -r mirror_path; do
+        # Extract canonical_sha from the staged blob.
+        claimed_sha=$(git show ":$mirror_path" 2>/dev/null \
+            | awk '/^canonical_sha:/{print $2; exit}' || true)
+        if [ -z "$claimed_sha" ]; then
+            continue  # no canonical_sha field; not a mirror file
+        fi
+        # Derive canonical path: docs/runtime/agents/foo.md -> .claude/agents/foo.md
+        role_base=$(basename "$mirror_path")
+        canonical_path=".claude/agents/$role_base"
+        # Get the index (staged) blob SHA for the canonical.
+        index_sha=$(git ls-files --stage "$canonical_path" 2>/dev/null \
+            | awk 'NR==1{print $2}' || true)
+        if [ -z "$index_sha" ]; then
+            # Canonical not in index — fall back to HEAD.
+            index_sha=$(git rev-parse "HEAD:$canonical_path" 2>/dev/null || true)
+        fi
+        if [ -z "$index_sha" ]; then
+            continue  # canonical not tracked; cannot validate
+        fi
+        if [ "$claimed_sha" != "$index_sha" ]; then
+            printf 'pre-commit: STALE canonical_sha in %s\n' "$mirror_path" >&2
+            printf '  mirror claims:  %s\n' "$claimed_sha" >&2
+            printf '  index has:      %s\n' "$index_sha" >&2
+            printf '  Fix: re-run scripts/compile-runtime-agents.sh AFTER staging .claude/agents/%s\n' \
+                "$role_base" >&2
+            # Signal failure across subshell boundary via a temp file.
+            printf 'stale' > "$stale_signal"
+        fi
+    done
+    if [ -f "$stale_signal" ]; then
+        rm -f "$stale_signal"
+        printf '\npre-commit: canonical_sha staleness detected — commit blocked.\n' >&2
+        printf 'Override (rare): SKIP_CANONICAL_SHA_CHECK=1 git commit ...\n' >&2
+        overall_rc=1
+    fi
 fi
 
-# Run silently on PASS; surface the driver's diagnostic block on FAIL.
-out_file=$(mktemp 2>/dev/null || echo /tmp/pre-commit-negcorpus.$$)
-rc=0
-"$driver" --all >"$out_file" 2>&1 || rc=$?
-
-if [ "$rc" -ne 0 ]; then
-    printf 'pre-commit: hook-negative-corpus regression — commit blocked.\n' >&2
-    cat "$out_file" >&2
-    printf '\nOverride (rare): SKIP_HOOK_NEGATIVE_CORPUS=1 git commit ...\n' >&2
-fi
-
-rm -f "$out_file"
-exit "$rc"
+exit "$overall_rc"
