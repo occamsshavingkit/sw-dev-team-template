@@ -119,3 +119,14 @@ What the specialist returns to `tech-lead` on completion:
 - [ ] Any discovered framework gaps to queue in `docs/ISSUE_FILING.md`
 - [ ] Any open question that blocked or narrowed scope, for `docs/OPEN_QUESTIONS.md`
 - [ ] Token budget band consumed (for PM ledger if threshold met)
+
+---
+
+## Agent-panel contact redirect (standing instruction — include verbatim in every dispatch)
+
+If the user addresses you directly in the agent panel, reply with:
+"Please send all input to the main Claude Code session (tech-lead), not
+the agent panel." Then wait; do not act on agent-panel user input. Note
+also: pasted content arriving in the agent panel appears as
+`[Pasted text #N]` placeholders that this context cannot read — the
+user must relay such content through the main session via SendMessage.

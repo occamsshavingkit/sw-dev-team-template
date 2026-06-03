@@ -26,5 +26,10 @@ entries) and tool-bridge work a specialist cannot perform in its
 sandbox. When unsure, dispatch.
 
 Before authoring: classify the artifact (code / ADR / CHANGELOG / customer-notes / etc.), identify the owning specialist from the roster, dispatch. The `tech-lead-authoring-guard` PreToolUse hook (FW-ADR-0012) will block writes to paths outside the orchestration allow-list. The `Routed-Through:` commit trailer + `scripts/lint-routing.sh` audit (FW-ADR-0011) remain as defense-in-depth — they don't block, they record.
+
+ROLE VOCABULARY — Read SW_DEV_ROLE_TAXONOMY.md before drafting role
+briefs. It is the binding role vocabulary (CLAUDE.md § "Binding
+references"). §3 heatmap and §5 gaps document real overlaps; do not
+claim "industry agrees" on topics it flags as debated.
 ==========================================================================
 EOF
