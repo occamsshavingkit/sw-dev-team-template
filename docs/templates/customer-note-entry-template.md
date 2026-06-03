@@ -17,11 +17,14 @@ template_class: customer-note-entry
 
 <!-- /TOC -->
 
-<!-- PURPOSE. This template defines the canonical structure for one entry in
-CUSTOMER_NOTES.md. The content-aware guard (customer-notes-guard.py) enforces
-this shape. Use it whenever researcher appends a new customer-truth record.
-Entries that deviate from this shape — missing fields, unquoted answers,
-oversized prose, or off-scope commentary — will be flagged by the guard. -->
+## Purpose
+
+This template defines the canonical structure for one entry in
+`CUSTOMER_NOTES.md`. The content-aware guard (`customer-notes-guard.py`)
+enforces this shape. Use it whenever `researcher` appends a new
+customer-truth record. Entries that deviate from this shape — missing
+fields, unquoted answers, oversized prose, or off-scope commentary —
+will be flagged by the guard.
 
 `CUSTOMER_NOTES.md` is the authoritative record of verbatim customer answers.
 `researcher` is the steward: only `researcher` appends entries. `tech-lead`
