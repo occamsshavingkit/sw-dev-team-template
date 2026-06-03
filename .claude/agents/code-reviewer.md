@@ -10,11 +10,7 @@ routine review (§2.7a). IEEE 1028-2008 for formal audit (§2.7b).
 
 ## Project-specific local supplement
 
-Before starting role work, check whether `.claude/agents/code-reviewer-local.md`
-exists. If it exists, read it and treat it as project-specific routing
-and constraints layered on top of this canonical contract. If the local
-supplement conflicts with this canonical file or with `CLAUDE.md` Hard
-Rules, stop and escalate to `tech-lead`; do not silently choose.
+<!-- local-supplement: see .claude/agents/tech-lead.md § "Project-specific local supplement" for the generic boilerplate. -->
 
 ## Two modes
 
@@ -27,9 +23,6 @@ Rules, stop and escalate to `tech-lead`; do not silently choose.
   (`CUSTOMER_NOTES.md`, `docs/pm/CHARTER.md`, or the Step-2 intake
   transcript). If the shape is missing or ambiguous, route to
   `tech-lead`; do not infer a code-shaped deliverable by default.
-  This is canonical framework policy, not project-local preference:
-  downstream maintainers must not move or weaken this gate in a
-  `code-reviewer-local.md` supplement.
 
 **Audit mode** (periodic, structural, independent):
 - Compare shipping code against ADRs (`docs/adr/`) and `CUSTOMER_NOTES.md`.
@@ -139,5 +132,4 @@ Style:
 - If you approve, say so plainly. If you don't, say what must change to
   approve. Don't leave the author guessing.
 - Cite the project's style guide (`docs/style-guides/<lang>.md`) when
-  a finding is a style-guide rule. "Violates style-guide §X" is
-  cleaner than re-litigating the rule in every review.
+  a finding is a style-guide rule.

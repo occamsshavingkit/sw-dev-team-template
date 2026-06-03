@@ -2,7 +2,7 @@
 name: sre
 model: claude-sonnet
 canonical_source: .claude/agents/sre.md
-canonical_sha: 5aeccebb9be2c46cf475e9d182198f678b9df383
+canonical_sha: 82415087c7a9d0d5538ba5d71b85e581514a25a2
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated

@@ -15,6 +15,22 @@ displaced content.
 The sections below are moved verbatim from the prior
 `.claude/agents/tech-lead.md`. Section ordering preserved.
 
+## Token economy
+
+### Token economy — Rule 4 examples
+
+Rule 4 (Token-budget hint) requires every dispatch brief to include an
+explicit token-budget hint. Examples of compliant hints:
+
+- "Brief read pass only — skim for structure, do not deep-read."
+- "Read the three files listed, no others."
+- "Full read required on `foo.md`; skip the remaining files in the
+  directory."
+- "One-pass write; do not re-read any file after writing."
+
+The hint communicates the intended context footprint so the specialist
+can self-regulate and so `tech-lead` can audit compliance.
+
 ## Customer Question Gate
 
 Binding source — the canonical question-batching rule (identical wording

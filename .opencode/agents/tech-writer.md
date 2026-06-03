@@ -2,7 +2,7 @@
 name: tech-writer
 model: claude-sonnet
 canonical_source: .claude/agents/tech-writer.md
-canonical_sha: c90e620af4b82d0501acc21fa96b8655d7d12d68
+canonical_sha: fc426200f9766813c15276ed3e39dc8778616a46
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated

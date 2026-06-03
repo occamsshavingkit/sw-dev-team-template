@@ -2,7 +2,7 @@
 name: security-engineer
 model: claude-sonnet
 canonical_source: .claude/agents/security-engineer.md
-canonical_sha: 19acb9bb6389264cd51f51612e0e95b515228d17
+canonical_sha: 898ed37357ee8a4acab2aeaf741cb5a648d4eb26
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated

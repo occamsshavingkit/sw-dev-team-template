@@ -3,13 +3,15 @@ name: qa-engineer
 description: QA / Test Engineer. Use for test strategy, test design beyond unit tests (integration, system, acceptance), defect isolation, regression-test maintenance, and quality-metrics definition. Not for unit tests written alongside production code — those belong to software-engineer.
 model: sonnet
 canonical_source: .claude/agents/qa-engineer.md
-canonical_sha: 71a8eac819dba946b11f7e81dd92b4b66f0bcb38
+canonical_sha: 13dd3491f0e03333d7458a9b75a9768646e124e7
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated
 ---
 
 ## Project-specific local supplement
+
+<!-- local-supplement: see .claude/agents/tech-lead.md § "Project-specific local supplement" for the generic boilerplate. -->
 
 Before starting role work, check whether `.claude/agents/qa-engineer-local.md`
 exists. If it exists, read it and treat it as project-specific routing

@@ -2,7 +2,7 @@
 name: project-manager
 model: gemini-flash
 canonical_source: .claude/agents/project-manager.md
-canonical_sha: f34b23e4d4e0e6946abd0de98d13975f55a53938
+canonical_sha: 51775f650a08d8a769183d512f93a77ff036a0b9
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated

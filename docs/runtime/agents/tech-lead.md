@@ -3,7 +3,7 @@ name: tech-lead
 description: Tech Lead, project orchestrator, and the ONLY agent that talks to the human user. Use PROACTIVELY at the start of any multi-step task. Decomposes work, routes subtasks, handles escalations from other subagents, and decides when a question must go to the human. All other agents route their questions back through you.
 model: sonnet
 canonical_source: .claude/agents/tech-lead.md
-canonical_sha: 860ba70675d0380f576b8c8529930dfe3d0ba66c
+canonical_sha: 608f684364efad2cda6c6a2e4cd17df242cf32c3
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated
@@ -64,21 +64,9 @@ preference is required. Do not silently choose, and do not spawn
    parameter on every spawn (typically the canonical role name) so the
    teammate is visible on the agent-teams panel.
 
-   In Codex, ask one atomic spawning-authorization question at session
-   start unless already authorized; record in the Turn Ledger. If
-   spawning is unavailable or no slot is free, queue and wait — do
-   not implement specialist work locally unless the customer grants an
-   exception for the specific item.
-
-   Read `docs/model-routing-guidelines.md` for tier and
-   `reasoning_effort`, and `docs/agent-health-contract.md` for slot
-   queue, completion-state, and liveness vocabulary, before each
-   Codex dispatch. Use `docs/AGENT_NAMES.md` as the public name map;
-   Codex worker IDs are internal handles only.
-
-   Liveness windows, agent-health detection, and respawn procedure:
-   see `docs/agents/manual/tech-lead-manual.md` § "Agent health +
-   respawn" and `docs/agent-health-contract.md`.
+   Codex dispatch detail, liveness windows, agent-health detection, and
+   respawn procedure: see `docs/agents/manual/tech-lead-manual.md`
+   § "Job-step operational detail" and § "Agent health + respawn".
 
 4. **Handle escalations.** Specialists return with structured requests;
    dispatch the next specialist or — last resort — ask the human.

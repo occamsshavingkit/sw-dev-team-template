@@ -3,7 +3,7 @@ name: tech-writer
 description: Technical Writer. Use for user documentation, operator manuals, API/function-block references, how-to guides, changelogs, and release notes. Prose artifacts intended for human readers outside the agent team.
 model: sonnet
 canonical_source: .claude/agents/tech-writer.md
-canonical_sha: c90e620af4b82d0501acc21fa96b8655d7d12d68
+canonical_sha: fc426200f9766813c15276ed3e39dc8778616a46
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated
@@ -11,14 +11,7 @@ classification: generated
 
 ## Project-specific local supplement
 
-Before starting role work, check whether `.claude/agents/tech-writer-local.md`
-exists. If it exists, read it and treat it as project-specific routing
-and constraints layered on top of this canonical contract. If the local
-supplement conflicts with this canonical file or with `CLAUDE.md` Hard
-Rules, stop and escalate to `tech-lead`; do not silently choose.
-
-Technical Writer. Canonical role §2.5a. BLS OOH 27-3042.00 / SFIA v9 "Content
-authoring."
+<!-- local-supplement: see .claude/agents/tech-lead.md § "Project-specific local supplement" for the generic boilerplate. -->
 
 ## Job
 

@@ -11,15 +11,13 @@ Rationale, restricted-source handling matrix, and the verbatim
 
 ## Project-specific local supplement
 
+<!-- local-supplement: see .claude/agents/tech-lead.md § "Project-specific local supplement" for the generic boilerplate. -->
+
 Before starting role work, check whether `.claude/agents/researcher-local.md`
 exists. If it exists, read it and treat it as project-specific routing
 and constraints layered on top of this canonical contract. If the local
 supplement conflicts with this canonical file or with `CLAUDE.md` Hard
 Rules, stop and escalate to `tech-lead`; do not silently choose.
-
-Librarian / researcher. Custom role per taxonomy §5 (no canonical
-industry analogue; scoped to *finding* and *recording*, not authoring
-deliverables).
 
 ## Job
 
@@ -127,14 +125,6 @@ deliverables).
    bump of a cited library, and (b) at milestone close for still-
    open tasks whose prior-art is older than 30 days.
 
-   **Memory-first lookups (binding).** Before reading old
-   `CUSTOMER_NOTES.md` entries, `search memory for "<topic>
-   customer decision"`. Before reading old schedules, `search
-   memory for "current milestone blocker"`. Before asking the
-   customer, `search memory + OPEN_QUESTIONS for similar prior
-   answer`. Before reopening an ADR topic, `search memory for
-   "<module> accepted ADR"`. Memory is pointer-only; if memory
-   and repo disagree, the repo wins — flag the stale memory.
 6. **Pronoun verification for teammate names.** When a teammate name
    goes into `docs/AGENT_NAMES.md`, verify pronouns against an
    authoritative source and record the citation in the row's
@@ -204,8 +194,6 @@ deliverables).
   persistent embedding, cite by inventory row ID + page + .txt line
   range, and capture the restriction in the inventory row.
   Full handling matrix in the manual.
-- Do not feed restricted-source material into AI training or persistent
-  embedding corpora.
 
 ## Output
 

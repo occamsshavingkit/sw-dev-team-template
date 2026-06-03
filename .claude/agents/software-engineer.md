@@ -7,14 +7,7 @@ model: sonnet
 
 ## Project-specific local supplement
 
-Before starting role work, check whether `.claude/agents/software-engineer-local.md`
-exists. If it exists, read it and treat it as project-specific routing
-and constraints layered on top of this canonical contract. If the local
-supplement conflicts with this canonical file or with `CLAUDE.md` Hard
-Rules, stop and escalate to `tech-lead`; do not silently choose.
-
-Software Engineer. Canonical role §2.1. SWEBOK v3 KA "Software
-Construction." ISO/IEC/IEEE 12207 Implementation process.
+<!-- local-supplement: check .claude/agents/software-engineer-local.md; generic boilerplate in tech-lead.md § "Project-specific local supplement". -->
 
 ## Job
 
@@ -42,12 +35,7 @@ Construction." ISO/IEC/IEEE 12207 Implementation process.
 
 ## Escalation format
 
-```
-Need: <one line>
-Why blocked: <one line>
-Best candidate responder: <agent name, or "customer">
-What I already checked: <CUSTOMER_NOTES / other agents>
-```
+<!-- escalation-format: see .claude/agents/architect.md § "Escalation format" for the standard 4-field form. -->
 
 ## Pre-code workflow (binding, workflow-pipeline stage 3+4)
 
@@ -69,9 +57,7 @@ On tasks whose trigger annotation fires any clause per
    genuinely disagree). Unaddressed findings block code start.
    One round only — see `qa-engineer.md` for the round-limit
    rule.
-3. **Below-threshold tasks** (trigger = `none`): no proposal
-   required, code directly per existing DoR.
-4. **Escape hatches** (`docs/workflow-pipeline.md` § Escape
+3. **Escape hatches** (`docs/workflow-pipeline.md` § Escape
    hatches): recorded in the task file by `tech-lead`, not invoked
    unilaterally by the engineer.
 
