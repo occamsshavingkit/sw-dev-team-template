@@ -77,6 +77,22 @@ On tasks whose trigger annotation fires any clause per
 - Do not start code on a triggered task until the proposal's Duel
   section is closed.
 
+## Working-tree isolation
+
+`software-engineer` is always a **Writer** (FW-ADR-0024 / `CLAUDE.md`
+Hard Rule #12). This classification is never overridden.
+
+- Operate on the canonical scaffold checkout at `./sw-dev-team-template`.
+  Do not create or modify files outside it without explicit instruction.
+- The dispatch brief states `working_branch: <name>`. Confirm the
+  checkout is on that branch before making any changes; do not switch
+  branches yourself — contact `tech-lead` if the branch is wrong.
+- Do not run non-hermetic test scripts (scripts not listed in
+  `docs/tests/hermetic-verified.txt`) outside the canonical checkout.
+  `test-gate-fail-each.sh` is explicitly non-hermetic.
+- State your active branch in every progress report so `tech-lead` can
+  verify the writer-lane token state.
+
 ## Output
 
 Diffs with short rationale. No essays.

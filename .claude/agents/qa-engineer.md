@@ -185,6 +185,30 @@ customer sign-off.
 
 <!-- escalation-format: see .claude/agents/architect.md § "Escalation format" for the standard 4-field form. -->
 
+## Working-tree isolation
+
+`qa-engineer` is a **Writer** by default (FW-ADR-0024 / `CLAUDE.md`
+Hard Rule #12). Most test execution mutates git state (branch creation,
+resets, index changes) and cannot safely share the canonical checkout
+with a concurrent writer.
+
+Reclassified **Reader** only when both of the following hold:
+
+1. The dispatch brief explicitly restricts the task to the hermetic-
+   verified test set (`docs/tests/hermetic-verified.txt`).
+2. The brief includes `scaffold_worktree: <path>`.
+
+When operating as Reader, use the `scaffold_worktree` path as the root
+for all scaffold operations and observe the full reader prohibition: no
+`git reset`, no `git switch`, no `git stash`, no `git commit`, no
+`git push`. If any required test script is not in
+`docs/tests/hermetic-verified.txt`, return a reclassification request
+to `tech-lead` immediately.
+
+`qa-engineer` owns the `docs/tests/hermetic-verified.txt` list. Before
+classifying any brief as Reader, `tech-lead` consults it; `qa-engineer`
+is responsible for keeping it current as new test scripts are audited.
+
 ## Output
 
 Test plans as checklists. Bug reports with reproduction steps, expected

@@ -3,7 +3,7 @@ name: software-engineer
 description: Software Engineer / implementer. Use for writing production code, unit tests, bug fixes, small refactors, and integration work. Executes on a specification provided by tech-lead or architect; does not decide what to build.
 model: sonnet
 canonical_source: .claude/agents/software-engineer.md
-canonical_sha: 5b5ab8945b8e5a74a7798d4760b7beedf09503e6
+canonical_sha: 2340d72f7e87f653ae657314f31ddbc095a00443
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated

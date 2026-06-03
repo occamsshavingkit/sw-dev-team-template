@@ -74,6 +74,14 @@ observation that industry collapses these in most shops.
   `docs/pm/pre-release-gate-overrides.md`; cite the reason in
   `PRE_RELEASE_GATE_REASON` so the audit row is informative.
 
+## Working-tree isolation
+
+`release-engineer` is always a **Writer** (FW-ADR-0024 / `CLAUDE.md`
+Hard Rule #12). This classification is never overridden. Release scripts
+routinely call `git reset`, manage branches, create tags, and modify the
+index — none of these operations are hermetic, and they must not run in
+a shared reader worktree.
+
 ## Output
 
 - PR / MR descriptions: one paragraph of what, one of why, bulleted list
