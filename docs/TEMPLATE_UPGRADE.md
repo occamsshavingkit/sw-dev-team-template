@@ -242,6 +242,21 @@ downstream maintainer reading this guide from a project tree may need to
 consult the upstream template repo for `migrations/README.md` and
 `migrations/TEMPLATE.sh`.
 
+**Handoff activity sidecar (FW-ADR-0023).** The release that ships the
+activity-sidecar change moves runtime telemetry out of git-tracked
+handoff JSON files. Existing `docs/handoffs/*.json` files that carry an
+`"activity"` array are migrated by the upgrade: the array is stripped
+from the JSON (which becomes a static durable contract after this point)
+and its entries are written to a gitignored
+`docs/handoffs/<task_id>.activity.jsonl` sidecar. If your project has
+no `docs/handoffs/*.json` files with accumulated `"activity"` entries,
+the migration is a no-op. If you have downstream tooling that reads
+`handoff["activity"]` directly, update it to read the sidecar
+`*.activity.jsonl` file instead. The `manifest_file_sha_normalized`
+normalizer in `scripts/lib/manifest.sh` has been removed in this
+release — it is no longer needed because handoff JSON files are now
+static after creation and are hashed raw.
+
 **Gemini harness adapter (FW-ADR-0022).** The release that ships Gemini
 harness support adds `GEMINI.md` (root adapter) and `.gemini/agents/`
 (generated thin adapters). If you use gemini-cli, upgrade it to

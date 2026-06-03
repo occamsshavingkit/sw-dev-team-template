@@ -4,29 +4,31 @@
 #
 # tests/upgrade/test-manifest-handoff-activity-issue-276.sh
 #
-# Issue #276: TEMPLATE_MANIFEST.lock must not report drift when the
-# runtime-mutable "activity" array in docs/handoffs/*.json changes,
-# but MUST still detect changes to the durable contract portions
-# (status, mode, allowed_paths, hard_rule_traces, acceptance_criteria,
-# verification).
+# fw-adr-0023 D2 Option S (v1.2.0): handoff JSON files are now fully static
+# after creation. The handoff-record-activity.py hook writes runtime telemetry
+# to docs/handoffs/<task_id>.activity.jsonl (gitignored) instead of mutating
+# the handoff JSON. manifest_file_sha_normalized is removed; all files are
+# hashed raw via manifest_file_sha.
 #
-# IEEE 1008-1987 §3.2 — features under test:
-#   F1. manifest_file_sha_normalized strips "activity" before hashing.
-#   F2. A change to the "activity" array produces the same normalized
-#       hash (no drift reported by manifest_verify).
-#   F3. A change to the durable "status" field IS detected (drift
-#       reported) — the normalization does not blind the manifest to
-#       real contract changes.
-#   F4. A file outside docs/handoffs/ is hashed raw (normalization is
-#       not applied to unrelated files).
-#   F5. manifest_write records the normalized hash for handoff JSON
-#       files, so a subsequent manifest_verify passes even after the
-#       activity array has been appended to.
+# This test file is updated from its issue-#276 origin to reflect the new
+# sidecar model. The normalizer tests (F1/F2/F5 from the original) are
+# replaced with verification that:
+#
+#   NEW-F1. manifest_file_sha agrees with sha256sum raw (no normalizer path).
+#   NEW-F2. A handoff JSON file that does NOT change between write and verify
+#           produces no drift (manifest_verify rc=0).
+#   NEW-F3. A change to a durable field (status) IS detected (rc=1, drift).
+#   NEW-F4. A non-handoff file is hashed raw: two different files differ.
+#   NEW-F5. The v1.2.0 migration strips "activity" from handoff JSON files
+#           and exports entries to the sidecar JSONL.
+#
+# IEEE 1008-1987 §3.2 — features under test.
 
 set -u
 
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 manifest_lib="$repo_root/scripts/lib/manifest.sh"
+migration="$repo_root/migrations/v1.2.0.sh"
 # shellcheck source=scripts/lib/manifest.sh
 source "$manifest_lib"
 
@@ -50,7 +52,6 @@ check() {
 }
 
 check_output() {
-  # check_output <label> <expected-pattern> <cmd...>
   local label="$1"; shift
   local pattern="$1"; shift
   local out
@@ -65,23 +66,8 @@ check_output() {
   fi
 }
 
-check_not_output() {
-  local label="$1"; shift
-  local pattern="$1"; shift
-  local out
-  out=$("$@" 2>&1) || true
-  if ! echo "$out" | grep -qF "$pattern"; then
-    echo "  PASS: $label"
-    pass=$((pass + 1))
-  else
-    echo "  FAIL: $label (unwanted pattern='$pattern' found in output)" >&2
-    echo "        output was: $out" >&2
-    fail=$((fail + 1))
-  fi
-}
-
 # ---------------------------------------------------------------------------
-# Fixture: a minimal handoff JSON with an empty activity array.
+# Fixture: a minimal handoff JSON WITHOUT an activity key (post-migration).
 # ---------------------------------------------------------------------------
 HANDOFF_RELPATH="docs/handoffs/test-276-handoff.json"
 mkdir -p "$tmp/docs/handoffs"
@@ -91,7 +77,6 @@ cat > "$tmp/$HANDOFF_RELPATH" << 'EOF'
   "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
   "task_id": "test-276",
   "status": "active",
-  "activity": [],
   "verification": {
     "tests": []
   }
@@ -99,59 +84,27 @@ cat > "$tmp/$HANDOFF_RELPATH" << 'EOF'
 EOF
 
 # ---------------------------------------------------------------------------
-# F1. manifest_file_sha_normalized strips "activity" before hashing.
-#     Verify that two files differing only in "activity" produce the same hash.
+# NEW-F1. manifest_file_sha produces the same result as sha256sum raw.
 # ---------------------------------------------------------------------------
-echo "-- F1: normalized hash ignores activity array --"
+echo "-- NEW-F1: manifest_file_sha matches raw sha256sum --"
 
-cat > "$tmp/handoff-with-activity.json" << 'EOF'
-{
-  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
-  "task_id": "test-276",
-  "status": "active",
-  "activity": [{"name": "Bash: ls", "result": "passed", "actor_role": "hook"}],
-  "verification": {
-    "tests": []
-  }
-}
-EOF
+sha_lib=$(manifest_file_sha "$tmp/$HANDOFF_RELPATH")
+sha_raw=$(sha256sum "$tmp/$HANDOFF_RELPATH" | awk '{print $1}')
 
-cat > "$tmp/handoff-no-activity.json" << 'EOF'
-{
-  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
-  "task_id": "test-276",
-  "status": "active",
-  "activity": [],
-  "verification": {
-    "tests": []
-  }
-}
-EOF
-
-sha_with=$(manifest_file_sha_normalized "$tmp/handoff-with-activity.json" "docs/handoffs/handoff-with-activity.json")
-sha_without=$(manifest_file_sha_normalized "$tmp/handoff-no-activity.json" "docs/handoffs/handoff-no-activity.json")
-
-if [[ "$sha_with" == "$sha_without" && -n "$sha_with" ]]; then
-  echo "  PASS: F1 — activity-differing files produce same normalized hash"
+if [[ "$sha_lib" == "$sha_raw" && -n "$sha_lib" ]]; then
+  echo "  PASS: NEW-F1 — manifest_file_sha matches sha256sum raw"
   pass=$((pass + 1))
 else
-  echo "  FAIL: F1 — expected same hash, got '$sha_with' vs '$sha_without'" >&2
+  echo "  FAIL: NEW-F1 — lib='$sha_lib' raw='$sha_raw'" >&2
   fail=$((fail + 1))
 fi
 
 # ---------------------------------------------------------------------------
-# F2. After appending to activity, manifest_verify does NOT report drift.
-#     Simulate: write manifest from baseline (empty activity), then append
-#     to activity, then verify.
+# NEW-F2. A handoff JSON file that does NOT change produces no drift.
+# Write manifest from baseline; verify — must be clean.
 # ---------------------------------------------------------------------------
 echo ""
-echo "-- F2: manifest_verify clean after activity append --"
-
-# Build a minimal fake upstream git repo (manifest_write requires one for
-# manifest_ship_files, but we bypass ship_files and write the manifest
-# directly using the normalized hash instead).
-# We write the manifest by hand using manifest_file_sha_normalized so the
-# test does not require a full upstream clone.
+echo "-- NEW-F2: static handoff file produces no drift --"
 
 manifest_path="$tmp/TEMPLATE_MANIFEST.lock"
 {
@@ -159,161 +112,166 @@ manifest_path="$tmp/TEMPLATE_MANIFEST.lock"
   echo "# Generated by test-manifest-handoff-activity-issue-276.sh"
   echo "# Format: <sha256>  <project-relative path>"
   echo "#"
-  printf '%s  %s\n' \
-    "$(manifest_file_sha_normalized "$tmp/$HANDOFF_RELPATH" "$HANDOFF_RELPATH")" \
-    "$HANDOFF_RELPATH"
+  printf '%s  %s\n' "$(manifest_file_sha "$tmp/$HANDOFF_RELPATH")" "$HANDOFF_RELPATH"
 } > "$manifest_path"
 
-# Now simulate the hook appending an activity entry (in-place JSON edit).
-python3 - "$tmp/$HANDOFF_RELPATH" << 'PYEOF'
-import json, sys
-with open(sys.argv[1], encoding="utf-8") as f:
-    doc = json.load(f)
-doc.setdefault("activity", []).append({
-    "name": "Bash: git status",
-    "result": "passed",
-    "actor_role": "hook",
-    "timestamp": "2026-06-02T15:00:00Z"
-})
-with open(sys.argv[1], "w", encoding="utf-8") as f:
-    json.dump(doc, f, indent=2)
-    f.write("\n")
-PYEOF
-
-# manifest_verify should return 0 (no drift) even though the file changed.
 verify_output=$(manifest_verify "$tmp" "$manifest_path" 2>&1)
 verify_rc=$?
 
 if [[ $verify_rc -eq 0 ]]; then
-  echo "  PASS: F2 — manifest_verify rc=0 after activity append (no drift)"
+  echo "  PASS: NEW-F2 — manifest_verify rc=0 (no drift on static file)"
   pass=$((pass + 1))
 else
-  echo "  FAIL: F2 — manifest_verify rc=$verify_rc after activity append" >&2
+  echo "  FAIL: NEW-F2 — manifest_verify rc=$verify_rc" >&2
   echo "        output: $verify_output" >&2
   fail=$((fail + 1))
 fi
 
 if echo "$verify_output" | grep -qiF "drift"; then
-  echo "  FAIL: F2 — 'drift' appeared in verify output after activity-only change" >&2
+  echo "  FAIL: NEW-F2 — 'drift' appeared in verify output unexpectedly" >&2
   fail=$((fail + 1))
 else
-  echo "  PASS: F2 — 'drift' absent from verify output (activity correctly ignored)"
+  echo "  PASS: NEW-F2 — 'drift' absent from verify output"
   pass=$((pass + 1))
 fi
 
 # ---------------------------------------------------------------------------
-# F3. A change to the durable "status" field IS detected.
+# NEW-F3. A change to the durable "status" field IS detected.
 # ---------------------------------------------------------------------------
 echo ""
-echo "-- F3: manifest_verify detects durable contract change (status field) --"
+echo "-- NEW-F3: durable contract change (status field) detected --"
 
-# Write a fresh manifest from the current state (with activity appended).
+# Write manifest from current state.
 {
   echo "# TEMPLATE_MANIFEST.lock — per FW-ADR-0002"
-  echo "# Generated by test-manifest-handoff-activity-issue-276.sh"
   echo "# Format: <sha256>  <project-relative path>"
-  echo "#"
-  printf '%s  %s\n' \
-    "$(manifest_file_sha_normalized "$tmp/$HANDOFF_RELPATH" "$HANDOFF_RELPATH")" \
-    "$HANDOFF_RELPATH"
+  printf '%s  %s\n' "$(manifest_file_sha "$tmp/$HANDOFF_RELPATH")" "$HANDOFF_RELPATH"
 } > "$manifest_path"
 
-# Now mutate the durable "status" field (not activity).
+# Mutate the durable "status" field.
 python3 - "$tmp/$HANDOFF_RELPATH" << 'PYEOF'
 import json, sys
-with open(sys.argv[1], encoding="utf-8") as f:
-    doc = json.load(f)
-doc["status"] = "completed"  # durable contract change
-with open(sys.argv[1], "w", encoding="utf-8") as f:
-    json.dump(doc, f, indent=2)
-    f.write("\n")
+from pathlib import Path
+p = Path(sys.argv[1])
+doc = json.loads(p.read_text(encoding="utf-8"))
+doc["status"] = "completed"
+p.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
 PYEOF
 
 verify_output_durable=$(manifest_verify "$tmp" "$manifest_path" 2>&1)
 verify_rc_durable=$?
 
 if [[ $verify_rc_durable -ne 0 ]]; then
-  echo "  PASS: F3 — manifest_verify rc=$verify_rc_durable (drift detected for status change)"
+  echo "  PASS: NEW-F3 — manifest_verify rc=$verify_rc_durable (drift detected)"
   pass=$((pass + 1))
 else
-  echo "  FAIL: F3 — manifest_verify rc=0 but expected drift for status field change" >&2
+  echo "  FAIL: NEW-F3 — manifest_verify rc=0 but status was mutated" >&2
   echo "        output: $verify_output_durable" >&2
   fail=$((fail + 1))
 fi
 
 if echo "$verify_output_durable" | grep -qiF "drift"; then
-  echo "  PASS: F3 — 'drift' reported for durable contract change"
+  echo "  PASS: NEW-F3 — 'drift' reported for durable contract change"
   pass=$((pass + 1))
 else
-  echo "  FAIL: F3 — 'drift' not reported; durable change was silently missed" >&2
+  echo "  FAIL: NEW-F3 — 'drift' not reported; durable change was silently missed" >&2
   fail=$((fail + 1))
 fi
 
 # ---------------------------------------------------------------------------
-# F4. A non-handoff file is hashed raw (normalization not applied).
-#     Two files with different content must produce different normalized hashes.
+# NEW-F4. Two files with different content produce different raw hashes.
 # ---------------------------------------------------------------------------
 echo ""
-echo "-- F4: non-handoff file hashed raw (normalization not applied) --"
+echo "-- NEW-F4: different files produce different hashes --"
 
-cat > "$tmp/not-a-handoff.md" << 'EOF'
-# Some markdown file
+cat > "$tmp/file-a.md" << 'EOF'
 content A
 EOF
-cat > "$tmp/not-a-handoff-changed.md" << 'EOF'
-# Some markdown file
+cat > "$tmp/file-b.md" << 'EOF'
 content B
 EOF
 
-sha_md_a=$(manifest_file_sha_normalized "$tmp/not-a-handoff.md" "docs/not-a-handoff.md")
-sha_md_b=$(manifest_file_sha_normalized "$tmp/not-a-handoff-changed.md" "docs/not-a-handoff-changed.md")
-sha_raw_a=$(manifest_file_sha "$tmp/not-a-handoff.md")
+sha_a=$(manifest_file_sha "$tmp/file-a.md")
+sha_b=$(manifest_file_sha "$tmp/file-b.md")
 
-if [[ "$sha_md_a" == "$sha_raw_a" ]]; then
-  echo "  PASS: F4 — non-handoff file: normalized hash == raw hash"
+if [[ "$sha_a" != "$sha_b" && -n "$sha_a" && -n "$sha_b" ]]; then
+  echo "  PASS: NEW-F4 — different files produce different hashes"
   pass=$((pass + 1))
 else
-  echo "  FAIL: F4 — non-handoff file: normalized hash '$sha_md_a' != raw '$sha_raw_a'" >&2
-  fail=$((fail + 1))
-fi
-
-if [[ "$sha_md_a" != "$sha_md_b" ]]; then
-  echo "  PASS: F4 — non-handoff files with different content produce different hashes"
-  pass=$((pass + 1))
-else
-  echo "  FAIL: F4 — non-handoff files with different content produced same hash" >&2
+  echo "  FAIL: NEW-F4 — expected different hashes, got same: '$sha_a'" >&2
   fail=$((fail + 1))
 fi
 
 # ---------------------------------------------------------------------------
-# F5. manifest_file_sha_normalized is applied for handoff files even when
-#     the relpath argument is detected from the absolute path (fallback).
-#     Ensures the regex matches when relpath is omitted.
+# NEW-F5. Migration v1.2.0 strips "activity" from handoff JSON and exports
+#         non-empty entries to the sidecar JSONL.
 # ---------------------------------------------------------------------------
 echo ""
-echo "-- F5: normalized hash via absolute-path detection (no relpath arg) --"
+echo "-- NEW-F5: migration strips activity, exports to sidecar --"
 
-# Reset handoff to baseline (empty activity).
-cat > "$tmp/$HANDOFF_RELPATH" << 'EOF'
+MIGTEST_RELPATH="docs/handoffs/test-mig-handoff.json"
+mkdir -p "$tmp/docs/handoffs"
+
+cat > "$tmp/$MIGTEST_RELPATH" << 'EOF'
 {
-  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
-  "task_id": "test-276",
+  "task_id": "test-mig",
   "status": "active",
-  "activity": [],
-  "verification": {
-    "tests": []
-  }
+  "activity": [
+    {"name": "Bash: ls", "result": "passed", "actor_role": "hook", "timestamp": "2026-06-03T00:00:00Z"}
+  ],
+  "verification": {"tests": []}
 }
 EOF
 
-sha_empty_activity_relpath=$(manifest_file_sha_normalized "$tmp/$HANDOFF_RELPATH" "$HANDOFF_RELPATH")
-sha_empty_activity_abspath=$(manifest_file_sha_normalized "$tmp/$HANDOFF_RELPATH")
+PROJECT_ROOT="$tmp" bash "$migration" >/dev/null
 
-if [[ "$sha_empty_activity_relpath" == "$sha_empty_activity_abspath" && -n "$sha_empty_activity_relpath" ]]; then
-  echo "  PASS: F5 — relpath and absolute-path detection agree on normalized hash"
+# activity key must be gone.
+has_activity=$(python3 -c "
+import json, sys
+doc = json.load(open(sys.argv[1]))
+print('yes' if 'activity' in doc else 'no')
+" "$tmp/$MIGTEST_RELPATH")
+
+if [[ "$has_activity" == "no" ]]; then
+  echo "  PASS: NEW-F5 — activity key removed from handoff JSON"
   pass=$((pass + 1))
 else
-  echo "  FAIL: F5 — hash mismatch: relpath='$sha_empty_activity_relpath' abs='$sha_empty_activity_abspath'" >&2
+  echo "  FAIL: NEW-F5 — activity key still present after migration" >&2
+  fail=$((fail + 1))
+fi
+
+# Sidecar must exist with 1 JSONL line.
+sidecar="$tmp/docs/handoffs/test-mig.activity.jsonl"
+if [[ -f "$sidecar" ]]; then
+  line_count=$(wc -l < "$sidecar")
+  if [[ "$line_count" -eq 1 ]]; then
+    echo "  PASS: NEW-F5 — sidecar has 1 entry"
+    pass=$((pass + 1))
+  else
+    echo "  FAIL: NEW-F5 — sidecar has $line_count lines (expected 1)" >&2
+    fail=$((fail + 1))
+  fi
+  # Entry must be valid JSON.
+  if python3 -c "import json; json.loads(open('$sidecar').readline())" 2>/dev/null; then
+    echo "  PASS: NEW-F5 — sidecar entry is valid JSON"
+    pass=$((pass + 1))
+  else
+    echo "  FAIL: NEW-F5 — sidecar entry is not valid JSON" >&2
+    fail=$((fail + 1))
+  fi
+else
+  echo "  FAIL: NEW-F5 — sidecar file not created" >&2
+  fail=$((fail + 1))
+fi
+
+# Idempotent re-run: second run should be a no-op (no sidecar duplication).
+PROJECT_ROOT="$tmp" bash "$migration" >/dev/null
+line_count_after=$(wc -l < "$sidecar")
+if [[ "$line_count_after" -eq 1 ]]; then
+  echo "  PASS: NEW-F5 — migration is idempotent (sidecar not doubled)"
+  pass=$((pass + 1))
+else
+  echo "  FAIL: NEW-F5 — sidecar grew on second run ($line_count_after lines)" >&2
   fail=$((fail + 1))
 fi
 
