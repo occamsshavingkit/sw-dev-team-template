@@ -181,6 +181,7 @@ case "$ARTIFACT_TYPE" in
     # -----------------------------------------------------------------------
     open-question)
         OQ_FILE="$ROOT/docs/OPEN_QUESTIONS.md"
+        OQ_DIR="$ROOT/docs"
         WIDTH=4
 
         # Malformed-register guard: file must exist
@@ -189,17 +190,30 @@ case "$ARTIFACT_TYPE" in
             exit 1
         fi
 
-        # Compute next number: scan Q-NNNN IDs in the file
+        # Compute next number: scan Q-NNNN IDs across the active file,
+        # all quarter shards (OPEN_QUESTIONS-YYYY-QN.md), and any legacy
+        # archive (OPEN_QUESTIONS-ARCHIVE.md). Glob covers all of them.
+        # This prevents ID reuse across shards (fw-adr-0025 cross-shard
+        # correctness requirement).
         max=0
-        while IFS= read -r line; do
-            if [[ "$line" =~ Q-([0-9]{4}) ]]; then
-                n="${BASH_REMATCH[1]}"
-                n_dec=$((10#$n))
-                if [[ $n_dec -gt $max ]]; then
-                    max=$n_dec
+        while IFS= read -r scan_file; do
+            [[ -f "$scan_file" ]] || continue
+            while IFS= read -r line; do
+                if [[ "$line" =~ Q-([0-9]{4}) ]]; then
+                    n="${BASH_REMATCH[1]}"
+                    n_dec=$((10#$n))
+                    if [[ $n_dec -gt $max ]]; then
+                        max=$n_dec
+                    fi
                 fi
-            fi
-        done < "$OQ_FILE"
+            done < "$scan_file"
+        done < <(
+            printf '%s\n' "$OQ_FILE"
+            find "$OQ_DIR" -maxdepth 1 \
+                -name 'OPEN_QUESTIONS-[0-9][0-9][0-9][0-9]-Q[1-4].md' \
+                -o -name 'OPEN_QUESTIONS-ARCHIVE.md' \
+                2>/dev/null | sort
+        )
 
         next=$((max + 1))
         num="$(pad "$next" "$WIDTH")"
