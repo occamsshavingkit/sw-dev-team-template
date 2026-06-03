@@ -77,6 +77,20 @@ On tasks whose trigger annotation fires any clause per
 - Do not start code on a triggered task until the proposal's Duel
   section is closed.
 
+## Long-running operations
+
+Build-and-test chains (compilation + full test suite, CI dry-runs,
+integration harnesses) frequently exceed 60 s. Per Token economy
+rule 7 (`.claude/agents/tech-lead.md` § "Token economy" rule 7):
+structure each long stage as a bounded dispatch. When a build
+or test chain is still running as context approaches its budget limit,
+return immediately with a Deferred-wait report (fields:
+`Deferred-wait:` / `Condition:` / `Resume-after:` / `Work done so
+far:` / `Resumable from:`). Do not embed an unbounded poll or sleep
+loop in a brief. Tech-lead re-dispatches via SendMessage-warm or
+ScheduleWakeup. See `docs/agents/manual/tech-lead-manual.md`
+§ "Long-operation worked example" for the format.
+
 ## Working-tree isolation
 
 `software-engineer` is always a **Writer** (FW-ADR-0024 / `CLAUDE.md`

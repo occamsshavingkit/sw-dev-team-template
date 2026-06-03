@@ -3,7 +3,7 @@ name: sre
 description: Site Reliability Engineer and Performance Engineer. Use for production behavior, reliability, performance, capacity planning, SLO definition, incident response, and performance profiling / tuning. Not for pre-release correctness testing (qa-engineer).
 model: sonnet
 canonical_source: .claude/agents/sre.md
-canonical_sha: 82415087c7a9d0d5538ba5d71b85e581514a25a2
+canonical_sha: 5200a012925cd7e74f3095cd5622ee1e1839735f
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated
@@ -59,6 +59,15 @@ classification: generated
   supplier management for IaaS / PaaS / SaaS, monitoring,
   alerting, SLO reporting, incident posture, and post-incident
   review feeding `docs/pm/LESSONS.md`.
+- **HR-2** Capacity runs, DR rehearsals, and soak tests expected to
+  exceed ~60 s must be structured as bounded stages per Token economy
+  rule 7 (`.claude/agents/tech-lead.md` § "Token economy" rule 7).
+  Return a Deferred-wait report immediately when a long-running
+  operation is still in progress and context budget is near its limit;
+  do not embed an unbounded poll or sleep loop in a brief. Tech-lead
+  re-dispatches via SendMessage-warm or ScheduleWakeup. See
+  `docs/agents/manual/tech-lead-manual.md` § "Long-operation worked
+  example" for the Deferred-wait format.
 
 ## Hand-offs (escalate through tech-lead; never contact customer)
 

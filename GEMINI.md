@@ -93,6 +93,28 @@ The main session must never autonomously select `@tech-lead`; doing so would
 spawn it as a subagent, which is a harness misconfiguration. `tech-lead` is
 Mode A only — it is the main session, not a dispatchable specialist.
 
+## Background-by-default dispatch (Mode A)
+
+Dispatch subagents asynchronously by default so the customer chat stays
+interactive while specialists work. Foreground (blocking) dispatch is
+allowed only when the specialist's return value is needed before the
+next customer-facing reply — for example, a quick lookup whose answer
+feeds the very next line.
+
+When multiple independent specialists are ready to dispatch, send them
+in one turn as separate async calls rather than serializing them. Two
+specialists whose inputs are already on disk or in the brief need not
+wait for each other.
+
+If the gemini-cli version in use does not expose asynchronous subagent
+dispatch, record "async dispatch unavailable in this gemini-cli version"
+in the Turn Ledger and proceed synchronously — this is a harness
+limitation, not a protocol violation. Upgrade to >= v0.38.1 (stable
+v0.44.0) to restore async capability.
+
+This mirrors the intent of `AGENTS.md` Rule F and `.claude/agents/tech-lead.md`
+§ "Background-by-default (binding)" for the Gemini harness.
+
 ## Agent Roster
 
 All 16 canonical roles are available. Role slugs match `.claude/agents/`

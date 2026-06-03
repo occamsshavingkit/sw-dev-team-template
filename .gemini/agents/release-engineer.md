@@ -3,7 +3,7 @@ name: release-engineer
 description: Build and Release Engineer. Use for build-pipeline work, dependency and toolchain management, packaging, tagging, changelog generation, deployment orchestration, and reproducibility of historical builds. Collapses the build-engineer / release-engineer / DevOps-engineer roles per modern practice.
 model: gemini-pro
 canonical_source: .claude/agents/release-engineer.md
-canonical_sha: 05d066a65cf6c7035463a91956c16b44f56b58e2
+canonical_sha: f2ceaeef70e0665a4e115ae974614a2233f68834
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated

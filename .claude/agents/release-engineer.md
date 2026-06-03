@@ -74,6 +74,20 @@ observation that industry collapses these in most shops.
   `docs/pm/pre-release-gate-overrides.md`; cite the reason in
   `PRE_RELEASE_GATE_REASON` so the audit row is informative.
 
+## Long-running operations
+
+`pre-release-gate.sh`, dogfood harness runs, and soak/smoke pipelines
+routinely exceed 60 s. Per `.claude/agents/tech-lead.md` § "Token economy"
+rule 7: structure
+each long stage as a bounded dispatch. When the gate or pipeline is
+still running as context approaches its budget limit, return immediately
+with a Deferred-wait report (fields: `Deferred-wait:` / `Condition:` /
+`Resume-after:` / `Work done so far:` / `Resumable from:`). Do not
+embed an unbounded poll or sleep loop in a brief. Tech-lead owns the
+re-dispatch decision (SendMessage-warm or ScheduleWakeup). See
+`docs/agents/manual/tech-lead-manual.md` § "Long-operation worked
+example" for the release-cut stage table.
+
 ## Working-tree isolation
 
 `release-engineer` is always a **Writer** (FW-ADR-0024 / `CLAUDE.md`

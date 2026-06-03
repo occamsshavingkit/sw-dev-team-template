@@ -219,6 +219,50 @@ findings, blockers, and escalations to `tech-lead` instead.
 Closing completed, failed, or no-longer-needed specialists is routine
 slot hygiene; see `docs/agent-health-contract.md`.
 
+### Long-operation worked example
+
+Release-cut is the canonical long-op case. Four stages; each stage
+that exceeds ~60 s gets its own dispatch. Tech-lead never merges two
+long stages into one brief.
+
+| Stage | Role | Expected duration | Dispatch shape |
+|---|---|---|---|
+| 1. VERSION bump + changelog | `release-engineer` | < 1 min | Bounded: single commit, returns diff |
+| 2. Pre-release gate (`scripts/pre-release-gate.sh`) | `release-engineer` | 10+ min | Deferred-wait on first dispatch; tech-lead re-dispatches with `Resumable from: gate-log path` when PASS/FAIL signal arrives |
+| 3. Dogfood upgrade harness | `release-engineer` | Variable; non-hermetic → writer lane | Deferred-wait if harness outruns context; re-dispatch with `Resumable from: last-passing step` |
+| 4. Tag + push | `release-engineer` | < 1 min | Bounded: returns tag SHA and push confirmation |
+
+**How tech-lead handles Stage 2.**
+
+1. Dispatch `release-engineer` with a bounded brief: "run
+   `scripts/pre-release-gate.sh`; return immediately with a
+   Deferred-wait report if it is still running when your context
+   budget reaches 80%."
+2. Specialist returns:
+   ```
+   Deferred-wait: pre-release-gate.sh still executing
+   Condition:     process exits (PASS or FAIL)
+   Resume-after:  ~8 min
+   Work done so far: sub-gates 1–3 passed; sub-gate 4 running
+   Resumable from: docs/pm/pre-release-gate-overrides.md + gate-log
+   ```
+3. Tech-lead chooses a path:
+   - **SendMessage-warm** (wait ≤ 15 min, specialist still alive):
+     message the specialist when the gate process exits; specialist
+     resumes from the Deferred-wait state.
+   - **ScheduleWakeup / re-dispatch** (wait longer or specialist
+     closed): schedule a wakeup at Resume-after; re-dispatch
+     `release-engineer` with `Resumable from:` as the brief's
+     starting context.
+4. On re-dispatch, specialist reads the gate-log, verifies outcome,
+   and proceeds to Stage 3 or reports failure — no re-running of
+   already-passed sub-gates.
+
+The ~15 min warm/respawn boundary is soft guidance, not a hard
+constant. Adjust to the task: a 5 min wait with a context-heavy
+specialist favors SendMessage-warm; a 20 min wait with a lightweight
+brief favors ScheduleWakeup.
+
 ### Background vs foreground + status-narration ban
 
 Canonical home for the background-by-default dispatch rule and the
