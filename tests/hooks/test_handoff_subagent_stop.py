@@ -9,8 +9,10 @@
 #   F3.  code-reviewer returns, review evidence missing → warn (warn).
 #   F4.  security-engineer returns, security evidence missing → deny (enforce).
 #   F5.  security-engineer returns, security evidence missing → warn (warn).
-#   F6.  researcher returns, human_approval evidence missing → deny (enforce).
-#   F7.  researcher returns, human_approval evidence missing → warn (warn).
+#   F6.  librarian returns, human_approval evidence missing → deny (enforce).
+#   F6b. researcher returns, human_approval evidence missing → deny (back-compat).
+#   F7.  librarian returns, human_approval evidence missing → warn (warn).
+#   F7b. researcher returns, human_approval evidence missing → warn (back-compat).
 #   F8.  No subagent_role in event → full gate set checked (fallback).
 #   F9.  No/invalid active handoff → fail-safe: enforce denies, warn allows.
 #   F10. SWDT_HANDOFF_GATES absent → gate silent (no output).
@@ -180,7 +182,14 @@ _ACCEPTED_SECURITY = {
 
 _ACCEPTED_HUMAN_APPROVAL = {
     "result": "approved",
-    "actor_role": "researcher",
+    "actor_role": "librarian",   # primary custodian (Q-0023)
+    "source": "CUSTOMER_NOTES.md",
+    "evidence_kind": "accepted",
+}
+
+_ACCEPTED_HUMAN_APPROVAL_RESEARCHER = {
+    "result": "approved",
+    "actor_role": "researcher",  # back-compat: historical handoffs
     "source": "CUSTOMER_NOTES.md",
     "evidence_kind": "accepted",
 }
@@ -270,11 +279,32 @@ def test_f5_security_engineer_missing_security_warn(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# F6/F7: researcher returns, human_approval evidence missing
+# F6/F7: librarian returns, human_approval evidence missing (primary)
+# F6b/F7b: researcher returns, human_approval evidence missing (back-compat)
 # ---------------------------------------------------------------------------
 
 
-def test_f6_researcher_missing_human_approval_enforce(tmp_path: Path) -> None:
+def test_f6_librarian_missing_human_approval_enforce(tmp_path: Path) -> None:
+    handoff = _make_handoff(require_human_approval=True)
+    event = _stop_event("librarian")
+    result = _run_gate(event, mode="enforce", handoff=handoff, tmp_path=tmp_path)
+    assert result is not None
+    assert result["permissionDecision"] == "deny"
+    assert "human_approval" in result["permissionDecisionReason"]
+
+
+def test_f7_librarian_missing_human_approval_warn(tmp_path: Path) -> None:
+    handoff = _make_handoff(require_human_approval=True)
+    event = _stop_event("librarian")
+    result = _run_gate(event, mode="warn", handoff=handoff, tmp_path=tmp_path)
+    assert result is not None
+    assert result["permissionDecision"] == "allow"
+    assert "warning" in result
+    assert "human_approval" in result["warning"]
+
+
+def test_f6b_researcher_missing_human_approval_enforce(tmp_path: Path) -> None:
+    """researcher still triggers human_approval check (backward-compat)."""
     handoff = _make_handoff(require_human_approval=True)
     event = _stop_event("researcher")
     result = _run_gate(event, mode="enforce", handoff=handoff, tmp_path=tmp_path)
@@ -283,7 +313,8 @@ def test_f6_researcher_missing_human_approval_enforce(tmp_path: Path) -> None:
     assert "human_approval" in result["permissionDecisionReason"]
 
 
-def test_f7_researcher_missing_human_approval_warn(tmp_path: Path) -> None:
+def test_f7b_researcher_missing_human_approval_warn(tmp_path: Path) -> None:
+    """researcher still triggers human_approval check (backward-compat)."""
     handoff = _make_handoff(require_human_approval=True)
     event = _stop_event("researcher")
     result = _run_gate(event, mode="warn", handoff=handoff, tmp_path=tmp_path)

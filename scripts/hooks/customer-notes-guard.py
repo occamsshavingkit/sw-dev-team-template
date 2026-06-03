@@ -532,7 +532,7 @@ def _approval_gate_output(findings: list[str] | None = None) -> dict:
     base_reason = (
         "CUSTOMER_NOTES.md is the verbatim customer-truth record. "
         "Per the template contract, tech-lead must route customer-answer "
-        "entries to researcher; approve only for researcher-owned notes "
+        "entries to librarian; approve only for librarian-owned notes "
         "maintenance or an intentional human edit."
     )
     if findings:

@@ -250,10 +250,14 @@ def has_security_evidence(handoff: dict) -> bool:
 
 
 def has_human_approval_evidence(handoff: dict) -> bool:
-    """Return True when the handoff has researcher-stewarded human approval.
+    """Return True when the handoff has librarian- or researcher-stewarded human approval.
+
+    ``actor_role`` must be ``"librarian"`` (primary, per roster bundle #301/#290/#291 /
+    ruling Q-0023) or ``"researcher"`` (accepted for backward-compatibility with
+    historical handoff records written before the custody transfer).
 
     Requirements:
-    - ``actor_role == "researcher"``
+    - ``actor_role in {"librarian", "researcher"}``
     - ``result == "approved"``
     - ``source == "CUSTOMER_NOTES.md"``
     - evidence is accepted (not worker_report)
@@ -262,7 +266,7 @@ def has_human_approval_evidence(handoff: dict) -> bool:
     return isinstance(evidence, list) and any(
         isinstance(item, dict)
         and item.get("result") == "approved"
-        and item.get("actor_role") == "researcher"
+        and item.get("actor_role") in {"librarian", "researcher"}
         and item.get("source") == "CUSTOMER_NOTES.md"
         and _is_accepted_evidence(item)
         for item in evidence
@@ -278,7 +282,7 @@ def missing_evidence_gates(handoff: dict) -> list[str]:
     - ``"security_review"`` when ``requires.security_review`` is True but no accepted
       security evidence exists
     - ``"human_approval"`` when ``requires.human_approval`` is True but no accepted
-      researcher-stewarded approval exists
+      librarian- or researcher-stewarded approval exists
 
     Returns an empty list when all required gates are satisfied.
     """
