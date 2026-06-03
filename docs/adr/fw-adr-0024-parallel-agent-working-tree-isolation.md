@@ -5,7 +5,7 @@ description: >
   mutate or read the scaffold checkout: strict serialization (current
   interim), per-agent git worktrees, or read-only clone/worktree for
   readers with a single canonical writer.
-status: proposed
+status: accepted
 date: 2026-06-02
 ---
 
@@ -55,10 +55,11 @@ Shape per MADR 3.0 + this template's Three-Path Rule
 ## Status
 
 - **Proposed** — 2026-06-02
+- **Accepted** — 2026-06-03. Option C (Hybrid) adopted per customer ruling 2026-06-03; implement the 11 enumerated contract/helper changes.
 - **Current interim:** strict serialization (Option M) — no parallel
   scaffold mutations are permitted. This ADR proposes replacing that
   interim with a structural fix (Option C).
-- **Deciders:** `architect` (proposed); `tech-lead` + customer (pending)
+- **Deciders:** `architect` (proposed); `tech-lead` + customer (accepted 2026-06-03)
 - **Consulted:** issue #212 incident log; issue #306 (non-hermetic
   tests); issue #216 (test-gate git-reset side-effects);
   `docs/agents/manual/tech-lead-manual.md` § "Parallelism default"
@@ -354,9 +355,8 @@ are in throwaway worktrees (closing Incident 3 and its class), and
 test-induced git mutations are contained by the worktree boundary
 regardless of whether a test script is hermetic or not.
 
-**This recommendation is pending customer ruling.** The contract
-changes in the section below are implementation-ready once the ruling
-is recorded.
+**Customer ruling recorded 2026-06-03: Option C adopted.** The contract
+changes in the section below are implementation-ready.
 
 ---
 

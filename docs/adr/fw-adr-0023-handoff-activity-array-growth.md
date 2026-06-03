@@ -4,7 +4,7 @@ description: >
   Two coupled decisions on handoff JSON integrity: (1) deliberate hash-exclusion
   of the runtime-mutable "activity" array from TEMPLATE_MANIFEST.lock verification,
   and (2) disposition of the unbounded growth that exclusion exposes.
-status: proposed
+status: accepted
 date: 2026-06-02
 ---
 
@@ -50,12 +50,12 @@ a git-tracked durable contract file.
 ## Status
 
 - **Proposed** — 2026-06-02
+- **Accepted** — 2026-06-03. Option S (Sidecar) adopted per customer ruling 2026-06-03; move `activity` array to gitignored `docs/handoffs/<task>.activity.jsonl`, MINOR schema bump + one-time migration, remove hash-exclusion normalizer.
 - **D1 (hash-exclusion):** implemented in PR #304 / issue #276; this ADR
   provides post-hoc rationale and security trade-off documentation for
   the shipped fix. No further implementation work required for D1.
-- **D2 (growth):** recommendation recorded below; customer ruling
-  required before implementation proceeds.
-- **Deciders:** `architect` (proposed); `tech-lead` + customer (D2 pending)
+- **D2 (growth):** Option S (Sidecar) chosen; customer ruling recorded 2026-06-03; implementation may proceed.
+- **Deciders:** `architect` (proposed); `tech-lead` + customer (accepted 2026-06-03)
 - **Consulted:** `scripts/lib/manifest.sh` (`manifest_file_sha_normalized`,
   PR #304); `security-engineer` (sign-off on #276, recorded in
   `CUSTOMER_NOTES.md` 2026-06-02); FW-ADR-0002 (manifest model);
@@ -377,8 +377,7 @@ migration cost is real but bounded and follows the existing pattern of
 schema version bumps (FW-ADR-0021 set the precedent for the handoff
 schema with a MINOR bump).
 
-**This is a recommendation, not an applied decision.** Customer ruling
-is required before implementation begins. The D1 fix (Option S above,
+**Customer ruling recorded 2026-06-03: Option S (Sidecar) adopted.** Implementation may proceed. The D1 fix (Option S above,
 PR #304) is independent and already shipped regardless of which D2
 option is chosen.
 
