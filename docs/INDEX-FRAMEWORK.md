@@ -131,6 +131,7 @@ FW-ADR-0006). Numbering is sequential within each namespace.
 | `docs/templates/retrofit-playbook-template.md` | Migrating an existing codebase into a scaffolded project (v0.13.0+). |
 | `docs/templates/scoping-questions-template.md` | Seed queue of Step-2 scoping questions. |
 | `docs/templates/customer-note-entry-template.md` | Canonical shape for a single `CUSTOMER_NOTES.md` entry; enforced by `customer-notes-guard.py`. |
+| `docs/templates/audit-brief-template.md` | Self-contained context bundle for milestone/release audits run by conversation-blind agents on any harness; ensures equivalent inputs across models for comparable, reconcilable findings. |
 | `docs/templates/dispatch-template.md` | Structural aid for `tech-lead` dispatching a single task to a specialist; makes one-task-per-dispatch the default shape. Non-binding, no CI gate. |
 | `docs/templates/task-template.md` | INVEST + DoR + DoD + workflow-pipeline trigger annotation. |
 

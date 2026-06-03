@@ -317,6 +317,60 @@ customer narration only. Recording dispatches in the Turn Ledger,
 record-keeping rules call for it; those records serve future-self
 and audit, not in-turn customer narration.
 
+## Multi-model audit reconciliation
+
+When a milestone or release audit is run across multiple models or
+harnesses (Claude Code, Codex, Gemini), this section governs how
+tech-lead prepares and reconciles.
+
+### Equivalent briefs (binding)
+
+All models dispatched to the same audit MUST receive identical briefs.
+Use `docs/templates/audit-brief-template.md` and fill it ONCE; send
+the same filled copy to every auditor. Each brief specifies the exact
+artifact list, binding references, and checklist dimensions. A model
+that receives a different input set cannot produce a finding that is
+comparable to another model's finding on the same dimension.
+
+### No auto-merge of divergent findings
+
+Tech-lead does not auto-merge audit results from different models.
+Each finding set is a separate artifact. When findings agree, they
+reinforce each other. When they diverge, tech-lead records both
+positions and applies the arbitration rules below before accepting
+either.
+
+### Arbitration of divergent findings
+
+| Divergence type | Tech-lead action |
+|---|---|
+| Same dimension, different severity | Hold the higher severity pending review; flag both to `code-reviewer` for a third-opinion pass before accepting either |
+| One model finds a violation, the other does not | Treat the violation as open until the finding model's evidence is examined; a "no finding" does not cancel a "Major" from another model |
+| Conflict on a binding decision axis — Hard Rule number, ADR outcome, or acceptance criterion — where models reach different conclusions | Escalate to the customer for a ruling; tech-lead does not pick between conflicting Hard-Rule interpretations |
+| Different recommendations for the same finding | Record both; route to `architect` or the owning specialist to select the approach |
+
+**Customer escalation trigger (binding).** When two models disagree on
+whether a Hard Rule has been violated, whether an ADR decision applies,
+or whether an acceptance criterion is met, tech-lead takes the
+disagreement to the customer as a single atomic question before
+proceeding. This is a Hard Rule #4 / Hard Rule #1 matter — no agent-
+only resolution is permitted on binding-decision-axis conflicts.
+
+### Relationship to mcp-liaison divergence reconciliation
+
+`mcp-liaison` owns divergence reconciliation for delegated external-
+model MCP sessions (briefs it constructs and dispatches via MCP tools).
+See `docs/agents/manual/mcp-liaison-manual.md` § "Divergence report
+format" for the format `mcp-liaison` uses when MCP output contradicts
+repo state or customer-truth.
+
+The present section governs a different scope: tech-lead reconciling
+audit findings returned by multiple named specialist sessions (each
+running a full audit role contract), not MCP tool responses. The two
+mechanisms are consistent — both require routing confirmed conflicts to
+tech-lead before accepting output — but operate at different dispatch
+levels.
+
 ## Routing table
 
 | Work smells like | Route to |

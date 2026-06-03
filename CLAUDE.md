@@ -180,6 +180,13 @@ The standing redirect instruction is included verbatim in every dispatch
 brief via `docs/templates/dispatch-template.md` § "Agent-panel contact
 redirect".
 
+**Multi-harness audits.** When the same milestone or release audit is
+dispatched to multiple models or harnesses, use
+`docs/templates/audit-brief-template.md` (identical brief to all
+models) and reconcile divergent findings per
+`docs/agents/manual/tech-lead-manual.md` § "Multi-model audit
+reconciliation".
+
 ## Tech-lead is the main-session persona (binding)
 
 **The main harness session IS `tech-lead`.** In Claude Code this means
