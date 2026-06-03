@@ -28,6 +28,8 @@ Project-authored content lives in
 | `scripts/pre-release-gate.sh` | Pre-release upgrade-regression gate orchestrator (spec 007). Runs every registered sub-gate with fail-all semantics; precondition for tagging an annotated `v*` per FR-010. Pair with `.git-hooks/pre-push` for scoped-strict enforcement at push time. See `docs/pm/pre-release-gate-overrides.md` for the bypass audit log. |
 | `scripts/agent-health.sh` | Assembles a health-check packet for a named teammate (ground-truth snapshot + fixed prompt). Per `docs/agent-health-contract.md` § 3. |
 | `scripts/respawn.sh` | Stubs a handover-brief file and prints the respawn checklist. Per `docs/agent-health-contract.md` § 4. |
+| `scripts/archive-registers.sh` | Rolls closed rows out of binding registers into per-quarter shard files (`<register>-YYYY-QN.md`). `--quarter-roll` triggers the date-quarter sharding model (FW-ADR-0025). `--include-customer-notes` required to archive customer-truth entries (safety opt-in). Owned by `librarian`. |
+| `scripts/gen-register-index.sh` | (Re)generates `<register>-INDEX.md` — a cross-shard index of all entries across the active file and its quarter shards. Run after every `--quarter-roll`. Per FW-ADR-0025. |
 | `docs/templates/handover-template.md` | Shape of a respawn handover brief. |
 | `examples/README.md` | Catalog of filled-in reference projects (not shipped to downstream). |
 | `migrations/README.md` | Per-version migration-script contract. Upstream-template file; stripped from scaffolded downstream projects. |
@@ -35,7 +37,7 @@ Project-authored content lives in
 | `migrations/vX.Y.Z.sh` | Per-release migration (file moves / renames / shape changes); most releases do not ship one. Upstream-template files; stripped from scaffolded downstream projects. |
 | `CONTRIBUTING.md` | How to propose changes to the template (template-repo-local; not carried to downstream projects). |
 | `.github/ISSUE_TEMPLATE/framework-gap.yml` | GitHub issue form for framework-gap reports. |
-| `CUSTOMER_NOTES.md` | Append-only log of customer answers, verbatim, stewarded by `librarian`. |
+| `CUSTOMER_NOTES.md` | Append-only log of customer answers, verbatim, stewarded by `librarian`. Active file (current quarter); older entries rolled to `CUSTOMER_NOTES-YYYY-QN.md` shards; `CUSTOMER_NOTES-INDEX.md` provides cross-shard lookup. Per FW-ADR-0025. |
 | `README.md` | Human-facing overview of the template. |
 | `SW_DEV_ROLE_TAXONOMY.md` | Binding role vocabulary (SWEBOK / ISO 12207 / IEEE 1028 / ISTQB / SFIA v9 / Google SRE / PMBOK). |
 
@@ -48,7 +50,7 @@ Project-authored content lives in
 | `docs/FIRST_ACTIONS.md` | Session-1 setup flow (Steps 0–3a): issue-feedback opt-in, skill packs, scoping + SME discovery, agent naming. Extracted from `CLAUDE.md` per issue #120. |
 | `docs/IP_POLICY.md` | Non-negotiable IP / copyright posture: external-material default, restricted-source clauses, AI-training narrow interpretation. Extracted from `CLAUDE.md` per issue #120. |
 | `docs/MEMORY_POLICY.md` | Memory-layer + orchestration-framework stance (claude-mem default; orchestration frameworks require a superseding ADR). Extracted from `CLAUDE.md` per issue #120. |
-| `docs/OPEN_QUESTIONS.md` | Register of open questions with ID / answerer / status / resolution. Stewarded by `librarian`. |
+| `docs/OPEN_QUESTIONS.md` | Register of open questions with ID / answerer / status / resolution. Stewarded by `librarian`. Active file (current quarter); older entries rolled to `docs/OPEN_QUESTIONS-YYYY-QN.md` shards; `docs/OPEN_QUESTIONS-INDEX.md` provides cross-shard lookup. Per FW-ADR-0025. |
 | `docs/ISSUE_FILING.md` | Convention for filing framework gaps against the upstream template repo (includes template-version citation). |
 | `docs/TEMPLATE_UPGRADE.md` | Scaffold + template version check + upgrade strategy + per-version migrations. Extracted from `CLAUDE.md` per issue #120. |
 | `docs/agent-health-contract.md` | **Binding.** Failure modes, detection signals, health-check protocol, and respawn procedure for long-lived named teammates — including the triadic tech-lead self-diagnosis (project-manager / peer / customer backstop). |
@@ -96,6 +98,7 @@ FW-ADR-0006). Numbering is sequential within each namespace.
 | `docs/adr/fw-adr-0022-gemini-harness-adapter.md` | Classify gemini-cli as a co-equal harness adapter; `GEMINI.md` root adapter, `.gemini/agents/` generated roster, description-driven dispatch, three-surface drift control. Implemented: issue #300. |
 | `docs/adr/fw-adr-0023-handoff-activity-array-growth.md` | Two coupled decisions on handoff JSON integrity: (1) deliberate hash-exclusion of the runtime-mutable `activity` array from manifest verification, and (2) disposition of unbounded growth via sidecar migration. |
 | `docs/adr/fw-adr-0024-parallel-agent-working-tree-isolation.md` | Working-tree isolation strategy for parallel specialist agents: strict serialization (current interim), per-agent git worktrees, or read-only worktree for readers with a single canonical writer. |
+| `docs/adr/fw-adr-0025-register-file-size-management.md` | Register file-size management: date-quarter sharding for binding registers that grow past the ~150 KB context limit; per-quarter shard files, a generated INDEX, and cross-shard ID-uniqueness tooling. Option S adopted. |
 
 ## `docs/glossary/`
 

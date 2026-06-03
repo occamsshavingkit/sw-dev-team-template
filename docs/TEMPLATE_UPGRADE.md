@@ -242,6 +242,30 @@ downstream maintainer reading this guide from a project tree may need to
 consult the upstream template repo for `migrations/README.md` and
 `migrations/TEMPLATE.sh`.
 
+**Register sharding (FW-ADR-0025, v1.3.0).** The release that ships
+register sharding splits any binding register file exceeding ~150 KB into
+date-quarter shards. `migrations/v1.3.0.sh` runs automatically on upgrade
+and:
+
+- Identifies registers (`CUSTOMER_NOTES.md`, `OPEN_QUESTIONS.md`,
+  `docs/pm/RISKS.md`, `docs/pm/LESSONS.md`, and others) that exceed the
+  context-limit threshold.
+- Splits each oversized register by entry-date into per-quarter shard
+  files (`<register>-YYYY-QN.md`). The migration preserves all content;
+  no entries are deleted.
+- Resets the active file (`<register>.md`) to the current quarter's
+  entries, keeping its canonical path unchanged.
+- Generates `<register>-INDEX.md` cross-shard index files via
+  `scripts/gen-register-index.sh`.
+
+The canonical active-file paths are unchanged — existing consumers that
+load `CUSTOMER_NOTES.md` or `OPEN_QUESTIONS.md` continue to work without
+modification. For cross-shard lookups (e.g., finding an old Q-NNNN),
+consult the generated `<register>-INDEX.md`. Cross-shard ID uniqueness is
+enforced by `scripts/check-duplicate-ids.sh` and
+`scripts/reserve-number.sh`. See `docs/agents/manual/librarian-manual.md`
+§ "Archival mechanic" for the full quarter-roll procedure.
+
 **Handoff activity sidecar (FW-ADR-0023).** The release that ships the
 activity-sidecar change moves runtime telemetry out of git-tracked
 handoff JSON files. Existing `docs/handoffs/*.json` files that carry an
