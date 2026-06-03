@@ -18,6 +18,99 @@ filed upstream include that version.
 
 ---
 
+## v1.3.0 (2026-06-03)
+
+Second MINOR release post v1.0.0 final. All changes are additive and
+backward-compatible. Downstream projects on v1.2.0 apply
+`migrations/v1.3.0.sh` automatically when upgrading.
+
+### Added
+
+- **Delegated-Specialist Parity Across Providers (#293, #324)**: Handoff
+  schema extended with `delegated_role`, `task_ref`, and `dispatch_scope`
+  fields; dispatch gate validates the block. Codex / Gemini mode parity
+  documented in `AGENTS.md` and `GEMINI.md`.
+- **Parallel-Agent Worktree Isolation — FW-ADR-0024 (#212, #325)**: Two-lane
+  isolation contract (writer / reader lanes), Hard Rule #12, worktree helpers
+  (`scripts/worktree-setup.sh`, `scripts/worktree-teardown.sh`,
+  `scripts/worktree-health-check.sh`), and hermetic reader-lane test list.
+- **Bounded Specialist Long-Ops + Gemini Background-Default (#265, #287,
+  #328)**: Token-economy rule 7 (bounded long-ops) encoded in
+  `tech-lead.md`; Gemini harness defaults `run_in_background: true`.
+- **Multi-Model Audit Briefs (#298, #330)**: `docs/templates/audit-brief-template.md`
+  for identical cross-harness briefs; divergence-reconciliation rule in
+  tech-lead manual.
+- **Leaf-Task Context Assembly (#296, #331)**: Per-task context-assembly rule
+  in dispatch template; handoff schema gains `token_budget` and
+  `jit_file_list` fields.
+- **Register Date-Quarter Sharding — FW-ADR-0025 (#295, #334)**: Index
+  generator (`scripts/gen-register-index.sh`), quarter-roll helper,
+  cross-shard ID-safety check, and `migrations/v1.3.0.sh`. Librarian
+  archival procedure updated in `docs/agents/manual/librarian-manual.md`;
+  `docs/INDEX-FRAMEWORK.md` updated with sharding notes (per-register
+  `<register>-INDEX.md` files are generated at runtime by
+  `gen-register-index.sh`).
+
+### Changed
+
+- **ADR Index Rebuilt + Reader-Prohibition Reconcile (#326, #327)**: All
+  FW-ADRs (0001–0025) indexed in the `docs/INDEX-FRAMEWORK.md` ADR table;
+  ADRs 0021 and 0022 migrated; reader-prohibition list in `tech-lead.md`
+  reconciled with Hard Rule #12.
+- **Taxonomy Refresh (#274, #332)**: `SW_DEV_ROLE_TAXONOMY.md` §3 boundary
+  patterns, §4 clarification, and §5 gaps section updated.
+
+### Fixed
+
+- **mktemp PID-Temp Hardening (#319, #329)**: `upgrade.sh` and hooks replace
+  PID-suffixed temp writes with `mktemp` (addresses CWE-377 / CWE-59).
+- **Taxonomy Load at Session Start (#273, #329)**: SessionStart hook now
+  loads taxonomy before first agent turn to avoid cold-start stale reads.
+- **Agent-Panel Direct-Contact Redirect (#264, #329)**: Subagent contracts
+  include the redirect notice; dispatched subagents refuse agent-panel input
+  per Hard Rule #1.
+- **rc14 Backfill Recognizes Heading Synonyms (#261, #333)**: Migration
+  runner now detects alternate heading spellings before inserting; insertion
+  is atomic.
+
+---
+
+## v1.2.0 (2026-06-03)
+
+First MINOR release post v1.0.0 final. All changes are additive.
+Downstream projects on v1.1.x apply `migrations/v1.2.0.sh` automatically
+when upgrading.
+
+### Added
+
+- **Enforcement Quick-Wins (#292, #294, #297, #299, #303, #320)**: Duplicate-ID
+  CI backstop (`.github/workflows/check-duplicate-ids.yml`), content-aware
+  `CUSTOMER_NOTES` guard, dispatch and customer-note authoring templates and
+  checklist, clarification-session mode in tech-lead contract.
+- **Roster Bundle: ui-ux-designer + mcp-liaison + librarian split (#290,
+  #291, #301, #321)**: Three new roles added to `.claude/agents/` and
+  `AGENTS.md`/`GEMINI.md`: `ui-ux-designer.md`, `mcp-liaison.md`,
+  `librarian.md` (split from `researcher.md`). Registry and human-approval
+  gate for librarian split. Acceptance-test-plan sign-off routed to
+  librarian.
+- **Gemini Harness (#300, #322)**: `GEMINI.md` root adapter and tech-lead
+  runtime subagent guard; `.gemini/agents/` adapter generation via
+  `scripts/compile-runtime-agents.sh`; lint extended to cover Gemini
+  adapters.
+- **Activity Sidecar — FW-ADR-0023 (#323)**: Handoff telemetry field
+  (`activity`) moved out of the git-tracked handoff JSON into
+  a sidecar file (not tracked by git). Migration `migrations/v1.2.0.sh`
+  normalizes existing handoffs. Upgrade notes in `docs/TEMPLATE_UPGRADE.md`.
+
+### Fixed
+
+- **Broken Purpose TOC Anchor in Customer-Note Template (#292)**: Anchor
+  `#purpose` corrected in `docs/templates/customer-note-template.md`.
+- **Guard Finding Messages + Smoke-Test Guard Assertions (#297)**: Cleaned
+  output messages from enforcement guards; hardened smoke-test assertions.
+
+---
+
 ## v1.0.0-rc15 (2026-05-26)
 
 Release candidate addressing critical edge cases and stabilizing core behaviors for v1.0.0.
