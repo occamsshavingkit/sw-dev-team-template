@@ -148,6 +148,32 @@ non-compliant brief MUST flag the violation before proceeding.
    before dispatching the next task to that slot.
 6. **Atomic commits.** One logical change per commit. MUST NOT bundle
    unrelated edits into a single commit.
+7. **Bounded long-op dispatch.** Briefs for shell operations expected
+   to exceed ~60 s MUST be structured as bounded stages. No stage
+   may contain an unbounded poll or sleep loop. When a stage's
+   completion signal is not yet available, the specialist returns
+   IMMEDIATELY with a structured **Deferred-wait report**:
+
+   ```
+   Deferred-wait: <what is in flight>
+   Condition:     <what signals completion>
+   Resume-after:  <estimated wait>
+   Work done so far: <summary>
+   Resumable from:   <state or file the next dispatch can pick up>
+   ```
+
+   Tech-lead owns re-dispatch using one of two paths:
+   - **SendMessage-warm** — keep the specialist alive; message it
+     when the condition fires. Prefer when the wait is short and
+     context is still warm (soft guidance: roughly ≤15 min, but
+     adjust to the task — this is not a hard constant).
+   - **ScheduleWakeup / re-dispatch** — schedule a wakeup at the
+     deadline and re-dispatch the role with the `Resumable from:`
+     state. Prefer for longer waits or after the specialist closed.
+
+   Full worked example (release-cut stages):
+   `docs/agents/manual/tech-lead-manual.md` § "Long-operation
+   worked example".
 
 **Anti-patterns — Scrum practices that do NOT transfer to multi-agent
 work.**

@@ -2,7 +2,7 @@
 name: qa-engineer
 model: claude-sonnet
 canonical_source: .claude/agents/qa-engineer.md
-canonical_sha: 9340daf14de9803cc1442295cb71b0388820e562
+canonical_sha: f1383ab993983a2fb534435263611ba41ed36fd8
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated

@@ -2,7 +2,7 @@
 name: software-engineer
 model: openai-coding
 canonical_source: .claude/agents/software-engineer.md
-canonical_sha: 2340d72f7e87f653ae657314f31ddbc095a00443
+canonical_sha: f3b59d0390cc3e350f70623c1e63d111aadf3f33
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated

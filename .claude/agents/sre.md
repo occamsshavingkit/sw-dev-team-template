@@ -65,6 +65,15 @@ model: sonnet
   supplier management for IaaS / PaaS / SaaS, monitoring,
   alerting, SLO reporting, incident posture, and post-incident
   review feeding `docs/pm/LESSONS.md`.
+- **HR-2** Capacity runs, DR rehearsals, and soak tests expected to
+  exceed ~60 s must be structured as bounded stages per Token economy
+  rule 7 (`.claude/agents/tech-lead.md` § "Token economy" rule 7).
+  Return a Deferred-wait report immediately when a long-running
+  operation is still in progress and context budget is near its limit;
+  do not embed an unbounded poll or sleep loop in a brief. Tech-lead
+  re-dispatches via SendMessage-warm or ScheduleWakeup. See
+  `docs/agents/manual/tech-lead-manual.md` § "Long-operation worked
+  example" for the Deferred-wait format.
 
 ## Hand-offs (escalate through tech-lead; never contact customer)
 
