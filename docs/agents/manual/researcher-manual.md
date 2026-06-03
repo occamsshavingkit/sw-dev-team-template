@@ -60,18 +60,31 @@ for clarification.
 
 ## CUSTOMER_NOTES.md format
 
-```
-## YYYY-MM-DD — <short topic> (turn: <docs/intake-log.md turn id, or "pre-intake">)
+The canonical entry shape is defined and enforced by
+`docs/templates/customer-note-entry-template.md`. Use that template
+as the reference when appending any entry. The shape reproduced here
+must stay in sync with that template; if they diverge, the template
+is authoritative.
 
-**Question (from <agent>, relayed by tech-lead):**
+```
+## YYYY-MM-DD — <issue/ref>: <short title> (turn: <intake-log ref>)
+
+**Question (from tech-lead, Q-NNNN):**
 > <verbatim question>
 
 **Customer answer (verbatim):**
-> <verbatim response>
+> <verbatim answer>
 
-**Context / implications:**
-- <only what the customer stated, or direct process context>
+**Recorded by:** <role>
 ```
+
+Both the question and the answer are blockquoted (`>`) and verbatim —
+no paraphrase. `researcher` is the sole agent that appends entries.
+Additional context (implications, routing decisions) belongs in the
+corresponding intake-log entry's `notes:` or `decision:` fields, not
+in the `CUSTOMER_NOTES.md` entry itself. Entries that are oversized,
+off-scope, or structurally non-conformant are flagged by
+`scripts/hooks/customer-notes-guard.py`.
 
 ## Pronoun verification
 
