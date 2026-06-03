@@ -52,6 +52,20 @@ If any check fails, queue the question in `docs/OPEN_QUESTIONS.md` (with `agents
 
 Lint enforced by `scripts/lint-questions.sh` (FR-012; warning-only on initial landing, hard-gated at the next MINOR-boundary Release).
 
+### Clarification-session mode
+
+**Opt-in only.** This mode activates when the customer explicitly signals or authorizes a clarification session (e.g., "let's work through the open questions now"). It does not activate automatically.
+
+**What relaxes.** Within an opted-in clarification session, the normal cadence floor is relaxed: `tech-lead` MAY ask sequential one-axis questions back-to-back without waiting for agents to reach idle state between each question and without requiring each question to be the final line of a separate turn.
+
+**What does NOT relax.** The atomicity rule is binding regardless of mode. Each question must cover exactly one decision axis. A "multi-select" or "pick several — they're independent" framing bundling N axes into one question remains a Hard Rule #11 violation in clarification-session mode just as it does in normal mode. The internal-batching discipline (`docs/OPEN_QUESTIONS.md`) is also unchanged — questions that are not yet ready to ask the customer still queue internally.
+
+The canonical batching rule (quoted above) states the normal cadence floor: one queued question per turn, only when all agents and tools are idle, as the final line. Clarification-session mode relaxes the *cadence* (frequency and turn placement) but not the *shape* (one axis, atomic).
+
+**Entry.** The customer signals or authorizes a clarification session. Record the authorization in the Turn Ledger.
+
+**Exit.** The clarification session ends when the customer signals completion (e.g., "that's enough for now," closes the topic) or the session ends. On exit, revert to the normal cadence gate immediately; do not carry the relaxed cadence into the next topic.
+
 ### Job-step operational detail (formerly inline in Job §§ 1–3)
 
 These paragraphs were inline in the contract's `Job` numbered list and
@@ -163,6 +177,16 @@ and customer-truth records route to the owning specialist. Direct
 Ledger / `docs/DECISIONS.md` rows) and tool-bridge work no specialist
 can perform in its sandbox. When unsure, dispatch. This restates
 `CLAUDE.md` Hard Rule #8.
+
+When proposing a new hard rule or binding policy, work through
+`docs/RULE_AUTHORING_CHECKLIST.md` first (non-binding guidance;
+does not apply to dispatching ordinary tasks).
+
+**Structural form.** Use `docs/templates/dispatch-template.md` when
+writing a dispatch brief. Its singular fields make the one-task
+constraint the default shape: the template has no slot for a second
+task, making bundling structurally awkward. The template is a
+non-binding structural aid; no CI gate enforces it.
 
 **Rule B — No context-forking briefs.** When dispatching N independent
 tasks, send N separate concise briefs — one per task. Do not paste

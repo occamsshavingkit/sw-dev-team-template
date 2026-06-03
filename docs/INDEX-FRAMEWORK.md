@@ -55,6 +55,7 @@ Project-authored content lives in
 | `docs/framework-project-boundary.md` | Practical downstream separation model: framework-managed paths, project-owned product paths, project-filled registers, and review / commit split guidance. |
 | `docs/handovers/` | Respawn handover briefs (one per respawn, dated). Gitignored after 30 days by convention. |
 | `docs/model-routing-guidelines.md` | Draft post-v1.0.0 guidance for agent model tier, effort, and plan-mode selection across OpenAI / ChatGPT and Claude / Claude Code. |
+| `docs/RULE_AUTHORING_CHECKLIST.md` | Non-binding guidance checklist for anyone proposing a new hard rule or binding policy: enforcement design, testability, placement, mirrors, wording. Cross-references anti-proliferation concern from Q-0018. |
 
 ## `docs/adr/` (Framework Architecture Decision Records)
 
@@ -112,6 +113,8 @@ FW-ADR-0006). Numbering is sequential within each namespace.
 | `docs/templates/requirements-template-bare.md` | Bare variant; structure only. ~50% smaller. (v0.14.0+ per FW-ADR-0003.) |
 | `docs/templates/retrofit-playbook-template.md` | Migrating an existing codebase into a scaffolded project (v0.13.0+). |
 | `docs/templates/scoping-questions-template.md` | Seed queue of Step-2 scoping questions. |
+| `docs/templates/customer-note-entry-template.md` | Canonical shape for a single `CUSTOMER_NOTES.md` entry; enforced by `customer-notes-guard.py`. |
+| `docs/templates/dispatch-template.md` | Structural aid for `tech-lead` dispatching a single task to a specialist; makes one-task-per-dispatch the default shape. Non-binding, no CI gate. |
 | `docs/templates/task-template.md` | INVEST + DoR + DoD + workflow-pipeline trigger annotation. |
 
 ## `docs/templates/pm/` (PMBOK artifact templates, owned by `project-manager`)

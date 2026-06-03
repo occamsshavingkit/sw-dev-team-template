@@ -357,36 +357,36 @@ check "settings guard commands use CLAUDE_PROJECT_DIR" \
   settings_contains_literal_path "$target" "$customer_notes_guard_path" "python3 ./scripts/hooks/customer-notes-guard.py"
 check "settings SessionStart version-check uses CLAUDE_PROJECT_DIR" \
   settings_contains_literal_path "$target" "$version_check_path" "./scripts/version-check.sh"
-guard_customer_output="$(
-  printf '%s\n' '{"tool_name":"Write","tool_input":{"file_path":"CUSTOMER_NOTES.md","content":"x"}}' \
-    | python3 "$target/scripts/hooks/customer-notes-guard.py"
-)"
+# Guard assertions: capture output to temp files so that embedded quotes or
+# special characters in the JSON reason string can never break the grep.
+# Pattern for "asks": check the file directly with grep (no shell echo).
+# Pattern for "quiet": assert the file is empty.
+_guard_tmp="$(mktemp)"
+printf '%s\n' '{"tool_name":"Write","tool_input":{"file_path":"CUSTOMER_NOTES.md","content":"x"}}' \
+  | python3 "$target/scripts/hooks/customer-notes-guard.py" >"$_guard_tmp"
 check "CUSTOMER_NOTES guard asks on notes write" \
-  bash -c "echo '$guard_customer_output' | grep -q 'permissionDecision.*ask'"
-guard_other_output="$(
-  printf '%s\n' '{"tool_name":"Write","tool_input":{"file_path":"README.md","content":"x"}}' \
-    | python3 "$target/scripts/hooks/customer-notes-guard.py"
-)"
+  grep -q 'permissionDecision' "$_guard_tmp"
+
+printf '%s\n' '{"tool_name":"Write","tool_input":{"file_path":"README.md","content":"x"}}' \
+  | python3 "$target/scripts/hooks/customer-notes-guard.py" >"$_guard_tmp"
 check "CUSTOMER_NOTES guard stays quiet on other files" \
-  bash -c "[ -z '$guard_other_output' ]"
-guard_bash_output="$(
-  printf '%s\n' '{"tool_name":"Bash","tool_input":{"command":"printf x >> CUSTOMER_NOTES.md"}}' \
-    | python3 "$target/scripts/hooks/customer-notes-guard.py"
-)"
+  bash -c "[ ! -s '$_guard_tmp' ]"
+
+printf '%s\n' '{"tool_name":"Bash","tool_input":{"command":"printf x >> CUSTOMER_NOTES.md"}}' \
+  | python3 "$target/scripts/hooks/customer-notes-guard.py" >"$_guard_tmp"
 check "CUSTOMER_NOTES guard asks on Bash notes command" \
-  bash -c "echo '$guard_bash_output' | grep -q 'permissionDecision.*ask'"
-guard_bash_stdin_output="$(
-  printf '%s\n' '{"tool_name":"Bash","tool_input":{"command":"python3 - <<'\''PY'\''\nopen('\''CUSTOMER_NOTES.md'\'', '\''w'\'').write('\''x'\'')\nPY"}}' \
-    | python3 "$target/scripts/hooks/customer-notes-guard.py"
-)"
+  grep -q 'permissionDecision' "$_guard_tmp"
+
+printf '%s\n' '{"tool_name":"Bash","tool_input":{"command":"python3 - <<'\''PY'\''\nopen('\''CUSTOMER_NOTES.md'\'', '\''w'\'').write('\''x'\'')\nPY"}}' \
+  | python3 "$target/scripts/hooks/customer-notes-guard.py" >"$_guard_tmp"
 check "CUSTOMER_NOTES guard asks on interpreter stdin notes command" \
-  bash -c "echo '$guard_bash_stdin_output' | grep -q 'permissionDecision.*ask'"
-guard_bash_read_output="$(
-  printf '%s\n' '{"tool_name":"Bash","tool_input":{"command":"cat CUSTOMER_NOTES.md"}}' \
-    | python3 "$target/scripts/hooks/customer-notes-guard.py"
-)"
+  grep -q 'permissionDecision' "$_guard_tmp"
+
+printf '%s\n' '{"tool_name":"Bash","tool_input":{"command":"cat CUSTOMER_NOTES.md"}}' \
+  | python3 "$target/scripts/hooks/customer-notes-guard.py" >"$_guard_tmp"
 check "CUSTOMER_NOTES guard stays quiet on Bash notes read" \
-  bash -c "[ -z '$guard_bash_read_output' ]"
+  bash -c "[ ! -s '$_guard_tmp' ]"
+rm -f "$_guard_tmp"
 
 # Issue #156 — structurally-unexpected JSON must fail-open, not raise
 # AttributeError. The hook's isinstance() guards cover (a) top-level

@@ -238,6 +238,211 @@ run_cmd_case "read: python3 -c Path.open(mode='r') on file (#184 negative)" \
 run_cmd_case "read: Path.write_text on a different file (#184 negative)" \
     "python3 -c 'from pathlib import Path; Path(\"OTHER.md\").write_text(\"x\")'" proceed
 
+# ---------------------------------------------------------------------------
+# Content-awareness cases (issue #292, ruling Q-0031).
+#
+# All write payloads below fire the gate (permissionDecision: ask).
+# The additional assertion is whether the stdout contains a specific
+# finding keyword (OVERSIZED / UNSTRUCTURED / OFF-SCOPE) or is clean
+# (well-formed entry → fire with no finding keywords).
+#
+# Helper: _run_payload_with_finding <name> <json-payload> <expect-finding-substr|"">
+#   "" means: gate fires AND no finding keywords present (well-formed entry).
+#   non-empty: gate fires AND finding substr is present in stdout.
+# ---------------------------------------------------------------------------
+
+_run_payload_with_finding() {
+    local name=$1
+    local payload=$2
+    local expect_finding=$3   # substring to grep for, or "" for no findings
+    local tmp_out rc stdout gate_ok finding_ok
+    tmp_out=$(mktemp)
+    printf '%s' "$payload" | python3 "$HOOK" >"$tmp_out" 2>/dev/null
+    rc=$?
+    stdout=$(cat "$tmp_out")
+    rm -f "$tmp_out"
+
+    # Gate must fire
+    if printf '%s' "$stdout" | grep -q '"permissionDecision": "ask"'; then
+        gate_ok=1
+    else
+        gate_ok=0
+    fi
+
+    # Finding assertion
+    if [ -z "$expect_finding" ]; then
+        # No findings expected — none of the advisory keywords should appear
+        if printf '%s' "$stdout" | grep -qE 'OVERSIZED|UNSTRUCTURED|OFF-SCOPE'; then
+            finding_ok=0
+        else
+            finding_ok=1
+        fi
+    else
+        if printf '%s' "$stdout" | grep -q "$expect_finding"; then
+            finding_ok=1
+        else
+            finding_ok=0
+        fi
+    fi
+
+    if [ "$gate_ok" -eq 1 ] && [ "$finding_ok" -eq 1 ] && [ "$rc" -eq 0 ]; then
+        pass=$((pass + 1))
+        echo "PASS  $name"
+    else
+        fail=$((fail + 1))
+        failures+=("$name (gate_ok=$gate_ok finding_ok=$finding_ok rc=$rc expect_finding='$expect_finding')")
+        echo "FAIL  $name (gate_ok=$gate_ok finding_ok=$finding_ok rc=$rc)"
+        [ -n "$stdout" ] && echo "      stdout: $stdout"
+    fi
+}
+
+# Build Write-tool payloads (file_path + content) safely for multi-line content.
+# We write the content to a temp file and read it in Python to avoid shell
+# newline mangling through command substitution + sys.argv.
+mkpayload_write_file() {
+    local target_path="$1"
+    local content_file="$2"   # path to a file containing the content string
+    python3 - "$target_path" "$content_file" <<'PYEOF'
+import json, sys
+target = sys.argv[1]
+with open(sys.argv[2]) as f:
+    content = f.read()
+print(json.dumps({"tool_input": {"file_path": target, "content": content}}))
+PYEOF
+}
+
+# Helper: write content to a temp file, build payload, run case, clean up.
+_run_write_content_case() {
+    local name="$1"
+    local content="$2"
+    local expect_finding="$3"
+    local tmp_content
+    tmp_content="$(mktemp)"
+    printf '%s' "$content" > "$tmp_content"
+    local payload
+    payload="$(mkpayload_write_file CUSTOMER_NOTES.md "$tmp_content")"
+    rm -f "$tmp_content"
+    _run_payload_with_finding "$name" "$payload" "$expect_finding"
+}
+
+# A canonical well-formed entry (all required sections + verbatim quote).
+_run_write_content_case \
+    "content: well-formed entry fires gate with no findings (#292)" \
+    "## 2026-06-03 — Q-0031: test entry (turn: T-0042)
+
+**Question (from tech-lead, Q-0031):**
+> Is this the canonical shape?
+
+**Customer answer (verbatim):**
+> Yes, this is the canonical shape.
+
+**Recorded by:** researcher" \
+    ""
+
+# Oversized entry (more than ENTRY_MAX_LINES=60 lines).
+# Write the payload directly to a temp file using Python so trailing newlines
+# are preserved (shell $() command substitution strips them, making the line
+# count wrong if we build the padding in the shell).
+_oversized_tmp="$(mktemp)"
+python3 - "$_oversized_tmp" <<'PYEOF'
+import sys
+body = (
+    "## 2026-06-03 — Q-0099: oversized (turn: T-0001)\n\n"
+    "**Question (from tech-lead, Q-0099):**\n"
+    "> Is this too long?\n\n"
+    "**Customer answer (verbatim):**\n"
+    "> Yes.\n\n"
+    "**Recorded by:** researcher\n"
+)
+# 55 extra lines pushes past the ENTRY_MAX_LINES=60 threshold
+body += "\n" * 55
+with open(sys.argv[1], "w") as f:
+    f.write(body)
+PYEOF
+_run_payload_with_finding \
+    "content: oversized entry fires OVERSIZED finding (#292)" \
+    "$(mkpayload_write_file CUSTOMER_NOTES.md "$_oversized_tmp")" \
+    "OVERSIZED"
+rm -f "$_oversized_tmp"
+
+# Unstructured entry: missing required sections.
+_run_write_content_case \
+    "content: unstructured entry fires UNSTRUCTURED finding (#292)" \
+    "Some informal note about a customer preference.
+No headers, no quote blocks, no recorded-by field." \
+    "UNSTRUCTURED"
+
+# Off-scope entry: has the header structure but no verbatim quote lines at all.
+_run_write_content_case \
+    "content: entry without verbatim quotes fires OFF-SCOPE finding (#292)" \
+    "## 2026-06-03 — Q-0050: missing quotes (turn: T-0010)
+
+**Question (from tech-lead, Q-0050):**
+The question text goes here without a block-quote.
+
+**Customer answer (verbatim):**
+The answer text goes here without a block-quote either.
+
+**Recorded by:** researcher" \
+    "OFF-SCOPE"
+
+# m-2: answer block lacks a blockquote even though question block has one.
+# Only one "> " line total — below the threshold of 2 — so OFF-SCOPE fires.
+_run_write_content_case \
+    "content: question has quote but answer does not fires OFF-SCOPE (m-2)" \
+    "## 2026-06-03 — Q-0051: partial quotes (turn: T-0011)
+
+**Question (from tech-lead, Q-0051):**
+> What is the ruling?
+
+**Customer answer (verbatim):**
+The answer text written as plain prose, not a block-quote.
+
+**Recorded by:** researcher" \
+    "OFF-SCOPE"
+
+# M-1: multi-entry (full-file) Write payload must NOT fire OVERSIZED.
+# Simulate a full-file rewrite by prepending an existing entry before the new
+# one; two ## YYYY-MM-DD headings → multi-entry path → OVERSIZED suppressed.
+_multi_entry_tmp="$(mktemp)"
+python3 - "$_multi_entry_tmp" <<'PYEOF'
+import sys
+# Build a payload with two entry headings and enough lines to exceed
+# ENTRY_MAX_LINES=60 if checked naively, but is a legitimate full-file write.
+existing = (
+    "## 2026-01-01 — Q-0001: prior entry (turn: T-0001)\n\n"
+    "**Question (from tech-lead, Q-0001):**\n"
+    "> Prior question text.\n\n"
+    "**Customer answer (verbatim):**\n"
+    "> Prior answer text.\n\n"
+    "**Recorded by:** researcher\n"
+)
+new_entry = (
+    "## 2026-06-03 — Q-0099: new entry (turn: T-0099)\n\n"
+    "**Question (from tech-lead, Q-0099):**\n"
+    "> New question text.\n\n"
+    "**Customer answer (verbatim):**\n"
+    "> New answer text.\n\n"
+    "**Recorded by:** researcher\n"
+)
+# Pad to well over 60 lines total to confirm the naive check would fire
+content = existing + "\n" * 55 + new_entry
+with open(sys.argv[1], "w") as f:
+    f.write(content)
+PYEOF
+_run_payload_with_finding \
+    "content: multi-entry full-file Write does NOT fire OVERSIZED (M-1)" \
+    "$(mkpayload_write_file CUSTOMER_NOTES.md "$_multi_entry_tmp")" \
+    ""
+rm -f "$_multi_entry_tmp"
+
+# Bash redirect with uninspectable content (no heredoc body) — gate fires,
+# no crash, finding analysis degrades gracefully.
+run_cmd_case \
+    "content: uninspectable bash redirect fires gate without crash (#292)" \
+    'echo stub >> CUSTOMER_NOTES.md' \
+    fire
+
 echo
 echo "customer-notes-guard self-test: $pass passed, $fail failed."
 if [ "$fail" -gt 0 ]; then
