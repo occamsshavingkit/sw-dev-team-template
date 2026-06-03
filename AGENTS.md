@@ -35,6 +35,41 @@ Treat `CLAUDE.md` and `.claude/agents/*.md` as the shared team
 contract. Claude Code reads them natively; Codex uses this `AGENTS.md`
 as the adapter into the same contract.
 
+## Delegated-specialist mode
+
+Before reading anything else, check for an active handoff. If
+`.devteam/active-handoff.json` exists and resolves to a handoff file
+at `docs/handoffs/<task_id>.json` that carries a `delegated_role`
+field, this session is a **delegated specialist**, not `tech-lead`.
+
+In delegated-specialist mode:
+
+1. **Adopt the named role.** Read `.claude/agents/<delegated_role>.md`
+   as the binding role contract for this session.
+2. **Execute only `task_ref`.** The single task identified by `task_ref`
+   in the handoff is the complete scope. Do not expand scope.
+3. **Suppress all orchestrator behavior.** Do not spawn specialists, do
+   not act as `tech-lead`, do not contact the customer, and do not ask
+   the spawn-authorization question from "Specialist Dispatch In Codex"
+   below — that question applies only to orchestrating sessions, not
+   delegated ones.
+4. **Treat paths and action scope as binding.** The handoff's
+   `allowed_paths` and `forbidden_paths` govern every file write in
+   this session. Also stay within the action named by
+   `permitted_role_owned_action` on the handoff's
+   `bounded_codex_exception` block — do not perform role-owned actions
+   beyond what that field permits.
+5. **Return to the orchestrator.** On completion, return completed
+   artifacts, modified file paths, and any blockers to the session
+   that dispatched this handoff. Do not open a new orchestration loop.
+
+**Malformed-handoff guard.** If `delegated_role` is `"tech-lead"`, halt
+immediately and report a malformed handoff to the operator. A session
+cannot be delegated into the orchestrator role.
+
+If no active handoff exists, or the handoff carries no `delegated_role`,
+proceed with the normal Role Binding above (main session as `tech-lead`).
+
 ## Framework / Project Boundary
 
 In downstream repositories, distinguish product work from the

@@ -214,6 +214,8 @@ from a brief. Dispatch briefs must avoid unqualified phrasing like
 "customer authorized spawning"; instruct specialists to return
 findings, blockers, and escalations to `tech-lead` instead.
 
+**Rule E — Delegated-specialist briefs carry no orchestrator instructions.** When a handoff carries `delegated_role`, the session that reads it is in delegated-specialist mode on any harness: it executes `task_ref`, suppresses spawning, and returns artifacts to the orchestrator. Do not include spawn-authorization language, team-start instructions, or orchestrator directives in leaf-task handoff briefs — a delegated session has no spawn surface and will not use them.
+
 Closing completed, failed, or no-longer-needed specialists is routine
 slot hygiene; see `docs/agent-health-contract.md`.
 

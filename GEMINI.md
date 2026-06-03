@@ -51,8 +51,10 @@ role for the duration of the session. Read `.claude/agents/<role>.md` as the
 binding role contract. Execute only the single task identified by `task_ref`
 in the handoff. Do not spawn other specialists, do not act as orchestrator,
 and do not contact the customer. Return completed artifacts, file paths, and
-any blockers to the orchestrating session. The handoff's `allowed_paths` and
-`forbidden_paths` remain binding throughout.
+any blockers to the orchestrating session. The handoff's `allowed_paths` and `forbidden_paths` remain binding
+throughout. Also stay within the action named by
+`permitted_role_owned_action` on the handoff's `bounded_codex_exception`
+block — do not perform role-owned actions beyond what that field permits.
 
 ## Framework / Project Boundary
 

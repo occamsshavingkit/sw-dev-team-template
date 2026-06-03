@@ -200,6 +200,8 @@ two-part: v0.12.1 added the `Agent` declaration (belt-and-braces),
 and the main-session-persona rule above (documentation) makes the
 intended usage model explicit.
 
+**Delegated-specialist carve-out.** The one exception to main-session-as-tech-lead is a Claude Code session opened against an active handoff that carries `delegated_role` (found via `.devteam/active-handoff.json` → `docs/handoffs/<task_id>.json`). Such a session operates as the specialist named by `delegated_role` — it reads `.claude/agents/<role>.md`, executes only `task_ref`, suppresses orchestrator behavior (no spawning, no customer contact), treats the handoff's path constraints as binding, and stays within the action named by `permitted_role_owned_action` on the handoff's `bounded_codex_exception` block. If `delegated_role` is `"tech-lead"`, halt and report a malformed handoff. This carve-out is harness-neutral; see `AGENTS.md` § "Delegated-specialist mode" and `GEMINI.md` § "Mode B" for harness-specific wording.
+
 ## Routing defaults
 
 `tech-lead` is the **sole human interface**. No other agent talks to the
