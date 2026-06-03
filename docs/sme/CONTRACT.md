@@ -105,7 +105,7 @@ When Step 2 identifies a domain SME that should be cached as an agent,
 `.claude/agents/sme-template.md` to `.claude/agents/sme-<domain>.md`
 (e.g., `sme-brewing.md`, `sme-s7-plc.md`) and filling in the frontmatter
 + body for that domain. The file name, `name:` field, and routing
-entries across the roster must all match. Once created, `researcher`
+entries across the roster must all match. Once created, `librarian`
 seeds `docs/sme/<domain>/INVENTORY.md` from `docs/sme/INVENTORY-template.md`
 so external-material tracking is in place from day one.
 
@@ -116,7 +116,7 @@ Procedure summary:
 2. `tech-lead` copies `.claude/agents/sme-template.md` to
    `.claude/agents/sme-<domain>.md`.
 3. Frontmatter `mode:` set to the agreed mode.
-4. `researcher` seeds `docs/sme/<domain>/INVENTORY.md` from
+4. `librarian` seeds `docs/sme/<domain>/INVENTORY.md` from
    `docs/sme/INVENTORY-template.md`.
 5. `tech-lead` routes future domain questions to the new SME.
 
@@ -130,7 +130,7 @@ Binding rules:
   answer depends on the customer or a named external expert —
   that's escalation to `tech-lead`.
 - Source inventories for each SME's external material live in
-  `docs/sme/<domain>/INVENTORY.md`. `researcher` curates them;
+  `docs/sme/<domain>/INVENTORY.md`. `librarian` curates them;
   the SME contributes content. IP policy applies identically to
   both.
 
@@ -157,7 +157,7 @@ Binding rules:
 
 - `.claude/agents/sme-template.md` § "Mode (pick one at creation;
   binding)"
-- `.claude/agents/researcher.md` § "Source discipline" and § "SME
-  inventory steward"
+- `.claude/agents/researcher.md` § "Source discipline"
+- `.claude/agents/librarian.md` § "SME inventory steward"
 - `CUSTOMER_NOTES.md` — 2026-04-19 ruling entry
 - Upstream issue: occamsshavingkit/sw-dev-team-template#6

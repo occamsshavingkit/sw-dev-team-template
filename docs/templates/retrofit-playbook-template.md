@@ -592,7 +592,7 @@ disposition question with explicit options:
   becomes read-only archive.
 - **No remote yet.** Target stays local; revisit later.
 
-Route the ruling to `researcher` for a verbatim `CUSTOMER_NOTES.md`
+Route the ruling to `librarian` for a verbatim `CUSTOMER_NOTES.md`
 entry, cite it from `docs/retrofit/CLOSURE.md`, and do not declare
 retrofit close-out complete without either a ruling or an explicit
 customer-deferred note.
@@ -621,8 +621,8 @@ blocked and (b) ungated commits.
 
 | Rule | Early fire (non-binding, shapes plan) | Binding sign-off |
 |---|---|---|
-| **Hard Rule #4** (safety-critical) | Any artifact whose Stage A / B evidence places it on a safety-critical path routes through `tech-lead` for live customer approval *before* Stage C assigns a decision-matrix outcome. Applies to audit-discovered rows, not only pre-flagged ones. | Customer approval routed by `tech-lead`, appended verbatim by `researcher` in `CUSTOMER_NOTES.md`, before the row's Stage E commit. |
-| **Hard Rule #7** (auth / secrets / PII / net-endpoint) | When `researcher` first tags a triage row, `security-engineer` produces an advisory note appended to `B-triage.md` before Stage B closes (§ 4.3). Stage C's plan must consume it. | `security-engineer` sign-off supplied to `researcher` and appended in `CUSTOMER_NOTES.md` at Stage E *before* `code-reviewer`, alongside the Hard Rule #4 customer approval where both apply. References the relevant security-assurance artefact (per `docs/templates/security-template.md`). |
+| **Hard Rule #4** (safety-critical) | Any artifact whose Stage A / B evidence places it on a safety-critical path routes through `tech-lead` for live customer approval *before* Stage C assigns a decision-matrix outcome. Applies to audit-discovered rows, not only pre-flagged ones. | Customer approval routed by `tech-lead`, appended verbatim by `librarian` in `CUSTOMER_NOTES.md`, before the row's Stage E commit. |
+| **Hard Rule #7** (auth / secrets / PII / net-endpoint) | When `researcher` first tags a triage row, `security-engineer` produces an advisory note appended to `B-triage.md` before Stage B closes (§ 4.3). Stage C's plan must consume it. | `security-engineer` sign-off supplied to `librarian` and appended in `CUSTOMER_NOTES.md` at Stage E *before* `code-reviewer`, alongside the Hard Rule #4 customer approval where both apply. References the relevant security-assurance artefact (per `docs/templates/security-template.md`). |
 
 ## 6. Decision matrix — per-artifact outcomes
 
@@ -707,7 +707,7 @@ Governed by `docs/IP_POLICY.md`. Retrofit-specific notes:
   squashed history) is not.
 - **Restricted-source clauses.** Where the source contains
   materials with explicit prohibitions (e.g., "NO AI TRAINING"),
-  `researcher` records the clause in the inventory and applies
+  `librarian` records the clause in the inventory and applies
   paraphrase-and-cite. Transient in-context reading is permitted
   per the narrow interpretation (customer ruling 2026-04-23);
   persistent embedding is not.
@@ -774,7 +774,7 @@ Flow notes beyond § 4.7:
 
 | Register | Populated by | Source evidence |
 |---|---|---|
-| `CUSTOMER_NOTES.md` | `researcher` | Verbatim customer answers during the retrofit conversation |
+| `CUSTOMER_NOTES.md` | `librarian` | Verbatim customer answers during the retrofit conversation |
 | `docs/OPEN_QUESTIONS.md` | `tech-lead` | Questions surfaced by any stage |
 | `docs/pm/CHARTER.md` | `project-manager` | Git log + README + customer interview (Stage D) |
 | `docs/pm/STAKEHOLDERS.md` | `project-manager` | Git log authorship + triage findings |
@@ -783,7 +783,7 @@ Flow notes beyond § 4.7:
 | `docs/pm/LESSONS.md` | `project-manager` | Stage A friction log (generalizable entries) |
 | `docs/pm/TEAM-CHARTER.md` | `project-manager` | CONTRIBUTING + CODE_OF_CONDUCT + interview |
 | `docs/pm/AI-USE-POLICY.md` | `project-manager` | Customer ratification in Step 2 |
-| `docs/sme/<domain>/INVENTORY.md` | `researcher` | Stage B triage |
+| `docs/sme/<domain>/INVENTORY.md` | `librarian` | Stage B triage |
 | `docs/tasks/T-NNNN.md` | `project-manager` | Stage F (source tracker) |
 | `docs/retrofit/*` | various | See § 11 |
 
@@ -952,11 +952,11 @@ Retrofit is complete when **all** are true:
       sign-off per row or batch); identifying-content regex re-runs
       from `regex-commands.md` completed and per-hit table updated.
 - [ ] **Every Hard-Rule-#7 row has `security-engineer` sign-off**
-      supplied to `researcher` and appended in `CUSTOMER_NOTES.md`
+      supplied to `librarian` and appended in `CUSTOMER_NOTES.md`
       with reference to the relevant security assurance artefact
       (§ 5).
 - [ ] **Every safety-critical row has live customer approval (Hard
-      Rule #4)** obtained by `tech-lead`, routed to `researcher`,
+      Rule #4)** obtained by `tech-lead`, routed to `librarian`,
       appended verbatim in `CUSTOMER_NOTES.md` — dated, no cached
       approval, no agent-only path.
 - [ ] Stage F (if applicable) complete: source tickets mapped to

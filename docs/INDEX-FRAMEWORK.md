@@ -21,7 +21,7 @@ Project-authored content lives in
 | `scripts/scaffold.sh` | Scaffolds a new downstream project from this template. Writes the initial `TEMPLATE_MANIFEST.lock` and self-verifies before exit. |
 | `scripts/version-check.sh` | Session-start hook; compares `TEMPLATE_VERSION` against upstream and prints a banner if an upgrade is available. Pre-release tags filtered out for stable-track projects (issue #60). |
 | `scripts/upgrade.sh` | Upgrades a scaffolded project to the selected template version. Respects user-added agents / SMEs; flags customized standard files for review. Subcommands: `--dry-run` (plan-only), `--verify` (offline drift + unresolved-conflict check against `TEMPLATE_MANIFEST.lock` and `.template-conflicts.json`), `--resolve` (prune resolved conflict records), `--target <ver>` (pin the upstream tag), `--self-test-semver` (template-maintenance SemVer-sort guard), `--help`. Accepted-local framework files may still need stale-reference review after upstream doc extraction. |
-| `scripts/hooks/customer-notes-guard.py` | Claude Code PreToolUse hook that asks for confirmation before writes to `CUSTOMER_NOTES.md`, reinforcing researcher ownership of customer-answer entries. |
+| `scripts/hooks/customer-notes-guard.py` | Claude Code PreToolUse hook that asks for confirmation before writes to `CUSTOMER_NOTES.md`, reinforcing librarian ownership of customer-answer entries. |
 | `scripts/lib/manifest.sh` | Shared helpers for `TEMPLATE_MANIFEST.lock` (write / verify / ship-files enumeration / SHA256). Sourced by `upgrade.sh` and `scaffold.sh`. Per FW-ADR-0002. |
 | `scripts/lib/first-actions.sh` | Shared FIRST ACTIONS detection helpers for session-start and upgrade warnings when Step-0 issue-feedback opt-in is missing. |
 | `scripts/smoke-test.sh` | End-to-end sanity check on scaffold + version-check + upgrade + manifest verify contracts. Template-maintenance tool; not shipped to downstream projects. |
@@ -35,7 +35,7 @@ Project-authored content lives in
 | `migrations/vX.Y.Z.sh` | Per-release migration (file moves / renames / shape changes); most releases do not ship one. Upstream-template files; stripped from scaffolded downstream projects. |
 | `CONTRIBUTING.md` | How to propose changes to the template (template-repo-local; not carried to downstream projects). |
 | `.github/ISSUE_TEMPLATE/framework-gap.yml` | GitHub issue form for framework-gap reports. |
-| `CUSTOMER_NOTES.md` | Append-only log of customer answers, verbatim, stewarded by `researcher`. |
+| `CUSTOMER_NOTES.md` | Append-only log of customer answers, verbatim, stewarded by `librarian`. |
 | `README.md` | Human-facing overview of the template. |
 | `SW_DEV_ROLE_TAXONOMY.md` | Binding role vocabulary (SWEBOK / ISO 12207 / IEEE 1028 / ISTQB / SFIA v9 / Google SRE / PMBOK). |
 
@@ -48,7 +48,7 @@ Project-authored content lives in
 | `docs/FIRST_ACTIONS.md` | Session-1 setup flow (Steps 0–3a): issue-feedback opt-in, skill packs, scoping + SME discovery, agent naming. Extracted from `CLAUDE.md` per issue #120. |
 | `docs/IP_POLICY.md` | Non-negotiable IP / copyright posture: external-material default, restricted-source clauses, AI-training narrow interpretation. Extracted from `CLAUDE.md` per issue #120. |
 | `docs/MEMORY_POLICY.md` | Memory-layer + orchestration-framework stance (claude-mem default; orchestration frameworks require a superseding ADR). Extracted from `CLAUDE.md` per issue #120. |
-| `docs/OPEN_QUESTIONS.md` | Register of open questions with ID / answerer / status / resolution. Stewarded by `researcher`. |
+| `docs/OPEN_QUESTIONS.md` | Register of open questions with ID / answerer / status / resolution. Stewarded by `librarian`. |
 | `docs/ISSUE_FILING.md` | Convention for filing framework gaps against the upstream template repo (includes template-version citation). |
 | `docs/TEMPLATE_UPGRADE.md` | Scaffold + template version check + upgrade strategy + per-version migrations. Extracted from `CLAUDE.md` per issue #120. |
 | `docs/agent-health-contract.md` | **Binding.** Failure modes, detection signals, health-check protocol, and respawn procedure for long-lived named teammates — including the triadic tech-lead self-diagnosis (project-manager / peer / customer backstop). |
@@ -92,7 +92,7 @@ FW-ADR-0006). Numbering is sequential within each namespace.
 | File | Purpose |
 |---|---|
 | `docs/sme/INVENTORY-template.md` | Template for the per-domain inventory. |
-| `docs/sme/<domain>/INVENTORY.md` | External-material inventory for that domain. Stewarded by `researcher`. |
+| `docs/sme/<domain>/INVENTORY.md` | External-material inventory for that domain. Stewarded by `librarian`. |
 | `docs/sme/<domain>/local/` | Copyrighted external material; gitignored. |
 
 ## `docs/templates/` (standards-shaped document templates)
@@ -137,7 +137,10 @@ FW-ADR-0006). Numbering is sequential within each namespace.
 | `project-manager.md` | PMBOK Project Manager (§2.9a). |
 | `architect.md` | Software Architect (§2.4a). |
 | `software-engineer.md` | Software Engineer / construction (§2.1). |
-| `researcher.md` | Librarian / researcher + customer-notes + glossary + open-questions steward. |
+| `researcher.md` | Researcher — investigation, Tier-1 sourcing, prior-art scans, pronoun verification. |
+| `librarian.md` | Librarian — record custodian: CUSTOMER_NOTES.md, OPEN_QUESTIONS.md, glossaries, SME inventories, archival. |
+| `ui-ux-designer.md` | UX/UI Designer — interaction design, accessibility auditing (WCAG), accesslint integration (§2.10). |
+| `mcp-liaison.md` | MCP Liaison — delegated MCP session construction + divergence reconciliation (custom, taxonomy §5). |
 | `qa-engineer.md` | QA / Test Engineer (§2.2). |
 | `sre.md` | SRE + Performance Engineer (§2.3). |
 | `tech-writer.md` | Technical Writer (§2.5a). |
@@ -147,3 +150,15 @@ FW-ADR-0006). Numbering is sequential within each namespace.
 | `onboarding-auditor.md` | Zero-context documentation auditor (one-shot, milestone-close). |
 | `process-auditor.md` | Cultural-disruptor process auditor (one-shot, every 2–3 milestones). |
 | `sme-template.md` | Scaffold for SME agents; copy to `sme-<domain>.md`. |
+
+## `docs/agents/manual/` (canonical agent manuals)
+
+| File | Role |
+|---|---|
+| `docs/agents/manual/librarian-manual.md` | `librarian` — CUSTOMER_NOTES entry format, archival mechanic, SME-inventory procedures, glossary amendment. |
+| `docs/agents/manual/mcp-liaison-manual.md` | `mcp-liaison` — delegation protocol, brief shape, divergence-reconciliation format. |
+| `docs/agents/manual/qa-engineer-manual.md` | `qa-engineer` — adversarial stance, Solution Duel, critical-path considerations. |
+| `docs/agents/manual/release-engineer-manual.md` | `release-engineer` — release pipeline, dogfood sequencing. |
+| `docs/agents/manual/researcher-manual.md` | `researcher` — restricted-source handling matrix, pronoun-verification procedure, archival sizing policy. |
+| `docs/agents/manual/tech-lead-manual.md` | `tech-lead` — Customer Question Gate, Dispatch discipline, routing table, output discipline, agent health. |
+| `docs/agents/manual/ui-ux-designer-manual.md` | `ui-ux-designer` — accesslint usage, WCAG citation format, design-feedback synthesis. |

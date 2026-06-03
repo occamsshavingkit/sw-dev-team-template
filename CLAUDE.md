@@ -37,7 +37,7 @@ Consequences:
   opinions are advisory.
 - If the customer is also an SME in one or more domains, their answers in
   those domains are ground truth and get recorded verbatim in
-  `CUSTOMER_NOTES.md` by `researcher`.
+  `CUSTOMER_NOTES.md` by `librarian`.
 - **SME agents are per-project and dynamic**, not part of the fixed roster.
   They hold domain knowledge already gathered (from the customer or from
   external SMEs brought onto the project) so the team can reuse it without
@@ -69,7 +69,7 @@ When any agent has a question it cannot answer from its own context:
    worded question.
 5. `tech-lead` either answers, routes further, or takes the question to
    the customer. When `tech-lead` gets an answer, it routes the verbatim
-   response to `researcher`; `researcher` appends the
+   response to `librarian`; `librarian` appends the
    `CUSTOMER_NOTES.md` customer-truth entry and `tech-lead` relays the
    answer to the asking agent.
 
@@ -127,7 +127,10 @@ Upstream issues filed from the project cite this stamp (see
 | `project-manager.md`  | Project Manager (PMBOK-aligned: schedule/cost/risk/stakeholder/change/lessons) | §2.9a |
 | `architect.md`        | Software Architect                                      | §2.4a |
 | `software-engineer.md`| Software Engineer (implementation / construction)       | §2.1 |
-| `researcher.md`       | Librarian / researcher — Tier-1 sources + customer-notes steward | custom, taxonomy §5 |
+| `researcher.md`       | Researcher — Tier-1 sources, prior-art scans, pronoun verification (investigation only) | custom, taxonomy §5 |
+| `librarian.md`        | Librarian — record custodian: CUSTOMER_NOTES.md, OPEN_QUESTIONS.md, glossaries, SME inventories, archival | custom, taxonomy §5 |
+| `ui-ux-designer.md`   | UX/UI Designer — interaction design, accessibility auditing (WCAG), accesslint integration | §2.10 |
+| `mcp-liaison.md`      | MCP Liaison — delegated MCP session construction + divergence reconciliation | custom, taxonomy §5 |
 | `qa-engineer.md`      | QA / Test Engineer                                      | §2.2 |
 | `sre.md`              | SRE + Performance Engineer                              | §2.3 |
 | `tech-writer.md`      | Technical Writer                                        | §2.5a |
@@ -239,11 +242,11 @@ with customer-truth records, stop the affected work and escalate through
 
 - **`docs/glossary/ENGINEERING.md`** — binding software-engineering
   terminology (generic). Precedes any agent's own reading of an
-  ambiguous term. Amend via `researcher` + `architect` + `tech-lead`
+  ambiguous term. Amend via `librarian` + `architect` + `tech-lead`
   consensus.
 - **`docs/glossary/PROJECT.md`** — binding project-specific terminology
   (customer-domain jargon, vendor / platform / site shorthand, internal
-  codenames). Amend via `researcher` + relevant `sme-<domain>` +
+  codenames). Amend via `librarian` + relevant `sme-<domain>` +
   `tech-lead` consensus.
 - **`SW_DEV_ROLE_TAXONOMY.md`** — binding role vocabulary. Already
   referenced throughout.
@@ -320,7 +323,7 @@ like "first session of the calendar week" in preference to
 8. `tech-lead` orchestrates; it does not author production artifacts
    directly. Code, scripts, schemas, prose deliverables, requirements,
    ADRs, release notes, and customer-truth records route to the owning
-   specialist (`software-engineer`, `tech-writer`, `researcher`,
+   specialist (`software-engineer`, `tech-writer`, `librarian`,
    `project-manager`, `architect`, etc.). Direct `tech-lead` writes are
    limited to orchestration artifacts (`OPEN_QUESTIONS.md`,
    intake-log rows, dispatch/task stubs, Turn Ledger entries /
@@ -330,7 +333,7 @@ like "first session of the calendar week" in preference to
    appropriate pre-close audit: Claude Code hook output where available,
    or the Codex Pre-Close Checklist in `AGENTS.md`. The audit confirms
    direct writes stayed within Rule #8, customer-truth stewardship
-   stayed with `researcher`, required specialist work was dispatched or
+   stayed with `librarian`, required specialist work was dispatched or
    queued, completed specialists were closed after review, and any
    non-default `reasoning_effort` has a recorded rationale.
 10. In downstream projects, keep product work separate from framework

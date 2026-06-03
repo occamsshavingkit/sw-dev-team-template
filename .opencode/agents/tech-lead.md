@@ -2,7 +2,7 @@
 name: tech-lead
 model: claude-sonnet
 canonical_source: .claude/agents/tech-lead.md
-canonical_sha: 608f684364efad2cda6c6a2e4cd17df242cf32c3
+canonical_sha: 11a38f07e9355c2bab5cd2f097c22f989b450398
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated

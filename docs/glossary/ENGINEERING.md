@@ -16,7 +16,7 @@
 
 Generic software-engineering vocabulary. Every agent and every human
 contributor MUST use these terms in these senses. Disagreement with a
-definition is resolved by amending this file (via `researcher` +
+definition is resolved by amending this file (via `librarian` +
 `architect` + `tech-lead` consensus) — not by using the term differently
 in practice.
 

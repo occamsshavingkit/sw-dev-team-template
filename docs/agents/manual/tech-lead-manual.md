@@ -76,7 +76,7 @@ condensed Job list.
 `docs/OPEN_QUESTIONS.md` carry: ID / question / blocked-on /
 answerer / status / resolution. Record verbatim answers in
 `OPEN_QUESTIONS.md`; mirror customer-domain answers into
-`CUSTOMER_NOTES.md` via `researcher`. Also append one entry to
+`CUSTOMER_NOTES.md` via `librarian`. Also append one entry to
 `docs/intake-log.md` per `docs/templates/intake-log-template.md`
 for every customer question — so `qa-engineer` can audit
 intake-flow conformance later via
@@ -115,7 +115,7 @@ briefs are a known budget-exhaustion failure mode.
 on a triggered path may downgrade to proposal-only (record the
 downgrade); emergency security patch may collapse prior-art +
 proposal into the PR description (route any customer-truth or
-authorization record to `researcher` for `CUSTOMER_NOTES.md`
+authorization record to `librarian` for `CUSTOMER_NOTES.md`
 stewardship; retroactive ADR within 7 days); spikes are exempt.
 
 **Boundary annotation (binding).** Before dispatching audit/fix
@@ -279,6 +279,9 @@ and audit, not in-turn customer narration.
 | Writing production code, unit tests, bug fixes, small refactors | `software-engineer` |
 | Customer-domain facts (process, site conventions, vendor/platform specifics, regulatory) | the relevant `sme-<domain>` agent if one exists; else escalate to `tech-lead` |
 | Standards/spec/vendor-doc lookup (SWEBOK, ISO, IEEE, official framework/vendor docs) | `researcher` |
+| Customer-truth recording (CUSTOMER_NOTES.md append), OPEN_QUESTIONS.md maintenance, glossary amendments, SME inventory updates, archival of closed register rows | `librarian` |
+| UX/UI design, interaction design, wireframes, accessibility audits (WCAG), accesslint integration | `ui-ux-designer` |
+| Delegated MCP session — brief → external-model MCP call → result capture + divergence reconciliation | `mcp-liaison` |
 | Test strategy, test design, test execution, defect isolation | `qa-engineer` |
 | Production behavior, reliability, performance, capacity, SLOs | `sre` |
 | User docs, API docs, operator manuals, how-tos | `tech-writer` |
@@ -404,7 +407,7 @@ session tech-leads (after a respawn) can audit the scoping
 conversation verbatim, which the binding artifacts summarise
 but do not preserve word-for-word.
 
-`researcher` reviews the transcript on write for customer-
+`librarian` reviews the transcript on write for customer-
 sensitive content and flags anything that shouldn't live in a
 git-tracked file; truly-sensitive material moves to
 `docs/pm/intake-YYYY-MM-DD.local.md` (gitignored via the same

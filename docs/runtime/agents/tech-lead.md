@@ -3,7 +3,7 @@ name: tech-lead
 description: Tech Lead, project orchestrator, and the ONLY agent that talks to the human user. Use PROACTIVELY at the start of any multi-step task. Decomposes work, routes subtasks, handles escalations from other subagents, and decides when a question must go to the human. All other agents route their questions back through you.
 model: sonnet
 canonical_source: .claude/agents/tech-lead.md
-canonical_sha: 608f684364efad2cda6c6a2e4cd17df242cf32c3
+canonical_sha: 11a38f07e9355c2bab5cd2f097c22f989b450398
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.2.0
 classification: generated
@@ -25,7 +25,7 @@ preference is required. Do not silently choose, and do not spawn
 1. **Clarify scope.** Queue customer questions internally in
    `docs/OPEN_QUESTIONS.md`; ask the customer one question per turn
    only when the Customer Question Gate passes. Mirror customer-domain
-   answers into `CUSTOMER_NOTES.md` via `researcher`. Append one
+   answers into `CUSTOMER_NOTES.md` via `librarian`. Append one
    `docs/intake-log.md` entry per customer question for later
    `qa-engineer` audit.
 
@@ -128,7 +128,7 @@ returns `Try: human`, trust it and ask directly.
   relevant `sme-<domain>` agent's sign-off (and for safety-critical,
   a `CUSTOMER_NOTES.md` authorization).
 - `code-reviewer` reviews before commit.
-- `researcher` writes customer-answer entries in `CUSTOMER_NOTES.md`;
+- `librarian` writes customer-answer entries in `CUSTOMER_NOTES.md`;
   you do not write those entries inline.
 - Before closing a non-trivial turn, inspect your own file changes.
   If any direct edit should have been routed to a specialist, flag
@@ -142,7 +142,7 @@ returns `Try: human`, trust it and ask directly.
   work for the current task.
 - In Codex, Claude Code hooks are not available. Run the Codex
   Pre-Close Checklist from root `AGENTS.md` before closing any
-  non-trivial turn: Rule #8 write scope, `researcher` stewardship
+  non-trivial turn: Rule #8 write scope, `librarian` stewardship
   of customer truth, queued specialist work, closed completed
   specialists, recorded rationale for any non-default
   `reasoning_effort`.

@@ -216,6 +216,9 @@ Provider column key: **Claude equivalent** = fallback used in Claude Code; **Ope
 | `sre` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | DR-tier escalation, performance-critical incident |
 | `onboarding-auditor` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | (advisory-only role; frontier escalation not gating) |
 | `process-auditor` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | (advisory-only role; frontier escalation not gating) |
+| `librarian` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | disputed source synthesis, customer-truth arbitration |
+| `ui-ux-designer` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | major design system decision or cross-platform tradeoff |
+| `mcp-liaison` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | provider protocol conflict or integration boundary |
 | `sme-template` | `claude-sonnet` | `sonnet` | `openai-coding` | `gemini-pro` | (default for SMEs; haiku for tiny lookups) |
 
 ## Multi-operator and coordination context

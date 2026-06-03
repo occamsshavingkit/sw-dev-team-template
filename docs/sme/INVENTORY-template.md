@@ -1,7 +1,7 @@
 # Inventory — `docs/sme/<domain>/`
 
 Every `docs/sme/<domain>/` directory MUST have an `INVENTORY.md` based
-on this template. Maintained by `researcher`; updated whenever material
+on this template. Maintained by `librarian`; updated whenever material
 is added, removed, or re-verified.
 
 ---
@@ -82,7 +82,7 @@ Rules:
   do not silently leave a dead URL.
 - If a license override is recorded in `CUSTOMER_NOTES.md`, reference
   that entry in the "License / terms" cell.
-- For local PDFs over 20 pages or 1 MB, `researcher` creates or
+- For local PDFs over 20 pages or 1 MB, `librarian` creates or
   refreshes a `.txt` sibling in the same `local/` directory (usually
   `pdftotext -layout`) and records the extraction status in the
   "Text extraction" cell. Scanned PDFs that need OCR are marked

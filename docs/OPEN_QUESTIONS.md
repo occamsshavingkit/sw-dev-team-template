@@ -1,6 +1,6 @@
 # Open Questions register
 
-Tracks every open question on the project. Steward: `researcher`.
+Tracks every open question on the project. Steward: `librarian`.
 `tech-lead` opens items; the named answerer closes them.
 
 Columns:

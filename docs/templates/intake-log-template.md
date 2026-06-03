@@ -83,7 +83,7 @@ notes: <optional context that did not fit above>
    Paraphrases belong in `decision:` or `notes:`.
 5. **Cross-ref completeness.** Every entry that landed a decision
    in `CUSTOMER_NOTES.md`, `docs/pm/CHARTER.md`, or
-   `docs/OPEN_QUESTIONS.md` MUST cite it. `researcher` mirrors
+   `docs/OPEN_QUESTIONS.md` MUST cite it. `librarian` mirrors
    back — every `CUSTOMER_NOTES.md` entry added after the intake
    log begins cites an intake-log `turn:`.
 
@@ -136,6 +136,6 @@ cross-refs:
 ---
 
 Roll entries into `docs/intake-log-ARCHIVE.md` at project close per
-`researcher.md` § "Archival + size budgets" — append-only archive
+`librarian.md` § "Archival mechanic" — append-only archive
 with the live file truncated to the last milestone's worth of
 entries. Soft cap: 200 live entries.
