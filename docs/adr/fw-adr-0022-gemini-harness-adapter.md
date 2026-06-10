@@ -45,6 +45,10 @@ date: 2026-06-02
 
 - **Accepted** — customer ratified both open rulings 2026-06-02
   (see `CUSTOMER_NOTES.md` entry recorded this turn)
+- **Superseded in part** by FW-ADR-0026 (Antigravity harness adapter,
+  2026-06-10): FW-ADR-0026 adds the `.agents/` Antigravity surface and
+  the MCP non-primary session rule to GEMINI.md. This ADR remains
+  authoritative for the gemini-cli surface (`.gemini/agents/`, `GEMINI.md`).
 - **Date:** 2026-06-02
 - **Deciders:** `architect` (proposed); `tech-lead` + customer (accepted
   2026-06-02)

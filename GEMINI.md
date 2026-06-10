@@ -176,7 +176,7 @@ created them. Dispatch via `@sme-<domain>` or autonomous selection.
 The following files are binding for all work done in Gemini sessions. When
 they conflict with any other source, they win:
 
-- **`CLAUDE.md`** — Hard Rules (11 rules), escalation protocol, time-based
+- **`CLAUDE.md`** — Hard Rules (12 rules), escalation protocol, time-based
   cadences. Read in Mode A before substantive work.
 - **`SW_DEV_ROLE_TAXONOMY.md`** — binding role vocabulary. Role-ownership
   disputes resolve here, not by agent opinion.

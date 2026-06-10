@@ -34,7 +34,8 @@
 #   scripts/compile-runtime-agents.sh [--check] [--verify] [--strict] \
 #                                     [--out-dir <path>] \
 #                                     [--no-opencode-adapters] \
-#                                     [--no-gemini-adapters] [role...]
+#                                     [--no-gemini-adapters] \
+#                                     [--no-antigravity-adapters] [role...]
 #
 # Inputs:
 #   * Zero positional args -> walk every .claude/agents/*.md (excluding
@@ -183,7 +184,7 @@ while [ $# -gt 0 ]; do
       shift
       ;;
     -h|--help)
-      sed -n '2,71p' "$0"
+      sed -n '2,87p' "$0"
       exit 0
       ;;
     --)

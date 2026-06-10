@@ -705,7 +705,11 @@ scan_antigravity() {
     fi
     [ -d "${ANTIGRAVITY_DIR}" ] || return
     # Walk .agents/skills/<role>/ subdirectories, validate each SKILL.md.
-    ls "${ANTIGRAVITY_DIR}" 2>/dev/null         | grep -E '^[a-z0-9][a-z0-9-]*$'         | grep -v '^sme-template$'         | LC_ALL=C sort         | while IFS= read -r role; do
+    ls "${ANTIGRAVITY_DIR}" 2>/dev/null \
+        | grep -E '^[a-z0-9][a-z0-9-]*$' \
+        | grep -v '^sme-template$' \
+        | LC_ALL=C sort \
+        | while IFS= read -r role; do
             skill_file="${ANTIGRAVITY_DIR}/${role}/SKILL.md"
             [ -f "${skill_file}" ] || continue
             lint_generated_file "${skill_file}" "antigravity"
