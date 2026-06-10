@@ -5,7 +5,7 @@ model: gemini-pro
 canonical_source: .claude/agents/architect.md
 canonical_sha: 14d62cd66bf0e345e395678de810887f236a0bbb
 generator: scripts/compile-runtime-agents.sh
-generator_version: 0.2.0
+generator_version: 0.3.0
 classification: generated
 ---
 

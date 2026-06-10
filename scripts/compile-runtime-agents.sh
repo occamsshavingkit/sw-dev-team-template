@@ -3,7 +3,7 @@
 # Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
 #
 # compile-runtime-agents.sh — compact runtime-contract compiler (M1.1)
-# version: 0.2.0
+# version: 0.3.0
 #
 # Reads canonical role files at .claude/agents/<role>.md, applies the
 # section allowlist from schemas/agent-contract.schema.json, and writes
@@ -22,6 +22,13 @@
 # docs/model-routing-guidelines.md. The Gemini adapter MUST include the
 # description field (load-bearing for Gemini autonomous role selection).
 # Pass --no-gemini-adapters to skip Gemini adapter generation.
+#
+# fw-adr-0026 scope: also writes a thin Antigravity skill stub to
+# .agents/skills/<role>/SKILL.md (nested directory per Antigravity
+# convention). The SKILL.md includes a mandatory description field
+# (load-bearing for Antigravity semantic skill activation). No model
+# field (Antigravity model selection is workspace-global, not per-skill).
+# Pass --no-antigravity-adapters to skip Antigravity skill generation.
 #
 # Usage:
 #   scripts/compile-runtime-agents.sh [--check] [--verify] [--strict] \
@@ -69,6 +76,12 @@
 #                   adapters alongside OpenCode adapters. In --verify
 #                   mode this restricts verification to compact-runtime
 #                   and OpenCode only.
+#   --no-antigravity-adapters
+#                   Skip writing .agents/skills/<role>/SKILL.md stubs
+#                   (fw-adr-0026). Default behaviour generates Antigravity
+#                   skills alongside OpenCode and Gemini adapters. In
+#                   --verify mode restricts to compact-runtime, OpenCode,
+#                   and Gemini only.
 #
 # Section-heading mapping (canonical-slug <- accepted heading patterns,
 # case-insensitive, whitespace-tolerant; punctuation/parentheticals
@@ -96,7 +109,7 @@ LANG=C
 LC_ALL=C
 export LANG LC_ALL
 
-GENERATOR_VERSION="0.2.0"
+GENERATOR_VERSION="0.3.0"
 GENERATOR_PATH="scripts/compile-runtime-agents.sh"
 AGENTS_DIR=".claude/agents"
 SCHEMA_DIR="schemas"
@@ -105,6 +118,7 @@ GENERATED_SCHEMA="${SCHEMA_DIR}/generated-artifact.schema.json"
 OPENCODE_OUT_DIR=".opencode/agents"
 OPENCODE_LOCAL_DIR=".opencode/agents/local"
 GEMINI_OUT_DIR=".gemini/agents"
+ANTIGRAVITY_OUT_DIR=".agents/skills"
 ROUTING_DOC="docs/model-routing-guidelines.md"
 DEFAULT_MODEL_CLASS="claude-sonnet"
 DEFAULT_GEMINI_MODEL_CLASS="gemini-pro"
@@ -118,6 +132,7 @@ OUT_DIR="${DEFAULT_OUT_DIR}"
 ROLES=""
 NO_OPENCODE_ADAPTERS=0
 NO_GEMINI_ADAPTERS=0
+NO_ANTIGRAVITY_ADAPTERS=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -161,6 +176,10 @@ while [ $# -gt 0 ]; do
       ;;
     --no-gemini-adapters)
       NO_GEMINI_ADAPTERS=1
+      shift
+      ;;
+    --no-antigravity-adapters)
+      NO_ANTIGRAVITY_ADAPTERS=1
       shift
       ;;
     -h|--help)
@@ -280,6 +299,10 @@ if [ "${REPRO_MODE}" -eq 1 ]; then
   if [ "${NO_GEMINI_ADAPTERS}" -eq 1 ]; then
     repro_args_a="${repro_args_a} --no-gemini-adapters"
     repro_args_b="${repro_args_b} --no-gemini-adapters"
+  fi
+  if [ "${NO_ANTIGRAVITY_ADAPTERS}" -eq 1 ]; then
+    repro_args_a="${repro_args_a} --no-antigravity-adapters"
+    repro_args_b="${repro_args_b} --no-antigravity-adapters"
   fi
 
   # OPENCODE_OUT_DIR is read from the script's own default; we need to
@@ -417,6 +440,22 @@ if [ "${REPRO_MODE}" -eq 1 ]; then
           fi
       fi
 
+      if [ "${NO_ANTIGRAVITY_ADAPTERS}" -eq 0 ]; then
+          a_ag="${REPRO_A}/root/${ANTIGRAVITY_OUT_DIR}/${r}/SKILL.md"
+          b_ag="${REPRO_B}/root/${ANTIGRAVITY_OUT_DIR}/${r}/SKILL.md"
+          if [ -f "${a_ag}" ] || [ -f "${b_ag}" ]; then
+              if [ ! -f "${a_ag}" ] || [ ! -f "${b_ag}" ]; then
+                  echo "reproducibility FAIL: ${r} -- diff at ${a_ag} (one side missing)"
+                  role_ok=0
+                  repro_status=1
+              elif ! cmp -s "${a_ag}" "${b_ag}"; then
+                  echo "reproducibility FAIL: ${r} -- diff at ${a_ag}"
+                  role_ok=0
+                  repro_status=1
+              fi
+          fi
+      fi
+
       if [ "${role_ok}" -eq 1 ]; then
           echo "reproducibility OK: ${r}"
       fi
@@ -433,6 +472,7 @@ VERIFY_SCRATCH=""
 VERIFY_COMMITTED_RUNTIME=""
 VERIFY_COMMITTED_OPENCODE=""
 VERIFY_COMMITTED_GEMINI=""
+VERIFY_COMMITTED_ANTIGRAVITY=""
 if [ "${VERIFY_MODE}" -eq 1 ]; then
   if [ "${CHECK_MODE}" -eq 1 ]; then
     echo "compile-runtime-agents: --verify and --check are mutually exclusive" >&2
@@ -442,10 +482,12 @@ if [ "${VERIFY_MODE}" -eq 1 ]; then
   VERIFY_COMMITTED_RUNTIME="${OUT_DIR}"
   VERIFY_COMMITTED_OPENCODE="${OPENCODE_OUT_DIR}"
   VERIFY_COMMITTED_GEMINI="${GEMINI_OUT_DIR}"
+  VERIFY_COMMITTED_ANTIGRAVITY="${ANTIGRAVITY_OUT_DIR}"
   OUT_DIR="${VERIFY_SCRATCH}/runtime"
   OPENCODE_OUT_DIR="${VERIFY_SCRATCH}/opencode"
   GEMINI_OUT_DIR="${VERIFY_SCRATCH}/gemini"
-  mkdir -p "${OUT_DIR}" "${OPENCODE_OUT_DIR}" "${GEMINI_OUT_DIR}"
+  ANTIGRAVITY_OUT_DIR="${VERIFY_SCRATCH}/antigravity"
+  mkdir -p "${OUT_DIR}" "${OPENCODE_OUT_DIR}" "${GEMINI_OUT_DIR}" "${ANTIGRAVITY_OUT_DIR}"
   # Trap cleanup; preserved across compile_role's own EXIT trap usage
   # by being installed last and re-installing after each compile.
 fi
@@ -789,6 +831,57 @@ write_gemini_adapter() {
   fi
 }
 
+# ---- antigravity skill writer ----------------------------------------
+# Writes .agents/skills/<role>/SKILL.md with frontmatter + Goal/Instructions
+# body per the Antigravity skill format (fw-adr-0026 §3). Key differences
+# from the OpenCode and Gemini adapters:
+#   - Nested directory: .agents/skills/<role>/SKILL.md (not a flat file).
+#   - No model field (Antigravity model selection is workspace-global).
+#   - description is REQUIRED (load-bearing for semantic skill activation).
+#   - Body uses Antigravity Goal / Instructions section shape.
+write_antigravity_skill() {
+  role="$1"
+  canonical_src="$2"
+  canonical_sha="$3"
+  canonical_desc="$4"
+
+  skill_dir="${ANTIGRAVITY_OUT_DIR}/${role}"
+  mkdir -p "${skill_dir}"
+  out_path="${skill_dir}/SKILL.md"
+  tmp_out="${out_path}.tmp"
+
+  {
+    printf -- '---\n'
+    printf 'name: %s\n' "${role}"
+    printf 'description: %s\n' "${canonical_desc}"
+    printf 'canonical_source: %s\n' "${canonical_src}"
+    printf 'canonical_sha: %s\n' "${canonical_sha}"
+    printf 'generator: %s\n' "${GENERATOR_PATH}"
+    printf 'generator_version: %s\n' "${GENERATOR_VERSION}"
+    printf 'classification: generated\n'
+    printf -- '---\n'
+    printf '\n'
+    # shellcheck disable=SC2016  # literal backticks for Markdown output
+    printf '## Goal\n'
+    printf 'Act as the `%s` specialist on the sw-dev-team.\n' "${role}"
+    printf '\n'
+    printf '## Instructions\n'
+    # shellcheck disable=SC2016  # literal backticks for Markdown output
+    printf 'Read `.claude/agents/%s.md` (canonical role contract).\n' "${role}"
+    # shellcheck disable=SC2016  # literal backticks for Markdown output
+    printf 'If `.agents/skills/local/%s/SKILL.md` exists, read it after the canonical file.\n' "${role}"
+    printf 'Act only as that role.\n'
+    printf "Return output in the role's required format.\n"
+  } > "${tmp_out}"
+
+  mv "${tmp_out}" "${out_path}"
+
+  if ! maybe_validate_output "${out_path}"; then
+    overall_status=1
+  fi
+}
+
+
 compile_role() {
   role="$1"
   src="${AGENTS_DIR}/${role}.md"
@@ -925,6 +1018,12 @@ compile_role() {
     write_gemini_adapter "${role}" "${src}" "${canonical_sha}" "${fm_desc}"
   fi
 
+  # Antigravity skill (fw-adr-0026) — same conditions as gemini. The
+  # description is load-bearing for Antigravity semantic skill activation.
+  if [ "${NO_ANTIGRAVITY_ADAPTERS}" -eq 0 ]; then
+    write_antigravity_skill "${role}" "${src}" "${canonical_sha}" "${fm_desc}"
+  fi
+
   out_path="${OUT_DIR}/${role}.md"
 
   if [ "${role_incomplete}" -eq 1 ] && [ "${STRICT_MODE}" -eq 0 ]; then
@@ -1058,6 +1157,23 @@ if [ "${VERIFY_MODE}" -eq 1 ]; then
           verify_status=1
         elif ! cmp -s "${gen_gemini}" "${cmt_gemini}"; then
           echo "verify FAIL: ${cmt_gemini} differs from generator output"
+          role_ok=0
+          verify_status=1
+        fi
+      fi
+    fi
+
+    # Antigravity skill (unless suppressed).
+    if [ "${NO_ANTIGRAVITY_ADAPTERS}" -eq 0 ]; then
+      gen_ag="${ANTIGRAVITY_OUT_DIR}/${role}/SKILL.md"
+      cmt_ag="${VERIFY_COMMITTED_ANTIGRAVITY}/${role}/SKILL.md"
+      if [ -f "${gen_ag}" ]; then
+        if [ ! -f "${cmt_ag}" ]; then
+          echo "verify FAIL: ${cmt_ag} differs from generator output (committed file missing)"
+          role_ok=0
+          verify_status=1
+        elif ! cmp -s "${gen_ag}" "${cmt_ag}"; then
+          echo "verify FAIL: ${cmt_ag} differs from generator output"
           role_ok=0
           verify_status=1
         fi

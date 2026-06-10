@@ -5,7 +5,7 @@ model: sonnet
 canonical_source: .claude/agents/security-engineer.md
 canonical_sha: 898ed37357ee8a4acab2aeaf741cb5a648d4eb26
 generator: scripts/compile-runtime-agents.sh
-generator_version: 0.2.0
+generator_version: 0.3.0
 classification: generated
 ---
 

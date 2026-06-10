@@ -5,7 +5,7 @@ model: sonnet
 canonical_source: .claude/agents/process-auditor.md
 canonical_sha: 48e7dbf2d442ca194910f295b7b12888fd1ea2db
 generator: scripts/compile-runtime-agents.sh
-generator_version: 0.2.0
+generator_version: 0.3.0
 classification: generated
 ---
 

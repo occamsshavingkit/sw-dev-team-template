@@ -5,7 +5,7 @@
 # scripts/lint-agent-contracts.sh — schema-validation gate for the
 # FR-022 / FR-023 contract surfaces (M1.1 / G6 hard-gate).
 #
-# Validates three surfaces:
+# Validates four surfaces:
 #
 #   1. Canonical agent contracts (.claude/agents/*.md, excluding
 #      sme-template.md and any non-kebab basenames). For each file,
@@ -20,9 +20,15 @@
 #      The schema for this surface is inlined here (key-presence check
 #      via awk); R-VR-1 explicitly does not require a YAML parser.
 #
-#   3. Generated artefacts (docs/runtime/agents/*.md and
-#      .opencode/agents/*.md). Each file's frontmatter is extracted to
-#      JSON and validated against schemas/generated-artifact.schema.json.
+#   3. Generated artefacts (docs/runtime/agents/*.md,
+#      .opencode/agents/*.md, and .gemini/agents/*.md). Each file's
+#      frontmatter is extracted to JSON and validated against
+#      schemas/generated-artifact.schema.json.
+#
+#   4. Antigravity skill stubs (.agents/skills/<role>/SKILL.md, nested
+#      one level deeper than the other generated surfaces). Validated
+#      against schemas/generated-artifact.schema.json plus an additional
+#      description-required check (fw-adr-0026 §3).
 #
 # Section-to-slug mapping is a verbatim derivation of map_section() in
 # scripts/compile-runtime-agents.sh (declared source of truth). Keep in
@@ -57,6 +63,7 @@ AGENTS_DIR=".claude/agents"
 RUNTIME_DIR="docs/runtime/agents"
 OPENCODE_DIR=".opencode/agents"
 GEMINI_DIR=".gemini/agents"
+ANTIGRAVITY_DIR=".agents/skills"
 FIXTURES_DIR="tests/prompt-regression"
 SCHEMA_DIR="schemas"
 CONTRACT_SCHEMA="${SCHEMA_DIR}/agent-contract.schema.json"
@@ -71,9 +78,9 @@ usage() {
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        --canonical-only) MODE="canonical"; shift ;;
-        --generated-only) MODE="generated"; shift ;;
-        --fixtures-only)  MODE="fixtures"; shift ;;
+        --canonical-only)   MODE="canonical"; shift ;;
+        --generated-only)   MODE="generated"; shift ;;
+        --fixtures-only)    MODE="fixtures"; shift ;;
         -h|--help) usage; exit 0 ;;
         *)
             printf 'lint-agent-contracts: unknown arg: %s\n' "$1" >&2
@@ -547,7 +554,7 @@ lint_generated_file() {
     # (fw-adr-0022 §4 — load-bearing for autonomous Gemini role selection).
     # Not enforced via the shared schema to avoid breaking runtime/opencode
     # adapters that legitimately omit description.
-    if [ "${is_gemini}" = "gemini" ]; then
+    if [ "${is_gemini}" = "gemini" ] || [ "${is_gemini}" = "antigravity" ]; then
         desc_val="$(awk -F'\t' '$1=="description" {print $0; exit}' "${tmpjson}" 2>/dev/null || true)"
         # Re-extract directly from the raw frontmatter for reliability.
         desc_val="$(awk '
@@ -569,7 +576,10 @@ lint_generated_file() {
             }
         ' "${src}")"
         if [ -z "${desc_val}" ]; then
-            err "${src}" "gemini adapter missing required description field (fw-adr-0022 §4)"
+            surface_name="${is_gemini}"
+            [ "${is_gemini}" = "gemini" ] && surface_name="gemini (fw-adr-0022 §4)"
+            [ "${is_gemini}" = "antigravity" ] && surface_name="antigravity (fw-adr-0026 §3)"
+            err "${src}" "${surface_name} adapter missing required description field"
         fi
     fi
 
@@ -681,6 +691,35 @@ scan_fixtures() {
     fi
 }
 
+
+# ---- antigravity skill validation -----------------------------------
+# Handles the nested .agents/skills/<role>/SKILL.md structure (one
+# subdirectory per role — Antigravity convention, fw-adr-0026 §3).
+# Validates each SKILL.md against generated-artifact.schema.json plus
+# the description-required check from fw-adr-0026 §3.
+scan_antigravity() {
+    if [ ! -f "${GENERATED_SCHEMA}" ]; then
+        printf 'lint-agent-contracts: %s not found\n' "${GENERATED_SCHEMA}" >&2
+        ERR_COUNT=$((ERR_COUNT + 1))
+        return
+    fi
+    [ -d "${ANTIGRAVITY_DIR}" ] || return
+    # Walk .agents/skills/<role>/ subdirectories, validate each SKILL.md.
+    ls "${ANTIGRAVITY_DIR}" 2>/dev/null         | grep -E '^[a-z0-9][a-z0-9-]*$'         | grep -v '^sme-template$'         | LC_ALL=C sort         | while IFS= read -r role; do
+            skill_file="${ANTIGRAVITY_DIR}/${role}/SKILL.md"
+            [ -f "${skill_file}" ] || continue
+            lint_generated_file "${skill_file}" "antigravity"
+            printf 'COUNTERS\t%d\t%d\n' "${ERR_COUNT}" "${WARN_COUNT}"
+        done > "${TMP_COUNTERS}"
+    last="$(tail -1 "${TMP_COUNTERS}" 2>/dev/null || true)"
+    if [ -n "${last}" ]; then
+        e="$(printf '%s' "${last}" | awk -F'\t' '{print $2}')"
+        w="$(printf '%s' "${last}" | awk -F'\t' '{print $3}')"
+        [ -n "${e}" ] && ERR_COUNT="${e}"
+        [ -n "${w}" ] && WARN_COUNT="${w}"
+    fi
+}
+
 # ---- main dispatch ---------------------------------------------------
 TMP_COUNTERS="$(mktemp)"
 trap 'rm -f "${TMP_COUNTERS}"' EXIT INT TERM
@@ -690,12 +729,14 @@ case "${MODE}" in
         scan_canonical
         scan_fixtures
         scan_generated
+        scan_antigravity
         ;;
     canonical)
         scan_canonical
         ;;
     generated)
         scan_generated
+        scan_antigravity
         ;;
     fixtures)
         scan_fixtures

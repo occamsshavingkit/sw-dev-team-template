@@ -5,7 +5,7 @@ model: sonnet
 canonical_source: .claude/agents/sre.md
 canonical_sha: 5200a012925cd7e74f3095cd5622ee1e1839735f
 generator: scripts/compile-runtime-agents.sh
-generator_version: 0.2.0
+generator_version: 0.3.0
 classification: generated
 ---
 
