@@ -56,6 +56,35 @@ throughout. Also stay within the action named by
 `permitted_role_owned_action` on the handoff's `bounded_codex_exception`
 block — do not perform role-owned actions beyond what that field permits.
 
+## MCP Non-Primary Session (Issue #289)
+
+When this Gemini session was invoked as an **MCP tool call** from another
+session — not as the primary orchestrator — it is already functioning as a
+dispatched specialist. In that context:
+
+- **Do not start the team, prompt for spawn authorization, or open an
+  orchestration loop.** Those actions do not fit the MCP tool-call
+  invocation model and will block the scoped task.
+- **Act as the role described** in the MCP tool call or the preamble
+  provided by the calling session. If no role is specified, default to
+  `software-engineer`.
+- **Skip the agent-start flow entirely.** Return findings, file changes,
+  and escalation requests directly in the tool response.
+- **Do not contact the customer.** Communication returns to the
+  orchestrating session, not the customer.
+
+**Detection heuristic:** if the session preamble or system prompt indicates
+this session was spawned by another session — for example, it contains
+"Top-level tech-lead dispatched you", "You have already been spawned", or
+the equivalent MCP tool-call framing — treat the session as non-primary
+and skip team-start. When in doubt, read the first few lines of context
+for an explicit role assignment; if present, execute that role without
+prompting for spawn authorization.
+
+This mirrors the rule in `AGENTS.md` § "MCP-connection / non-primary-session
+mode" (issue #289). The same rule applies on the Antigravity surface via
+`.agents/agents.md` § "MCP Non-Primary Session" (fw-adr-0026).
+
 ## Framework / Project Boundary
 
 In downstream repositories, distinguish product work from the
