@@ -117,6 +117,25 @@ Upgrade strategy, per template-shipped file:
 4. **Customized since scaffold AND upstream also changed** → flagged
    as a conflict; the file is **not** overwritten. You diff manually
    and decide per-file: keep local, take upstream, or merge.
+5. **Path newly introduced by upstream that the project already had
+   (no common baseline — pre-existing-path collision)** → **upstream
+   version is taken by default** (PR-2 / FW-ADR-0028 Item 2).
+
+   > **Behavior-change caution.** Before PR-2, this case surfaced an
+   > `ACTION REQUIRED` prompt offering three manual options. It no
+   > longer does. If your project file must survive the upgrade, you
+   > must opt out explicitly:
+   >
+   > - **Per-run:** pass `--keep-local <path>` on the `upgrade.sh`
+   >   command line (the same flag documented for auto-merge opt-outs
+   >   in the "Conflict resolution" section below).
+   > - **Permanently:** list the path in `.template-customizations`
+   >   (one path per line). Listed paths are always treated as
+   >   `preserved` and are never overwritten.
+   >
+   > `--dry-run` previews this case with the label
+   > `would take upstream (pre-existing collision)` and annotates
+   > each collision's nature alongside the standard conflict preview.
 
 `accepted-local` means the upgrade preserved a local edit in a
 framework-shipped file. That can be correct, but it can also preserve
