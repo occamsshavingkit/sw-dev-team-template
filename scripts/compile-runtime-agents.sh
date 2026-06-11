@@ -3,7 +3,7 @@
 # Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
 #
 # compile-runtime-agents.sh — compact runtime-contract compiler (M1.1)
-# version: 0.2.0
+# version: 0.3.0
 #
 # Reads canonical role files at .claude/agents/<role>.md, applies the
 # section allowlist from schemas/agent-contract.schema.json, and writes
@@ -23,11 +23,18 @@
 # description field (load-bearing for Gemini autonomous role selection).
 # Pass --no-gemini-adapters to skip Gemini adapter generation.
 #
+# fw-adr-0026 Q-0033 scope: also writes Antigravity adapter files to
+# .agents/skills/<role>/SKILL.md and .agents/agents/<role>/agent.json.
+# toolNames is emitted as [] (passthrough) for all roles; a WARN is
+# emitted per role with a non-empty tools: frontmatter line.
+# Pass --no-antigravity-adapters to skip Antigravity adapter generation.
+#
 # Usage:
 #   scripts/compile-runtime-agents.sh [--check] [--verify] [--strict] \
 #                                     [--out-dir <path>] \
 #                                     [--no-opencode-adapters] \
-#                                     [--no-gemini-adapters] [role...]
+#                                     [--no-gemini-adapters] \
+#                                     [--no-antigravity-adapters] [role...]
 #
 # Inputs:
 #   * Zero positional args -> walk every .claude/agents/*.md (excluding
@@ -69,6 +76,13 @@
 #                   adapters alongside OpenCode adapters. In --verify
 #                   mode this restricts verification to compact-runtime
 #                   and OpenCode only.
+#   --no-antigravity-adapters
+#                   Skip writing .agents/skills/<role>/SKILL.md and
+#                   .agents/agents/<role>/agent.json adapters
+#                   (fw-adr-0026 Q-0033). Default behaviour generates
+#                   Antigravity adapters alongside OpenCode and Gemini.
+#                   In --verify mode this restricts verification to
+#                   compact-runtime, OpenCode, and Gemini only.
 #
 # Section-heading mapping (canonical-slug <- accepted heading patterns,
 # case-insensitive, whitespace-tolerant; punctuation/parentheticals
@@ -96,7 +110,7 @@ LANG=C
 LC_ALL=C
 export LANG LC_ALL
 
-GENERATOR_VERSION="0.2.0"
+GENERATOR_VERSION="0.3.0"
 GENERATOR_PATH="scripts/compile-runtime-agents.sh"
 AGENTS_DIR=".claude/agents"
 SCHEMA_DIR="schemas"
@@ -105,9 +119,20 @@ GENERATED_SCHEMA="${SCHEMA_DIR}/generated-artifact.schema.json"
 OPENCODE_OUT_DIR=".opencode/agents"
 OPENCODE_LOCAL_DIR=".opencode/agents/local"
 GEMINI_OUT_DIR=".gemini/agents"
+ANTIGRAVITY_OUT_DIR=".agents"
 ROUTING_DOC="docs/model-routing-guidelines.md"
 DEFAULT_MODEL_CLASS="claude-sonnet"
 DEFAULT_GEMINI_MODEL_CLASS="gemini-pro"
+
+# ---- ANTIGRAVITY_TOOLS_MAP -------------------------------------------
+# Maps role-slug -> toolNames array for agent.json emission.
+# Absent = passthrough (toolNames: []). Add entries when Antigravity
+# tool-name vocabulary is confirmed from a Tier-1 source (Q-0033 open
+# sub-point 3). Currently empty; generator emits [] for all roles and
+# warns for each role whose .claude/agents/<role>.md has a non-empty
+# tools: frontmatter line.
+# Example entry: ANTIGRAVITY_TOOLS_MAP_tech_lead='["Read","Write"]'
+# (role slug with hyphens replaced by underscores).
 
 # ---- arg parsing -----------------------------------------------------
 CHECK_MODE=0
@@ -118,6 +143,7 @@ OUT_DIR="${DEFAULT_OUT_DIR}"
 ROLES=""
 NO_OPENCODE_ADAPTERS=0
 NO_GEMINI_ADAPTERS=0
+NO_ANTIGRAVITY_ADAPTERS=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -161,6 +187,10 @@ while [ $# -gt 0 ]; do
       ;;
     --no-gemini-adapters)
       NO_GEMINI_ADAPTERS=1
+      shift
+      ;;
+    --no-antigravity-adapters)
+      NO_ANTIGRAVITY_ADAPTERS=1
       shift
       ;;
     -h|--help)
@@ -280,6 +310,10 @@ if [ "${REPRO_MODE}" -eq 1 ]; then
   if [ "${NO_GEMINI_ADAPTERS}" -eq 1 ]; then
     repro_args_a="${repro_args_a} --no-gemini-adapters"
     repro_args_b="${repro_args_b} --no-gemini-adapters"
+  fi
+  if [ "${NO_ANTIGRAVITY_ADAPTERS}" -eq 1 ]; then
+    repro_args_a="${repro_args_a} --no-antigravity-adapters"
+    repro_args_b="${repro_args_b} --no-antigravity-adapters"
   fi
 
   # OPENCODE_OUT_DIR is read from the script's own default; we need to
@@ -417,6 +451,35 @@ if [ "${REPRO_MODE}" -eq 1 ]; then
           fi
       fi
 
+      if [ "${NO_ANTIGRAVITY_ADAPTERS}" -eq 0 ]; then
+          a_sk="${REPRO_A}/root/${ANTIGRAVITY_OUT_DIR}/skills/${r}/SKILL.md"
+          b_sk="${REPRO_B}/root/${ANTIGRAVITY_OUT_DIR}/skills/${r}/SKILL.md"
+          if [ -f "${a_sk}" ] || [ -f "${b_sk}" ]; then
+              if [ ! -f "${a_sk}" ] || [ ! -f "${b_sk}" ]; then
+                  echo "reproducibility FAIL: ${r} -- diff at ${a_sk} (one side missing)"
+                  role_ok=0
+                  repro_status=1
+              elif ! cmp -s "${a_sk}" "${b_sk}"; then
+                  echo "reproducibility FAIL: ${r} -- diff at ${a_sk}"
+                  role_ok=0
+                  repro_status=1
+              fi
+          fi
+          a_aj="${REPRO_A}/root/${ANTIGRAVITY_OUT_DIR}/agents/${r}/agent.json"
+          b_aj="${REPRO_B}/root/${ANTIGRAVITY_OUT_DIR}/agents/${r}/agent.json"
+          if [ -f "${a_aj}" ] || [ -f "${b_aj}" ]; then
+              if [ ! -f "${a_aj}" ] || [ ! -f "${b_aj}" ]; then
+                  echo "reproducibility FAIL: ${r} -- diff at ${a_aj} (one side missing)"
+                  role_ok=0
+                  repro_status=1
+              elif ! cmp -s "${a_aj}" "${b_aj}"; then
+                  echo "reproducibility FAIL: ${r} -- diff at ${a_aj}"
+                  role_ok=0
+                  repro_status=1
+              fi
+          fi
+      fi
+
       if [ "${role_ok}" -eq 1 ]; then
           echo "reproducibility OK: ${r}"
       fi
@@ -442,10 +505,12 @@ if [ "${VERIFY_MODE}" -eq 1 ]; then
   VERIFY_COMMITTED_RUNTIME="${OUT_DIR}"
   VERIFY_COMMITTED_OPENCODE="${OPENCODE_OUT_DIR}"
   VERIFY_COMMITTED_GEMINI="${GEMINI_OUT_DIR}"
+  VERIFY_COMMITTED_ANTIGRAVITY="${ANTIGRAVITY_OUT_DIR}"
   OUT_DIR="${VERIFY_SCRATCH}/runtime"
   OPENCODE_OUT_DIR="${VERIFY_SCRATCH}/opencode"
   GEMINI_OUT_DIR="${VERIFY_SCRATCH}/gemini"
-  mkdir -p "${OUT_DIR}" "${OPENCODE_OUT_DIR}" "${GEMINI_OUT_DIR}"
+  ANTIGRAVITY_OUT_DIR="${VERIFY_SCRATCH}/antigravity"
+  mkdir -p "${OUT_DIR}" "${OPENCODE_OUT_DIR}" "${GEMINI_OUT_DIR}" "${ANTIGRAVITY_OUT_DIR}"
   # Trap cleanup; preserved across compile_role's own EXIT trap usage
   # by being installed last and re-installing after each compile.
 fi
@@ -789,6 +854,166 @@ write_gemini_adapter() {
   fi
 }
 
+# ---- antigravity adapter writers ------------------------------------
+# Writes:
+#   .agents/skills/<role>/SKILL.md  — thin-adapter skill (fw-adr-0026 Q-0033)
+#   .agents/agents/<role>/agent.json — per-role subagent (fw-adr-0026 Q-0033)
+#
+# toolNames: [] passthrough for all roles (ADR mapping rule). A WARN is
+# emitted per role whose .claude/agents/<role>.md has a non-empty tools:
+# frontmatter line and no ANTIGRAVITY_TOOLS_MAP entry (map absent for now;
+# entries added when Antigravity tool-name vocabulary is confirmed).
+#
+# tech-lead guard: for the tech-lead role only, the systemPromptSections
+# content is replaced with a halt-and-report guard message.
+write_antigravity_adapters() {
+  role="$1"
+  canonical_src="$2"
+  canonical_sha="$3"
+  canonical_desc="$4"
+  canonical_tools="$5"
+
+  # WARN for roles with a non-empty tools: line and no ANTIGRAVITY_TOOLS_MAP
+  # entry. The map is currently absent; all roles emit toolNames: [].
+  if [ -n "${canonical_tools}" ]; then
+    # Build the map-key by replacing hyphens with underscores.
+    map_key="ANTIGRAVITY_TOOLS_MAP_$(printf '%s' "${role}" | tr '-' '_')"
+    # eval-expand the map variable (POSIX-safe indirect variable read).
+    # shellcheck disable=SC2163  # false positive: map_key is a valid var name
+    map_val="$(eval "printf '%s' \"\${${map_key}:-}\"")"
+    if [ -z "${map_val}" ]; then
+      printf 'compile-runtime-agents: WARN: %s: tools: line is non-empty but no ANTIGRAVITY_TOOLS_MAP entry found; emitting toolNames: [] (passthrough)\n' "${role}" >&2
+    fi
+  fi
+
+  # ---- SKILL.md -------------------------------------------------------
+  # YAML double-quoted scalar escaper (W-4): emit description as a
+  # double-quoted YAML scalar so embedded quotes, backslashes, and other
+  # special chars are always valid. Escapes: \ → \\, " → \", TAB → \t,
+  # CR → \r, newlines in multi-line input → \n.
+  # shellcheck disable=SC2016  # awk script literal
+  yaml_dq_esc() {
+    awk 'BEGIN{ORS=""}
+    {
+      s = $0
+      gsub(/\\/, "\\\\", s)
+      gsub(/"/, "\\\"", s)
+      gsub(/\t/, "\\t",  s)
+      gsub(/\r/, "\\r",  s)
+      if (NR > 1) printf "\\n"
+      printf "%s", s
+    }'
+  }
+
+  esc_yaml_desc="$(printf '%s' "${canonical_desc}" | yaml_dq_esc)"
+
+  skill_dir="${ANTIGRAVITY_OUT_DIR}/skills/${role}"
+  skill_path="${skill_dir}/SKILL.md"
+  skill_tmp="${skill_path}.tmp"
+  mkdir -p "${skill_dir}"
+
+  {
+    printf -- '---\n'
+    printf 'name: %s\n' "${role}"
+    printf 'description: "%s"\n' "${esc_yaml_desc}"
+    printf 'canonical_source: %s\n' "${canonical_src}"
+    printf 'canonical_sha: %s\n' "${canonical_sha}"
+    printf 'generator: %s\n' "${GENERATOR_PATH}"
+    printf 'generator_version: %s\n' "${GENERATOR_VERSION}"
+    printf 'classification: generated\n'
+    printf -- '---\n'
+    printf '\n'
+    # shellcheck disable=SC2016  # literal backticks for Markdown output
+    printf 'Read `.claude/agents/%s.md` (canonical role contract).\n' "${role}"
+    # shellcheck disable=SC2016  # literal backticks for Markdown output
+    printf 'If `local_supplement` resolves to an existing file, read it after the canonical file.\n'
+    printf 'Act only as that role.\n'
+    printf "Return output in the role's required format.\n"
+  } > "${skill_tmp}"
+  mv "${skill_tmp}" "${skill_path}"
+
+  # ---- agent.json -----------------------------------------------------
+  agent_dir="${ANTIGRAVITY_OUT_DIR}/agents/${role}"
+  agent_path="${agent_dir}/agent.json"
+  agent_tmp="${agent_path}.tmp"
+  mkdir -p "${agent_dir}"
+
+  # JSON string escaper (RFC-8259 compliant):
+  # - backslash, double-quote, \t, \r, \n (multi-line input)
+  # - control characters U+0000-U+001F not covered above → \uXXXX (W-1)
+  # shellcheck disable=SC2016  # awk script uses literal single quotes internally
+  json_esc() {
+    awk 'BEGIN{ORS=""}
+    {
+      s = $0
+      gsub(/\\/, "\\\\", s)
+      gsub(/"/, "\\\"", s)
+      gsub(/\t/, "\\t",  s)
+      gsub(/\r/, "\\r",  s)
+      # Emit \uXXXX for remaining control chars U+0000-U+001F (W-1).
+      out = ""
+      n = length(s)
+      for (i = 1; i <= n; i++) {
+        c = substr(s, i, 1)
+        v = 0
+        # Portable ord(): build value via a lookup of the low-ctrl range.
+        # We only need to detect < 0x20 (already handled \t and \r above,
+        # but they remain in s only if they were literal chars not matched
+        # by the gsub above; guard both anyway).
+        if (c ~ /[\001-\010\013\014\016-\037]/) {
+          for (v = 1; v <= 31; v++) {
+            if (sprintf("%c", v) == c) break
+          }
+          out = out sprintf("\\u%04x", v)
+        } else {
+          out = out c
+        }
+      }
+      if (NR > 1) printf "\\n"
+      printf "%s", out
+    }'
+  }
+
+  esc_desc="$(printf '%s' "${canonical_desc}" | json_esc)"
+
+  # System prompt content: standard pointer or tech-lead guard.
+  if [ "${role}" = "tech-lead" ]; then
+    sys_content="This session has been invoked as an Antigravity subagent named tech-lead. This is a harness misconfiguration: tech-lead is the main-session persona and must not be spawned as a specialist subagent (binding rule per .claude/agents/tech-lead.md and CLAUDE.md). Do not perform any work. Report this condition to the operator and halt."
+  else
+    # shellcheck disable=SC2016  # literal backtick in content string
+    sys_content="Read \`.claude/agents/${role}.md\` (canonical role contract). Act only as that role. Return output in the role's required format."
+  fi
+  esc_sys="$(printf '%s' "${sys_content}" | json_esc)"
+
+  {
+    printf '{\n'
+    printf '  "name": "%s",\n' "${role}"
+    printf '  "description": "%s",\n' "${esc_desc}"
+    printf '  "hidden": false,\n'
+    printf '  "canonical_source": "%s",\n' "${canonical_src}"
+    printf '  "canonical_sha": "%s",\n' "${canonical_sha}"
+    printf '  "generator": "%s",\n' "${GENERATOR_PATH}"
+    printf '  "generator_version": "%s",\n' "${GENERATOR_VERSION}"
+    printf '  "classification": "generated",\n'
+    printf '  "config": {\n'
+    printf '    "customAgent": {\n'
+    printf '      "systemPromptSections": [\n'
+    printf '        {\n'
+    printf '          "title": "Role contract",\n'
+    printf '          "content": "%s"\n' "${esc_sys}"
+    printf '        }\n'
+    printf '      ],\n'
+    printf '      "toolNames": [],\n'
+    printf '      "systemPromptConfig": {\n'
+    printf '        "includeSections": []\n'
+    printf '      }\n'
+    printf '    }\n'
+    printf '  }\n'
+    printf '}\n'
+  } > "${agent_tmp}"
+  mv "${agent_tmp}" "${agent_path}"
+}
+
 compile_role() {
   role="$1"
   src="${AGENTS_DIR}/${role}.md"
@@ -814,6 +1039,7 @@ compile_role() {
   fm_name="$(awk -F'\t' '$1=="FM" && $2=="name" {print $3; exit}' "${parsed}")"
   fm_desc="$(awk -F'\t' '$1=="FM" && $2=="description" {print $3; exit}' "${parsed}")"
   fm_model="$(awk -F'\t' '$1=="FM" && $2=="model" {print $3; exit}' "${parsed}")"
+  fm_tools="$(awk -F'\t' '$1=="FM" && $2=="tools" {print $3; exit}' "${parsed}")"
 
   if [ -z "${fm_name}" ]; then
     echo "compile-runtime-agents: ${role}: frontmatter missing 'name'" >&2
@@ -923,6 +1149,11 @@ compile_role() {
   # Gemini autonomous role selection and must be copied verbatim.
   if [ "${NO_GEMINI_ADAPTERS}" -eq 0 ]; then
     write_gemini_adapter "${role}" "${src}" "${canonical_sha}" "${fm_desc}"
+  fi
+
+  # Antigravity adapters (fw-adr-0026 Q-0033) — SKILL.md and agent.json.
+  if [ "${NO_ANTIGRAVITY_ADAPTERS}" -eq 0 ]; then
+    write_antigravity_adapters "${role}" "${src}" "${canonical_sha}" "${fm_desc}" "${fm_tools}"
   fi
 
   out_path="${OUT_DIR}/${role}.md"
@@ -1058,6 +1289,36 @@ if [ "${VERIFY_MODE}" -eq 1 ]; then
           verify_status=1
         elif ! cmp -s "${gen_gemini}" "${cmt_gemini}"; then
           echo "verify FAIL: ${cmt_gemini} differs from generator output"
+          role_ok=0
+          verify_status=1
+        fi
+      fi
+    fi
+
+    # Antigravity adapters (unless suppressed).
+    if [ "${NO_ANTIGRAVITY_ADAPTERS}" -eq 0 ]; then
+      gen_skill="${ANTIGRAVITY_OUT_DIR}/skills/${role}/SKILL.md"
+      cmt_skill="${VERIFY_COMMITTED_ANTIGRAVITY}/skills/${role}/SKILL.md"
+      if [ -f "${gen_skill}" ]; then
+        if [ ! -f "${cmt_skill}" ]; then
+          echo "verify FAIL: ${cmt_skill} differs from generator output (committed file missing)"
+          role_ok=0
+          verify_status=1
+        elif ! cmp -s "${gen_skill}" "${cmt_skill}"; then
+          echo "verify FAIL: ${cmt_skill} differs from generator output"
+          role_ok=0
+          verify_status=1
+        fi
+      fi
+      gen_agent="${ANTIGRAVITY_OUT_DIR}/agents/${role}/agent.json"
+      cmt_agent="${VERIFY_COMMITTED_ANTIGRAVITY}/agents/${role}/agent.json"
+      if [ -f "${gen_agent}" ]; then
+        if [ ! -f "${cmt_agent}" ]; then
+          echo "verify FAIL: ${cmt_agent} differs from generator output (committed file missing)"
+          role_ok=0
+          verify_status=1
+        elif ! cmp -s "${gen_agent}" "${cmt_agent}"; then
+          echo "verify FAIL: ${cmt_agent} differs from generator output"
           role_ok=0
           verify_status=1
         fi

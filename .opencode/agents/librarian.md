@@ -4,7 +4,7 @@ model: claude-sonnet
 canonical_source: .claude/agents/librarian.md
 canonical_sha: f3314d4ab544d024271425cc50e9051f5e458d84
 generator: scripts/compile-runtime-agents.sh
-generator_version: 0.2.0
+generator_version: 0.3.0
 classification: generated
 ---
 

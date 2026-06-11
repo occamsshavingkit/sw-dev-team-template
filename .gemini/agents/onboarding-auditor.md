@@ -5,7 +5,7 @@ model: gemini-pro
 canonical_source: .claude/agents/onboarding-auditor.md
 canonical_sha: fe924e528d07d889d4388aa4d68b8436cf1b0b2b
 generator: scripts/compile-runtime-agents.sh
-generator_version: 0.2.0
+generator_version: 0.3.0
 classification: generated
 ---
 

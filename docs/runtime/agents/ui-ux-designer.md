@@ -5,7 +5,7 @@ model: sonnet
 canonical_source: .claude/agents/ui-ux-designer.md
 canonical_sha: d0d77e69cf4f2b8989f1140aa7e1cf7e3be63edb
 generator: scripts/compile-runtime-agents.sh
-generator_version: 0.2.0
+generator_version: 0.3.0
 classification: generated
 ---
 
