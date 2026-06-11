@@ -126,19 +126,53 @@ collect_shards() {
 # Count entries and date-range for a shard file.
 #
 # "Entry count" definition per register shape:
-#   - Table registers (OPEN_QUESTIONS, intake-log, RISKS, LESSONS table):
+#   - Table registers (OPEN_QUESTIONS, RISKS, LESSONS table):
 #     count data rows (lines starting with | that are not the header or ---|).
 #   - CUSTOMER_NOTES: count ## YYYY-MM-DD sections.
 #   - LESSONS journal: count ### YYYY-MM-DD entries.
 #   - ARCHIVE files: same rules applied to their content.
+#   - YAML intake-log registers (intake-log-template.md shape, records
+#     delimited by --- with a dated timestamp: field): count by
+#     dated timestamp: entries (one per YAML record). Detected when
+#     the file contains at least one line matching ^timestamp: [0-9].
 #
-# We use a pragmatic heuristic: count lines that contain a YYYY-MM-DD date
-# AND start with either | (table row) or ## or ### (section heading).
-# This avoids dependency on per-register shape knowledge and is conservative.
+# Shape detection is per-file: a file with dated timestamp: fields is
+# treated as a YAML intake-log; all other files use the table/heading
+# heuristic.  This preserves existing behavior for all other register
+# shapes while correctly handling YAML intake logs (issue #337).
 # ---------------------------------------------------------------------------
 analyze_shard() {
     local f="$1"
     # Returns: <count> <earliest_date> <latest_date>
+
+    # Detect YAML intake-log shape: at least one line matching
+    # ^timestamp: followed by a YYYY-MM-DD date.  Use grep for speed;
+    # fall back to awk heuristic if not a YAML log.
+    # Note: this is a per-file heuristic. A future YAML-format register
+    # that also uses a line-start `timestamp: YYYY-MM-DD` field would be
+    # classified the same way (low risk given current register shapes).
+    if grep -qE '^timestamp:[[:space:]]+[0-9]{4}-[0-9]{2}-[0-9]{2}' "$f" 2>/dev/null; then
+        # YAML intake-log: count dated timestamp: lines; derive date range
+        # from the date portion (YYYY-MM-DD prefix of the ISO-8601 value).
+        awk '
+            BEGIN { count=0; earliest=""; latest="" }
+            /^timestamp:[[:space:]]+[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/ {
+                s = $0
+                if (match(s, /[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/)) {
+                    d = substr(s, RSTART, RLENGTH)
+                    count++
+                    if (earliest == "" || d < earliest) earliest = d
+                    if (latest == "" || d > latest) latest = d
+                }
+            }
+            END {
+                printf "%d\t%s\t%s\n", count, earliest, latest
+            }
+        ' "$f"
+        return
+    fi
+
+    # Table / heading heuristic for all other register shapes.
     awk '
         BEGIN { count=0; earliest=""; latest="" }
         /^[|#]/ {

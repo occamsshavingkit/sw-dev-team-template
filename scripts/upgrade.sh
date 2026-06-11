@@ -293,6 +293,27 @@ if [[ $verify_mode -eq 1 ]]; then
       fi
     fi
   fi
+  # Issue #337: check executable-mode drift on shipped direct-run files.
+  # Uses the project's own git index (mode 100755) as the authoritative
+  # source of which files should be executable — no upstream clone needed.
+  # Only flags files whose git-tracked mode is 100755 but on-disk mode
+  # lacks the execute bit (non-exec that should be exec). Never flags
+  # legitimately non-exec files (100644 in git).
+  _exec_drift=0
+  # ls-files --stage format: "<mode> <hash> <stage>\t<path>" — the path
+  # follows the literal tab after the stage number and may contain spaces.
+  # Using $4 would truncate space-containing paths; strip the three
+  # space-delimited prefix fields and the following tab instead.
+  while IFS= read -r _path; do
+    if [[ -f "$project_root/$_path" && ! -x "$project_root/$_path" ]]; then
+      echo "exec-bit drift: $project_root/$_path is tracked as executable (100755) but on-disk mode lacks +x" >&2
+      _exec_drift=1
+    fi
+  done < <(git -C "$project_root" ls-files --stage 2>/dev/null | awk '$1=="100755"{sub(/^[^ ]+ [^ ]+ [^ ]+\t/, ""); print}')
+  if [[ $_exec_drift -ne 0 ]]; then
+    echo "Run 'scripts/upgrade.sh' to resync and restore executable bits." >&2
+    rc=1
+  fi
   exit "$rc"
 fi
 
@@ -1419,6 +1440,11 @@ memory_only_agents_stub() {
   ! grep -q '^## Role Binding' "$path" || return 1
 }
 
+# Note: this function intentionally does NOT go through atomic_install.
+# AGENTS.md is a plain text file tracked as mode 100644 (never executable),
+# so the exec-bit preservation added in atomic_install (issue #337) is
+# irrelevant here. The write path is a mktemp + awk splice + mv, which
+# correctly inherits the umask-filtered 0644 mode for the destination.
 install_agents_adapter_over_memory_stub() {
   local src="$1"
   local dst="$2"
@@ -1434,7 +1460,7 @@ install_agents_adapter_over_memory_stub() {
   mv "$tmp" "$dst"
 }
 
-# Atomic in-place replacement helper (issue #63).
+# Atomic in-place replacement helper (issue #63, issue #337).
 #
 # `cp src dst` truncates+rewrites dst in place, mutating the inode.
 # Catastrophic when dst is the *running* `scripts/upgrade.sh` (or any
@@ -1448,13 +1474,25 @@ install_agents_adapter_over_memory_stub() {
 # resident), the running script finishes cleanly. The next invocation
 # picks up the new inode.
 #
+# Issue #337: executable mode bits must be mirrored from src. `cp`
+# without -a/-p creates the tmp with umask-filtered 0644 regardless of
+# src's mode, so shipped scripts/hooks land non-executable. Fix: derive
+# the install mode from the upstream source's actual execute bit and
+# use `install -m` to write the tmp at the correct mode before mv.
+#
 # Always same-filesystem: tmp lives next to dst.
 atomic_install() {
   local src="$1"
   local dst="$2"
-  local _ai_tmp
+  local _ai_tmp _ai_mode
+  # Mirror executable bit from src (issue #337).
+  if [[ -x "$src" ]]; then
+    _ai_mode=0755
+  else
+    _ai_mode=0644
+  fi
   _ai_tmp="$(mktemp "${dst}.tmp.XXXXXX")"
-  cp "$src" "$_ai_tmp"
+  install -m "$_ai_mode" "$src" "$_ai_tmp"
   mv "$_ai_tmp" "$dst"
 }
 
@@ -2449,6 +2487,30 @@ if [[ $dry_run -eq 0 ]]; then
   verify_rc=0
   manifest_verify "$project_root" "$project_root/TEMPLATE_MANIFEST.lock" || verify_rc=$?
   if [[ $verify_rc -eq 0 ]]; then
+    # Issue #337: repair executable-mode bits on shipped direct-run files.
+    # atomic_install already mirrors the exec bit for files it writes, but
+    # content-identical files are skipped by the sync loop and never pass
+    # through atomic_install — so a project whose on-disk files lack +x
+    # (e.g. an rc3 fixture that predates exec-bit tracking) keeps non-exec
+    # copies even after an otherwise-successful upgrade.  Fix: after the sync
+    # completes, walk every shipped file and chmod +x any whose upstream copy
+    # is executable but whose project copy is not.  We only ADD +x (never
+    # remove), so legitimately non-exec project-side files are unaffected.
+    # Uses the upstream clone (workdir/new) as the authoritative mode source.
+    _post_exec_repaired=0
+    while IFS= read -r _shipped_f; do
+      _proj_f="$project_root/$_shipped_f"
+      _upst_f="$workdir/new/$_shipped_f"
+      [[ -f "$_proj_f" && -f "$_upst_f" ]] || continue
+      if [[ -x "$_upst_f" && ! -x "$_proj_f" ]]; then
+        echo "restoring exec bit: $_shipped_f" >&2
+        chmod +x "$_proj_f"
+        _post_exec_repaired=1
+      fi
+    done < <(manifest_ship_files "$workdir/new" "$project_root")
+    if [[ $_post_exec_repaired -ne 0 ]]; then
+      echo "exec-bit repair complete (issue #337)." >&2
+    fi
     echo "Verification: clean."
   else
     # manifest_verify already printed its per-path drift report to
