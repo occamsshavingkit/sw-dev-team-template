@@ -30,11 +30,19 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/upgrade.sh [--dry-run | --verify | --resolve | --target <ref> |
+Usage: scripts/upgrade.sh [--dry-run | --keep-local <path> |
+                          --verify | --resolve | --target <ref> |
                           --allow-non-default-branch |
                           --self-test-semver | --help]
 
   --dry-run         Print the upgrade plan; change nothing.
+  --keep-local <path>
+                    Treat the named path as a local customization for
+                    this run: do not auto-take upstream on pre-existing-
+                    path collisions for this path. May be specified
+                    multiple times. Alternatively, add the path to
+                    .template-customizations for a permanent declaration.
+                    (FW-ADR-0028 Item 2.)
   --verify          Verify project files match TEMPLATE_MANIFEST.lock,
                     AND that no entries in .template-conflicts.json are
                     still classified "conflict" (issue #107).
@@ -175,6 +183,9 @@ verify_mode=0
 resolve_mode=0
 target_version=""
 allow_non_default_branch=0
+# FW-ADR-0028 Item 2: in-memory set of paths for which take-upstream is
+# suppressed.  Populated by repeated --keep-local <path> flags.
+declare -A keep_local_paths=()
 original_args=("$@")
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -194,6 +205,21 @@ while [[ $# -gt 0 ]]; do
       semver_sort_tags_self_test
       exit $? ;;
     "--resolve")     resolve_mode=1; shift ;;
+    "--keep-local")
+      # FW-ADR-0028 Item 2: repeated flag; each value is a path for which
+      # take-upstream is suppressed on pre-existing-path collisions.
+      if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
+        echo "ERROR: --keep-local requires a path argument (e.g. --keep-local scripts/my-custom.sh)" >&2
+        usage >&2
+        exit 2
+      fi
+      # Normalize: strip leading ./ and trailing / so that shell-completion
+      # forms (--keep-local ./scripts/foo.sh) match the $f values produced
+      # by git ls-files (which never carry leading ./ or trailing /).
+      _kl_path="${2#./}"; _kl_path="${_kl_path%/}"
+      keep_local_paths["$_kl_path"]=1
+      unset _kl_path
+      shift 2 ;;
     "--allow-non-default-branch")
                      allow_non_default_branch=1; shift ;;
     "--help"|"-h")   usage; exit 0 ;;
@@ -1698,7 +1724,49 @@ shortstat_between() {
   fi
 }
 
+# FW-ADR-0028 Item 3: dry-run conflict nature annotator.
+# Runs both trivial-delta classifiers read-only and maps the resulting
+# _classifier_reject_reason to a human-readable nature label.
+# Echoes one of: spdx-comment | blank/comment-only | substantive | unknown
+# Called only in --dry-run mode; does NOT change exit code or actions.
+_dry_run_nature() {
+  local baseline="$1"
+  local project="$2"
+  local upstream="$3"
+  local _dry_nature _dry_spdx_reason _dry_struct_reason
+  _classifier_reject_reason=""
+  if _is_trivial_spdx_delta "$baseline" "$project" "$upstream"; then
+    _dry_nature="spdx-comment"
+  else
+    _dry_spdx_reason="$_classifier_reject_reason"
+    _classifier_reject_reason=""
+    if _is_trivial_structural_delta "$baseline" "$project" "$upstream"; then
+      _dry_nature="blank/comment-only"
+    else
+      _dry_struct_reason="$_classifier_reject_reason"
+      if [[ "$_dry_spdx_reason" == "upstream-missing-line" ]]; then
+        # SPDX lines present locally that upstream lacks — soft signal.
+        _dry_nature="spdx-comment (upstream-missing-line: SPDX lines not yet in upstream)"
+      elif [[ "$_dry_struct_reason" == "non-trivial-line" ]]; then
+        _dry_nature="substantive"
+      elif [[ "$_dry_struct_reason" == "cap-exceeded" ]]; then
+        _dry_nature="blank/comment-only (cap-exceeded: > 10 added lines)"
+      elif [[ "$_dry_struct_reason" == "no-baseline" ]]; then
+        _dry_nature="unknown (no-baseline)"
+      else
+        _dry_nature="substantive"
+      fi
+    fi
+  fi
+  echo "$_dry_nature"
+}
+
 added=(); upgraded=(); auto_merged=(); kept=(); conflicts=(); local_only_kept=(); accepted_local=(); preserved=()
+# FW-ADR-0028 Item 2: pre-existing-path collisions auto-resolved by
+# taking upstream content.  Populated when baseline_available=1, path
+# absent from workdir/old/, present in both project and upstream, and
+# neither .template-customizations nor --keep-local opts out.
+collision_taken_upstream=()
 # FW-ADR-0014: per-path classification of preserve-list entries.
 #   dropped_inert[]     — entries with no divergence (silently dropped).
 #   preservation_refused_paths[] (+ parallel SHA arrays) — entries that
@@ -1983,27 +2051,42 @@ for f in $ship_files; do
           fi
           continue
         fi
-        conflicts+=("$f")
-        # Issue #110: pre-existing collision — file present in project
-        # AND upstream but absent from baseline. Means upstream began
-        # shipping a file the project already had. The user must
-        # decide: take upstream (rm the local then rerun) or pin local
-        # (add to .template-customizations).
+        # FW-ADR-0028 Item 2: pre-existing collision — file present in
+        # project AND upstream but absent from baseline.  Means upstream
+        # began shipping a file the project already had.
+        #
+        # Default: take upstream (atomic_install), record in
+        # collision_taken_upstream[].  Opt-out: --keep-local <path> or
+        # add to .template-customizations (already handled above via
+        # preserved[]; the drop-inert case from should_preserve() falls
+        # through here too, but a drop-inert path has matching content
+        # between project and new — so files_match fires before we ever
+        # reach this collision block, making the drop-inert path
+        # unreachable here in practice).
         #
         # Gap (intentional): when baseline_available == 0 the same
-        # situation is silently lumped into plain conflicts[]. We
-        # cannot prove upstream just-introduced the file without the
-        # scaffold-baseline tree. Affects very old projects whose
-        # scaffold SHA is unreachable. Mitigation: the conflicts[]
-        # report still surfaces the file with diff guidance; users
-        # whose baseline is unreachable already see the "baseline
-        # unavailable" note in the conflicts block. Promoting these
-        # to preexisting_collisions[] would require scanning
-        # ALL upstream history to find when the file was introduced,
-        # which is out of scope for this fix.
+        # situation cannot be detected — we cannot prove upstream just-
+        # introduced the file without the scaffold-baseline tree.  Those
+        # files fall through to conflicts[] as before.
         if [[ $baseline_available -eq 1 && ! -f "$workdir/old/$f" ]]; then
-          preexisting_collisions+=("$f")
+          if [[ -n "${keep_local_paths[$f]:-}" ]]; then
+            # --keep-local <path>: route to local_only_kept (no overwrite).
+            local_only_kept+=("$f")
+            continue
+          else
+            # Take-upstream default (FW-ADR-0028 Item 2).
+            if [[ $dry_run -eq 1 ]]; then
+              echo "[dry-run] would take upstream (pre-existing collision): $f"
+            else
+              mkdir -p "$(dirname "$proj_path")"
+              atomic_install "$new_path" "$proj_path"
+              [[ $is_agent -eq 1 ]] && agent_splice_name "$proj_path" "$agent_name_line"
+              collision_taken_upstream+=("$f")
+            fi
+            continue
+          fi
         fi
+        conflicts+=("$f")
       fi
       kept+=("$f")
     fi
@@ -2509,6 +2592,12 @@ if [[ ${#auto_merged[@]} -gt 0 ]]; then
   echo
 fi
 
+if [[ ${#collision_taken_upstream[@]} -gt 0 ]]; then
+  echo "${prefix}Accepted upstream (pre-existing collision resolved) (${#collision_taken_upstream[@]}):"
+  for f in "${collision_taken_upstream[@]}"; do echo "  > $f"; done
+  echo
+fi
+
 if [[ ${#upgraded[@]} -gt 0 ]]; then
   echo "${prefix}Upgraded in place — unchanged since scaffold (${#upgraded[@]}):"
   for f in "${upgraded[@]}"; do echo "  ~ $f"; done
@@ -2524,28 +2613,22 @@ if [[ ${#conflicts[@]} -gt 0 ]]; then
       local_stat="$(shortstat_between "$workdir/old/$f" "$project_root/$f")"
       echo "      upstream delta: ${upstream_stat:-0 files changed}"
       echo "      local delta:    ${local_stat:-0 files changed}"
+      # FW-ADR-0028 Item 3: dry-run only — emit nature annotation.
+      # Variables are local to _dry_run_nature(); no top-level pollution.
+      if [[ $dry_run -eq 1 ]]; then
+        echo "      nature: $(_dry_run_nature "$workdir/old/$f" "$project_root/$f" "$workdir/new/$f")"
+      fi
     else
       echo "      delta heat-map unavailable: baseline SHA not reachable"
+      if [[ $dry_run -eq 1 ]]; then
+        echo "      nature: unknown (no-baseline)"
+      fi
     fi
     echo "      diff <(git -C $workdir/new show HEAD:\"$f\") \"$project_root/$f\""
   done
   echo
   echo "  For each conflict, diff the upstream version against your customized"
   echo "  version and decide: keep yours, take upstream, or merge."
-  echo
-fi
-
-if [[ ${#preexisting_collisions[@]} -gt 0 ]]; then
-  echo "${prefix}ACTION REQUIRED: pre-existing collision(s) detected (${#preexisting_collisions[@]}):"
-  for f in "${preexisting_collisions[@]}"; do
-    echo "  ! $f — local file pre-dates upstream's introduction of this path."
-  done
-  echo "  Resolution options (per upstream issue #110):"
-  echo "    (1) Take upstream: review upstream's version, remove the local file,"
-  echo "        and re-run scripts/upgrade.sh to install upstream."
-  echo "    (2) Keep local:    add the path to .template-customizations to pin it."
-  echo "    (3) Merge:         hand-merge upstream content into the local file,"
-  echo "        then re-run scripts/upgrade.sh --resolve to clear the conflict."
   echo
 fi
 
