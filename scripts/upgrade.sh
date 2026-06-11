@@ -209,12 +209,12 @@ while [[ $# -gt 0 ]]; do
       # FW-ADR-0028 Item 2: repeated flag; each value is a path for which
       # take-upstream is suppressed on pre-existing-path collisions.
       if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
-        echo "ERROR: --keep-local requires a path argument (e.g. --keep-local scripts/my-custom.sh)" >&2
+        echo "ERROR: --keep-local requires a path argument (e.g. --keep-local path/to/your-file.sh)" >&2
         usage >&2
         exit 2
       fi
       # Normalize: strip leading ./ and trailing / so that shell-completion
-      # forms (--keep-local ./scripts/foo.sh) match the $f values produced
+      # forms (--keep-local ./path/to/your-file.sh) match the $f values produced
       # by git ls-files (which never carry leading ./ or trailing /).
       _kl_path="${2#./}"; _kl_path="${_kl_path%/}"
       keep_local_paths["$_kl_path"]=1
