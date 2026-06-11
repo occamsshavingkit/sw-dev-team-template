@@ -143,7 +143,11 @@ def _pty_child_exec(argv: list[str], child_fd: int, parent_fd: int) -> None:
         if child_fd > 2:
             os.close(child_fd)
         os.close(parent_fd)  # R3: close parent fd in child before exec
-        os.execvp(argv[0], argv)
+        # Intentional: no-shell argv-list invocation is the required injection-safe
+        # spawn pattern (fw-adr-0027 §3 R1; CWE-88; security-engineer-approved).
+        # Bandit B606 flags os.execvp as "start_process_with_no_shell" — that is
+        # precisely the point: no shell means no shell injection.  False positive.
+        os.execvp(argv[0], argv)  # nosec B606
     except Exception:  # pylint: disable=broad-exception-caught
         # Deliberate fail-safe: any error in child setup must not leave the
         # parent blocked waiting for a process that will never write output.
