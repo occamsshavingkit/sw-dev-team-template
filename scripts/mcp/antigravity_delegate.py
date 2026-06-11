@@ -145,14 +145,49 @@ def _pty_child_exec(argv: list[str], child_fd: int, parent_fd: int) -> None:
         os.close(parent_fd)  # R3: close parent fd in child before exec
         # Intentional: no-shell argv-list invocation is the required injection-safe
         # spawn pattern (fw-adr-0027 §3 R1; CWE-88; security-engineer-approved).
-        # Bandit B606 flags os.execvp as "start_process_with_no_shell" — that is
-        # precisely the point: no shell means no shell injection.  False positive.
+        # B606/dangerous-subprocess-use-audit are false positives: no shell = no injection.
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
         os.execvp(argv[0], argv)  # nosec B606
     except Exception:  # pylint: disable=broad-exception-caught
         # Deliberate fail-safe: any error in child setup must not leave the
         # parent blocked waiting for a process that will never write output.
         os._exit(127)  # pylint: disable=protected-access
     os._exit(127)  # pylint: disable=protected-access  # unreachable; satisfies linters
+
+
+def _append_chunk(
+    chunk: bytes,
+    raw_chunks: list[bytes],
+    total_bytes: int,
+) -> tuple[int, bool]:
+    """Append chunk to raw_chunks respecting MAX_OUTPUT_BYTES cap (R5).
+
+    Returns (new_total_bytes, truncated).  If the cap is reached the chunk
+    is trimmed and truncated=True is returned; the caller should break its
+    read loop.
+    """
+    space = MAX_OUTPUT_BYTES - total_bytes
+    if len(chunk) > space:
+        raw_chunks.append(chunk[:space])
+        return total_bytes + space, True
+    raw_chunks.append(chunk)
+    return total_bytes + len(chunk), False
+
+
+def _kill_and_close(pid: int, parent_fd: int) -> None:
+    """Kill the child process group and close the PTY master fd.
+
+    Called on timeout, byte-cap, or any early-exit path so the child
+    cannot outlive the capture loop (R4).
+    """
+    try:
+        os.killpg(os.getpgid(pid), signal.SIGKILL)
+    except (ProcessLookupError, OSError):
+        pass
+    try:
+        os.close(parent_fd)
+    except OSError:
+        pass
 
 
 def _read_until_done(
@@ -165,8 +200,8 @@ def _read_until_done(
     Returns (raw_chunks, timed_out, truncated).  Kills the child process
     group on timeout or byte-cap.  Closes parent_fd before returning.
 
-    Security — R4: killing the process group ensures the child cannot outlive
-    the capture loop.
+    Security — R4: _kill_and_close ensures the child cannot outlive the
+    capture loop.
     """
     raw_chunks: list[bytes] = []
     total_bytes = 0
@@ -199,26 +234,11 @@ def _read_until_done(
             if not chunk:
                 break
 
-            # R5: cap raw bytes FIRST (memory safety before decode)
-            space = MAX_OUTPUT_BYTES - total_bytes
-            if len(chunk) > space:
-                raw_chunks.append(chunk[:space])
-                total_bytes += space
-                truncated = True
+            total_bytes, truncated = _append_chunk(chunk, raw_chunks, total_bytes)
+            if truncated:
                 break
-            raw_chunks.append(chunk)
-            total_bytes += len(chunk)
-
-        if timed_out or truncated:
-            try:
-                os.killpg(os.getpgid(pid), signal.SIGKILL)
-            except (ProcessLookupError, OSError):
-                pass
     finally:
-        try:
-            os.close(parent_fd)
-        except OSError:
-            pass
+        _kill_and_close(pid, parent_fd)
 
     return raw_chunks, timed_out, truncated
 
