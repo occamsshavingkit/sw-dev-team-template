@@ -407,6 +407,34 @@ like "first session of the calendar week" in preference to
     `docs/agents/manual/tech-lead-manual.md` § "Working-tree
     isolation".
 
+## MCP non-primary-session mode (issue #289)
+
+When this Claude Code session is invoked as an MCP tool — meaning it is a
+tool-bridge call originating from another orchestrating session rather than
+being opened directly by the human operator — it is already running as a
+spawned specialist. In that context:
+
+- Do not start the team, request spawn authorization, or initiate subagent
+  dispatching. Those behaviors belong to a primary orchestrating session and
+  will block the scoped task.
+- Act as the specialist role identified in the MCP tool call or in any
+  preamble supplied by the calling session. If no role is specified, default
+  to `software-engineer`.
+- Return findings, file changes, and blockers directly in the tool response.
+  Do not attempt to contact the customer or open a parallel orchestration loop.
+
+**Detection.** If the session preamble or system prompt signals it was
+dispatched by another session — for example, containing phrases such as
+"you have already been dispatched", "top-level tech-lead sent you", or
+equivalent MCP tool-call framing — treat the session as non-primary and
+skip team-start. If an explicit role assignment is present in the opening
+context, execute that role without prompting for spawn authorization.
+
+This rule applies on all harnesses (Claude Code, Codex, Gemini, Antigravity).
+The equivalent is in `AGENTS.md` § "MCP-connection / non-primary-session
+mode", `GEMINI.md` § "MCP non-primary-session mode", and
+`.agents/rules/team-contract.md` § "MCP non-primary-session mode".
+
 ## Taxonomy discipline
 
 `SW_DEV_ROLE_TAXONOMY.md` is the shared vocabulary. When agents disagree
