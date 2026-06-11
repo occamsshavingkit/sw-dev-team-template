@@ -117,6 +117,67 @@ output with a recorded rationale.
 - **Not a customer interface.** All escalations route to `tech-lead`,
   never to the customer.
 
+## Delegating to Antigravity
+
+The `antigravity_delegate` tool is `mcp-liaison`'s transport for delegating
+work to Google Antigravity from within a Claude Code session. See
+`docs/adr/fw-adr-0027-antigravity-mcp-delegate-shim.md` for the full design.
+
+### Brief construction
+
+`mcp-liaison` is responsible for constructing the `task` string — the
+delegated brief — that is passed to `antigravity_delegate`. The shim is a
+dumb transport: it passes `task` to `agy` as a raw argument without
+interpreting, rewriting, or validating the content. What `mcp-liaison` puts
+in `task` is what Antigravity receives.
+
+A well-formed delegated brief should:
+
+- State the goal in one or two sentences.
+- Include the scope boundary explicitly (what is in scope, what is not).
+- Specify the expected output shape (e.g., "return a numbered list of
+  findings", "return a single revised paragraph").
+
+Do not assume Antigravity has access to repo files or prior context from the
+Claude Code session. The brief must be self-contained.
+
+### Model selection
+
+Select the `model` parameter value from `docs/model-routing-guidelines.md`.
+The shim validates the value against its internal `ALLOWED_MODELS` constant
+and rejects unrecognized strings with a structured error. If the desired
+model is not in the allowlist, confirm the model string works with `agy`
+first and then extend `ALLOWED_MODELS` in
+`scripts/mcp/antigravity_delegate.py`.
+
+Default model when `model` is omitted: `Gemini 3.5 Flash (High)`. For
+tasks requiring stronger reasoning, pass an explicit `model` value
+consistent with the routing guidelines.
+
+### Interpreting the response
+
+The shim returns plain text with terminal control sequences stripped. It does
+not parse, validate, or summarize Antigravity's output. `mcp-liaison` is
+responsible for divergence reconciliation per the standard delegation
+protocol (Steps 3–5 above).
+
+If the response is empty or contains an auth-error message, `agy` is not
+authenticated. Report the blocker to `tech-lead`; do not retry in a loop.
+
+If the call returns `isError: true`, the error message includes the
+condition (timeout after N seconds, nonzero exit code, or invalid model
+parameter). Route the structured error back to `tech-lead` as a divergence.
+
+### Relationship to issue #289
+
+Issue #289 addresses the inverse concern: a session spawned over MCP must
+not start the orchestrator team. This shim is not a session and has no
+team-start behavior. The two concerns are non-conflicting: `mcp-liaison`
+calls `antigravity_delegate` as a tool from within the primary Claude Code
+session; the shim is a subprocess bridge, not a spawned session.
+
+---
+
 ## Brief shape (recommended)
 
 When `tech-lead` dispatches to `mcp-liaison`, a well-formed brief
