@@ -150,6 +150,15 @@ FW-ADR-0006). Numbering is sequential within each namespace.
 | `docs/templates/pm/CHANGES-template.md` | Change log with thresholds + approvers. |
 | `docs/templates/pm/LESSONS-template.md` | Lessons learned journal + milestone syntheses. |
 
+## `.agents/` (Antigravity harness adapter — FW-ADR-0026)
+
+| Path | Purpose |
+|---|---|
+| `.agents/agents.md` | Stub / redirect note. NOT loaded by Antigravity; real subagents live in `.agents/agents/<role>/agent.json`. |
+| `.agents/rules/team-contract.md` | Always-active binding contract (`activation: always_on`). Contains Mode A, Mode B, MCP #289 rule, Hard Rules summary, escalation protocol, binding references. Hand-authored. |
+| `.agents/agents/<role>/agent.json` | Per-role subagent (customAgent JSON schema confirmed from agy binary). **Deferred to SE follow-up — Q-0033.** |
+| `.agents/skills/<role>/SKILL.md` | Per-role skill thin-adapter. **Schema disputed — Q-0033 (SKILL.md vs JSON path reference; two binary readings conflict).** |
+
 ## `.claude/agents/`
 
 | File | Role (taxonomy §) |

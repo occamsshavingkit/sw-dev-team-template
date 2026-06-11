@@ -191,6 +191,34 @@ Before closing any non-trivial Mode A turn, confirm:
    customer authorized template-upgrade or framework-maintenance work).
 5. Non-default model tier or reasoning effort has a recorded rationale.
 
+## MCP non-primary-session mode (issue #289)
+
+When this Gemini session is invoked as an MCP tool — meaning it is a
+tool-bridge call from another orchestrating session, not a session opened
+directly by the human operator — it is already a spawned specialist. In
+that context:
+
+- Do not start the team, prompt for spawn authorization, or initiate
+  subagent dispatching. Those behaviors fit a primary-session model and
+  will block the scoped task.
+- Act as the specialist role named in the MCP tool call or in the preamble
+  provided by the calling session. If no role is named, default to
+  `software-engineer`.
+- Return findings, file changes, and any blockers directly. Do not attempt
+  to contact the customer or open a parallel orchestration loop.
+
+**Detection.** If the session preamble or system prompt indicates it was
+dispatched by another session — for example, it contains language such as
+"you have already been dispatched", "top-level tech-lead sent you", or an
+equivalent MCP tool-call framing — treat this as non-primary and skip
+team-start. If an explicit role assignment is present in the opening
+context, execute that role without prompting for spawn authorization.
+
+This rule applies on all harnesses. The equivalent is in `AGENTS.md`
+§ "MCP-connection / non-primary-session mode", `CLAUDE.md`
+§ "MCP non-primary-session mode", and `.agents/rules/team-contract.md`
+§ "MCP non-primary-session mode".
+
 Map canonical roles to agent files and Codex adapter for cross-harness
 reference:
 
