@@ -2487,26 +2487,29 @@ if [[ $dry_run -eq 0 ]]; then
   verify_rc=0
   manifest_verify "$project_root" "$project_root/TEMPLATE_MANIFEST.lock" || verify_rc=$?
   if [[ $verify_rc -eq 0 ]]; then
-    # Issue #337: also verify executable-mode bits on shipped direct-run
-    # files. Compare on-disk mode against the upstream source's mode;
-    # flag files whose upstream is executable (100755 in the upstream git
-    # index) but whose on-disk copy lacks the exec bit. Uses the upstream
-    # clone (workdir/new) as the mode reference since it is authoritative
-    # for this upgrade. Only emits for files present in the manifest's
-    # ship set and currently present in the project.
-    _post_exec_drift=0
+    # Issue #337: repair executable-mode bits on shipped direct-run files.
+    # atomic_install already mirrors the exec bit for files it writes, but
+    # content-identical files are skipped by the sync loop and never pass
+    # through atomic_install — so a project whose on-disk files lack +x
+    # (e.g. an rc3 fixture that predates exec-bit tracking) keeps non-exec
+    # copies even after an otherwise-successful upgrade.  Fix: after the sync
+    # completes, walk every shipped file and chmod +x any whose upstream copy
+    # is executable but whose project copy is not.  We only ADD +x (never
+    # remove), so legitimately non-exec project-side files are unaffected.
+    # Uses the upstream clone (workdir/new) as the authoritative mode source.
+    _post_exec_repaired=0
     while IFS= read -r _shipped_f; do
       _proj_f="$project_root/$_shipped_f"
       _upst_f="$workdir/new/$_shipped_f"
       [[ -f "$_proj_f" && -f "$_upst_f" ]] || continue
       if [[ -x "$_upst_f" && ! -x "$_proj_f" ]]; then
-        echo "exec-bit drift: $_shipped_f is executable in upstream but lacks +x on disk" >&2
-        _post_exec_drift=1
+        echo "restoring exec bit: $_shipped_f" >&2
+        chmod +x "$_proj_f"
+        _post_exec_repaired=1
       fi
     done < <(manifest_ship_files "$workdir/new" "$project_root")
-    if [[ $_post_exec_drift -ne 0 ]]; then
-      echo "Re-run 'scripts/upgrade.sh' to restore executable bits. (issue #337)" >&2
-      exit 1
+    if [[ $_post_exec_repaired -ne 0 ]]; then
+      echo "exec-bit repair complete (issue #337)." >&2
     fi
     echo "Verification: clean."
   else
