@@ -3,7 +3,7 @@
 **Scope:** Framework maintenance and template-gap backfill across one year of operations.  
 **Date:** 2026-05-28  
 **Source:** GitHub issue triage (35 open issues as of 2026-05-28); updated 2026-05-28 post Gate 3 sign-off.  
-**Reviewer:** Customer ratified 2026-05-28 (Q-0023/Q-0024/Q-0025 + addendum + Gate 3 sign-off per CUSTOMER_NOTES.md); tech-lead orchestrated. Code-reviewer SHIP-with-nits 2026-05-28. Post-gate-3 update: v1.2.0 + v1.3.0 gates cleared; v1.4.0 expanded with SC-001 residual.
+**Reviewer:** Customer ratified 2026-05-28 (Q-0023/Q-0024/Q-0025 + addendum + Gate 3 sign-off per CUSTOMER_NOTES.md); tech-lead orchestrated. Code-reviewer SHIP-with-nits 2026-05-28. Post-gate-3 update: v1.2.0 + v1.3.0 gates cleared; v1.4.0 expanded with SC-001 residual. **Reconciled 2026-06-11:** v1.4.0 scope reconciled at cut; #212 concurrency delivered v1.3.0 (FW-ADR-0024); v1.4.0 carries Antigravity adapter/roster/shim + upgrade-reliability work.
 
 ---
 
@@ -33,7 +33,7 @@ Non-breaking template enhancements + framework-gap fills + upgrade-reliability i
 
 | # | Title | Labels | Est. Size | Role | Rationale |
 |---|-------|--------|-----------|------|-----------|
-| 262 | Upgrade path rc9→rc14 produces 7 manual conflicts in framework-owned scripts | enhancement, upgrade | M | architect + release-engineer | Multi-version upgrade reliability; pulled forward per Q-0024 customer ruling. |
+| 262 | Upgrade path rc9→rc14 produces 7 manual conflicts in framework-owned scripts | enhancement, upgrade | M | architect + release-engineer | Multi-version upgrade reliability; pulled forward per Q-0024 customer ruling. **Slipped → delivered v1.4.0** (2026-06-11); full fix required FW-ADR-0028 scope (trivial-delta auto-merge + take-upstream collision default). |
 | 261 | rc14 agent contract schema: migration doesn't backfill required sections in preserved/customized agent files | enhancement, upgrade | M | architect + software-engineer | Schema evolution + migration completeness; pulled forward per Q-0024 customer ruling. |
 | 273 | SW_DEV_ROLE_TAXONOMY.md not loaded at session start | template-gap | M | software-engineer | Ad-lib role boundaries in tech-lead; fix via startup contract. |
 | 271 | tests/upgrade/ missing rc9 migration test file | enhancement, upgrade | M | release-engineer | Test coverage gap; no shipped code broken, but blocks confidence. |
@@ -77,16 +77,21 @@ Thematic clusters and larger composable enhancements: token-economy overhaul, ta
 
 ---
 
-## v1.4.0
+## v1.4.0 (2026-06-11)
 
-Ambitious work, design-heavy, or low-urgency/high-cost items. May require architect input first or sustained effort budget.
+Harness-adapter and upgrade-reliability improvements. Cut 2026-06-11 with delivered Antigravity support + per-role roster scoping + upgrade exec-bit/YAML fixes + multi-version collision defaults.
+
+**Note:** Historical v1.4.0 scope included #212 (concurrency model), which was **delivered earlier in v1.3.0 per FW-ADR-0024** (2026-06-03). The actual v1.4.0 shipped scope below supersedes that earlier plan line.
 
 | # | Title | Labels | Est. Size | Role | Rationale |
 |---|-------|--------|-----------|------|-----------|
-| 212 | concurrency: parallel specialist agents share one working tree, race over branch state | template-gap, ai-behavior | XL | architect | Core concurrency model; high design cost, low customer urgency. Left in v1.4.0 per Q-0023 customer ruling. |
-| SC-001 | Close residual SC-001 gap (7 contracts still > 85% cap after spec 016 design pass) | token-economy, technical-debt | XL | architect | 7 of 13 contracts exceed 85% capacity threshold per spec 016 findings. Worst case: project-manager.md at 101.3%. Requires FR-007 restructuring or D-3 redefinition. |
+| #338, #339, #342 | Antigravity harness adapter + MCP non-primary-session rule | framework, antigravity | M | architect, software-engineer | Multi-harness orchestration parity. FW-ADR-0026 accepted. `.agents/` adapter, non-primary-session rule in CLAUDE/GEMINI. |
+| Q-0033, #346 | Per-role .agents/ roster (agent.json subagents + SKILL.md skills) | antigravity, enhancement | M | software-engineer | Antigravity registry: role roster from `.agents/` per-role structure. Customer validation Q-0033 satisfied 2026-06-10. |
+| #343 | Antigravity MCP delegate shim (FW-ADR-0027) | antigravity, mcp | M | software-engineer | Claude→Antigravity inline delegation. Stdio MCP server + smoke test. Accepted. |
+| #337 | Upgrade exec-bit preservation + YAML intake-log indexing | upgrade, bug-fix | S–M | release-engineer | Fix exec-bit drift on sync; index YAML intake logs for archival. Closes #337. |
+| #262 (PR-1 + PR-2) | Multi-version upgrade conflict classification (FW-ADR-0028) | upgrade, reliability | M | release-engineer | Broadened trivial-delta auto-merge (blank/comment-only) + take-upstream default for pre-existing-path collisions. Closes #262. |
 
-**v1.4.0 Summary:** 2 issues, est. 16–24 person-days. **Gating:** Architect design review + customer sign-off on concurrency model scope + SC-001 remediation strategy.
+**v1.4.0 Summary:** 5 issues (Antigravity 4-block + upgrade reliability 2-issue). Est. delivery: 12–16 person-days (actual: delivered 2026-06-11). **Gating:** All shipped issues verified closed; Antigravity adapter validated; upgrade-reliability tests green. **Disposition of historical SC-001:** Deferred pending architecture redesign or contract restructuring; not addressed in v1.4.0 scope (see v1.4.0 note above).
 
 ---
 
@@ -103,8 +108,8 @@ None identified in current triage. All 35 issues fit into v1.x without contract 
 | **v1.1.1** | 9 | 6–7 | Bugs verified; regression tests green. |
 | **v1.2.0** | 20 | 14–16 | **Entry:** Gate cleared 2026-05-28. **Exit:** Template regression tests + downstream upgrade validates + multi-version conflicts resolved. |
 | **v1.3.0** | 8 | 18–22 | **Entry:** Gate cleared 2026-05-28. **Exit:** Token economy binding + measured; taxonomy/IEEE gaps closed. |
-| **v1.4.0** | 2 | 16–24 | Architect design review; concurrency model + SC-001 remediation scoped + signed. |
-| **TOTAL** | **39** | **54.5–65 person-days** | Rolling gating per phase. |
+| **v1.4.0** | 5 | ~12–16 | **Status:** Shipped 2026-06-11. **Exit:** Antigravity adapter parity validated; upgrade-reliability tests green; all merged PRs verified. |
+| **TOTAL** | **42** | **50.5–61 person-days** | Rolling gating per phase. |
 
 ---
 
@@ -114,7 +119,7 @@ None identified in current triage. All 35 issues fit into v1.x without contract 
 - **Design gate → v1.2.0 entry:** Token-economy scope-validation design pass (#239+#245) must complete and be reviewed by architect+tech-writer before v1.2.0 implementation begins. This is a blocking entry condition (Q-0025 customer ruling).
 - **Design gate → v1.3.0 entry:** Same token-economy composite design pass output gates v1.3.0 entry (confirms full scope and completeness before implementation).
 - **v1.2.0 → v1.3.0:** #273 (TAXONOMY loading) prerequisite to #274 (taxonomy refresh content).
-- **v1.3.0 → v1.4.0:** #239 (token-economy binding) informs #212 (concurrency model design).
+- **v1.3.0 → v1.4.0 (delivered):** #338/#339 Antigravity adapter prerequisites satisfied by v1.3.0's agent-contract v1.3.0 enhancements.
 
 ---
 
@@ -122,7 +127,8 @@ None identified in current triage. All 35 issues fit into v1.x without contract 
 
 **Spec Kit integration:** Each phase will be broken into one or more specs in the Spec Kit (per phase or per cluster). This plan governs the phase structure and gating; detailed story/task breakdown happens in the specs as downstream artifacts.
 
-**Resolved customer decisions (Q-0023, Q-0024, Q-0025):** 
-- Q-0023: #212 concurrency → v1.4.0. 
-- Q-0024: #262, #261 multi-version reliability → v1.2.0 (pulled forward).
+**Resolved customer decisions (Q-0023, Q-0024, Q-0025, Q-0033):** 
+- Q-0023: #212 concurrency → v1.4.0 (historical). **Superseded:** #212 delivered v1.3.0 (2026-06-03) per FW-ADR-0024.
+- Q-0024: #262, #261 multi-version reliability → v1.2.0 (pulled forward). **Delivered:** #262 in v1.4.0 (2026-06-11); #261 in v1.2.0.
 - Q-0025: #239+#245 token-economy → single composite design-pass gate before v1.2.0 and v1.3.0 implementation.
+- Q-0033: Per-role Antigravity roster → v1.4.0. **Delivered:** #346 per Q-0033 validation 2026-06-10.

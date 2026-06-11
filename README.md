@@ -4,11 +4,12 @@ A ready-to-use project scaffold that turns a single Claude Code or
 Codex session into a 16-role software-development team with a strict
 escalation protocol and a per-project SME pattern.
 
-**Status.** Current release: **`v1.3.0`** (MINOR — adds Gemini harness
-adapter (`GEMINI.md`), 3 new specialist roles (librarian, ui-ux-designer,
-mcp-liaison), delegated-specialist mode across all harnesses, parallel
-agent working-tree isolation, handoff activity sidecars, and date-quarter
-register sharding; see `CHANGELOG.md` for full details). Version identity
+**Status.** Current release: **`v1.4.0`** (MINOR — adds Antigravity `.agents/` adapter
+(fw-adr-0026), per-role roster (16 `agent.json` + 16 `SKILL.md` files, generator v0.3.0),
+Claude→Antigravity MCP shim (fw-adr-0027, `scripts/mcp/`), `.codacy.yaml`, exec-bit
+preserve/repair + YAML intake indexing (#337), and trivial-delta auto-merge + take-upstream
+collision default + `--keep-local` (fw-adr-0028, #262); see `CHANGELOG.md` for full
+details). Version identity
 also lives in the `VERSION` file at the tagged commit; see
 `docs/versioning.md`. Each release updates this README (enforced by
 `scripts/pre-release-gate.sh` per spec 007's `readme-current` sub-gate).
