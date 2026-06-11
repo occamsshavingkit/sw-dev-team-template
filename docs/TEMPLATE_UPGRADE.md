@@ -196,6 +196,43 @@ whose project SHA shows that a real merge happened or that upstream was
 taken wholesale. `local_only_kept` and `accepted_local` entries are
 pruned automatically.
 
+**Trivial-delta auto-merge (PR-1 / FW-ADR-0028).** Two classes of local
+delta now auto-merge to the upstream version and no longer surface as manual
+conflicts:
+
+1. **SPDX/Copyright-only deltas** (existing behavior): when the project's
+   only local additions versus the baseline are SPDX or Copyright comment
+   lines that upstream already contains verbatim (up to 5 added lines, zero
+   deletions), the upgrade takes the upstream file.
+2. **Blank-line-only and comment-only deltas** (new in PR-1): when the
+   project's only local additions are blank lines and/or comment lines
+   (lines beginning with `#`, `//`, `--`, `/*`, `*`, `*/`, `<!--`, or `-->`)
+   — bounded to ≤ 10 added lines, zero deletions, and no substantive or code
+   line added — the upgrade takes the upstream version and discards those
+   cosmetic-only local additions.
+
+Both classes appear in the upgrade summary under the "Auto-merged" bucket,
+with a log label identifying which classifier fired (`trivial SPDX delta` or
+`trivial structural delta`).
+
+**Operator caution — cosmetic comments are discarded.** A comment the project
+added locally (for example, a disable-reason or a section divider that
+upstream does not carry) will be silently replaced by the upstream file when
+the structural classifier fires. The comment is not preserved. If a specific
+file must retain its local content across upgrades, declare it in
+`.template-customizations` (one path per line); listed paths are always
+treated as `preserved` and are never auto-merged or overwritten. Passing
+`--keep-local <path>` on the command line provides the same protection for a
+single run without permanently listing the path.
+
+**`--dry-run` fidelity.** Before PR-1, `--dry-run` did not invoke the
+trivial-delta classifiers, so it over-reported conflicts for files that
+would actually auto-merge. As of PR-1, `--dry-run` runs both classifiers
+and reports `would auto-merge (trivial SPDX delta)` or `would auto-merge
+(trivial structural delta)` accurately. Use `--dry-run` before any
+multi-version upgrade to preview exactly which files will auto-merge versus
+which will require manual resolution.
+
 **Project-specific agent routing.** Do not edit template-shipped
 `.claude/agents/<role>.md` files just to add project language,
 framework, domain, or tool-routing rules. Instead create
