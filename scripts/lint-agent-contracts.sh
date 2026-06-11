@@ -5,7 +5,7 @@
 # scripts/lint-agent-contracts.sh — schema-validation gate for the
 # FR-022 / FR-023 contract surfaces (M1.1 / G6 hard-gate).
 #
-# Validates three surfaces:
+# Validates four surfaces:
 #
 #   1. Canonical agent contracts (.claude/agents/*.md, excluding
 #      sme-template.md and any non-kebab basenames). For each file,
@@ -24,17 +24,23 @@
 #      .opencode/agents/*.md). Each file's frontmatter is extracted to
 #      JSON and validated against schemas/generated-artifact.schema.json.
 #
+#   4. Antigravity adapters (.agents/skills/<role>/SKILL.md and
+#      .agents/agents/<role>/agent.json). Validates canonical_sha match,
+#      required fields (description/name/classification), and warns on
+#      stray files (fw-adr-0026 Q-0033).
+#
 # Section-to-slug mapping is a verbatim derivation of map_section() in
 # scripts/compile-runtime-agents.sh (declared source of truth). Keep in
 # sync when the compiler's mapping changes; the lint table is derived,
 # not authoritative.
 #
 # Modes (CLI flags):
-#   (default)         Scan all three surfaces.
-#   --canonical-only  Only canonical agent contracts.
-#   --generated-only  Only generated artefacts (both directories).
-#   --fixtures-only   Only prompt-regression fixtures.
-#   -h | --help       Print this header.
+#   (default)           Scan all four surfaces.
+#   --canonical-only    Only canonical agent contracts.
+#   --generated-only    Only generated artefacts (runtime/opencode/gemini).
+#   --fixtures-only     Only prompt-regression fixtures.
+#   --antigravity-only  Only .agents/skills/ and .agents/agents/ surfaces.
+#   -h | --help         Print this header.
 #
 # Exit codes:
 #   0  no errors
@@ -57,6 +63,7 @@ AGENTS_DIR=".claude/agents"
 RUNTIME_DIR="docs/runtime/agents"
 OPENCODE_DIR=".opencode/agents"
 GEMINI_DIR=".gemini/agents"
+ANTIGRAVITY_DIR=".agents"
 FIXTURES_DIR="tests/prompt-regression"
 SCHEMA_DIR="schemas"
 CONTRACT_SCHEMA="${SCHEMA_DIR}/agent-contract.schema.json"
@@ -71,9 +78,10 @@ usage() {
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        --canonical-only) MODE="canonical"; shift ;;
-        --generated-only) MODE="generated"; shift ;;
-        --fixtures-only)  MODE="fixtures"; shift ;;
+        --canonical-only)    MODE="canonical";    shift ;;
+        --generated-only)    MODE="generated";    shift ;;
+        --fixtures-only)     MODE="fixtures";     shift ;;
+        --antigravity-only)  MODE="antigravity";  shift ;;
         -h|--help) usage; exit 0 ;;
         *)
             printf 'lint-agent-contracts: unknown arg: %s\n' "$1" >&2
@@ -681,6 +689,297 @@ scan_fixtures() {
     fi
 }
 
+# ---- antigravity surface validation ----------------------------------
+# Validates .agents/skills/<role>/SKILL.md and
+# .agents/agents/<role>/agent.json files.
+#
+# Checks (per fw-adr-0026 Q-0033 § "Lint changes"):
+#   SKILL.md:
+#     - canonical_sha matches git rev-parse HEAD:.claude/agents/<role>.md
+#     - description field present and non-empty
+#     - classification: generated present
+#   agent.json:
+#     - canonical_sha matches same
+#     - name field present
+#     - classification field present with value "generated"
+#   Stray files in .agents/skills/ or .agents/agents/ → warning.
+
+# Extract a top-level YAML scalar value from a file.
+# yaml_scalar <file> <key> — prints value or empty string.
+# Handles bare scalars AND double-quoted scalars (W-4): strips surrounding
+# double-quotes and unescapes \" → " and \\ → \ so canonical_sha and
+# description checks pass for the double-quoted SKILL.md format.
+yaml_scalar() {
+    awk -v key="$2" '
+        BEGIN { state = "pre" }
+        {
+            if (state == "pre") {
+                if ($0 == "---") { state = "fm"; next }
+                exit
+            }
+            if (state == "fm") {
+                if ($0 == "---") { exit }
+                line = $0
+                sub(/^[ \t]+/, "", line)
+                # Extract key name (up to first colon).
+                k = line; sub(/:.*$/, "", k)
+                sub(/[ \t]+$/, "", k)
+                if (k == key) {
+                    val = line
+                    sub(/^[^:]*:[ \t]*/, "", val)
+                    # Strip surrounding single quotes (bare) if present.
+                    if (substr(val,1,1) == "\047" && substr(val,length(val),1) == "\047") {
+                        val = substr(val, 2, length(val)-2)
+                    # Strip surrounding double quotes and unescape (double-quoted scalar).
+                    } else if (substr(val,1,1) == "\"" && substr(val,length(val),1) == "\"") {
+                        val = substr(val, 2, length(val)-2)
+                        # Unescape \" → " and \\ → \
+                        # Use ["] instead of \" in regex to avoid gawk warning.
+                        gsub(/\\["]/, "\"", val)
+                        gsub(/\\\\/, "\\", val)
+                    }
+                    print val
+                    exit
+                }
+            }
+        }
+    ' "$1"
+}
+
+# Extract a top-level JSON string field value from an agent.json.
+# json_field <file> <key> — prints value or empty string.
+# W-2: handles \" escape sequences inside values so fields whose content
+# contains escaped quotes (e.g., description with internal quotes) are
+# read correctly. Walks the value char-by-char tracking escape state.
+json_field() {
+    awk -v key="$2" '
+        {
+            line = $0
+            # Match: "key": "value"
+            pat = "\"" key "\""
+            idx = index(line, pat)
+            if (idx > 0) {
+                rest = substr(line, idx + length(pat))
+                # skip : and whitespace
+                sub(/^[ \t]*:[ \t]*/, "", rest)
+                if (substr(rest, 1, 1) == "\"") {
+                    rest = substr(rest, 2)
+                    # Walk chars tracking backslash-escape to find closing ".
+                    val = ""
+                    n = length(rest)
+                    i = 1
+                    while (i <= n) {
+                        c = substr(rest, i, 1)
+                        if (c == "\\") {
+                            # consume escape pair
+                            nc = substr(rest, i+1, 1)
+                            if (nc == "\"") { val = val "\"" }
+                            else if (nc == "\\") { val = val "\\" }
+                            else if (nc == "n")  { val = val "\n" }
+                            else if (nc == "t")  { val = val "\t" }
+                            else if (nc == "r")  { val = val "\r" }
+                            else { val = val nc }
+                            i += 2
+                        } else if (c == "\"") {
+                            # closing quote
+                            print val
+                            exit
+                        } else {
+                            val = val c
+                            i++
+                        }
+                    }
+                } else if (substr(rest, 1, 5) == "false") {
+                    print "false"
+                    exit
+                } else if (substr(rest, 1, 4) == "true") {
+                    print "true"
+                    exit
+                }
+            }
+        }
+    ' "$1"
+}
+
+lint_skill_file() {
+    src="$1"
+    role="$2"
+    canonical="${AGENTS_DIR}/${role}.md"
+
+    # canonical_sha check
+    skill_sha="$(yaml_scalar "${src}" "canonical_sha")"
+    if [ -z "${skill_sha}" ]; then
+        err "${src}" "missing canonical_sha field"
+    else
+        if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
+            expected_sha="$(git rev-parse "HEAD:${canonical}" 2>/dev/null || true)"
+            if [ -n "${expected_sha}" ] && [ "${skill_sha}" != "${expected_sha}" ]; then
+                err "${src}" "canonical_sha mismatch: file has ${skill_sha}, HEAD:${canonical} is ${expected_sha}"
+            fi
+        fi
+    fi
+
+    # description check
+    desc_val="$(yaml_scalar "${src}" "description")"
+    if [ -z "${desc_val}" ]; then
+        err "${src}" "missing or empty description field"
+    fi
+
+    # classification check
+    class_val="$(yaml_scalar "${src}" "classification")"
+    if [ "${class_val}" != "generated" ]; then
+        err "${src}" "classification must be 'generated', got '${class_val}'"
+    fi
+}
+
+lint_agent_json() {
+    src="$1"
+    role="$2"
+    canonical="${AGENTS_DIR}/${role}.md"
+
+    if [ ! -f "${src}" ]; then
+        return
+    fi
+
+    # canonical_sha check
+    agent_sha="$(json_field "${src}" "canonical_sha")"
+    if [ -z "${agent_sha}" ]; then
+        err "${src}" "missing canonical_sha field"
+    else
+        if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
+            expected_sha="$(git rev-parse "HEAD:${canonical}" 2>/dev/null || true)"
+            if [ -n "${expected_sha}" ] && [ "${agent_sha}" != "${expected_sha}" ]; then
+                err "${src}" "canonical_sha mismatch: file has ${agent_sha}, HEAD:${canonical} is ${expected_sha}"
+            fi
+        fi
+    fi
+
+    # name check
+    name_val="$(json_field "${src}" "name")"
+    if [ -z "${name_val}" ]; then
+        err "${src}" "missing name field"
+    fi
+
+    # classification check
+    class_val="$(json_field "${src}" "classification")"
+    if [ "${class_val}" != "generated" ]; then
+        err "${src}" "classification must be \"generated\", got '${class_val}'"
+    fi
+}
+
+scan_antigravity() {
+    skills_dir="${ANTIGRAVITY_DIR}/skills"
+    agents_dir="${ANTIGRAVITY_DIR}/agents"
+
+    # Walk expected roles (same set as compiler: .claude/agents/*.md minus
+    # sme-template.md and non-kebab basenames).
+    expected_roles="$(ls "${AGENTS_DIR}" 2>/dev/null \
+        | grep '\.md$' \
+        | sed 's/\.md$//' \
+        | grep -E '^[a-z0-9][a-z0-9-]*$' \
+        | grep -v '^sme-template$' \
+        | LC_ALL=C sort)"
+
+    # Early check: if canonical roles exist but adapter directories are
+    # wholly absent, that is an error — the surfaces have not been generated.
+    # (C-2: addresses S-1 from code-review; a missing directory means every
+    # expected file is missing, which the per-role loop below also catches,
+    # but this early error makes the root cause obvious.)
+    if [ -n "${expected_roles}" ]; then
+        if [ ! -d "${skills_dir}" ]; then
+            err "${skills_dir}" "directory missing — run compile-runtime-agents.sh to generate Antigravity skill adapters"
+        fi
+        if [ ! -d "${agents_dir}" ]; then
+            err "${agents_dir}" "directory missing — run compile-runtime-agents.sh to generate Antigravity agent adapters"
+        fi
+    fi
+
+    for role in ${expected_roles}; do
+        skill_path="${skills_dir}/${role}/SKILL.md"
+        agent_path="${agents_dir}/${role}/agent.json"
+
+        # C-2: ERROR if expected generated file is absent (mirrors --verify
+        # behaviour for missing committed files). A missing file means the
+        # canonical was edited without regenerating the adapter surface.
+        if [ ! -f "${skill_path}" ]; then
+            err "${skill_path}" "missing expected generated file — run compile-runtime-agents.sh to regenerate"
+        else
+            lint_skill_file "${skill_path}" "${role}"
+        fi
+        printf 'COUNTERS\t%d\t%d\n' "${ERR_COUNT}" "${WARN_COUNT}"
+
+        if [ ! -f "${agent_path}" ]; then
+            err "${agent_path}" "missing expected generated file — run compile-runtime-agents.sh to regenerate"
+        else
+            lint_agent_json "${agent_path}" "${role}"
+        fi
+        printf 'COUNTERS\t%d\t%d\n' "${ERR_COUNT}" "${WARN_COUNT}"
+    done > "${TMP_COUNTERS}"
+    last="$(tail -1 "${TMP_COUNTERS}" 2>/dev/null || true)"
+    if [ -n "${last}" ]; then
+        e="$(printf '%s' "${last}" | awk -F'\t' '{print $2}')"
+        w="$(printf '%s' "${last}" | awk -F'\t' '{print $3}')"
+        [ -n "${e}" ] && ERR_COUNT="${e}"
+        [ -n "${w}" ] && WARN_COUNT="${w}"
+    fi
+
+    # Stray-file warnings: files in .agents/skills/ that don't match
+    # <role>/SKILL.md pattern.
+    if [ -d "${skills_dir}" ]; then
+        find "${skills_dir}" -type f 2>/dev/null \
+            | while IFS= read -r f; do
+                # Normalize: strip leading .agents/skills/
+                rel="${f#${skills_dir}/}"
+                # Expected pattern: <role>/SKILL.md
+                role_part="${rel%%/*}"
+                file_part="${rel#*/}"
+                case "${role_part}" in
+                    *[!a-z0-9-]*|"") warn "${f}" "stray file in .agents/skills/ (role-dir name '${role_part}' is not a valid role slug)" ;;
+                    *)
+                        if [ "${file_part}" != "SKILL.md" ]; then
+                            warn "${f}" "stray file in .agents/skills/${role_part}/ (expected SKILL.md only)"
+                        fi
+                        ;;
+                esac
+                printf 'COUNTERS\t%d\t%d\n' "${ERR_COUNT}" "${WARN_COUNT}"
+            done > "${TMP_COUNTERS}"
+        last="$(tail -1 "${TMP_COUNTERS}" 2>/dev/null || true)"
+        if [ -n "${last}" ]; then
+            e="$(printf '%s' "${last}" | awk -F'\t' '{print $2}')"
+            w="$(printf '%s' "${last}" | awk -F'\t' '{print $3}')"
+            [ -n "${e}" ] && ERR_COUNT="${e}"
+            [ -n "${w}" ] && WARN_COUNT="${w}"
+        fi
+    fi
+
+    # Stray-file warnings: files in .agents/agents/ that don't match
+    # <role>/agent.json pattern.
+    if [ -d "${agents_dir}" ]; then
+        find "${agents_dir}" -type f 2>/dev/null \
+            | while IFS= read -r f; do
+                rel="${f#${agents_dir}/}"
+                role_part="${rel%%/*}"
+                file_part="${rel#*/}"
+                case "${role_part}" in
+                    *[!a-z0-9-]*|"") warn "${f}" "stray file in .agents/agents/ (role-dir name '${role_part}' is not a valid role slug)" ;;
+                    *)
+                        if [ "${file_part}" != "agent.json" ]; then
+                            warn "${f}" "stray file in .agents/agents/${role_part}/ (expected agent.json only)"
+                        fi
+                        ;;
+                esac
+                printf 'COUNTERS\t%d\t%d\n' "${ERR_COUNT}" "${WARN_COUNT}"
+            done > "${TMP_COUNTERS}"
+        last="$(tail -1 "${TMP_COUNTERS}" 2>/dev/null || true)"
+        if [ -n "${last}" ]; then
+            e="$(printf '%s' "${last}" | awk -F'\t' '{print $2}')"
+            w="$(printf '%s' "${last}" | awk -F'\t' '{print $3}')"
+            [ -n "${e}" ] && ERR_COUNT="${e}"
+            [ -n "${w}" ] && WARN_COUNT="${w}"
+        fi
+    fi
+}
+
 # ---- main dispatch ---------------------------------------------------
 TMP_COUNTERS="$(mktemp)"
 trap 'rm -f "${TMP_COUNTERS}"' EXIT INT TERM
@@ -690,6 +989,7 @@ case "${MODE}" in
         scan_canonical
         scan_fixtures
         scan_generated
+        scan_antigravity
         ;;
     canonical)
         scan_canonical
@@ -699,6 +999,9 @@ case "${MODE}" in
         ;;
     fixtures)
         scan_fixtures
+        ;;
+    antigravity)
+        scan_antigravity
         ;;
 esac
 
