@@ -315,11 +315,14 @@ check "(b): log contains auto-merged log line" \
   bash -c "grep -q 'auto-merged (trivial SPDX delta):' '$log_b'"
 
 # ---------------------------------------------------------------------------
-# Case (c): local = baseline + 1 SPDX line + 1 non-SPDX addition.
-#           → falls through (rule 1 violation: non-SPDX line added).
+# Case (c): local = baseline + 1 SPDX line + 1 non-SPDX comment addition.
+#           SPDX classifier: rule 1 violation (non-SPDX line added) → falls through.
+#           Structural classifier (FW-ADR-0028 cascade): both added lines are
+#           comment lines matching the bounded token set (#) → structural fires.
+#           Expected after cascade: auto-merge (structural), NOT conflict.
 # ---------------------------------------------------------------------------
 echo ""
-echo "-- #262 case (c): +1 SPDX + non-SPDX addition → falls through (rule 1) --"
+echo "-- #262 case (c): +1 SPDX + non-SPDX comment → SPDX falls through; structural fires --"
 
 # Project has an extra comment line that is NOT SPDX/Copyright.
 PROJ_CONTENT_C='# SPDX-License-Identifier: MIT
@@ -345,17 +348,23 @@ make_prestaged_workdir "$workdir_c" "$upstream_c" "$baseline_c"
 log_c="$tmp/case-c.log"
 rc_c="$(run_upgrade "$proj_c" "$workdir_c" "$log_c")"
 
-check "(c): non-SPDX addition classified as conflict (conflict message in log)" \
-  bash -c "grep -q 'Conflicts' '$log_c'"
-check "(c): no auto-merged log line emitted" \
+# FW-ADR-0028: structural classifier catches the comment addition; no conflict.
+check "(c): structural auto-merge fires (exits 0)" \
+  bash -c "[ '$rc_c' = '0' ]"
+check "(c): structural auto-merged log line emitted" \
+  bash -c "grep -q 'auto-merged (trivial structural delta):' '$log_c'"
+check "(c): SPDX auto-merged log line NOT emitted (structural fired, not SPDX)" \
   bash -c "! grep -q 'auto-merged (trivial SPDX delta):' '$log_c'"
 
 # ---------------------------------------------------------------------------
-# Case (d): local = baseline + 6 SPDX lines (above <=5 cap).
-#           → falls through (rule 2 violation).
+# Case (d): local = baseline + 6 SPDX lines (above SPDX <=5 cap).
+#           SPDX classifier: rule 2 violation (>5 lines) → falls through.
+#           Structural classifier (FW-ADR-0028 cascade): all 6 lines are
+#           # comments (≤ 10 structural cap) → structural fires.
+#           Expected after cascade: auto-merge (structural), NOT conflict.
 # ---------------------------------------------------------------------------
 echo ""
-echo "-- #262 case (d): +6 SPDX lines (>5 cap) → falls through (rule 2) --"
+echo "-- #262 case (d): +6 SPDX lines (>5 SPDX cap) → SPDX falls through; structural fires --"
 
 PROJ_CONTENT_D='# SPDX-License-Identifier: MIT
 # SPDX-License-Identifier: MIT-0
@@ -396,9 +405,12 @@ make_prestaged_workdir "$workdir_d" "$upstream_d" "$baseline_d"
 log_d="$tmp/case-d.log"
 rc_d="$(run_upgrade "$proj_d" "$workdir_d" "$log_d")"
 
-check "(d): 6-SPDX-line addition classified as conflict (conflict message in log)" \
-  bash -c "grep -q 'Conflicts' '$log_d'"
-check "(d): no auto-merged log line emitted" \
+# FW-ADR-0028: structural classifier catches the 6-comment-line addition; no conflict.
+check "(d): structural auto-merge fires (exits 0)" \
+  bash -c "[ '$rc_d' = '0' ]"
+check "(d): structural auto-merged log line emitted" \
+  bash -c "grep -q 'auto-merged (trivial structural delta):' '$log_d'"
+check "(d): SPDX auto-merged log line NOT emitted (structural fired, not SPDX)" \
   bash -c "! grep -q 'auto-merged (trivial SPDX delta):' '$log_d'"
 
 # ---------------------------------------------------------------------------
@@ -450,10 +462,14 @@ check "(e): no auto-merged log line emitted" \
 
 # ---------------------------------------------------------------------------
 # Case (f): local trivial SPDX delta, but upstream does NOT contain those lines.
-#           → falls through (upstream containment check fails).
+#           SPDX classifier: upstream containment check fails → falls through.
+#           Structural classifier (FW-ADR-0028 cascade): no upstream-containment
+#           requirement; SPDX line is a # comment, count=1 ≤ 10, no deletions
+#           → structural fires.
+#           Expected after cascade: auto-merge (structural), NOT conflict.
 # ---------------------------------------------------------------------------
 echo ""
-echo "-- #262 case (f): trivial SPDX, upstream lacks those lines → falls through --"
+echo "-- #262 case (f): trivial SPDX upstream lacks → SPDX falls through; structural fires --"
 
 PROJ_CONTENT_F='# SPDX-License-Identifier: MIT
 #!/usr/bin/env bash
@@ -483,9 +499,13 @@ make_prestaged_workdir "$workdir_f" "$upstream_f" "$baseline_f"
 log_f="$tmp/case-f.log"
 rc_f="$(run_upgrade "$proj_f" "$workdir_f" "$log_f")"
 
-check "(f): upstream-lacks-SPDX classified as conflict (conflict message in log)" \
-  bash -c "grep -q 'Conflicts' '$log_f'"
-check "(f): no auto-merged log line emitted" \
+# FW-ADR-0028: structural classifier catches the SPDX comment add (no upstream
+# containment required); auto-merge fires instead of conflict.
+check "(f): structural auto-merge fires (exits 0)" \
+  bash -c "[ '$rc_f' = '0' ]"
+check "(f): structural auto-merged log line emitted" \
+  bash -c "grep -q 'auto-merged (trivial structural delta):' '$log_f'"
+check "(f): SPDX auto-merged log line NOT emitted" \
   bash -c "! grep -q 'auto-merged (trivial SPDX delta):' '$log_f'"
 
 # ---------------------------------------------------------------------------

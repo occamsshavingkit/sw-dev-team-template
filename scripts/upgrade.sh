@@ -1496,6 +1496,14 @@ atomic_install() {
   mv "$_ai_tmp" "$dst"
 }
 
+# Issue #262: trivial-delta classifier reject-reason (global).
+# Set by _is_trivial_spdx_delta and _is_trivial_structural_delta before
+# returning 1.  Read by the dry-run annotator in PR-2.
+# THREADING NOTE: relies on the single-caller sequential cascade
+# (SPDX-then-structural); must not be read across concurrent or
+# reordered calls — the last writer wins and earlier values are lost.
+_classifier_reject_reason=""
+
 # Issue #262: trivial SPDX-only delta auto-merge helper.
 #
 # Returns 0 (true) when ALL of the following hold:
@@ -1520,7 +1528,8 @@ _is_trivial_spdx_delta() {
 
   # Require all three files to exist; without a baseline we cannot prove
   # the delta is trivial.
-  [[ -f "$baseline" && -f "$project" && -f "$upstream" ]] || return 1
+  [[ -f "$baseline" && -f "$project" && -f "$upstream" ]] \
+    || { _classifier_reject_reason="no-baseline"; return 1; }
 
   # --- Rule 1-4: analyse baseline→project diff --------------------------------
   # Use comm after sorting to find lines added and deleted.
@@ -1533,27 +1542,30 @@ _is_trivial_spdx_delta() {
 
   local added_lines deleted_lines
   added_lines="$(comm -23 \
-      <(sort "$project") \
-      <(sort "$baseline"))"
+      <(LC_ALL=C sort "$project") \
+      <(LC_ALL=C sort "$baseline"))"
   deleted_lines="$(comm -23 \
-      <(sort "$baseline") \
-      <(sort "$project"))"
+      <(LC_ALL=C sort "$baseline") \
+      <(LC_ALL=C sort "$project"))"
 
   # Rule 3: zero deletions.
-  [[ -z "$deleted_lines" ]] || return 1
+  [[ -z "$deleted_lines" ]] \
+    || { _classifier_reject_reason="deletions-present"; return 1; }
 
   # Rule 1: every added line must match the SPDX/Copyright pattern.
   if [[ -n "$added_lines" ]]; then
     local bad_lines
     bad_lines="$(printf '%s\n' "$added_lines" \
         | grep -v -E '^#.*(SPDX-License-Identifier:|Copyright)' || true)"
-    [[ -z "$bad_lines" ]] || return 1
+    [[ -z "$bad_lines" ]] \
+      || { _classifier_reject_reason="non-spdx-line"; return 1; }
   fi
 
   # Rule 2: added-line count <= 5.
   local add_count
   add_count="$(printf '%s\n' "$added_lines" | grep -c . || true)"
-  [[ "$add_count" -le 5 ]] || return 1
+  [[ "$add_count" -le 5 ]] \
+    || { _classifier_reject_reason="cap-exceeded"; return 1; }
 
   # Rule 4: zero other modifications.
   # If the file content differs by more than just the added lines, there
@@ -1562,19 +1574,115 @@ _is_trivial_spdx_delta() {
   local proj_lines base_lines
   proj_lines="$(wc -l < "$project")"
   base_lines="$(wc -l < "$baseline")"
-  [[ "$proj_lines" -eq $((base_lines + add_count)) ]] || return 1
+  [[ "$proj_lines" -eq $((base_lines + add_count)) ]] \
+    || { _classifier_reject_reason="line-count-mismatch"; return 1; }
 
   # If nothing was added the files are byte-identical and we should not
   # have reached this function (files_match would have caught it above).
   # But if we somehow do, there is nothing to auto-merge.
-  [[ "$add_count" -gt 0 ]] || return 1
+  [[ "$add_count" -gt 0 ]] \
+    || { _classifier_reject_reason="no-additions"; return 1; }
 
   # --- Upstream containment check: every added line exists in upstream --------
   # Each added line must already appear verbatim in the upstream file.
   while IFS= read -r line; do
     [[ -z "$line" ]] && continue
-    grep -qxF "$line" "$upstream" || return 1
+    grep -qxF "$line" "$upstream" \
+      || { _classifier_reject_reason="upstream-missing-line"; return 1; }
   done <<< "$added_lines"
+
+  return 0
+}
+
+# Issue #262 / FW-ADR-0028 Item 1: trivial structural delta auto-merge helper.
+#
+# Broadens the SPDX-only classifier to accept local additions that consist
+# exclusively of blank/whitespace lines or comment lines from the bounded
+# token set below.  Unlike _is_trivial_spdx_delta this function does NOT
+# require upstream to contain the added lines — taking upstream discards the
+# cosmetic additions, which is the intended behaviour.  Safety is maintained
+# by rules 2–5: no deletions, no in-place changes, cap of 10 lines.
+#
+# Returns 0 (true) when ALL of the following hold:
+#   1. All three files exist; no baseline → return 1.
+#   2. Zero deletions (any deletion → return 1).
+#   3. Every added line is empty/whitespace-only OR matches the bounded
+#      comment-token set: ^[[:space:]]*(#|//|--|/\*|\*[^/]|\*/|<!--|-->)
+#   4. Added-line count <= 10.
+#   5. wc -l project == wc -l baseline + add_count (no in-place edits).
+#   6. Added-line count > 0.
+#
+# Arguments:
+#   $1  baseline path  (workdir/old/<f>)
+#   $2  project path   (project_root/<f>)
+#   $3  upstream path  (workdir/new/<f>)
+#
+# Conservative: any ambiguity returns 1 (fall through to conflict path).
+# Sets _classifier_reject_reason on every failure path (used by PR-2
+# dry-run annotator).
+_is_trivial_structural_delta() {
+  local baseline="$1"
+  local project="$2"
+  local upstream="$3"
+
+  # Rule 1: all three files must exist.
+  [[ -f "$baseline" && -f "$project" && -f "$upstream" ]] \
+    || { _classifier_reject_reason="no-baseline"; return 1; }
+
+  local added_lines deleted_lines
+  added_lines="$(comm -23 \
+      <(LC_ALL=C sort "$project") \
+      <(LC_ALL=C sort "$baseline"))"
+  deleted_lines="$(comm -23 \
+      <(LC_ALL=C sort "$baseline") \
+      <(LC_ALL=C sort "$project"))"
+
+  # Rule 2: zero deletions.
+  [[ -z "$deleted_lines" ]] \
+    || { _classifier_reject_reason="deletions-present"; return 1; }
+
+  # Derive add_count from line counts rather than grep -c, because grep -c .
+  # does not count blank (empty) lines — which are the primary case this
+  # classifier handles.  Compute early (after zero-deletions is confirmed)
+  # so rules 3, 4, 5, 6 can share the value.
+  local proj_lines base_lines add_count
+  proj_lines="$(wc -l < "$project")"
+  base_lines="$(wc -l < "$baseline")"
+  add_count=$(( proj_lines - base_lines ))
+
+  # Rule 3: every added line must be blank/whitespace-only or a comment
+  # from the bounded token set.
+  # Note: comm on sorted input reports each unique added line once; if the
+  # project added N identical blank lines, comm shows one empty entry.  We
+  # validate the pattern only (all blank/comment lines pass rule 3 regardless
+  # of count); the line-count cap is enforced by add_count (rule 4) which is
+  # derived from wc -l and therefore counts all added lines including blanks.
+  if [[ -n "$added_lines" ]]; then
+    local bad_lines
+    bad_lines="$(printf '%s\n' "$added_lines" \
+        | grep -v -E '^[[:space:]]*$' \
+        | grep -v -E '^[[:space:]]*(#|//|--|/\*|\*[^/]|\*/|<!--|--)' \
+        || true)"
+    [[ -z "$bad_lines" ]] \
+      || { _classifier_reject_reason="non-trivial-line"; return 1; }
+  fi
+
+  # Rule 4: added-line count <= 10.
+  [[ "$add_count" -le 10 ]] \
+    || { _classifier_reject_reason="cap-exceeded"; return 1; }
+
+  # Rule 5: line-count invariant — catches in-place modifications that
+  # comm/sort misses (two different lines that sort to the same position).
+  # add_count = proj_lines - base_lines by construction; the check is
+  # that add_count is non-negative (deletions were zero, so a negative
+  # add_count would indicate comm/wc disagreement — treat as mismatch).
+  [[ "$add_count" -ge 0 ]] \
+    || { _classifier_reject_reason="line-count-mismatch"; return 1; }
+
+  # Rule 6: something was actually added (zero-addition means files are
+  # identical and files_match should have caught it earlier).
+  [[ "$add_count" -gt 0 ]] \
+    || { _classifier_reject_reason="no-additions"; return 1; }
 
   return 0
 }
@@ -1843,21 +1951,36 @@ for f in $ship_files; do
          && cmp -s "$workdir/old/$f" "$workdir/new/$f"; then
         local_only_kept+=("$f")
       else
-        # Issue #262: before classifying as a conflict, check whether the
-        # local delta is a trivial SPDX-only addition that upstream already
-        # contains.  If so, take upstream silently and emit a log line.
+        # Issue #262 / FW-ADR-0028: before classifying as a conflict, run the
+        # trivial-delta cascade: SPDX-first, structural-second.
+        # Both classifiers run in dry-run mode too (dry-run gate removed per
+        # FW-ADR-0028 Item 3); in dry-run, log the would-merge action but do
+        # NOT write/atomic_install the file.
         # False negatives (delta not detected as trivial) are acceptable;
-        # false positives are not — when in doubt fall through to the
-        # conflict path below.
-        if [[ $baseline_available -eq 1 \
-           && -f "$workdir/old/$f" \
-           && $dry_run -eq 0 ]] \
+        # false positives are not — when in doubt fall through to conflict.
+        if [[ $baseline_available -eq 1 && -f "$workdir/old/$f" ]] \
            && _is_trivial_spdx_delta \
                 "$workdir/old/$f" "$proj_path" "$new_path"; then
-          echo "auto-merged (trivial SPDX delta): $f"
-          auto_merged+=("$f")
-          atomic_install "$new_path" "$proj_path"
-          [[ $is_agent -eq 1 ]] && agent_splice_name "$proj_path" "$agent_name_line"
+          if [[ $dry_run -eq 1 ]]; then
+            echo "[dry-run] would auto-merge (trivial SPDX delta): $f"
+          else
+            echo "auto-merged (trivial SPDX delta): $f"
+            auto_merged+=("$f")
+            atomic_install "$new_path" "$proj_path"
+            [[ $is_agent -eq 1 ]] && agent_splice_name "$proj_path" "$agent_name_line"
+          fi
+          continue
+        elif [[ $baseline_available -eq 1 && -f "$workdir/old/$f" ]] \
+           && _is_trivial_structural_delta \
+                "$workdir/old/$f" "$proj_path" "$new_path"; then
+          if [[ $dry_run -eq 1 ]]; then
+            echo "[dry-run] would auto-merge (trivial structural delta): $f"
+          else
+            echo "auto-merged (trivial structural delta): $f"
+            auto_merged+=("$f")
+            atomic_install "$new_path" "$proj_path"
+            [[ $is_agent -eq 1 ]] && agent_splice_name "$proj_path" "$agent_name_line"
+          fi
           continue
         fi
         conflicts+=("$f")
