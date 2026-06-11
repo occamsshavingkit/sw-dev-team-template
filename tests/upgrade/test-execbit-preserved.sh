@@ -169,6 +169,131 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# T5: upgrade repairs exec-bit on content-identical files that the sync loop
+# SKIPS (the "skipped-file repair path", issue #337).
+#
+# Scenario: a project has a shipped script whose on-disk content is byte-
+# identical to upstream but whose file mode is 0644 (no exec bit) — as
+# happens in old fixtures like v1.0.0-rc3 which predated exec-bit tracking.
+# The sync loop detects content parity and skips the file; atomic_install
+# is never called.  The Phase-B repair pass must still chmod +x the file
+# and the upgrade must exit 0 (not 1).
+#
+# We use a minimal synthetic upstream git repo + project so no network is
+# needed and the live work branch is never mutated.
+# ---------------------------------------------------------------------------
+echo ""
+echo "-- T5: upgrade repairs exec-bit on content-identical skipped file --"
+
+_up="$tmp/t5-upstream"
+_proj="$tmp/t5-project"
+mkdir -p "$_up" "$_proj"
+
+# Build a minimal upstream repo with one executable script.
+(
+  cd "$_up"
+  git init -q
+  git config user.email test@example.invalid
+  git config user.name "T5 test"
+
+  # Minimal scaffold-compatible files (upgrade.sh needs TEMPLATE_VERSION).
+  printf 'v1.0.0\n' > VERSION
+  printf 'v1.0.0\nunknown\n2026-01-01\n' > TEMPLATE_VERSION
+
+  # The file under test: a script that upstream ships as executable.
+  mkdir -p scripts
+  printf '#!/usr/bin/env bash\necho ok\n' > scripts/run.sh
+  chmod 0755 scripts/run.sh
+
+  git add .
+  git commit -q -m "v1.0.0"
+  git tag v1.0.0
+)
+
+# Build the project: same content for scripts/run.sh, but mode 0644 (no +x).
+# This simulates an rc3-era fixture whose file predates exec-bit tracking.
+(
+  cd "$_proj"
+  git init -q
+  git config user.email test@example.invalid
+  git config user.name "T5 project"
+
+  printf 'v0.9.0\nunknown\n2026-01-01\n' > TEMPLATE_VERSION
+  mkdir -p scripts
+  # Identical content to upstream, but non-executable.
+  printf '#!/usr/bin/env bash\necho ok\n' > scripts/run.sh
+  chmod 0644 scripts/run.sh   # ← no exec bit: the bug condition
+
+  # No TEMPLATE_MANIFEST.lock: upgrade.sh detects it as missing and falls
+  # through to the full sync path, then writes a fresh one at the end.
+  # Pre-seeding a stub lock file would cause upgrade to record it as a
+  # conflict (project vs upstream divergence), which would make --verify
+  # exit 1 even after a clean upgrade — unrelated to the exec-bit fix.
+
+  git add .
+  git commit -q -m "project at v0.9.0"
+)
+
+# Confirm precondition: scripts/run.sh is NOT executable in the project.
+if [[ -x "$_proj/scripts/run.sh" ]]; then
+    echo "  FAIL: T5: precondition — scripts/run.sh should start non-exec" >&2
+    fail=$((fail + 1))
+else
+    echo "  PASS: T5: precondition — scripts/run.sh starts non-exec (0644)"
+    pass=$((pass + 1))
+fi
+
+# Run upgrade from the project, targeting upstream v1.0.0.
+_t5_upgrade_rc=0
+_t5_upgrade_log="$tmp/t5-upgrade.log"
+(
+  cd "$_proj"
+  SWDT_UPSTREAM_URL="$_up" bash "$UPGRADE_SH" --target v1.0.0
+) > "$_t5_upgrade_log" 2>&1 || _t5_upgrade_rc=$?
+
+# Assertion 1: upgrade exits 0 (not 1 from the old gating behavior).
+if [[ $_t5_upgrade_rc -eq 0 ]]; then
+    echo "  PASS: T5: upgrade exits 0 despite skipped-file exec-bit drift"
+    pass=$((pass + 1))
+else
+    echo "  FAIL: T5: upgrade exited $_t5_upgrade_rc — expected 0" >&2
+    sed 's/^/        /' "$_t5_upgrade_log" >&2
+    fail=$((fail + 1))
+fi
+
+# Assertion 2: scripts/run.sh is now executable in the project.
+if [[ -x "$_proj/scripts/run.sh" ]]; then
+    echo "  PASS: T5: scripts/run.sh has exec bit restored after upgrade"
+    pass=$((pass + 1))
+else
+    echo "  FAIL: T5: scripts/run.sh still non-exec after upgrade" >&2
+    fail=$((fail + 1))
+fi
+
+# Assertion 3: upgrade log mentions the repair.
+if grep -q "restoring exec bit" "$_t5_upgrade_log"; then
+    echo "  PASS: T5: upgrade log notes exec-bit restoration"
+    pass=$((pass + 1))
+else
+    echo "  FAIL: T5: upgrade log does not mention exec-bit restoration" >&2
+    fail=$((fail + 1))
+fi
+
+# Assertion 4: --verify does NOT report exec-bit drift after upgrade.
+# (The minimal fixture has a TEMPLATE_VERSION conflict which is expected and
+# unrelated to the exec-bit fix; we check only that --verify does not print
+# exec-bit drift for scripts/run.sh, which would indicate the repair failed.)
+_t5_verify_out="$tmp/t5-verify.log"
+(cd "$_proj" && bash "$UPGRADE_SH" --verify) >"$_t5_verify_out" 2>&1 || true
+if grep -q "exec-bit drift.*scripts/run.sh" "$_t5_verify_out"; then
+    echo "  FAIL: T5: --verify still reports exec-bit drift for scripts/run.sh" >&2
+    fail=$((fail + 1))
+else
+    echo "  PASS: T5: --verify does not report exec-bit drift for scripts/run.sh"
+    pass=$((pass + 1))
+fi
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 echo ""
