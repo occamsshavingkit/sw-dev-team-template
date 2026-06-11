@@ -128,13 +128,16 @@ make_prestaged_workdir() {
 
 run_upgrade() {
   local proj_dir="$1" workdir="$2" log="$3"
-  local extra_args="${4:-}"
   local rc=0
+  # Collect any extra args into an array so the expansion is always quoted
+  # (avoids SC2086 word-splitting; passes nothing when no extra args given).
+  local -a extra_args=()
+  [[ -n "${4:-}" ]] && extra_args=("${4}")
   (
     cd "$proj_dir"
     SWDT_BOOTSTRAPPED=1 \
     SWDT_PRESTAGED_WORKDIR="$workdir" \
-      bash "$upgrade" $extra_args 2>&1
+      bash "$upgrade" "${extra_args[@]}" 2>&1
   ) > "$log" 2>&1 || rc=$?
   echo "$rc"
 }
