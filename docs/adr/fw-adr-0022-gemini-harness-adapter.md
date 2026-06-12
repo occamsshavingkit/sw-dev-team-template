@@ -15,6 +15,7 @@ date: 2026-06-02
 <!-- TOC -->
 
 - [Status](#status)
+- [Scaffold placement note](#scaffold-placement-note)
 - [Context and problem statement](#context-and-problem-statement)
 - [Decision drivers](#decision-drivers)
 - [Considered options (Three-Path Rule, binding)](#considered-options-three-path-rule-binding)
@@ -52,6 +53,20 @@ date: 2026-06-02
   `docs/model-routing-guidelines.md` binding table;
   gemini-cli v0.38.1–v0.44.0 release notes (researcher-verified,
   Tier-1 source)
+
+## Scaffold placement note
+
+This ADR was drafted in the meta-project (`docs/adr/`) per the PLAN/DO
+convention (CLAUDE.md § "Project Identity / Working Tree"). It migrated
+into the scaffold's `docs/adr/` as part of the implementation work for
+issue #300 (Gemini harness: GEMINI.md, .gemini/agents/ roster,
+compile-runtime-agents.sh extension) so the rationale travels with the
+code, matching the pattern established by FW-ADR-0001 through FW-ADR-0021.
+The meta-project draft copy is retained as the team's working reference;
+this scaffold copy is the canonical version from the implementation PR
+forward.
+
+---
 
 ## Context and problem statement
 
@@ -364,7 +379,7 @@ Per-role `description` guidance (representative subset):
 | `software-engineer` | Implementation, construction, code authoring — single leaf task at a time |
 | `code-reviewer` | IEEE 1028 audit, drift detection, pre-commit review |
 | `security-engineer` | Auth, secrets, PII, network-exposed endpoints, Hard Rule #7 paths |
-| `researcher` | Tier-1 source lookup, CUSTOMER\_NOTES stewardship, standards citations |
+| `researcher` | Tier-1 source lookup, standards citations, prior-art scans |
 | `qa-engineer` | Test design, acceptance criteria, ISTQB-aligned validation |
 | `release-engineer` | Build pipeline, IaC, deployment, rollback, release gating |
 | `sre` | Operations planning, capacity, DR, incident posture, post-incident review |
@@ -547,7 +562,7 @@ running `compile-runtime-agents.sh` with `--target gemini`."
 Both open decision points were ratified by the customer 2026-06-02
 with the directive "make it all match" (how Codex/OpenCode do it).
 The backing customer-truth entry is recorded in `CUSTOMER_NOTES.md`
-(researcher-stewarded, same turn).
+(librarian-stewarded, same turn).
 
 **Ruling 1 — `description` source (ratified: canonical field, no fork).**
 The canonical `.claude/agents/<role>.md` `description:` frontmatter
@@ -604,6 +619,7 @@ per the customer's consistency directive.
   `docs/adr/fw-adr-0021-harness-agnostic-leaf-task-dispatch.md`
 - Upstream issue #293 — P8 delegated-specialist mode for Codex
   (the parallel P8 concern this ADR extends to Gemini)
+- Upstream issue #300 — Gemini harness implementation
 - `.opencode/agents/` — thin-adapter precedent files
 - `scripts/compile-runtime-agents.sh` — generation script to extend
 - `docs/model-routing-guidelines.md` — binding per-agent routing table
@@ -611,3 +627,7 @@ per the customer's consistency directive.
 - `AGENTS.md` — Codex root adapter (structural parallel to `GEMINI.md`)
 - gemini-cli release notes v0.38.1 and v0.44.0 (Tier-1 source;
   verified by `researcher`)
+
+## Change log
+
+- 2026-06-03 — customer-truth steward role researcher→librarian per Q-0023; decision principle unchanged.

@@ -363,13 +363,185 @@ def _tool_input_touches_customer_notes(tool_input: dict) -> bool:
     )
 
 
-def _approval_gate_output() -> dict:
-    reason = (
+# ---------------------------------------------------------------------------
+# Content-awareness (issue #292 guard half, ruling Q-0031).
+#
+# When a write to CUSTOMER_NOTES.md is detected we also inspect the candidate
+# content for structural and size anomalies and add advisory findings to the
+# gate message. This AUGMENTS the approval prompt — it does not silently
+# block; the decision remains "ask".
+#
+# Thresholds / heuristics:
+#   ENTRY_MAX_LINES  — maximum lines a single well-formed entry should span.
+#                      A canonical entry has ~10 lines; 60 gives generous
+#                      headroom for a long verbatim answer before we flag.
+#   ENTRY_MAX_CHARS  — maximum characters for a single entry (4 000 ≈ 10×
+#                      the ~400-char average entry; covers multi-paragraph
+#                      answers without penalizing normal usage).
+#
+# Conservative-bias is intentional: false-positive findings here re-train
+# dismissal (the same lesson that led to the #111 fix), so findings are
+# worded as advisories and we prefer under-flagging over over-flagging.
+# ---------------------------------------------------------------------------
+
+ENTRY_MAX_LINES = 60   # lines; flag entries longer than this
+ENTRY_MAX_CHARS = 4000  # characters; flag entries longer than this
+
+# Required headed sections in a canonical CUSTOMER_NOTES entry.
+_REQUIRED_SECTIONS = [
+    r"^##\s+\d{4}-\d{2}-\d{2}",          # ## YYYY-MM-DD — ... header
+    r"^\*\*Question",                      # **Question (from tech-lead, Q-NNNN):**
+    r"^\*\*Customer answer \(verbatim\):", # **Customer answer (verbatim):**
+    r"^\*\*Recorded by:",                  # **Recorded by:**
+]
+
+# Pattern that identifies the start of a canonical entry heading.
+_ENTRY_HEADING_RE = re.compile(r"^##\s+\d{4}-\d{2}-\d{2}", re.MULTILINE)
+
+# A canonical entry must have verbatim-quote lines (lines starting with ">")
+# for BOTH the question and the answer.  One blockquote line is not enough —
+# require at least two to cover question + answer.
+_VERBATIM_QUOTE_RE = re.compile(r"^>", re.MULTILINE)
+
+
+def _extract_candidate_content(tool_input: dict) -> str | None:
+    """Extract the content being written to CUSTOMER_NOTES.md, best-effort.
+
+    For Write/Edit tool inputs, the new content is available directly.
+    For Bash command inputs, we try to extract heredoc bodies or the text
+    after a redirect for simple ``echo`` / ``printf`` forms.
+    Returns None when the content is not inspectable (degrade gracefully).
+    """
+    # Write tool: tool_input has a "content" field.
+    content = tool_input.get("content")
+    if content and isinstance(content, str):
+        return content
+
+    # Edit tool: "new_string" is the replacement block.
+    new_string = tool_input.get("new_string")
+    if new_string and isinstance(new_string, str):
+        return new_string
+
+    # Bash tool: try to pull heredoc bodies from the command string.
+    command = tool_input.get("command") or ""
+    if not command:
+        return None
+
+    bodies: list[str] = []
+    opener_re = re.compile(
+        r"<<[-~]?\s*(?P<q>['\"]?)(?P<delim>[A-Za-z_][A-Za-z0-9_]*)(?P=q)"
+    )
+    for m in opener_re.finditer(command):
+        delim = m.group("delim")
+        body_start = command.find("\n", m.end())
+        if body_start == -1:
+            continue
+        body_start += 1
+        end_match = re.search(
+            rf"(?m)^\s*{re.escape(delim)}\s*$", command[body_start:]
+        )
+        if end_match:
+            bodies.append(command[body_start : body_start + end_match.start()])
+
+    if bodies:
+        return "\n".join(bodies)
+
+    return None
+
+
+def _content_findings(content: str) -> list[str]:
+    """Return a list of advisory finding strings for the candidate content.
+
+    Returns an empty list when the content looks well-formed.
+    Conservative: emit findings only when clearly warranted.
+    """
+    findings: list[str] = []
+
+    lines = content.splitlines()
+    line_count = len(lines)
+    char_count = len(content)
+
+    # Detect multi-entry / full-file payloads: the Write tool passes the
+    # entire file as `content` when rewriting CUSTOMER_NOTES.md, which is
+    # hundreds of lines and contains many entry headings.  OVERSIZED and
+    # UNSTRUCTURED are per-entry checks that are meaningless (and produce
+    # false-positive #111-style alert fatigue) when applied to a bulk
+    # payload.  If the content contains more than one entry heading
+    # (^## YYYY-MM-DD), treat it as a multi-entry write and skip those
+    # two checks; the gate itself still fires normally.
+    entry_heading_count = len(_ENTRY_HEADING_RE.findall(content))
+    is_multi_entry = entry_heading_count > 1
+
+    if not is_multi_entry:
+        # --- Oversized check (single-entry payloads only) ---
+        if line_count > ENTRY_MAX_LINES:
+            findings.append(
+                f"OVERSIZED: entry is {line_count} lines (threshold {ENTRY_MAX_LINES}). "
+                "Confirm this is a single entry, not an accidental multi-entry bulk write."
+            )
+        if char_count > ENTRY_MAX_CHARS:
+            findings.append(
+                f"OVERSIZED: entry is {char_count} chars (threshold {ENTRY_MAX_CHARS}). "
+                "Confirm this is a single entry."
+            )
+
+        # --- Unstructured check: required headed sections (single-entry only) ---
+        # Map each regex pattern to a human-readable label so the finding
+        # message never contains raw regex strings or quoted literals.
+        _SECTION_LABELS = {
+            r"^##\s+\d{4}-\d{2}-\d{2}":          "date header",
+            r"^\*\*Question":                      "Question",
+            r"^\*\*Customer answer \(verbatim\):": "Customer answer (verbatim)",
+            r"^\*\*Recorded by:":                  "Recorded by",
+        }
+        missing_labels: list[str] = []
+        for pattern in _REQUIRED_SECTIONS:
+            if not re.search(pattern, content, re.MULTILINE):
+                missing_labels.append(_SECTION_LABELS.get(pattern, pattern))
+        if missing_labels:
+            findings.append(
+                "UNSTRUCTURED: entry is missing required section(s). "
+                "Expected: ## YYYY-MM-DD header, Question, "
+                "Customer answer (verbatim), Recorded by. "
+                "Absent: " + ", ".join(missing_labels)
+            )
+
+    # --- Off-scope check: verbatim-quote blocks ---
+    # The canonical template requires verbatim block-quotes for BOTH the
+    # question and the customer answer.  Require at least two ">" lines;
+    # a single blockquote line could be present in one section but absent
+    # in the other, meaning the entry is still incomplete.
+    # Applied to both single- and multi-entry payloads (a full-file write
+    # that lacks any blockquotes is a strong signal of non-customer-truth
+    # material, and is worth flagging even in that context).
+    quote_line_count = len(_VERBATIM_QUOTE_RE.findall(content))
+    if quote_line_count < 2:
+        findings.append(
+            "OFF-SCOPE (advisory): entry has fewer than 2 block-quote lines "
+            f"(found {quote_line_count}; lines beginning with a greater-than marker). "
+            "A canonical CUSTOMER_NOTES entry must include block-quoted verbatim "
+            "text for both the question and the customer answer. "
+            "Approve only if this is intentional maintenance rather than a "
+            "new customer-truth entry."
+        )
+
+    return findings
+
+
+def _approval_gate_output(findings: list[str] | None = None) -> dict:
+    base_reason = (
         "CUSTOMER_NOTES.md is the verbatim customer-truth record. "
         "Per the template contract, tech-lead must route customer-answer "
-        "entries to researcher; approve only for researcher-owned notes "
+        "entries to librarian; approve only for librarian-owned notes "
         "maintenance or an intentional human edit."
     )
+    if findings:
+        findings_block = "\n\nContent findings:\n" + "\n".join(
+            f"  [{i + 1}] {f}" for i, f in enumerate(findings)
+        )
+        reason = base_reason + findings_block
+    else:
+        reason = base_reason
     return {
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
@@ -399,7 +571,19 @@ def main() -> int:
     if not _tool_input_touches_customer_notes(tool_input):
         return 0
 
-    print(json.dumps(_approval_gate_output()))
+    # Content-awareness: inspect candidate write content for advisory findings.
+    # Degrade gracefully — a failure to extract content produces no findings,
+    # not a crash or a silent pass.
+    findings: list[str] = []
+    try:
+        content = _extract_candidate_content(tool_input)
+        if content is not None:
+            findings = _content_findings(content)
+    except Exception:  # noqa: BLE001
+        # Never crash on content inspection; the gate still fires.
+        pass
+
+    print(json.dumps(_approval_gate_output(findings or None)))
     return 0
 
 

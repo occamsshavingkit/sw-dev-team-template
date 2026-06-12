@@ -56,6 +56,42 @@ fi
 
 mkdir -p "$target"
 
+# --- Advisory: gemini-cli version check (fw-adr-0022) ------------------------
+# The Gemini harness adapter requires gemini-cli >= v0.38.1. This check is
+# advisory only — scaffold does not hard-fail when gemini-cli is absent or
+# older, because the Gemini harness is optional. Matches the pattern of other
+# optional-tool checks in this script.
+_GEMINI_MIN="0.38.1"
+_gemini_warn() { echo "WARN (scaffold): $*" >&2; }
+if command -v gemini >/dev/null 2>&1; then
+  _gemini_ver="$(gemini --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
+  if [ -z "${_gemini_ver}" ]; then
+    _gemini_warn "gemini-cli found but version could not be determined; need >= ${_GEMINI_MIN} for the Gemini harness adapter (fw-adr-0022)"
+  else
+    # Compare semver components numerically.
+    _req_major="$(printf '%s' "${_GEMINI_MIN}" | cut -d. -f1)"
+    _req_minor="$(printf '%s' "${_GEMINI_MIN}" | cut -d. -f2)"
+    _req_patch="$(printf '%s' "${_GEMINI_MIN}" | cut -d. -f3)"
+    _got_major="$(printf '%s' "${_gemini_ver}" | cut -d. -f1)"
+    _got_minor="$(printf '%s' "${_gemini_ver}" | cut -d. -f2)"
+    _got_patch="$(printf '%s' "${_gemini_ver}" | cut -d. -f3)"
+    _ver_ok=0
+    if [ "${_got_major}" -gt "${_req_major}" ]; then
+      _ver_ok=1
+    elif [ "${_got_major}" -eq "${_req_major}" ] && [ "${_got_minor}" -gt "${_req_minor}" ]; then
+      _ver_ok=1
+    elif [ "${_got_major}" -eq "${_req_major}" ] && [ "${_got_minor}" -eq "${_req_minor}" ] && [ "${_got_patch}" -ge "${_req_patch}" ]; then
+      _ver_ok=1
+    fi
+    if [ "${_ver_ok}" -eq 0 ]; then
+      _gemini_warn "gemini-cli ${_gemini_ver} is older than ${_GEMINI_MIN}; upgrade for the Gemini harness adapter (fw-adr-0022). Scaffold continues."
+    fi
+  fi
+else
+  _gemini_warn "gemini-cli not found; Gemini harness adapter (fw-adr-0022) will not be usable until installed (>= ${_GEMINI_MIN}). Scaffold continues."
+fi
+unset _GEMINI_MIN _gemini_warn _gemini_ver _req_major _req_minor _req_patch _got_major _got_minor _got_patch _ver_ok
+
 template_version="$(tr -d '[:space:]' < VERSION)"
 template_sha="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
 today="$(date -u +%Y-%m-%d)"

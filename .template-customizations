@@ -68,3 +68,8 @@ AGENTS.md
 docs/intake-log.md
 # Project-owned roadmap stub (T045 / FR-015).
 ROADMAP.md
+# --- Accumulated handoff data (keep-local, v1.4.0 upgrade 2026-06-12) ---
+# This meta-project populated the fw-012 handoff-contracts file with
+# ~7.5k lines of real session handoff records; upstream ships only a
+# small contract example. Preserve so upgrades never overwrite our data.
+docs/handoffs/fw-012-v1-1-handoff-contracts.json

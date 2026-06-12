@@ -9,9 +9,16 @@
 # verify at --verify) and scripts/scaffold.sh (write at scaffold-end
 # + immediate self-verify).
 #
+# fw-adr-0023 D2 Option S (v1.2.0): handoff JSON files are now fully
+# static after creation — the activity sidecar hook writes runtime
+# telemetry to docs/handoffs/<task_id>.activity.jsonl (gitignored)
+# instead of mutating the handoff JSON. The manifest_file_sha_normalized
+# normalizer (issue #276 / PR #304) is no longer needed; all files are
+# hashed raw by manifest_file_sha. The normalizer function is removed.
+#
 # Exports:
 #   manifest_ship_files <repo>           - list shipped files, sorted
-#   manifest_file_sha   <abs-path>       - sha256 hex of one file
+#   manifest_file_sha   <abs-path>       - sha256 hex of one file (raw)
 #   manifest_write      <repo> <out>     - write manifest from repo
 #   manifest_verify     <repo> <manifest-path>
 #                                        - verify; rc 0/1/2/3

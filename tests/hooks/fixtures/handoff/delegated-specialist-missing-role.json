@@ -1,0 +1,45 @@
+{
+  "schema": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "task_id": "delegated-specialist-missing-role-001",
+  "status": "active",
+  "mode": {
+    "execution": "bounded-codex",
+    "codex_allowed": true,
+    "codex_server": "codex"
+  },
+  "owner_role": "software-engineer",
+  "review_roles": [],
+  "security_roles": [],
+  "objective": "Fixture: codex_permission_flag=true but delegated_role absent — schema must reject.",
+  "allowed_paths": ["scripts/**"],
+  "forbidden_paths": [],
+  "framework_scope": "framework-maintenance",
+  "requires": {
+    "tests": [],
+    "review": false,
+    "security_review": false,
+    "human_approval": false
+  },
+  "acceptance_criteria": [],
+  "hard_rule_traces": [],
+  "bounded_codex_exception": {
+    "execution_mode": "bounded-codex",
+    "codex_permission_flag": true,
+    "permitted_role_owned_action": "implement-task-t042",
+    "task_ref": "T042",
+    "dispatch_scope": "single_task",
+    "allowed_paths": ["scripts/**"],
+    "forbidden_paths": []
+  },
+  "verification": {
+    "tests": [],
+    "reviews": [],
+    "security": [],
+    "human_approval": []
+  },
+  "completion": {
+    "claimed_by": null,
+    "completed_at": null,
+    "evidence": []
+  }
+}

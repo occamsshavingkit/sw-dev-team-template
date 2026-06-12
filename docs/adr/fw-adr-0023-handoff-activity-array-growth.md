@@ -14,7 +14,7 @@ date: 2026-06-02
 <!-- TOC -->
 
 - [Status](#status)
-- [Meta-project placement note](#meta-project-placement-note)
+- [Scaffold placement note](#scaffold-placement-note)
 - [Context and problem statement](#context-and-problem-statement)
 - [Decision drivers](#decision-drivers)
 - [Decision 1 — Hash-exclusion of the activity array](#decision-1--hash-exclusion-of-the-activity-array)
@@ -29,11 +29,11 @@ date: 2026-06-02
     - [Option M — Minimalist: leave as-is](#option-m--minimalist-leave-as-is)
     - [Option S — Scalable: move activity to a sidecar file outside the manifest set](#option-s--scalable-move-activity-to-a-sidecar-file-outside-the-manifest-set)
     - [Option C — Creative: cap-and-rotate within the handoff file](#option-c--creative-cap-and-rotate-within-the-handoff-file)
-  - [Recommendation pending customer ruling — D2](#recommendation-pending-customer-ruling--d2)
+  - [Decision outcome — D2](#decision-outcome--d2)
 - [Consequences](#consequences)
   - [Positive (D1, already realized)](#positive-d1-already-realized)
   - [Negative / trade-offs accepted](#negative--trade-offs-accepted)
-  - [Follow-up work gated on D2 ruling](#follow-up-work-gated-on-d2-ruling)
+  - [Follow-up work](#follow-up-work)
 - [Verification](#verification)
 - [Links](#links)
 
@@ -54,20 +54,23 @@ a git-tracked durable contract file.
 - **D1 (hash-exclusion):** implemented in PR #304 / issue #276; this ADR
   provides post-hoc rationale and security trade-off documentation for
   the shipped fix. No further implementation work required for D1.
-- **D2 (growth):** Option S (Sidecar) chosen; customer ruling recorded 2026-06-03; implementation may proceed.
+- **D2 (growth):** Option S (Sidecar) chosen; customer ruling recorded 2026-06-03; implemented in this PR (`feat/activity-sidecar`).
 - **Deciders:** `architect` (proposed); `tech-lead` + customer (accepted 2026-06-03)
 - **Consulted:** `scripts/lib/manifest.sh` (`manifest_file_sha_normalized`,
   PR #304); `security-engineer` (sign-off on #276, recorded in
   `CUSTOMER_NOTES.md` 2026-06-02); FW-ADR-0002 (manifest model);
   FW-ADR-0014 (preservation vs manifest); issue #276
 
-## Meta-project placement note
+## Scaffold placement note
 
-This ADR was drafted in the meta-project (`docs/adr/`) per the current
-PLAN/DO convention (CLAUDE.md § "Project Identity / Working Tree"). If
-the D2 growth remediation is approved and implemented in the scaffold,
-this ADR should migrate into the scaffold's `docs/adr/` as part of that
-implementation PR so the rationale travels with the code.
+This ADR was drafted in the meta-project (`docs/adr/`) per the PLAN/DO
+convention (CLAUDE.md § "Project Identity / Working Tree"). It migrated
+into the scaffold's `docs/adr/` as part of the D2 implementation PR
+(`feat/activity-sidecar`) so the rationale travels with the code,
+matching the pattern established by FW-ADR-0001 through FW-ADR-0022.
+The meta-project draft copy is retained as the team's working reference;
+this scaffold copy is the canonical version from the implementation PR
+forward.
 
 ---
 
@@ -363,11 +366,14 @@ write.
   needs a quick bound without a structural fix. It is an acceptable
   interim step if D2 implementation must be deferred.
 
-### Recommendation pending customer ruling — D2
+### Decision outcome — D2
 
-**Recommended option: S — Sidecar file, gitignored.**
+**Chosen option: S — Sidecar file, gitignored.**
 
-Option M is the current state and has known long-term hygiene costs
+Customer ruling recorded 2026-06-03: Option S adopted. Implemented in
+`feat/activity-sidecar`.
+
+Option M is the prior state and has known long-term hygiene costs
 with no structural bound. Option C bounds file size but keeps git
 churn and the `"activity"`-has-no-integrity-guarantee trade-off alive
 indefinitely. Option S is the structurally correct fix: it eliminates
@@ -377,13 +383,8 @@ migration cost is real but bounded and follows the existing pattern of
 schema version bumps (FW-ADR-0021 set the precedent for the handoff
 schema with a MINOR bump).
 
-**Customer ruling recorded 2026-06-03: Option S (Sidecar) adopted.** Implementation may proceed. The D1 fix (Option S above,
-PR #304) is independent and already shipped regardless of which D2
-option is chosen.
-
-If Option C is chosen as an interim step pending a later Option S
-migration, a follow-up ADR should record the interim status
-explicitly.
+If Option C had been chosen as an interim step pending a later Option S
+migration, a follow-up ADR would record the interim status explicitly.
 
 ---
 
@@ -413,36 +414,20 @@ explicitly.
   and verify agree on a wrong hash). Mitigation: the normalizer is
   small (~5 lines of Python), its behavior is unit-testable, and the
   fail-closed guard prevents a silent wrong answer.
-- **Git history accumulates unbounded telemetry data (D2, not yet
-  resolved).** Until D2 is implemented, every session appends to
-  handoff files in git. This is the known cost of the current state.
-- **Option S for D2 requires schema migration (D2, pending ruling).**
-  Any downstream project that reads `handoff["activity"]` must be
-  updated. The migration strips `"activity"` from existing handoff
-  files; this is a one-way data transformation for the JSON file
-  (the data migrates to the sidecar, not discarded).
+- **D2 Option S requires schema migration.** Any downstream project or
+  tool that reads `handoff["activity"]` must be updated. The migration
+  strips `"activity"` from existing handoff files; this is a one-way
+  data transformation for the JSON file (the data migrates to the
+  sidecar, not discarded).
 
-### Follow-up work gated on D2 ruling
+### Follow-up work
 
-- If D2 → Option S (recommended):
-  - Modify `handoff-record-activity.py` to write sidecars.
-  - Add `docs/handoffs/*.activity.jsonl` to `.gitignore`.
-  - Update `schemas/handoff.schema.json` (MINOR bump; deprecate
-    or remove `"activity"`).
-  - Write a migration that strips `"activity"` from existing handoff
-    JSON files and exports accumulated entries to sidecar files.
-  - Remove or no-op the handoff-file branch of
-    `manifest_file_sha_normalized` in a follow-up PR (the normalizer
-    is still correct to leave in place during the transition; removing
-    it is a cleanup, not a correctness fix).
-  - This ADR migrates into the scaffold's `docs/adr/` as part of the
-    implementation PR.
-- If D2 → Option C (interim):
-  - Modify `handoff-record-activity.py` to cap `"activity"` at N
-    entries on each write. N to be determined by customer ruling.
-  - The normalizer (`manifest_file_sha_normalized`) remains as-is.
-  - File a follow-up ADR recording the interim status and planned
-    migration to Option S.
+- Remove or no-op the handoff-file branch of `manifest_file_sha_normalized`
+  in a follow-up PR once the sidecar migration is confirmed stable in
+  downstream projects. The normalizer is still correct to leave in place
+  during the transition; removing it is a cleanup, not a correctness fix.
+- Any downstream project that reads `handoff["activity"]` directly must
+  be updated to read the sidecar `*.activity.jsonl` instead.
 
 ---
 
@@ -460,21 +445,18 @@ explicitly.
   `--verify` exits 0 on a handoff file whose durable contract fields
   were modified without a manifest regeneration (indicates the
   normalizer is stripping too much).
-- **D2 success signal (pending implementation):** for Option S, `git
-  log --stat` on a multi-session branch shows no modifications to
-  `docs/handoffs/*.json` attributable to telemetry; sidecar files
-  exist locally but do not appear in `git status` (gitignored);
-  existing handoff consumers continue to read durable contract fields
-  correctly. For Option C, `"activity"` array length in any handoff
-  file never exceeds the configured cap across an arbitrarily long
-  session.
+- **D2 success signal:** `git log --stat` on a multi-session branch
+  shows no modifications to `docs/handoffs/*.json` attributable to
+  telemetry; sidecar files exist locally but do not appear in `git
+  status` (gitignored); existing handoff consumers continue to read
+  durable contract fields correctly.
 - **D2 failure signal:** git history grows at the same rate as before
   the remediation; or a consumer of `"activity"` breaks silently
   after the sidecar migration without producing an error.
 - **Review cadence:** Re-examine at the next MINOR release that touches
   `handoff-record-activity.py`, `schemas/handoff.schema.json`, or
-  `manifest_file_sha_normalized`. Supersede or close D2 once a ruling
-  is recorded and implemented.
+  `manifest_file_sha_normalized`. Supersede or close if the normalizer
+  is removed and all known consumers have migrated to sidecars.
 
 ---
 
@@ -495,10 +477,11 @@ explicitly.
 - `scripts/lib/manifest.sh` — `manifest_file_sha_normalized` (D1
   implementation), `manifest_write`, `manifest_verify`
 - `scripts/hooks/handoff-record-activity.py` — the hook whose writes
-  trigger the growth problem
+  trigger the growth problem; modified in D2 implementation
 - `schemas/handoff.schema.json` — the `"activity"` field definition;
-  target of D2 schema change if Option S is chosen
+  deprecated/removed by D2 schema change
 - `docs/handoffs/fw-012-v1-1-handoff-contracts.json` — example of an
-  existing handoff file carrying accumulated `"activity"` entries
+  existing handoff file; `"activity"` entries migrated to sidecar by
+  D2 migration
 - `CUSTOMER_NOTES.md` (2026-06-02) — `security-engineer` sign-off on
   #276; two carry-forward items (neither blocks D1)

@@ -15,6 +15,22 @@ displaced content.
 The sections below are moved verbatim from the prior
 `.claude/agents/tech-lead.md`. Section ordering preserved.
 
+## Token economy
+
+### Token economy — Rule 4 examples
+
+Rule 4 (Token-budget hint) requires every dispatch brief to include an
+explicit token-budget hint. Examples of compliant hints:
+
+- "Brief read pass only — skim for structure, do not deep-read."
+- "Read the three files listed, no others."
+- "Full read required on `foo.md`; skip the remaining files in the
+  directory."
+- "One-pass write; do not re-read any file after writing."
+
+The hint communicates the intended context footprint so the specialist
+can self-regulate and so `tech-lead` can audit compliance.
+
 ## Customer Question Gate
 
 Binding source — the canonical question-batching rule (identical wording
@@ -36,6 +52,20 @@ If any check fails, queue the question in `docs/OPEN_QUESTIONS.md` (with `agents
 
 Lint enforced by `scripts/lint-questions.sh` (FR-012; warning-only on initial landing, hard-gated at the next MINOR-boundary Release).
 
+### Clarification-session mode
+
+**Opt-in only.** This mode activates when the customer explicitly signals or authorizes a clarification session (e.g., "let's work through the open questions now"). It does not activate automatically.
+
+**What relaxes.** Within an opted-in clarification session, the normal cadence floor is relaxed: `tech-lead` MAY ask sequential one-axis questions back-to-back without waiting for agents to reach idle state between each question and without requiring each question to be the final line of a separate turn.
+
+**What does NOT relax.** The atomicity rule is binding regardless of mode. Each question must cover exactly one decision axis. A "multi-select" or "pick several — they're independent" framing bundling N axes into one question remains a Hard Rule #11 violation in clarification-session mode just as it does in normal mode. The internal-batching discipline (`docs/OPEN_QUESTIONS.md`) is also unchanged — questions that are not yet ready to ask the customer still queue internally.
+
+The canonical batching rule (quoted above) states the normal cadence floor: one queued question per turn, only when all agents and tools are idle, as the final line. Clarification-session mode relaxes the *cadence* (frequency and turn placement) but not the *shape* (one axis, atomic).
+
+**Entry.** The customer signals or authorizes a clarification session. Record the authorization in the Turn Ledger.
+
+**Exit.** The clarification session ends when the customer signals completion (e.g., "that's enough for now," closes the topic) or the session ends. On exit, revert to the normal cadence gate immediately; do not carry the relaxed cadence into the next topic.
+
 ### Job-step operational detail (formerly inline in Job §§ 1–3)
 
 These paragraphs were inline in the contract's `Job` numbered list and
@@ -46,7 +76,7 @@ condensed Job list.
 `docs/OPEN_QUESTIONS.md` carry: ID / question / blocked-on /
 answerer / status / resolution. Record verbatim answers in
 `OPEN_QUESTIONS.md`; mirror customer-domain answers into
-`CUSTOMER_NOTES.md` via `researcher`. Also append one entry to
+`CUSTOMER_NOTES.md` via `librarian`. Also append one entry to
 `docs/intake-log.md` per `docs/templates/intake-log-template.md`
 for every customer question — so `qa-engineer` can audit
 intake-flow conformance later via
@@ -85,7 +115,7 @@ briefs are a known budget-exhaustion failure mode.
 on a triggered path may downgrade to proposal-only (record the
 downgrade); emergency security patch may collapse prior-art +
 proposal into the PR description (route any customer-truth or
-authorization record to `researcher` for `CUSTOMER_NOTES.md`
+authorization record to `librarian` for `CUSTOMER_NOTES.md`
 stewardship; retroactive ADR within 7 days); spikes are exempt.
 
 **Boundary annotation (binding).** Before dispatching audit/fix
@@ -148,6 +178,16 @@ Ledger / `docs/DECISIONS.md` rows) and tool-bridge work no specialist
 can perform in its sandbox. When unsure, dispatch. This restates
 `CLAUDE.md` Hard Rule #8.
 
+When proposing a new hard rule or binding policy, work through
+`docs/RULE_AUTHORING_CHECKLIST.md` first (non-binding guidance;
+does not apply to dispatching ordinary tasks).
+
+**Structural form.** Use `docs/templates/dispatch-template.md` when
+writing a dispatch brief. Its singular fields make the one-task
+constraint the default shape: the template has no slot for a second
+task, making bundling structurally awkward. The template is a
+non-binding structural aid; no CI gate enforces it.
+
 **Rule B — No context-forking briefs.** When dispatching N independent
 tasks, send N separate concise briefs — one per task. Do not paste
 the full session context into a mega-brief that fans out to multiple
@@ -174,8 +214,92 @@ from a brief. Dispatch briefs must avoid unqualified phrasing like
 "customer authorized spawning"; instruct specialists to return
 findings, blockers, and escalations to `tech-lead` instead.
 
+**Rule E — Delegated-specialist briefs carry no orchestrator instructions.** When a handoff carries `delegated_role`, the session that reads it is in delegated-specialist mode on any harness: it executes `task_ref`, suppresses spawning, and returns artifacts to the orchestrator. Do not include spawn-authorization language, team-start instructions, or orchestrator directives in leaf-task handoff briefs — a delegated session has no spawn surface and will not use them.
+
+### Per-task context assembly (FW-ADR-0021, issue #296)
+
+For handoffs with `dispatch_scope: "single_task"`, assemble the brief
+from the **leaf task's context only**. Do not include feature-altitude
+context (overall feature spec, sibling task context, or session
+history beyond what the task file names).
+
+**Procedure:**
+
+1. Read the task entry at `docs/tasks/T-NNNN.md` (or the equivalent
+   task tracker row). Extract:
+   - `Token budget` band (`tiny` | `small` | `medium` | `large` | `xl`)
+     from the task's Token budget section.
+   - `JIT file list` — the explicit list of files named in the task's
+     Token budget section as the files the assignee should load first.
+2. Populate the handoff's `token_budget` field (enum) and
+   `jit_file_list` field (array of paths) from those values. The
+   specialist loads only the listed files; it does not scan the repo
+   for additional context.
+3. The dispatch brief instructs the specialist: "Load the files in
+   `jit_file_list` first; do not read beyond them unless a listed file
+   explicitly references another and that reference is load-bearing for
+   your task."
+
+This bounds the dispatched agent's context and token budget to the
+leaf task — the core FW-ADR-0021 goal. A leaf-task agent that loads
+unrequested feature context is a budget violation equivalent to a
+context-forking brief (Rule B).
+
+**Feature-altitude handoffs (`dispatch_scope: "feature"`) are exempt.**
+They carry their own context scope by design and are grandfathered from
+this rule.
+
+References:
+- `docs/adr/fw-adr-0021-harness-agnostic-leaf-task-dispatch.md`
+- `docs/templates/task-template.md` § "Token budget" (band definitions
+  and JIT-file-list field)
+
 Closing completed, failed, or no-longer-needed specialists is routine
 slot hygiene; see `docs/agent-health-contract.md`.
+
+### Long-operation worked example
+
+Release-cut is the canonical long-op case. Four stages; each stage
+that exceeds ~60 s gets its own dispatch. Tech-lead never merges two
+long stages into one brief.
+
+| Stage | Role | Expected duration | Dispatch shape |
+|---|---|---|---|
+| 1. VERSION bump + changelog | `release-engineer` | < 1 min | Bounded: single commit, returns diff |
+| 2. Pre-release gate (`scripts/pre-release-gate.sh`) | `release-engineer` | 10+ min | Deferred-wait on first dispatch; tech-lead re-dispatches with `Resumable from: gate-log path` when PASS/FAIL signal arrives |
+| 3. Dogfood upgrade harness | `release-engineer` | Variable; non-hermetic → writer lane | Deferred-wait if harness outruns context; re-dispatch with `Resumable from: last-passing step` |
+| 4. Tag + push | `release-engineer` | < 1 min | Bounded: returns tag SHA and push confirmation |
+
+**How tech-lead handles Stage 2.**
+
+1. Dispatch `release-engineer` with a bounded brief: "run
+   `scripts/pre-release-gate.sh`; return immediately with a
+   Deferred-wait report if it is still running when your context
+   budget reaches 80%."
+2. Specialist returns:
+   ```
+   Deferred-wait: pre-release-gate.sh still executing
+   Condition:     process exits (PASS or FAIL)
+   Resume-after:  ~8 min
+   Work done so far: sub-gates 1–3 passed; sub-gate 4 running
+   Resumable from: docs/pm/pre-release-gate-overrides.md + gate-log
+   ```
+3. Tech-lead chooses a path:
+   - **SendMessage-warm** (wait ≤ 15 min, specialist still alive):
+     message the specialist when the gate process exits; specialist
+     resumes from the Deferred-wait state.
+   - **ScheduleWakeup / re-dispatch** (wait longer or specialist
+     closed): schedule a wakeup at Resume-after; re-dispatch
+     `release-engineer` with `Resumable from:` as the brief's
+     starting context.
+4. On re-dispatch, specialist reads the gate-log, verifies outcome,
+   and proceeds to Stage 3 or reports failure — no re-running of
+   already-passed sub-gates.
+
+The ~15 min warm/respawn boundary is soft guidance, not a hard
+constant. Adjust to the task: a 5 min wait with a context-heavy
+specialist favors SendMessage-warm; a 20 min wait with a lightweight
+brief favors ScheduleWakeup.
 
 ### Background vs foreground + status-narration ban
 
@@ -231,6 +355,60 @@ customer narration only. Recording dispatches in the Turn Ledger,
 record-keeping rules call for it; those records serve future-self
 and audit, not in-turn customer narration.
 
+## Multi-model audit reconciliation
+
+When a milestone or release audit is run across multiple models or
+harnesses (Claude Code, Codex, Gemini), this section governs how
+tech-lead prepares and reconciles.
+
+### Equivalent briefs (binding)
+
+All models dispatched to the same audit MUST receive identical briefs.
+Use `docs/templates/audit-brief-template.md` and fill it ONCE; send
+the same filled copy to every auditor. Each brief specifies the exact
+artifact list, binding references, and checklist dimensions. A model
+that receives a different input set cannot produce a finding that is
+comparable to another model's finding on the same dimension.
+
+### No auto-merge of divergent findings
+
+Tech-lead does not auto-merge audit results from different models.
+Each finding set is a separate artifact. When findings agree, they
+reinforce each other. When they diverge, tech-lead records both
+positions and applies the arbitration rules below before accepting
+either.
+
+### Arbitration of divergent findings
+
+| Divergence type | Tech-lead action |
+|---|---|
+| Same dimension, different severity | Hold the higher severity pending review; flag both to `code-reviewer` for a third-opinion pass before accepting either |
+| One model finds a violation, the other does not | Treat the violation as open until the finding model's evidence is examined; a "no finding" does not cancel a "Major" from another model |
+| Conflict on a binding decision axis — Hard Rule number, ADR outcome, or acceptance criterion — where models reach different conclusions | Escalate to the customer for a ruling; tech-lead does not pick between conflicting Hard-Rule interpretations |
+| Different recommendations for the same finding | Record both; route to `architect` or the owning specialist to select the approach |
+
+**Customer escalation trigger (binding).** When two models disagree on
+whether a Hard Rule has been violated, whether an ADR decision applies,
+or whether an acceptance criterion is met, tech-lead takes the
+disagreement to the customer as a single atomic question before
+proceeding. This is a Hard Rule #4 / Hard Rule #1 matter — no agent-
+only resolution is permitted on binding-decision-axis conflicts.
+
+### Relationship to mcp-liaison divergence reconciliation
+
+`mcp-liaison` owns divergence reconciliation for delegated external-
+model MCP sessions (briefs it constructs and dispatches via MCP tools).
+See `docs/agents/manual/mcp-liaison-manual.md` § "Divergence report
+format" for the format `mcp-liaison` uses when MCP output contradicts
+repo state or customer-truth.
+
+The present section governs a different scope: tech-lead reconciling
+audit findings returned by multiple named specialist sessions (each
+running a full audit role contract), not MCP tool responses. The two
+mechanisms are consistent — both require routing confirmed conflicts to
+tech-lead before accepting output — but operate at different dispatch
+levels.
+
 ## Routing table
 
 | Work smells like | Route to |
@@ -239,6 +417,9 @@ and audit, not in-turn customer narration.
 | Writing production code, unit tests, bug fixes, small refactors | `software-engineer` |
 | Customer-domain facts (process, site conventions, vendor/platform specifics, regulatory) | the relevant `sme-<domain>` agent if one exists; else escalate to `tech-lead` |
 | Standards/spec/vendor-doc lookup (SWEBOK, ISO, IEEE, official framework/vendor docs) | `researcher` |
+| Customer-truth recording (CUSTOMER_NOTES.md append), OPEN_QUESTIONS.md maintenance, glossary amendments, SME inventory updates, archival of closed register rows | `librarian` |
+| UX/UI design, interaction design, wireframes, accessibility audits (WCAG), accesslint integration | `ui-ux-designer` |
+| Delegated MCP session — brief → external-model MCP call → result capture + divergence reconciliation | `mcp-liaison` |
 | Test strategy, test design, test execution, defect isolation | `qa-engineer` |
 | Production behavior, reliability, performance, capacity, SLOs | `sre` |
 | User docs, API docs, operator manuals, how-tos | `tech-writer` |
@@ -303,6 +484,107 @@ brief, dispatch now; do not wait on an in-flight sibling.
 - Long-running subagents (surveys, audits) should not gate
   unrelated work. If you would be idle while they run, dispatch
   the next independent thing.
+- **Reader specialists** dispatched with a `scaffold_worktree` brief
+  field may be parallelized freely — their throwaway worktrees are
+  isolated from each other and from the canonical checkout.
+- **Writer specialists** must be serialized through the writer-lane
+  token. Never dispatch two writers in the same `Agent`-tool block;
+  do not release the token until the active writer returns and HEAD
+  is verified.
+
+## Working-tree isolation
+
+Implements `CLAUDE.md` Hard Rule #12 and FW-ADR-0024. Every specialist
+dispatched against the scaffold is classified before dispatch. Default:
+writer. Misclassification is a `tech-lead` protocol violation.
+
+### Classification table
+
+| Role | Default class | Override condition |
+|---|---|---|
+| `software-engineer` | Writer | Never overridden |
+| `release-engineer` | Writer | Never overridden |
+| `tech-writer` | Writer | Never overridden |
+| `code-reviewer` | Reader | Only if the brief explicitly prohibits test execution; otherwise Writer |
+| `qa-engineer` | Writer | Reclassified Reader only when the brief restricts it to the hermetic-verified test set AND includes `scaffold_worktree` |
+| `architect` | Reader | Reads only; produces ADR text routed back to meta-project |
+| `researcher` | Reader | Reads only; no scaffold mutations |
+| `librarian` | Reader | Record reads only; no scaffold mutations |
+| `ui-ux-designer` | Reader | Design and audit reads; Writer if the brief requires editing scaffold files (default Reader) |
+| `mcp-liaison` | Reader | Delegation only; no scaffold mutations |
+| `sre` | Reader | Reads only; no scaffold mutations |
+| `security-engineer` | Reader | Reads only unless running exploit-simulation scripts that mutate state |
+| `project-manager` | Reader | Meta-project artifacts only; scaffold reads are incidental |
+
+### Writer protocol
+
+- At most one writer active on the scaffold at any time.
+- Hold the writer-lane token for the duration; release only after the
+  writer returns and `git status` / HEAD is verified clean.
+- Include `working_branch: <name>` in the brief. Ensure the canonical
+  checkout is on that branch before dispatching (switch before dispatch,
+  not inside the writer).
+- Verify the canonical HEAD is on the expected branch before releasing
+  the token and before dispatching the next writer.
+- Use `scripts/worktree-setup.sh` / `scripts/worktree-teardown.sh` for
+  reader lifecycle; the canonical checkout needs no setup for writers.
+
+### Reader protocol
+
+Before dispatching a reader, create a throwaway worktree:
+
+```bash
+# Use the helper (recommended):
+WDIR=$(scripts/worktree-setup.sh ./sw-dev-team-template)
+
+# Or manually:
+WDIR=$(mktemp -d /tmp/agent-XXXXXX)
+git -C ./sw-dev-team-template worktree add "$WDIR" HEAD
+```
+
+Include `scaffold_worktree: <absolute-path>` in the brief. The binding
+reader-lane instruction to include verbatim in every reader brief:
+
+> You are operating in a throwaway worktree at `<path>`. All scaffold
+> file operations must use this path as the root. Do NOT run any git
+> command that modifies shared state: no `git reset`, `git checkout`,
+> `git switch`, `git stash`, `git clean`, `git commit`, `git merge`,
+> `git rebase`, or `git push`; and no index, branch, or tag mutations
+> (`git add`/`rm`/`mv`, branch/tag create or delete). If your task
+> requires any of those operations, STOP and return a reclassification
+> request — you need the writer lane.
+
+After the reader returns:
+
+```bash
+scripts/worktree-teardown.sh "$WDIR" ./sw-dev-team-template
+# or manually:
+git -C ./sw-dev-team-template worktree remove "$WDIR" --force
+rm -rf "$WDIR"
+```
+
+Multiple readers may be live simultaneously.
+
+### Test hermeticity
+
+A test script is safe for the reader lane only if it is listed in
+`docs/tests/hermetic-verified.txt` (maintained by `qa-engineer`).
+`test-gate-fail-each.sh` is explicitly **not hermetic** (calls
+`git reset --hard`). Any reader whose brief includes a non-hermetic
+script is automatically reclassified as a writer.
+
+### Reclassification request format
+
+When a reader discovers mid-task that it needs writer access, it returns:
+
+```
+Reclassification request: writer lane needed
+Reason: <one line — e.g., "test-gate-fail-each.sh is not in hermetic-verified.txt">
+Work done so far: <brief summary or "none">
+Resumable from: <file or state description>
+```
+
+Tech-lead queues the task into the writer lane and re-dispatches.
 
 ## Prompt concision when dispatching
 
@@ -364,7 +646,7 @@ session tech-leads (after a respawn) can audit the scoping
 conversation verbatim, which the binding artifacts summarise
 but do not preserve word-for-word.
 
-`researcher` reviews the transcript on write for customer-
+`librarian` reviews the transcript on write for customer-
 sensitive content and flags anything that shouldn't live in a
 git-tracked file; truly-sensitive material moves to
 `docs/pm/intake-YYYY-MM-DD.local.md` (gitignored via the same

@@ -24,8 +24,12 @@ SDD.
 ## Identification
 
 - **Viewpoint:** Context | Composition | Logical | Dependency |
-  Information | Patterns use | Interface | Structure | Interaction
-  | State dynamics | Algorithm | Resource (per IEEE 1016 § 5)
+  Information | Patterns use | Interface | Structure |
+  Interaction (Concurrency overlay) | State dynamics | Algorithm |
+  Resource (per IEEE 1016 § 5)
+  <!-- "Concurrency" is the concern-driven name for the Interaction
+       viewpoint (§5.10) when concurrent execution is the primary focus;
+       use "Interaction (Concurrency overlay)" as the viewpoint label. -->
 - **Name:** <human-readable name, e.g., "checkout-runtime",
   "user-data-information">
 - **Stakeholders:** who reads this view, what concern it addresses

@@ -31,6 +31,9 @@ CANONICAL_ROLES: frozenset[str] = frozenset(
         "security-engineer",
         "onboarding-auditor",
         "process-auditor",
+        "librarian",
+        "ui-ux-designer",
+        "mcp-liaison",
     }
 )
 

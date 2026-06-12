@@ -35,14 +35,14 @@ The template needs a binding framework boundary that works in both
 Claude Code and Codex. The main session still plays `tech-lead`
 directly, but production artifacts, requirements, release notes,
 ADRs, code, scripts, and customer-truth records need specialist
-ownership. Customer truth has one steward: `researcher` appends
+ownership. Customer truth has one steward: `librarian` appends
 verbatim entries after `tech-lead` routes or queues the customer's
 answer.
 
 ## Decision Drivers
 
 - Preserve `tech-lead` as the sole customer interface.
-- Preserve `researcher` as steward of customer-truth records.
+- Preserve `librarian` as steward of customer-truth records.
 - Preserve specialist ownership and reviewability of production
   artifacts.
 - Keep the rule harness-neutral across Claude Code and Codex.
@@ -61,7 +61,7 @@ answer.
 Add explicit prose saying `tech-lead` orchestrates and does not author
 production artifacts directly, with a narrow exception for
 orchestration records and tool-bridge work. Customer answers are
-routed to `researcher` for verbatim `CUSTOMER_NOTES.md` entries.
+routed to `librarian` for verbatim `CUSTOMER_NOTES.md` entries.
 
 - **Pros:** small rc4 change, no roster expansion, directly addresses
   #77 and #82.
@@ -71,7 +71,7 @@ routed to `researcher` for verbatim `CUSTOMER_NOTES.md` entries.
 ### Option S — Scalable
 
 Add the prose boundary, add guardrails where practical, route
-customer-truth writes through `researcher`, and require pre-close
+customer-truth writes through `librarian`, and require pre-close
 self-audit plus `code-reviewer` review before commit. For Codex, mirror
 Claude hook safeguards with an explicit pre-close checklist, enforce
 `AGENT_NAMES.md` in public text even when worker IDs differ, require
@@ -99,7 +99,7 @@ roles, with a new artifact-router role owning all dispatches.
 
 `tech-lead` remains the top-level customer interface and orchestrator.
 Customer-answer prose is routed by `tech-lead` and stewarded by
-`researcher`; production artifacts route to the owning specialist;
+`librarian`; production artifacts route to the owning specialist;
 `tech-lead` direct writes are limited to orchestration artifacts and
 tool-bridge work that a specialist cannot perform in its sandbox.
 Pre-close review checks for main-session edits that should have been
@@ -118,7 +118,7 @@ specialists, and documented rationale for non-default
 - Makes customer-truth stewardship auditable.
 - Reduces the chance that a whole session bypasses specialist review.
 - Preserves Hard Rule #1 by keeping customer contact in `tech-lead`
-  while moving durable customer-truth capture to `researcher`.
+  while moving durable customer-truth capture to `librarian`.
 - Preserves Hard Rules #3, #4, and #7 by keeping production,
   safety-critical, and security evidence attached to specialist-owned
   artifacts that can be reviewed before commit or release.
@@ -136,7 +136,7 @@ specialists, and documented rationale for non-default
 
 - `CLAUDE.md` Hard Rules include the orchestration boundary.
 - `.claude/agents/tech-lead.md` describes the same boundary.
-- Customer-answer instructions route through `researcher`, who
+- Customer-answer instructions route through `librarian`, who
   appends verbatim `CUSTOMER_NOTES.md` entries.
 - `code-reviewer` flags non-trivial direct main-session edits before
   commit.
@@ -153,3 +153,7 @@ specialists, and documented rationale for non-default
 - `docs/v1.0-rc4-stabilization.md` — WP-2, issues #77 and #82.
 - Upstream issues #93, #94, #95, #96, #100, and #101.
 - `docs/audits/v1.0.0-rc4-review.md`
+
+## Change log
+
+- 2026-06-03 — customer-truth steward role renamed researcher→librarian per ruling Q-0023; decision principle (single steward for customer truth) unchanged.

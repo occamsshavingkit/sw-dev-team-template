@@ -1,0 +1,46 @@
+# docs/tests/hermetic-verified.txt
+# Steward: qa-engineer
+# Source: fw-adr-0024 §4 (Test hermeticity contract)
+#
+# This file lists test scripts that have been verified hermetically safe
+# for use in the reader lane of the parallel-agent working-tree isolation
+# model (fw-adr-0024 Option C, accepted 2026-06-03).
+#
+# A script is hermetically safe for the reader lane only if it satisfies
+# ALL of the following criteria (fw-adr-0024 §4):
+#
+#   1. It does not call: git reset, git clean, git stash, git switch,
+#      git checkout, git commit, git merge, git rebase, or git push.
+#   2. It does not write to the git index (git add, git rm, git mv).
+#   3. It does not create or delete branches or tags.
+#   4. All temporary files it creates are in $TMPDIR or within the
+#      worktree path (not in the caller's $PWD or a hard-coded path
+#      that could resolve outside the worktree).
+#   5. It exits cleanly (any exit code) and leaves the worktree at
+#      the same HEAD SHA it started with.
+#
+# Scripts not in this list default to NON-HERMETIC (writer lane only).
+# Adding a script here requires qa-engineer review against all five
+# criteria above. Removal is automatic if a script is found to violate
+# any criterion; record the finding in a GitHub issue and remove it.
+#
+# EXPLICITLY NON-HERMETIC (do not add to reader briefs):
+#
+#   tests/release-gate/test-gate-fail-each.sh
+#     Reason: calls `git reset --hard` between test cases to restore
+#     fixture state (issues #306 / #216). This resets the working tree
+#     and changes HEAD — a direct violation of criteria 1 and 5.
+#     Must run in the writer lane only. Refactor to meet the criteria
+#     before reclassifying.
+#
+# -----------------------------------------------------------------------
+# Hermetic-verified scripts (empty until qa-engineer completes audit):
+# -----------------------------------------------------------------------
+#
+# (none yet — audit pending)
+#
+# Format when adding entries:
+#   <relative-path-from-scaffold-root>
+#     Verified: YYYY-MM-DD  by: qa-engineer
+#     Notes: <brief summary of how each criterion is satisfied>
+#

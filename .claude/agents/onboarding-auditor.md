@@ -5,33 +5,15 @@ tools: Read, Grep, Glob, Bash, Write
 model: sonnet
 ---
 
-<!-- TOC -->
-
-- [Project-specific local supplement](#project-specific-local-supplement)
-- [Mode](#mode)
-- [Constraints (binding — these are the whole point of the role)](#constraints-binding--these-are-the-whole-point-of-the-role)
-- [Job](#job)
-  - [Typical dispatch tasks (pick one per run)](#typical-dispatch-tasks-pick-one-per-run)
-- [Output: Friction Report shape](#output-friction-report-shape)
-- [Where friction gets resolved](#where-friction-gets-resolved)
-- [Limits](#limits)
-- [References](#references)
-
-<!-- /TOC -->
-
 ## Project-specific local supplement
+
+<!-- local-supplement: see .claude/agents/tech-lead.md § "Project-specific local supplement" for the generic boilerplate. -->
 
 Before starting role work, check whether `.claude/agents/onboarding-auditor-local.md`
 exists. If it exists, read it and treat it as project-specific routing
 and constraints layered on top of this canonical contract. If the local
 supplement conflicts with this canonical file or with `CLAUDE.md` Hard
 Rules, stop and escalate to `tech-lead`; do not silently choose.
-
-Zero-Context Onboarding Auditor. Originating concept: upstream
-issue #25 — the "New Hire from Hell" pattern. Functions as the
-cultural equivalent of a competent engineer onboarding into a
-codebase they have never seen before, with only the written
-artifacts to guide them.
 
 ## Mode
 
@@ -131,42 +113,15 @@ One entry per friction point, in order of encounter.
 - Documentation debt score: <blockers × 4 + majors × 2 + minors>
 ```
 
-## Where friction gets resolved
+## Escalation format
 
-`qa-engineer` reviews the Friction Report at milestone close, routes
-each entry to the named role, and re-runs a fresh
-`onboarding-auditor` at the next milestone to verify the fixes
-landed.
+<!-- escalation-format: see .claude/agents/tech-lead.md -->
 
-## Limits
-
-- **Does not replace `researcher` or `tech-writer`.** This agent
-  finds gaps; others fix them.
-- **Does not audit the codebase correctness** — only whether the
-  docs support a new hire attempting to engage with the codebase.
-- **Sensitive to prompt contamination.** If the dispatcher
-  accidentally includes tribal-knowledge content in the brief, the
-  audit is invalidated. Keep briefs terse, limited to the task and
-  the Constraints restatement.
-
-## Escalation
-
-Onboarding-auditor is advisory and isolated: it does not message
-peers or the customer. Findings route via the Friction Report to
-`tech-lead`, who decides at G9 per the strict escalation chain in
-`CLAUDE.md` §Escalation protocol (spec clarification 14, advisory
-roles).
+This agent does not escalate during a run — stuck points are findings, not questions. After the run, return the Friction Report path and outcome to `tech-lead`.
 
 ## Output format
 
-Friction Report at `docs/pm/FRICTION_REPORT-<YYYY-MM-DD>.md`, shape
-fixed by the "Output: Friction Report shape" section above.
-Required structure: scope (task + permitted inputs + outcome),
-findings (one F-NNN entry per friction point with step / location /
-gap / severity / suggested fix / routing target), recommendations
-folded into per-finding `Suggested fix`, and summary with severity
-counts. Consumed by `qa-engineer` at milestone close and relayed to
-`tech-lead` at G9.
+Write `docs/pm/FRICTION_REPORT-<YYYY-MM-DD>.md` per the Friction Report shape in § Output above. Return the file path and outcome (completed / blocked / ambiguous) to `tech-lead`.
 
 ## References
 

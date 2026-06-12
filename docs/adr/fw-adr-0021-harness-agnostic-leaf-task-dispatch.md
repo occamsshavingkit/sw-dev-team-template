@@ -15,6 +15,7 @@ role mode
 <!-- TOC -->
 
 - [Status](#status)
+- [Scaffold placement note](#scaffold-placement-note)
 - [Context and problem statement](#context-and-problem-statement)
 - [Decision drivers](#decision-drivers)
 - [Considered options (Three-Path Rule, binding)](#considered-options-three-path-rule-binding)
@@ -50,6 +51,19 @@ role mode
   discipline"; `docs/pm/findings-2026-06-02-customer-notes-drift.md` (issue
   #292 enforcement-vs-folklore root); `docs/templates/task-template.md` (JIT
   file list and token-budget fields); `docs/workflow-pipeline.md`
+
+## Scaffold placement note
+
+This ADR was drafted in the meta-project (`docs/adr/`) per the PLAN/DO
+convention (CLAUDE.md § "Project Identity / Working Tree"). It migrated
+into the scaffold's `docs/adr/` as part of the implementation work for
+issue #293 (delegated-specialist schema, gate, and provider parity) so the
+rationale travels with the code, matching the pattern established by
+FW-ADR-0001 through FW-ADR-0020. The meta-project draft copy is retained
+as the team's working reference; this scaffold copy is the canonical version
+from the implementation PR forward.
+
+---
 
 ## Context and problem statement
 
@@ -349,7 +363,7 @@ intentionally the same.
 
 Both open decision points from the proposed ADR were ratified by the customer
 this turn. The backing customer-truth entry is recorded in `CUSTOMER_NOTES.md`
-(researcher-stewarded, same turn).
+(librarian-stewarded, same turn).
 
 **Ruling 1 — Schema version bump strategy (ratified: MINOR semver bump).**
 The new `delegated_role`, `dispatch_scope`, and `task_ref` fields ship as a
@@ -422,3 +436,7 @@ bounded-Codex fixtures before enabling it.
   harness-adapter precedent
 - FW-ADR-0020 (`docs/adr/fw-adr-0020-issues-based-coordination-model.md`) —
   handoff-contract authority model this ADR builds on
+
+## Change log
+
+- 2026-06-03 — customer-truth steward role researcher→librarian per Q-0023; decision principle unchanged.

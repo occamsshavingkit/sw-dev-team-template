@@ -131,6 +131,11 @@ else
         full="$REPO_ROOT/$rel"
         [ -f "$full" ] && printf '%s\n' "$full" >> "$TMPFILES"
     done
+    # Quarter shards: OPEN_QUESTIONS-YYYY-QN.md (fw-adr-0025).
+    # Glob within docs/ so new shards are automatically covered.
+    for shard in "$REPO_ROOT/docs/OPEN_QUESTIONS-"[0-9][0-9][0-9][0-9]-Q[1-4].md; do
+        [ -f "$shard" ] && printf '%s\n' "$shard" >> "$TMPFILES" || true
+    done
 fi
 
 # Emit a single violation line. File path is relativized to REPO_ROOT.
@@ -375,7 +380,11 @@ check_pattern2() {
         # At paragraph flush this tells us if the compound ask terminates
         # with a question (fire) or just contains internal rhetorical `?`s
         # (procedural checklist, suppress).
-        last_eff_had_q = (eff ~ /\?[[:space:]]*$/) ? 1 : 0
+        # Issue #230: also catch `?` followed by inline annotations before EOL
+        # (HTML comment close `-->`, markdown emphasis `**...**`/`*`/`_`, or
+        # parentheticals `(...)`) so compound asks with trailing context tokens
+        # are not silently suppressed.
+        last_eff_had_q = (eff ~ /\?([[:space:]]*(-->|\*\*[^*]*\*\*|\*[^*]*\*|_[^_]*_|\([^)]*\)))*[[:space:]]*$/) ? 1 : 0
         if (eff ~ /\?/) {
             if (numbered_count > 1 && !saw_question && !pending_fire) {
                 pending_fire = 1; fire_line = first_num_line; fire_snippet = line

@@ -1,6 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.invalid/sw-dev-team-template/handoff.schema.json",
+  "x-schema-version": "1.3.0",
+  "x-schema-changelog": "1.3.0 (issue #296 / fw-adr-0021 §1): added optional token_budget and jit_file_list to bounded_codex_exception as leaf-task context-assembly inputs for dispatch_scope: single_task. Both fields are optional in the schema; the context-assembly rule and tech-lead manual guide population (gate/manual enforces, schema stays lax on these). | 1.2.0 (issue #293 / fw-adr-0021): added delegated_role, task_ref, dispatch_scope to bounded_codex_exception; when codex_permission_flag is true, delegated_role and dispatch_scope are now required alongside permitted_role_owned_action (task_ref is gate-enforced only via check_delegated_specialist in validate-handoff.py — intentionally absent from then.required so the schema stays lax on task_ref while the gate is strict). token_budget_hint is out of scope for this change (separate fw-adr-0021 concern). | 1.1.0 (fw-adr-0023 D2 Option S): removed 'activity' from required[]; property retained as optional/deprecated for backward-compat with handoff files written before the sidecar migration. Runtime telemetry now written to docs/handoffs/<task_id>.activity.jsonl.",
   "type": "object",
   "required": [
     "schema",
@@ -17,7 +19,6 @@
     "requires",
     "acceptance_criteria",
     "hard_rule_traces",
-    "activity",
     "verification",
     "completion"
   ],
@@ -95,6 +96,32 @@
         "expiry_or_completion_condition": {
           "type": "string",
           "description": "Condition under which this bounded-Codex exception expires or is considered complete."
+        },
+        "delegated_role": {
+          "type": "string",
+          "minLength": 1,
+          "not": {"const": "tech-lead"},
+          "description": "Canonical role name the delegated session must adopt (e.g. 'software-engineer'). Required when codex_permission_flag is true (fw-adr-0021 §3). Must not be 'tech-lead' — delegated mode cannot adopt the orchestrator role; the gate rejects this and the agent must halt if it encounters it."
+        },
+        "task_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to the single leaf task this delegated session is scoped to (e.g. 'T041' pointing into tasks.md). Signals single-task dispatch; the delegated agent executes only this task."
+        },
+        "dispatch_scope": {
+          "type": "string",
+          "enum": ["single_task", "feature"],
+          "description": "Scope of this dispatch. 'single_task' is required for bounded-Codex leaf-task dispatch (fw-adr-0021). 'feature' is the default for orchestrator-level planning handoffs and is never a valid input for a delegated-specialist or bounded-Codex invocation."
+        },
+        "token_budget": {
+          "type": "string",
+          "enum": ["tiny", "small", "medium", "large", "xl"],
+          "description": "Leaf-task token-budget band from the T### task entry in tasks.md (docs/templates/task-template.md § 'Token budget'). Guides the delegated session's context loading: tiny/small sessions load minimal files; xl signals a complex task that may require splitting. Optional — feature-altitude handoffs omit this field. Populate for dispatch_scope: single_task dispatches (issue #296 / fw-adr-0021 §1)."
+        },
+        "jit_file_list": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Just-in-time file list for the leaf task: the paths the delegated session should Read first, copied from the T### task entry's JIT file list field (docs/templates/task-template.md § 'Token budget'). Keeps context loading minimal and targeted. Optional — feature-altitude handoffs omit this field. Populate for dispatch_scope: single_task dispatches (issue #296 / fw-adr-0021 §1)."
         }
       },
       "if": {
@@ -102,9 +129,11 @@
         "required": ["codex_permission_flag"]
       },
       "then": {
-        "required": ["permitted_role_owned_action"],
+        "required": ["permitted_role_owned_action", "delegated_role", "dispatch_scope"],
         "properties": {
-          "permitted_role_owned_action": {"type": "string", "minLength": 1}
+          "permitted_role_owned_action": {"type": "string", "minLength": 1},
+          "delegated_role": {"type": "string", "minLength": 1, "not": {"const": "tech-lead"}},
+          "dispatch_scope": {"type": "string", "enum": ["single_task"]}
         }
       }
     },
@@ -237,7 +266,11 @@
       "items": {"$ref": "#/$defs/external_tool_activity_ref"},
       "description": "Optional INPUT-ONLY list of external-tool activity references (llmdc, Speckit). These are informational inputs to canonical-role work; they are structurally separate from verification.* and completion.evidence and cannot satisfy any evidence gate."
     },
-    "activity": {"type": "array"},
+    "activity": {
+      "type": "array",
+      "deprecated": true,
+      "description": "DEPRECATED (fw-adr-0023 D2 Option S, schema v1.1.0). Runtime telemetry moved to docs/handoffs/<task_id>.activity.jsonl sidecar. This property is retained as optional for backward-compatibility with handoff files written before the migration. New handoff files should omit it."
+    },
     "verification": {
       "type": "object",
       "required": ["tests", "reviews", "security", "human_approval"],

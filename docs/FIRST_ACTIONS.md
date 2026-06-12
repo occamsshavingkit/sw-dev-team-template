@@ -40,12 +40,12 @@ This is Step 0 specifically because the **earliest** steps
 sources of feedback. Asking opt-in at the end would miss any
 gap the team hits while running the first steps.
 
-If **yes**: route the verbatim answer to `researcher`, who appends
+If **yes**: route the verbatim answer to `librarian`, who appends
 it to `CUSTOMER_NOTES.md` under an "Issue feedback opt-in" heading
 with the date. `tech-lead` follows `docs/ISSUE_FILING.md` for every
 gap it encounters thereafter, including gaps in Steps 1–3.
 
-If **no**: route that verbatim answer to `researcher` too.
+If **no**: route that verbatim answer to `librarian` too.
 `tech-lead` still logs gaps locally in `docs/pm/LESSONS.md` so the
 project itself benefits, but does not push upstream.
 
@@ -151,7 +151,7 @@ idle**:
 > convention, a safety-critical behaviour)? Name it — I'll open a
 > tracking item in `docs/OPEN_QUESTIONS.md`.
 
-Route each verbatim answer to `researcher` for a `CUSTOMER_NOTES.md`
+Route each verbatim answer to `librarian` for a `CUSTOMER_NOTES.md`
 entry (specialized skills and watch-items are customer-domain facts).
 For each named skill: verify the current install command via
 `researcher` before running; for each watch-item, open an
@@ -175,7 +175,7 @@ customer. The goal is enough shared understanding that `tech-lead` +
   question is the last thing on screen. A question that scrolls off under
   subagent chatter is a failed question.
 - Record the verbatim answer in `docs/OPEN_QUESTIONS.md` and mirror
-  customer-domain answers into `CUSTOMER_NOTES.md` via `researcher`.
+  customer-domain answers into `CUSTOMER_NOTES.md` via `librarian`.
 
 The initial scoping queue (seed questions) lives in
 `docs/templates/scoping-questions-template.md`. At project start,
@@ -207,7 +207,7 @@ before `tech-lead` dispatches the first work subagent):
   pinned per Step 3a below, mapping in `docs/AGENT_NAMES.md`, or
   explicit decision to keep canonical names).
 - [ ] **Step 0 (issue-feedback opt-in) has been asked and answered**
-  — yes or no routed to `researcher` and appended to
+  — yes or no routed to `librarian` and appended to
   `CUSTOMER_NOTES.md`. Scoping cannot close with Step 0 still open.
   (Step 0 runs at session start, before the Step 1 skill menu, so
   this row is normally already satisfied by the time Step 2 reaches
@@ -237,7 +237,7 @@ After the customer answers, `tech-lead`:
   question in that domain, or (c) note it as an external-recruit
   dependency.
 - Records the project charter and the SME plan in `CUSTOMER_NOTES.md` via
-  `researcher`.
+  `librarian`.
 - Echoes back the ratified deliverable shape and glossary entries in
   the project charter or scoping transcript so later `code-reviewer`
   passes can check output-vs-intent conformance.

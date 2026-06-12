@@ -1,0 +1,7 @@
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:01:57Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj echo \"=== .template-customizations (current preserve-l", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:02:35Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:03:01Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:03:17Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj echo \"=== --resolve (re-check conflicts; handoff path ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:03:24Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj scripts/upgrade.sh --verify 2>&1 | tail -12 echo \"=== ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:03:37Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj echo \"=== upgrade change scope ===\"; git status --shor", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:03:50Z"}

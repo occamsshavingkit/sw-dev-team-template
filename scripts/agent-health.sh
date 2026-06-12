@@ -50,6 +50,19 @@ fi
 
 last_commit="$(git -C "$project_root" log -1 --format='%h %s' 2>/dev/null || echo '(no git history)')"
 
+# --- Worktree health check (fw-adr-0024 §6, advisory) ----------------------
+# Warn if stale /tmp/agent-* reader worktrees are found in the scaffold.
+# Non-fatal: a stale worktree is an operational nuisance, not a blocker.
+_worktree_check="$project_root/scripts/worktree-health-check.sh"
+if [[ -x "$_worktree_check" ]]; then
+  # The scaffold itself is the nested git repo to check.
+  _scaffold="$project_root/sw-dev-team-template"
+  if [[ ! -d "$_scaffold" ]]; then
+    _scaffold="$project_root"
+  fi
+  "$_worktree_check" "$_scaffold" 2>&1 | sed 's/^/[worktree-health] /' || true
+fi
+
 # --- Emit the packet ---------------------------------------------------------
 cat <<EOF
 ===============================================================

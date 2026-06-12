@@ -265,6 +265,37 @@ run_schema_case "schema accepts handoff with github_issue as URL string (FR-017)
 run_schema_case "schema rejects handoff with github_issue as non-string object (FR-017)" \
     "$FIXTURES/github-issue-invalid-type.json" invalid
 
+# Delegated-specialist mode fields (issue #293 / fw-adr-0021):
+# Schema must accept a valid delegated-specialist handoff and reject:
+#   - delegated_role=tech-lead
+#   - codex_permission_flag=true without delegated_role
+# validate-handoff.py must enforce the same constraints via check_delegated_specialist.
+run_schema_case "schema accepts valid delegated-specialist handoff (#293 / fw-adr-0021)" \
+    "$FIXTURES/delegated-specialist-valid.json" valid
+run_schema_case "schema rejects delegated_role='tech-lead' (#293 / fw-adr-0021)" \
+    "$FIXTURES/delegated-specialist-tech-lead-role.json" invalid
+run_schema_case "schema rejects codex_permission_flag=true without delegated_role (#293 / fw-adr-0021)" \
+    "$FIXTURES/delegated-specialist-missing-role.json" invalid
+run_validator_case "validate-handoff.py accepts valid delegated-specialist handoff (#293 / fw-adr-0021)" \
+    "$FIXTURES/delegated-specialist-valid.json" valid
+run_validator_case "validate-handoff.py rejects delegated_role='tech-lead' (#293 / fw-adr-0021)" \
+    "$FIXTURES/delegated-specialist-tech-lead-role.json" invalid
+run_validator_case "validate-handoff.py rejects codex_permission_flag=true without delegated_role (#293 / fw-adr-0021)" \
+    "$FIXTURES/delegated-specialist-missing-role.json" invalid
+run_validator_case "validate-handoff.py rejects codex_permission_flag=true without task_ref (gate-only, #293 / fw-adr-0021)" \
+    "$FIXTURES/delegated-specialist-missing-taskref.json" invalid
+
+# Leaf-task context fields: token_budget + jit_file_list (issue #296 / fw-adr-0021 §1):
+# Schema must accept a single_task handoff WITH both fields; reject an invalid
+# token_budget enum value; and continue to accept handoffs where both are absent
+# (fields are optional — feature-altitude handoffs are grandfathered).
+run_schema_case "schema accepts single_task handoff with token_budget and jit_file_list (#296 / fw-adr-0021)" \
+    "$FIXTURES/delegated-specialist-with-leaf-context.json" valid
+run_schema_case "schema rejects token_budget with invalid enum value (#296 / fw-adr-0021)" \
+    "$FIXTURES/delegated-specialist-invalid-token-budget.json" invalid
+run_schema_case "schema accepts single_task handoff with token_budget and jit_file_list absent (optional, #296)" \
+    "$FIXTURES/delegated-specialist-valid.json" valid
+
 printf '\nSummary: %s passed, %s failed\n' "$pass" "$fail"
 if [ "$fail" -ne 0 ]; then
     printf 'Failures:\n'

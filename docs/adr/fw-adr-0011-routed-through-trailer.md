@@ -288,6 +288,7 @@ SME shape:
 - `architect`
 - `software-engineer`
 - `researcher`
+- `librarian`
 - `qa-engineer`
 - `sre`
 - `tech-writer`
@@ -388,12 +389,12 @@ posture and grandfathering.
 - **R4 — tool-bridge on disallowed file class.** Trailer is
   `tech-lead:<qualifier>` and the commit touches a file class
   not on the qualifier's whitelist (per the table above).
-- **R5 — `CUSTOMER_NOTES.md` with non-`researcher` trailer.**
+- **R5 — `CUSTOMER_NOTES.md` with non-`librarian` trailer.**
   Commit modifies `CUSTOMER_NOTES.md` (or, by Hard Rule #8 and
   FW-ADR-0008, any customer-truth record) and the trailer is
-  not `Routed-Through: researcher`. Tool-bridge qualifiers do
+  not `Routed-Through: librarian`. Tool-bridge qualifiers do
   not exempt CUSTOMER_NOTES.md; `tech-lead:agent-push` on
-  CUSTOMER_NOTES.md requires `On-Behalf-Of: researcher`, and
+  CUSTOMER_NOTES.md requires `On-Behalf-Of: librarian`, and
   the lint reports R5 when that pair is absent. R5 follows the
   general `HARDGATE_AFTER_SHA` cutoff per customer ruling 8.
 
@@ -430,7 +431,7 @@ posture and grandfathering.
   | `docs/requirements*.md` | `architect` |
   | `docs/architecture*.md` | `architect` |
   | `docs/pm/**` | `project-manager` |
-  | `CUSTOMER_NOTES.md`, `docs/customer-notes/**` | `researcher` |
+  | `CUSTOMER_NOTES.md`, `docs/customer-notes/**` | `librarian` |
   | `docs/prior-art/**`, `docs/library/**` | `researcher` |
   | `tests/**`, `qa/**` | `qa-engineer` |
   | `.github/workflows/**`, `migrations/**`, `Dockerfile*` | `release-engineer` |
@@ -695,3 +696,7 @@ they are work the implementing specialists pick up after merge.
     customer-truth inputs encoded in this ADR)
 - External references: MADR 3.0 (`https://adr.github.io/madr/`);
   `git interpret-trailers(1)` (trailer-block grammar reference).
+
+## Change log
+
+- 2026-06-03 — customer-truth steward role renamed researcher→librarian per ruling Q-0023; decision principle (single steward for customer truth) unchanged. R5 rule updated to require `librarian` trailer on CUSTOMER_NOTES.md; `librarian` added to allowed-roles list and CUSTOMER_NOTES file-class table row.

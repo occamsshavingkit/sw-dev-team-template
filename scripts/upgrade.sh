@@ -30,11 +30,19 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/upgrade.sh [--dry-run | --verify | --resolve | --target <ref> |
+Usage: scripts/upgrade.sh [--dry-run | --keep-local <path> |
+                          --verify | --resolve | --target <ref> |
                           --allow-non-default-branch |
                           --self-test-semver | --help]
 
   --dry-run         Print the upgrade plan; change nothing.
+  --keep-local <path>
+                    Treat the named path as a local customization for
+                    this run: do not auto-take upstream on pre-existing-
+                    path collisions for this path. May be specified
+                    multiple times. Alternatively, add the path to
+                    .template-customizations for a permanent declaration.
+                    (FW-ADR-0028 Item 2.)
   --verify          Verify project files match TEMPLATE_MANIFEST.lock,
                     AND that no entries in .template-conflicts.json are
                     still classified "conflict" (issue #107).
@@ -128,8 +136,9 @@ ensure_prestaged_required_libs() {
     lib_name="$(basename "$upstream_lib")"
     local_lib="$script_dir/lib/$lib_name"
     if [[ ! -f "$local_lib" && -f "$upstream_lib" ]]; then
-      cp "$upstream_lib" "$local_lib.tmp.$$"
-      mv "$local_lib.tmp.$$" "$local_lib"
+      _lib_tmp="$(mktemp "${local_lib}.tmp.XXXXXX")"
+      cp "$upstream_lib" "$_lib_tmp"
+      mv "$_lib_tmp" "$local_lib"
     fi
   done
 }
@@ -174,6 +183,9 @@ verify_mode=0
 resolve_mode=0
 target_version=""
 allow_non_default_branch=0
+# FW-ADR-0028 Item 2: in-memory set of paths for which take-upstream is
+# suppressed.  Populated by repeated --keep-local <path> flags.
+declare -A keep_local_paths=()
 original_args=("$@")
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -193,6 +205,21 @@ while [[ $# -gt 0 ]]; do
       semver_sort_tags_self_test
       exit $? ;;
     "--resolve")     resolve_mode=1; shift ;;
+    "--keep-local")
+      # FW-ADR-0028 Item 2: repeated flag; each value is a path for which
+      # take-upstream is suppressed on pre-existing-path collisions.
+      if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
+        echo "ERROR: --keep-local requires a path argument (e.g. --keep-local path/to/your-file.sh)" >&2
+        usage >&2
+        exit 2
+      fi
+      # Normalize: strip leading ./ and trailing / so that shell-completion
+      # forms (--keep-local ./path/to/your-file.sh) match the $f values produced
+      # by git ls-files (which never carry leading ./ or trailing /).
+      _kl_path="${2#./}"; _kl_path="${_kl_path%/}"
+      keep_local_paths["$_kl_path"]=1
+      unset _kl_path
+      shift 2 ;;
     "--allow-non-default-branch")
                      allow_non_default_branch=1; shift ;;
     "--help"|"-h")   usage; exit 0 ;;
@@ -292,6 +319,27 @@ if [[ $verify_mode -eq 1 ]]; then
       fi
     fi
   fi
+  # Issue #337: check executable-mode drift on shipped direct-run files.
+  # Uses the project's own git index (mode 100755) as the authoritative
+  # source of which files should be executable — no upstream clone needed.
+  # Only flags files whose git-tracked mode is 100755 but on-disk mode
+  # lacks the execute bit (non-exec that should be exec). Never flags
+  # legitimately non-exec files (100644 in git).
+  _exec_drift=0
+  # ls-files --stage format: "<mode> <hash> <stage>\t<path>" — the path
+  # follows the literal tab after the stage number and may contain spaces.
+  # Using $4 would truncate space-containing paths; strip the three
+  # space-delimited prefix fields and the following tab instead.
+  while IFS= read -r _path; do
+    if [[ -f "$project_root/$_path" && ! -x "$project_root/$_path" ]]; then
+      echo "exec-bit drift: $project_root/$_path is tracked as executable (100755) but on-disk mode lacks +x" >&2
+      _exec_drift=1
+    fi
+  done < <(git -C "$project_root" ls-files --stage 2>/dev/null | awk '$1=="100755"{sub(/^[^ ]+ [^ ]+ [^ ]+\t/, ""); print}')
+  if [[ $_exec_drift -ne 0 ]]; then
+    echo "Run 'scripts/upgrade.sh' to resync and restore executable bits." >&2
+    rc=1
+  fi
   exit "$rc"
 fi
 
@@ -333,14 +381,17 @@ if [[ $resolve_mode -eq 1 ]]; then
     done < "$resolve_customizations"
   fi
 
-  tmp_out="$conflicts_path.tmp.$$"
+  # Issue #305: use mktemp (random suffix) instead of PID suffix to avoid
+  # symlink-race / TOCTOU windows and PID-collision on shared CI runners
+  # (CWE-377 / CWE-59). mktemp pattern mirrors the correct usage at ~line 764.
+  tmp_out="$(mktemp "${conflicts_path}.tmp.XXXXXX")"
   removed=0
   kept_unresolved=0
   # Issue #152: collect "path<TAB>new_sha" lines for every conflict entry
   # cleared by hand-merge so we can refresh TEMPLATE_MANIFEST.lock rows
   # after the JSON rewrite. Without this, --verify fails on the very
   # next run because the manifest still carries pre-resolution SHAs.
-  resolved_paths_log="$conflicts_path.resolved.$$"
+  resolved_paths_log="$(mktemp "${conflicts_path}.resolved.XXXXXX")"
   : > "$resolved_paths_log"
   {
     printf '{\n'
@@ -433,7 +484,7 @@ if [[ $resolve_mode -eq 1 ]]; then
   manifest_for_resolve="$project_root/TEMPLATE_MANIFEST.lock"
   refreshed_manifest_rows=0
   if [[ -s "$resolved_paths_log" && -f "$manifest_for_resolve" ]]; then
-    manifest_tmp="$manifest_for_resolve.tmp.$$"
+    manifest_tmp="$(mktemp "${manifest_for_resolve}.tmp.XXXXXX")"  # Issue #305: mktemp, not PID suffix
     awk -F '\t' '
       NR == FNR { new_sha[$1] = $2; next }
       /^[[:space:]]*#/ || /^[[:space:]]*$/ { print; next }
@@ -863,8 +914,9 @@ if [[ "${SWDT_BOOTSTRAPPED:-}" != "1" ]]; then
       else
         install_mode=0644
       fi
-      install -m "$install_mode" "$new_file" "$proj_file.tmp.$$"
-      mv "$proj_file.tmp.$$" "$proj_file"
+      _pbs_tmp="$(mktemp "${proj_file}.tmp.XXXXXX")"
+      install -m "$install_mode" "$new_file" "$_pbs_tmp"
+      mv "$_pbs_tmp" "$proj_file"
     done
     # A successful pre-bootstrap clears any stale block artefact (idempotency).
     rm -f "$prebootstrap_block_artefact"
@@ -960,12 +1012,13 @@ if [[ "$local_version" == "$new_version" ]]; then
       if [[ -n "$new_sha" && -n "$local_sha" && "$local_sha" != "$new_sha" ]]; then
         echo "WARN: TEMPLATE_VERSION stamp SHA drift detected: local=$local_sha_short upstream=$new_sha_short for version $local_version" >&2
         if [[ $dry_run -eq 0 ]]; then
-          cat > "$tv.tmp.$$" <<EOF
+          _tv_tmp="$(mktemp "${tv}.tmp.XXXXXX")"
+          cat > "$_tv_tmp" <<EOF
 $local_version
 $new_sha
 $(date -u +%Y-%m-%d)
 EOF
-          mv "$tv.tmp.$$" "$tv"
+          mv "$_tv_tmp" "$tv"
           echo "       TEMPLATE_VERSION SHA line refreshed to $new_sha_short (issue #138)." >&2
         else
           echo "       (dry-run: would refresh TEMPLATE_VERSION SHA line to $new_sha_short) (issue #138)" >&2
@@ -1413,10 +1466,16 @@ memory_only_agents_stub() {
   ! grep -q '^## Role Binding' "$path" || return 1
 }
 
+# Note: this function intentionally does NOT go through atomic_install.
+# AGENTS.md is a plain text file tracked as mode 100644 (never executable),
+# so the exec-bit preservation added in atomic_install (issue #337) is
+# irrelevant here. The write path is a mktemp + awk splice + mv, which
+# correctly inherits the umask-filtered 0644 mode for the destination.
 install_agents_adapter_over_memory_stub() {
   local src="$1"
   local dst="$2"
-  local tmp="$dst.tmp.$$"
+  local tmp
+  tmp="$(mktemp "${dst}.tmp.XXXXXX")"
   awk '
     /^<claude-mem-context>$/ { skip=1; next }
     /^<\/claude-mem-context>$/ { skip=0; next }
@@ -1427,7 +1486,7 @@ install_agents_adapter_over_memory_stub() {
   mv "$tmp" "$dst"
 }
 
-# Atomic in-place replacement helper (issue #63).
+# Atomic in-place replacement helper (issue #63, issue #337).
 #
 # `cp src dst` truncates+rewrites dst in place, mutating the inode.
 # Catastrophic when dst is the *running* `scripts/upgrade.sh` (or any
@@ -1441,13 +1500,35 @@ install_agents_adapter_over_memory_stub() {
 # resident), the running script finishes cleanly. The next invocation
 # picks up the new inode.
 #
+# Issue #337: executable mode bits must be mirrored from src. `cp`
+# without -a/-p creates the tmp with umask-filtered 0644 regardless of
+# src's mode, so shipped scripts/hooks land non-executable. Fix: derive
+# the install mode from the upstream source's actual execute bit and
+# use `install -m` to write the tmp at the correct mode before mv.
+#
 # Always same-filesystem: tmp lives next to dst.
 atomic_install() {
   local src="$1"
   local dst="$2"
-  cp "$src" "$dst.tmp.$$"
-  mv "$dst.tmp.$$" "$dst"
+  local _ai_tmp _ai_mode
+  # Mirror executable bit from src (issue #337).
+  if [[ -x "$src" ]]; then
+    _ai_mode=0755
+  else
+    _ai_mode=0644
+  fi
+  _ai_tmp="$(mktemp "${dst}.tmp.XXXXXX")"
+  install -m "$_ai_mode" "$src" "$_ai_tmp"
+  mv "$_ai_tmp" "$dst"
 }
+
+# Issue #262: trivial-delta classifier reject-reason (global).
+# Set by _is_trivial_spdx_delta and _is_trivial_structural_delta before
+# returning 1.  Read by the dry-run annotator in PR-2.
+# THREADING NOTE: relies on the single-caller sequential cascade
+# (SPDX-then-structural); must not be read across concurrent or
+# reordered calls — the last writer wins and earlier values are lost.
+_classifier_reject_reason=""
 
 # Issue #262: trivial SPDX-only delta auto-merge helper.
 #
@@ -1473,7 +1554,8 @@ _is_trivial_spdx_delta() {
 
   # Require all three files to exist; without a baseline we cannot prove
   # the delta is trivial.
-  [[ -f "$baseline" && -f "$project" && -f "$upstream" ]] || return 1
+  [[ -f "$baseline" && -f "$project" && -f "$upstream" ]] \
+    || { _classifier_reject_reason="no-baseline"; return 1; }
 
   # --- Rule 1-4: analyse baseline→project diff --------------------------------
   # Use comm after sorting to find lines added and deleted.
@@ -1486,27 +1568,30 @@ _is_trivial_spdx_delta() {
 
   local added_lines deleted_lines
   added_lines="$(comm -23 \
-      <(sort "$project") \
-      <(sort "$baseline"))"
+      <(LC_ALL=C sort "$project") \
+      <(LC_ALL=C sort "$baseline"))"
   deleted_lines="$(comm -23 \
-      <(sort "$baseline") \
-      <(sort "$project"))"
+      <(LC_ALL=C sort "$baseline") \
+      <(LC_ALL=C sort "$project"))"
 
   # Rule 3: zero deletions.
-  [[ -z "$deleted_lines" ]] || return 1
+  [[ -z "$deleted_lines" ]] \
+    || { _classifier_reject_reason="deletions-present"; return 1; }
 
   # Rule 1: every added line must match the SPDX/Copyright pattern.
   if [[ -n "$added_lines" ]]; then
     local bad_lines
     bad_lines="$(printf '%s\n' "$added_lines" \
         | grep -v -E '^#.*(SPDX-License-Identifier:|Copyright)' || true)"
-    [[ -z "$bad_lines" ]] || return 1
+    [[ -z "$bad_lines" ]] \
+      || { _classifier_reject_reason="non-spdx-line"; return 1; }
   fi
 
   # Rule 2: added-line count <= 5.
   local add_count
   add_count="$(printf '%s\n' "$added_lines" | grep -c . || true)"
-  [[ "$add_count" -le 5 ]] || return 1
+  [[ "$add_count" -le 5 ]] \
+    || { _classifier_reject_reason="cap-exceeded"; return 1; }
 
   # Rule 4: zero other modifications.
   # If the file content differs by more than just the added lines, there
@@ -1515,19 +1600,115 @@ _is_trivial_spdx_delta() {
   local proj_lines base_lines
   proj_lines="$(wc -l < "$project")"
   base_lines="$(wc -l < "$baseline")"
-  [[ "$proj_lines" -eq $((base_lines + add_count)) ]] || return 1
+  [[ "$proj_lines" -eq $((base_lines + add_count)) ]] \
+    || { _classifier_reject_reason="line-count-mismatch"; return 1; }
 
   # If nothing was added the files are byte-identical and we should not
   # have reached this function (files_match would have caught it above).
   # But if we somehow do, there is nothing to auto-merge.
-  [[ "$add_count" -gt 0 ]] || return 1
+  [[ "$add_count" -gt 0 ]] \
+    || { _classifier_reject_reason="no-additions"; return 1; }
 
   # --- Upstream containment check: every added line exists in upstream --------
   # Each added line must already appear verbatim in the upstream file.
   while IFS= read -r line; do
     [[ -z "$line" ]] && continue
-    grep -qxF "$line" "$upstream" || return 1
+    grep -qxF "$line" "$upstream" \
+      || { _classifier_reject_reason="upstream-missing-line"; return 1; }
   done <<< "$added_lines"
+
+  return 0
+}
+
+# Issue #262 / FW-ADR-0028 Item 1: trivial structural delta auto-merge helper.
+#
+# Broadens the SPDX-only classifier to accept local additions that consist
+# exclusively of blank/whitespace lines or comment lines from the bounded
+# token set below.  Unlike _is_trivial_spdx_delta this function does NOT
+# require upstream to contain the added lines — taking upstream discards the
+# cosmetic additions, which is the intended behaviour.  Safety is maintained
+# by rules 2–5: no deletions, no in-place changes, cap of 10 lines.
+#
+# Returns 0 (true) when ALL of the following hold:
+#   1. All three files exist; no baseline → return 1.
+#   2. Zero deletions (any deletion → return 1).
+#   3. Every added line is empty/whitespace-only OR matches the bounded
+#      comment-token set: ^[[:space:]]*(#|//|--|/\*|\*[^/]|\*/|<!--|-->)
+#   4. Added-line count <= 10.
+#   5. wc -l project == wc -l baseline + add_count (no in-place edits).
+#   6. Added-line count > 0.
+#
+# Arguments:
+#   $1  baseline path  (workdir/old/<f>)
+#   $2  project path   (project_root/<f>)
+#   $3  upstream path  (workdir/new/<f>)
+#
+# Conservative: any ambiguity returns 1 (fall through to conflict path).
+# Sets _classifier_reject_reason on every failure path (used by PR-2
+# dry-run annotator).
+_is_trivial_structural_delta() {
+  local baseline="$1"
+  local project="$2"
+  local upstream="$3"
+
+  # Rule 1: all three files must exist.
+  [[ -f "$baseline" && -f "$project" && -f "$upstream" ]] \
+    || { _classifier_reject_reason="no-baseline"; return 1; }
+
+  local added_lines deleted_lines
+  added_lines="$(comm -23 \
+      <(LC_ALL=C sort "$project") \
+      <(LC_ALL=C sort "$baseline"))"
+  deleted_lines="$(comm -23 \
+      <(LC_ALL=C sort "$baseline") \
+      <(LC_ALL=C sort "$project"))"
+
+  # Rule 2: zero deletions.
+  [[ -z "$deleted_lines" ]] \
+    || { _classifier_reject_reason="deletions-present"; return 1; }
+
+  # Derive add_count from line counts rather than grep -c, because grep -c .
+  # does not count blank (empty) lines — which are the primary case this
+  # classifier handles.  Compute early (after zero-deletions is confirmed)
+  # so rules 3, 4, 5, 6 can share the value.
+  local proj_lines base_lines add_count
+  proj_lines="$(wc -l < "$project")"
+  base_lines="$(wc -l < "$baseline")"
+  add_count=$(( proj_lines - base_lines ))
+
+  # Rule 3: every added line must be blank/whitespace-only or a comment
+  # from the bounded token set.
+  # Note: comm on sorted input reports each unique added line once; if the
+  # project added N identical blank lines, comm shows one empty entry.  We
+  # validate the pattern only (all blank/comment lines pass rule 3 regardless
+  # of count); the line-count cap is enforced by add_count (rule 4) which is
+  # derived from wc -l and therefore counts all added lines including blanks.
+  if [[ -n "$added_lines" ]]; then
+    local bad_lines
+    bad_lines="$(printf '%s\n' "$added_lines" \
+        | grep -v -E '^[[:space:]]*$' \
+        | grep -v -E '^[[:space:]]*(#|//|--|/\*|\*[^/]|\*/|<!--|--)' \
+        || true)"
+    [[ -z "$bad_lines" ]] \
+      || { _classifier_reject_reason="non-trivial-line"; return 1; }
+  fi
+
+  # Rule 4: added-line count <= 10.
+  [[ "$add_count" -le 10 ]] \
+    || { _classifier_reject_reason="cap-exceeded"; return 1; }
+
+  # Rule 5: line-count invariant — catches in-place modifications that
+  # comm/sort misses (two different lines that sort to the same position).
+  # add_count = proj_lines - base_lines by construction; the check is
+  # that add_count is non-negative (deletions were zero, so a negative
+  # add_count would indicate comm/wc disagreement — treat as mismatch).
+  [[ "$add_count" -ge 0 ]] \
+    || { _classifier_reject_reason="line-count-mismatch"; return 1; }
+
+  # Rule 6: something was actually added (zero-addition means files are
+  # identical and files_match should have caught it earlier).
+  [[ "$add_count" -gt 0 ]] \
+    || { _classifier_reject_reason="no-additions"; return 1; }
 
   return 0
 }
@@ -1543,7 +1724,49 @@ shortstat_between() {
   fi
 }
 
-added=(); upgraded=(); kept=(); conflicts=(); local_only_kept=(); accepted_local=(); preserved=()
+# FW-ADR-0028 Item 3: dry-run conflict nature annotator.
+# Runs both trivial-delta classifiers read-only and maps the resulting
+# _classifier_reject_reason to a human-readable nature label.
+# Echoes one of: spdx-comment | blank/comment-only | substantive | unknown
+# Called only in --dry-run mode; does NOT change exit code or actions.
+_dry_run_nature() {
+  local baseline="$1"
+  local project="$2"
+  local upstream="$3"
+  local _dry_nature _dry_spdx_reason _dry_struct_reason
+  _classifier_reject_reason=""
+  if _is_trivial_spdx_delta "$baseline" "$project" "$upstream"; then
+    _dry_nature="spdx-comment"
+  else
+    _dry_spdx_reason="$_classifier_reject_reason"
+    _classifier_reject_reason=""
+    if _is_trivial_structural_delta "$baseline" "$project" "$upstream"; then
+      _dry_nature="blank/comment-only"
+    else
+      _dry_struct_reason="$_classifier_reject_reason"
+      if [[ "$_dry_spdx_reason" == "upstream-missing-line" ]]; then
+        # SPDX lines present locally that upstream lacks — soft signal.
+        _dry_nature="spdx-comment (upstream-missing-line: SPDX lines not yet in upstream)"
+      elif [[ "$_dry_struct_reason" == "non-trivial-line" ]]; then
+        _dry_nature="substantive"
+      elif [[ "$_dry_struct_reason" == "cap-exceeded" ]]; then
+        _dry_nature="blank/comment-only (cap-exceeded: > 10 added lines)"
+      elif [[ "$_dry_struct_reason" == "no-baseline" ]]; then
+        _dry_nature="unknown (no-baseline)"
+      else
+        _dry_nature="substantive"
+      fi
+    fi
+  fi
+  echo "$_dry_nature"
+}
+
+added=(); upgraded=(); auto_merged=(); kept=(); conflicts=(); local_only_kept=(); accepted_local=(); preserved=()
+# FW-ADR-0028 Item 2: pre-existing-path collisions auto-resolved by
+# taking upstream content.  Populated when baseline_available=1, path
+# absent from workdir/old/, present in both project and upstream, and
+# neither .template-customizations nor --keep-local opts out.
+collision_taken_upstream=()
 # FW-ADR-0014: per-path classification of preserve-list entries.
 #   dropped_inert[]     — entries with no divergence (silently dropped).
 #   preservation_refused_paths[] (+ parallel SHA arrays) — entries that
@@ -1601,6 +1824,31 @@ if [[ -f "$_prerun_conflicts_path" ]]; then
     [[ -n "$_c_path" ]] || continue
     prior_conflict_sha["$_c_path"]="$_c_proj"
   done < "$_prerun_conflicts_path"
+  # Issue #222: sanity-check the parse result.  If the file is non-empty
+  # AND contains raw "classified": "conflict" markers BUT we extracted
+  # zero keys, the file is malformed (e.g. truncated mid-write by a
+  # prior kill).  Continuing would leave the #200 rerun-safety guard
+  # silently disarmed, so hard-fail here — consistent with the script's
+  # other integrity checks (pre-bootstrap, preservation-vs-manifest,
+  # --verify).  The three-condition gate is intentional: a legitimate
+  # conflicts file whose entries are all accepted_local/local_only_kept
+  # is non-empty with zero conflict keys and must NOT trigger this block.
+  # Residual risk: a truncation that corrupts the "classified": "conflict"
+  # token itself is indistinguishable from a no-conflict file and will not
+  # trip this gate.  Full JSON-schema validation would close that gap but
+  # is a larger change; tracked as a follow-up (issue #222 notes).
+  if [[ ${#prior_conflict_sha[@]} -eq 0 ]] \
+      && [[ -s "$_prerun_conflicts_path" ]] \
+      && grep -q '"classified": "conflict"' "$_prerun_conflicts_path"; then
+    echo "ERROR: issue #222: $_prerun_conflicts_path is non-empty and contains conflict markers but the line-parser extracted zero prior_conflict_sha keys — the file is likely malformed or truncated mid-write." >&2
+    echo "       The #200 rerun-safety guard cannot fire for the affected entries." >&2
+    echo "       Repair steps:" >&2
+    echo "         1. Inspect $_prerun_conflicts_path for truncation or corruption." >&2
+    echo "         2. If the tracked conflicts are gone (hand-merged or abandoned), delete the file and re-run." >&2
+    echo "         3. If the file is repairable, restore valid JSON and re-run." >&2
+    echo "         4. Run scripts/upgrade.sh --resolve after any hand-merges to clear resolved entries." >&2
+    exit 1
+  fi
 fi
 unset _prerun_conflicts_path _c_line _c_path _c_proj
 
@@ -1771,44 +2019,74 @@ for f in $ship_files; do
          && cmp -s "$workdir/old/$f" "$workdir/new/$f"; then
         local_only_kept+=("$f")
       else
-        # Issue #262: before classifying as a conflict, check whether the
-        # local delta is a trivial SPDX-only addition that upstream already
-        # contains.  If so, take upstream silently and emit a log line.
+        # Issue #262 / FW-ADR-0028: before classifying as a conflict, run the
+        # trivial-delta cascade: SPDX-first, structural-second.
+        # Both classifiers run in dry-run mode too (dry-run gate removed per
+        # FW-ADR-0028 Item 3); in dry-run, log the would-merge action but do
+        # NOT write/atomic_install the file.
         # False negatives (delta not detected as trivial) are acceptable;
-        # false positives are not — when in doubt fall through to the
-        # conflict path below.
-        if [[ $baseline_available -eq 1 \
-           && -f "$workdir/old/$f" \
-           && $dry_run -eq 0 ]] \
+        # false positives are not — when in doubt fall through to conflict.
+        if [[ $baseline_available -eq 1 && -f "$workdir/old/$f" ]] \
            && _is_trivial_spdx_delta \
                 "$workdir/old/$f" "$proj_path" "$new_path"; then
-          echo "auto-merged (trivial SPDX delta): $f"
-          upgraded+=("$f (auto-merge: SPDX)")
-          atomic_install "$new_path" "$proj_path"
-          [[ $is_agent -eq 1 ]] && agent_splice_name "$proj_path" "$agent_name_line"
+          if [[ $dry_run -eq 1 ]]; then
+            echo "[dry-run] would auto-merge (trivial SPDX delta): $f"
+          else
+            echo "auto-merged (trivial SPDX delta): $f"
+            auto_merged+=("$f")
+            atomic_install "$new_path" "$proj_path"
+            [[ $is_agent -eq 1 ]] && agent_splice_name "$proj_path" "$agent_name_line"
+          fi
+          continue
+        elif [[ $baseline_available -eq 1 && -f "$workdir/old/$f" ]] \
+           && _is_trivial_structural_delta \
+                "$workdir/old/$f" "$proj_path" "$new_path"; then
+          if [[ $dry_run -eq 1 ]]; then
+            echo "[dry-run] would auto-merge (trivial structural delta): $f"
+          else
+            echo "auto-merged (trivial structural delta): $f"
+            auto_merged+=("$f")
+            atomic_install "$new_path" "$proj_path"
+            [[ $is_agent -eq 1 ]] && agent_splice_name "$proj_path" "$agent_name_line"
+          fi
           continue
         fi
-        conflicts+=("$f")
-        # Issue #110: pre-existing collision — file present in project
-        # AND upstream but absent from baseline. Means upstream began
-        # shipping a file the project already had. The user must
-        # decide: take upstream (rm the local then rerun) or pin local
-        # (add to .template-customizations).
+        # FW-ADR-0028 Item 2: pre-existing collision — file present in
+        # project AND upstream but absent from baseline.  Means upstream
+        # began shipping a file the project already had.
+        #
+        # Default: take upstream (atomic_install), record in
+        # collision_taken_upstream[].  Opt-out: --keep-local <path> or
+        # add to .template-customizations (already handled above via
+        # preserved[]; the drop-inert case from should_preserve() falls
+        # through here too, but a drop-inert path has matching content
+        # between project and new — so files_match fires before we ever
+        # reach this collision block, making the drop-inert path
+        # unreachable here in practice).
         #
         # Gap (intentional): when baseline_available == 0 the same
-        # situation is silently lumped into plain conflicts[]. We
-        # cannot prove upstream just-introduced the file without the
-        # scaffold-baseline tree. Affects very old projects whose
-        # scaffold SHA is unreachable. Mitigation: the conflicts[]
-        # report still surfaces the file with diff guidance; users
-        # whose baseline is unreachable already see the "baseline
-        # unavailable" note in the conflicts block. Promoting these
-        # to preexisting_collisions[] would require scanning
-        # ALL upstream history to find when the file was introduced,
-        # which is out of scope for this fix.
+        # situation cannot be detected — we cannot prove upstream just-
+        # introduced the file without the scaffold-baseline tree.  Those
+        # files fall through to conflicts[] as before.
         if [[ $baseline_available -eq 1 && ! -f "$workdir/old/$f" ]]; then
-          preexisting_collisions+=("$f")
+          if [[ -n "${keep_local_paths[$f]:-}" ]]; then
+            # --keep-local <path>: route to local_only_kept (no overwrite).
+            local_only_kept+=("$f")
+            continue
+          else
+            # Take-upstream default (FW-ADR-0028 Item 2).
+            if [[ $dry_run -eq 1 ]]; then
+              echo "[dry-run] would take upstream (pre-existing collision): $f"
+            else
+              mkdir -p "$(dirname "$proj_path")"
+              atomic_install "$new_path" "$proj_path"
+              [[ $is_agent -eq 1 ]] && agent_splice_name "$proj_path" "$agent_name_line"
+              collision_taken_upstream+=("$f")
+            fi
+            continue
+          fi
         fi
+        conflicts+=("$f")
       fi
       kept+=("$f")
     fi
@@ -1960,8 +2238,9 @@ if [[ -f "$intake_template" && ! -f "$intake_target" ]]; then
     mkdir -p "$project_root/docs"
     # Derive a project name for the substitution: basename of project root.
     proj_name="$(basename "$project_root")"
-    sed "s|<project name>|$proj_name|g" "$intake_template" > "$intake_target.tmp.$$"
-    mv "$intake_target.tmp.$$" "$intake_target"
+    _intake_tmp="$(mktemp "${intake_target}.tmp.XXXXXX")"
+    sed "s|<project name>|$proj_name|g" "$intake_template" > "$_intake_tmp"
+    mv "$_intake_tmp" "$intake_target"
   fi
   added+=("docs/intake-log.md")
 fi
@@ -1988,7 +2267,8 @@ roadmap_target="$project_root/ROADMAP.md"
 if [[ ! -f "$roadmap_target" ]]; then
   if [[ $dry_run -eq 0 ]]; then
     proj_name_rm="$(basename "$project_root")"
-    cat > "$roadmap_target.tmp.$$" <<EOF
+    _roadmap_tmp="$(mktemp "${roadmap_target}.tmp.XXXXXX")"
+    cat > "$_roadmap_tmp" <<EOF
 # Roadmap — $proj_name_rm
 
 Project roadmap — owned by \`project-manager\`; entries map to
@@ -1999,7 +2279,7 @@ upstream \`sw-dev-team-template\` roadmap; that one lives in the template
 repo and is intentionally not shipped to downstream scaffolds (FR-015 /
 M4.2).
 EOF
-    mv "$roadmap_target.tmp.$$" "$roadmap_target"
+    mv "$_roadmap_tmp" "$roadmap_target"
   fi
   added+=("ROADMAP.md")
 fi
@@ -2199,6 +2479,16 @@ EOF
   # state, not the desired post-merge state).
   conflicts_path="$project_root/.template-conflicts.json"
   if [[ ${#conflicts[@]} -gt 0 || ${#local_only_kept[@]} -gt 0 || ${#accepted_local[@]} -gt 0 ]]; then
+    # Issue #305: allocate the temp path BEFORE the { } writer block so the
+    # variable is set in the current shell scope (not a subshell). mktemp
+    # random suffix eliminates the CWE-377/CWE-59 symlink-race present with
+    # PID-suffixed names. The EXIT trap (set after conflicts_path is known)
+    # removes any stale tmp if the process is killed between write and mv.
+    _conflicts_tmp="$(mktemp "${conflicts_path}.tmp.XXXXXX")"
+    # Extend the EXIT trap to also remove this tmp (the workdir trap covers
+    # workdir but not project_root artefacts — issue #305 code-reviewer obs).
+    # shellcheck disable=SC2064  # intentional: expand _conflicts_tmp now
+    trap "rm -rf \"\$workdir\"; rm -f '${_conflicts_tmp}'" EXIT
     {
       printf '{\n'
       printf '  "schema": 1,\n'
@@ -2242,7 +2532,11 @@ EOF
         for f in "${accepted_local[@]}"; do emit_entry "$f" "accepted_local"; done
       fi
       printf '\n  ]\n}\n'
-    } > "$conflicts_path"
+    } > "$_conflicts_tmp"
+    # Issue #222: atomic rename so a kill mid-write never leaves a
+    # truncated file on disk that the #200 parser would silently
+    # misread as "no prior conflicts".
+    mv "$_conflicts_tmp" "$conflicts_path"
   else
     # No tracked entries — remove any stale file from a prior upgrade.
     rm -f "$conflicts_path"
@@ -2292,6 +2586,18 @@ if [[ ${#new_agents[@]} -gt 0 ]]; then
   echo
 fi
 
+if [[ ${#auto_merged[@]} -gt 0 ]]; then
+  echo "${prefix}Auto-merged (trivial SPDX delta) (${#auto_merged[@]}):"
+  for f in "${auto_merged[@]}"; do echo "  ~ $f"; done
+  echo
+fi
+
+if [[ ${#collision_taken_upstream[@]} -gt 0 ]]; then
+  echo "${prefix}Accepted upstream (pre-existing collision resolved) (${#collision_taken_upstream[@]}):"
+  for f in "${collision_taken_upstream[@]}"; do echo "  > $f"; done
+  echo
+fi
+
 if [[ ${#upgraded[@]} -gt 0 ]]; then
   echo "${prefix}Upgraded in place — unchanged since scaffold (${#upgraded[@]}):"
   for f in "${upgraded[@]}"; do echo "  ~ $f"; done
@@ -2307,28 +2613,22 @@ if [[ ${#conflicts[@]} -gt 0 ]]; then
       local_stat="$(shortstat_between "$workdir/old/$f" "$project_root/$f")"
       echo "      upstream delta: ${upstream_stat:-0 files changed}"
       echo "      local delta:    ${local_stat:-0 files changed}"
+      # FW-ADR-0028 Item 3: dry-run only — emit nature annotation.
+      # Variables are local to _dry_run_nature(); no top-level pollution.
+      if [[ $dry_run -eq 1 ]]; then
+        echo "      nature: $(_dry_run_nature "$workdir/old/$f" "$project_root/$f" "$workdir/new/$f")"
+      fi
     else
       echo "      delta heat-map unavailable: baseline SHA not reachable"
+      if [[ $dry_run -eq 1 ]]; then
+        echo "      nature: unknown (no-baseline)"
+      fi
     fi
     echo "      diff <(git -C $workdir/new show HEAD:\"$f\") \"$project_root/$f\""
   done
   echo
   echo "  For each conflict, diff the upstream version against your customized"
   echo "  version and decide: keep yours, take upstream, or merge."
-  echo
-fi
-
-if [[ ${#preexisting_collisions[@]} -gt 0 ]]; then
-  echo "${prefix}ACTION REQUIRED: pre-existing collision(s) detected (${#preexisting_collisions[@]}):"
-  for f in "${preexisting_collisions[@]}"; do
-    echo "  ! $f — local file pre-dates upstream's introduction of this path."
-  done
-  echo "  Resolution options (per upstream issue #110):"
-  echo "    (1) Take upstream: review upstream's version, remove the local file,"
-  echo "        and re-run scripts/upgrade.sh to install upstream."
-  echo "    (2) Keep local:    add the path to .template-customizations to pin it."
-  echo "    (3) Merge:         hand-merge upstream content into the local file,"
-  echo "        then re-run scripts/upgrade.sh --resolve to clear the conflict."
   echo
 fi
 
@@ -2393,6 +2693,30 @@ if [[ $dry_run -eq 0 ]]; then
   verify_rc=0
   manifest_verify "$project_root" "$project_root/TEMPLATE_MANIFEST.lock" || verify_rc=$?
   if [[ $verify_rc -eq 0 ]]; then
+    # Issue #337: repair executable-mode bits on shipped direct-run files.
+    # atomic_install already mirrors the exec bit for files it writes, but
+    # content-identical files are skipped by the sync loop and never pass
+    # through atomic_install — so a project whose on-disk files lack +x
+    # (e.g. an rc3 fixture that predates exec-bit tracking) keeps non-exec
+    # copies even after an otherwise-successful upgrade.  Fix: after the sync
+    # completes, walk every shipped file and chmod +x any whose upstream copy
+    # is executable but whose project copy is not.  We only ADD +x (never
+    # remove), so legitimately non-exec project-side files are unaffected.
+    # Uses the upstream clone (workdir/new) as the authoritative mode source.
+    _post_exec_repaired=0
+    while IFS= read -r _shipped_f; do
+      _proj_f="$project_root/$_shipped_f"
+      _upst_f="$workdir/new/$_shipped_f"
+      [[ -f "$_proj_f" && -f "$_upst_f" ]] || continue
+      if [[ -x "$_upst_f" && ! -x "$_proj_f" ]]; then
+        echo "restoring exec bit: $_shipped_f" >&2
+        chmod +x "$_proj_f"
+        _post_exec_repaired=1
+      fi
+    done < <(manifest_ship_files "$workdir/new" "$project_root")
+    if [[ $_post_exec_repaired -ne 0 ]]; then
+      echo "exec-bit repair complete (issue #337)." >&2
+    fi
     echo "Verification: clean."
   else
     # manifest_verify already printed its per-path drift report to

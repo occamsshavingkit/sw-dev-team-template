@@ -36,22 +36,6 @@
 # shipped in rc4 and forward.
 v1.0.0-rc3
 
-# v0.16.0 — scripts/upgrade.sh 3-way conflict; the fix in f163897
-# (migrations/v0.14.0.sh marker-writing, issue #163) is broken by
-# migration ordering: v0.16.0's upgrade.sh self-bootstraps (exec's as
-# candidate upgrade.sh) before the migrations loop runs, so the
-# re-execed candidate skips v0.14.0.sh (v0.14.0 < v0.16.0 boundary)
-# and the .template-customizations marker is never written. The sync
-# loop then sees a 3-way conflict on scripts/upgrade.sh
-# (baseline=v0.16.0, project=candidate after pre-bootstrap,
-# upstream=candidate); --verify finds the persisted conflict entry and
-# exits 1. Root cause logged in follow-up issue [see rc14 PR body].
-# v0.16.0 is a single-version sliver between v0.15.x and v0.17.0 with
-# negligible expected downstream presence. Real fix requires a migration
-# at a boundary > v0.16.0 (e.g., v0.17.0.sh or a sync-loop preserve
-# heuristic). Restored for rc14 cut; re-allowlisted from rc11/rc12/rc13.
-v0.16.0
-
 # v0.17.0 — frozen-tag self-bootstrap defect: same shift-2/re-exec argv-drop
 # defect as v1.0.0-rc3 (see entry above). At v0.17.0, scripts/pre-release-gate.sh
 # executed `exec bash "$0" "$@"` AFTER a prior `shift 2` had already consumed
@@ -68,4 +52,20 @@ v0.16.0
 # series with negligible expected downstream presence; this is not a v1.1.0
 # regression — the defect predates the v1.0.0 line entirely.
 v0.17.0
+
+# v0.16.0 — frozen-tag self-bootstrap defect: same shift-2/re-exec argv-drop
+# defect as v1.0.0-rc3 and v0.17.0 (see entries above). At v0.16.0,
+# scripts/pre-release-gate.sh executed `exec bash "$0" "$@"` AFTER a prior
+# `shift 2` had already consumed `--target <tag>` from the positional argv.
+# The re-exec therefore ran the candidate orchestrator with no `--target` flag,
+# causing auto-selection of the highest pre-release tag on the branch instead
+# of staying on v0.16.0. The resulting mismatch trips the upgrade-paths
+# round-trip even though v0.16.0's own logic was correct at cut time. Fixed in
+# the current candidate by saving the original argv into `original_args=("$@")`
+# before the `shift` and re-execing with `exec bash "$0" "${original_args[@]}"`
+# (same fix as rc4). Allowlisted because the defect lives in the frozen v0.16.0
+# tag and cannot be retro-patched; fix is in the current upgrade.sh via
+# original_args. v0.16.0 is a narrow single-version sliver adjacent to v0.17.0
+# with negligible expected downstream presence.
+v0.16.0
 

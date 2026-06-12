@@ -117,6 +117,25 @@ Upgrade strategy, per template-shipped file:
 4. **Customized since scaffold AND upstream also changed** → flagged
    as a conflict; the file is **not** overwritten. You diff manually
    and decide per-file: keep local, take upstream, or merge.
+5. **Path newly introduced by upstream that the project already had
+   (no common baseline — pre-existing-path collision)** → **upstream
+   version is taken by default** (PR-2 / FW-ADR-0028 Item 2).
+
+   > **Behavior-change caution.** Before PR-2, this case surfaced an
+   > `ACTION REQUIRED` prompt offering three manual options. It no
+   > longer does. If your project file must survive the upgrade, you
+   > must opt out explicitly:
+   >
+   > - **Per-run:** pass `--keep-local <path>` on the `upgrade.sh`
+   >   command line (the same flag documented for auto-merge opt-outs
+   >   in the "Conflict resolution" section below).
+   > - **Permanently:** list the path in `.template-customizations`
+   >   (one path per line). Listed paths are always treated as
+   >   `preserved` and are never overwritten.
+   >
+   > `--dry-run` previews this case with the label
+   > `would take upstream (pre-existing collision)` and annotates
+   > each collision's nature alongside the standard conflict preview.
 
 `accepted-local` means the upgrade preserved a local edit in a
 framework-shipped file. That can be correct, but it can also preserve
@@ -196,6 +215,43 @@ whose project SHA shows that a real merge happened or that upstream was
 taken wholesale. `local_only_kept` and `accepted_local` entries are
 pruned automatically.
 
+**Trivial-delta auto-merge (PR-1 / FW-ADR-0028).** Two classes of local
+delta now auto-merge to the upstream version and no longer surface as manual
+conflicts:
+
+1. **SPDX/Copyright-only deltas** (existing behavior): when the project's
+   only local additions versus the baseline are SPDX or Copyright comment
+   lines that upstream already contains verbatim (up to 5 added lines, zero
+   deletions), the upgrade takes the upstream file.
+2. **Blank-line-only and comment-only deltas** (new in PR-1): when the
+   project's only local additions are blank lines and/or comment lines
+   (lines beginning with `#`, `//`, `--`, `/*`, `*`, `*/`, `<!--`, or `-->`)
+   — bounded to ≤ 10 added lines, zero deletions, and no substantive or code
+   line added — the upgrade takes the upstream version and discards those
+   cosmetic-only local additions.
+
+Both classes appear in the upgrade summary under the "Auto-merged" bucket,
+with a log label identifying which classifier fired (`trivial SPDX delta` or
+`trivial structural delta`).
+
+**Operator caution — cosmetic comments are discarded.** A comment the project
+added locally (for example, a disable-reason or a section divider that
+upstream does not carry) will be silently replaced by the upstream file when
+the structural classifier fires. The comment is not preserved. If a specific
+file must retain its local content across upgrades, declare it in
+`.template-customizations` (one path per line); listed paths are always
+treated as `preserved` and are never auto-merged or overwritten. Passing
+`--keep-local <path>` on the command line provides the same protection for a
+single run without permanently listing the path.
+
+**`--dry-run` fidelity.** Before PR-1, `--dry-run` did not invoke the
+trivial-delta classifiers, so it over-reported conflicts for files that
+would actually auto-merge. As of PR-1, `--dry-run` runs both classifiers
+and reports `would auto-merge (trivial SPDX delta)` or `would auto-merge
+(trivial structural delta)` accurately. Use `--dry-run` before any
+multi-version upgrade to preview exactly which files will auto-merge versus
+which will require manual resolution.
+
 **Project-specific agent routing.** Do not edit template-shipped
 `.claude/agents/<role>.md` files just to add project language,
 framework, domain, or tool-routing rules. Instead create
@@ -241,6 +297,55 @@ template repo. Scaffolded downstream projects strip `migrations/`, so a
 downstream maintainer reading this guide from a project tree may need to
 consult the upstream template repo for `migrations/README.md` and
 `migrations/TEMPLATE.sh`.
+
+**Register sharding (FW-ADR-0025, v1.3.0).** The release that ships
+register sharding splits any binding register file exceeding ~150 KB into
+date-quarter shards. `migrations/v1.3.0.sh` runs automatically on upgrade
+and:
+
+- Identifies registers (`CUSTOMER_NOTES.md`, `OPEN_QUESTIONS.md`,
+  `docs/pm/RISKS.md`, `docs/pm/LESSONS.md`, and others) that exceed the
+  context-limit threshold.
+- Splits each oversized register by entry-date into per-quarter shard
+  files (`<register>-YYYY-QN.md`). The migration preserves all content;
+  no entries are deleted.
+- Resets the active file (`<register>.md`) to the current quarter's
+  entries, keeping its canonical path unchanged.
+- Generates `<register>-INDEX.md` cross-shard index files via
+  `scripts/gen-register-index.sh`.
+
+The canonical active-file paths are unchanged — existing consumers that
+load `CUSTOMER_NOTES.md` or `OPEN_QUESTIONS.md` continue to work without
+modification. For cross-shard lookups (e.g., finding an old Q-NNNN),
+consult the generated `<register>-INDEX.md`. Cross-shard ID uniqueness is
+enforced by `scripts/check-duplicate-ids.sh` and
+`scripts/reserve-number.sh`. See `docs/agents/manual/librarian-manual.md`
+§ "Archival mechanic" for the full quarter-roll procedure.
+
+**Handoff activity sidecar (FW-ADR-0023).** The release that ships the
+activity-sidecar change moves runtime telemetry out of git-tracked
+handoff JSON files. Existing `docs/handoffs/*.json` files that carry an
+`"activity"` array are migrated by the upgrade: the array is stripped
+from the JSON (which becomes a static durable contract after this point)
+and its entries are written to a gitignored
+`docs/handoffs/<task_id>.activity.jsonl` sidecar. If your project has
+no `docs/handoffs/*.json` files with accumulated `"activity"` entries,
+the migration is a no-op. If you have downstream tooling that reads
+`handoff["activity"]` directly, update it to read the sidecar
+`*.activity.jsonl` file instead. The `manifest_file_sha_normalized`
+normalizer in `scripts/lib/manifest.sh` has been removed in this
+release — it is no longer needed because handoff JSON files are now
+static after creation and are hashed raw.
+
+**Gemini harness adapter (FW-ADR-0022).** The release that ships Gemini
+harness support adds `GEMINI.md` (root adapter) and `.gemini/agents/`
+(generated thin adapters). If you use gemini-cli, upgrade it to
+>= v0.38.1 before running `scripts/compile-runtime-agents.sh` — older
+versions have no named subagent surface and the `.gemini/agents/` output
+will be unused or unsupported. Run `compile-runtime-agents.sh` (all
+targets) after this template upgrade to emit the new `.gemini/agents/`
+files alongside the existing `.opencode/agents/` output. gemini-cli
+v0.44.0+ is the stable-surface version; v0.38.1 is the minimum floor.
 
 ## Known upgrade cliffs
 
@@ -333,3 +438,29 @@ Use `--dry-run` to list the labels without contacting GitHub. The
 script never deletes or recolors existing labels; new colors / labels
 introduced by a template upgrade require a manual update of
 `scripts/setup-github-labels.sh` followed by a re-run.
+
+## Recovery
+
+### Stale reader worktrees (FW-ADR-0024)
+
+When a session crashes or times out with live reader worktrees open,
+the scaffold's internal worktree reference list can become stale. The
+`/tmp/agent-*` directories may also become orphaned. Recovery is
+two-step:
+
+```bash
+# List all registered worktrees for the scaffold repo:
+git -C ./sw-dev-team-template worktree list
+
+# Prune any worktree entries whose /tmp/ directory no longer exists:
+git -C ./sw-dev-team-template worktree prune
+```
+
+`worktree prune` removes stale references only — it does not touch the
+canonical checkout or any live worktree. Orphaned `/tmp/agent-*`
+directories that were already removed by the OS or a prior cleanup
+require no further action; `prune` handles the dangling git reference.
+
+A startup check runs automatically via `scripts/worktree-health-check.sh`
+(invoked by `scripts/agent-health.sh`) and warns if stale worktrees
+are detected at session start.

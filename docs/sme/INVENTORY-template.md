@@ -1,7 +1,7 @@
 # Inventory — `docs/sme/<domain>/`
 
 Every `docs/sme/<domain>/` directory MUST have an `INVENTORY.md` based
-on this template. Maintained by `researcher`; updated whenever material
+on this template. Maintained by `librarian`; updated whenever material
 is added, removed, or re-verified.
 
 ---
@@ -82,11 +82,60 @@ Rules:
   do not silently leave a dead URL.
 - If a license override is recorded in `CUSTOMER_NOTES.md`, reference
   that entry in the "License / terms" cell.
-- For local PDFs over 20 pages or 1 MB, `researcher` creates or
+- For local PDFs over 20 pages or 1 MB, `librarian` creates or
   refreshes a `.txt` sibling in the same `local/` directory (usually
   `pdftotext -layout`) and records the extraction status in the
   "Text extraction" cell. Scanned PDFs that need OCR are marked
   `blocked: OCR needed` until handled.
+
+---
+
+## Remote-only references (no local copy)
+
+Some external materials cannot be fetched to the local `local/` directory
+— they live on a separately-controlled host (a PLC test bench, a vendor
+portal, an air-gapped rack) that the project repository cannot reach. This
+is the **remote-only** variant codified in FW-ADR-0007, also labelled LIB-1
+in the framework issue tracker.
+
+**When to use each shape:**
+
+| Shape | When to use |
+|---|---|
+| **Local copy** (`docs/sme/<domain>/local/`) | Material is freely downloadable, licence permits local storage, and the file is under 20 MB. Default choice for most external references. |
+| **Remote-only** (this section) | File lives on a host not under this repo (test bench, vendor portal, air-gap). Cannot or should not be copied locally — read in situ, paraphrase and delete locally after use. |
+| **URL-only** (row in External table, no file) | Short web pages, blog posts, publicly stable URLs. No binary to fetch; citation is the URL + retrieval date. |
+
+**Remote-only row format** — add these rows to a separate table titled
+"Remote-only references" in the inventory:
+
+| # | Title | Author / Publisher | Year / version | Remote host | Remote path | Provenance (who holds the copy, under what rights) | Asserted rights | Lifecycle | Covers | Date added |
+|---|---|---|---|---|---|---|---|---|---|---|
+| LIB-1 | \<Title\> | \<Publisher\> | \<year\> | \<hostname or IP — use codename if sensitive\> | \<path on host\> | \<e.g., "test-bench operator holds licensed copy; no redistribution"\> | read-only \| read-and-delete-locally | read-and-delete-locally after paraphrase; never commit | \<tags\> | YYYY-MM-DD |
+
+**Example** (IEEE PDF on PLC test bench, pattern from LIB-0003/0004/0005):
+
+| # | Title | Author / Publisher | Year / version | Remote host | Remote path | Provenance | Asserted rights | Lifecycle | Covers | Date added |
+|---|---|---|---|---|---|---|---|---|---|---|
+| LIB-0003 | IEC 61131-3 Ed. 3.0 | IEC | 2013 | plc-bench-01 (codename) | `/docs/standards/iec61131-3-ed3.pdf` | Test-bench operator holds licensed copy; not redistributable | read-only | Read in situ; paraphrase locally; do not copy or commit the PDF | plc-programming | 2026-04-10 |
+
+**Rules for remote-only rows:**
+
+- No `local-path` field — the file must not appear in `local/` or
+  anywhere in this repository.
+- `Remote host` may use a codename if the actual hostname is sensitive.
+- `Provenance` records *who* holds the copy and *under what rights
+  assertion*, so a future agent can re-verify legitimacy without asking
+  the customer again.
+- `Asserted rights` states the minimum the operator has confirmed:
+  `read-only` (may read; may not copy or redistribute) or
+  `read-and-delete-locally` (may fetch to a temp path for immediate
+  paraphrase, must delete after).
+- `Lifecycle` is the binding instruction for any agent working with this
+  material: e.g., "read-and-delete-locally after paraphrase; never commit."
+- Text extracted on the remote host (e.g., `pdftotext` on the bench) may
+  be committed only if the resulting text is a substantive paraphrase —
+  not a verbatim copy — and the row's `Asserted rights` permits it.
 
 ### Slug vs row ID
 

@@ -11,6 +11,94 @@ from pathlib import Path
 import jsonschema
 
 
+def check_delegated_specialist(handoff: dict) -> list[str]:
+    """Validate delegated-specialist mode constraints (fw-adr-0021 §3 Assertion A).
+
+    When ``bounded_codex_exception.codex_permission_flag`` is true:
+    - ``delegated_role`` must be present and must not equal ``"tech-lead"``.
+    - ``dispatch_scope`` must equal ``"single_task"``.
+    - ``task_ref`` must be non-null and non-empty.
+
+    These constraints are also encoded in the JSON Schema ``if/then`` block,
+    but schema validation only fires one error per keyword; explicit checks here
+    surface precise, actionable messages for each violation independently.
+
+    Returns a list of error messages; empty list means no violation.
+    """
+    exc = handoff.get("bounded_codex_exception")
+    if not isinstance(exc, dict):
+        return []
+    if not exc.get("codex_permission_flag", False):
+        return []
+
+    errors: list[str] = []
+
+    delegated_role = exc.get("delegated_role")
+    if not delegated_role:
+        errors.append(
+            "bounded_codex_exception.codex_permission_flag is true but "
+            "delegated_role is absent or empty (fw-adr-0021 §3 Assertion A)"
+        )
+    elif delegated_role == "tech-lead":
+        errors.append(
+            "bounded_codex_exception.delegated_role is 'tech-lead': "
+            "delegated mode cannot adopt the orchestrator role — malformed handoff "
+            "(fw-adr-0021 §3 Assertion A)"
+        )
+
+    dispatch_scope = exc.get("dispatch_scope")
+    if dispatch_scope != "single_task":
+        errors.append(
+            f"bounded_codex_exception.dispatch_scope must be 'single_task' when "
+            f"codex_permission_flag is true, got {dispatch_scope!r} "
+            "(fw-adr-0021 §3 Assertion A)"
+        )
+
+    task_ref = exc.get("task_ref")
+    if not task_ref:
+        errors.append(
+            "bounded_codex_exception.task_ref is absent or empty when "
+            "codex_permission_flag is true (fw-adr-0021 §3 Assertion A)"
+        )
+
+    return errors
+
+
+def _advisory_leaf_context(handoff: dict) -> list[str]:
+    """Return advisory notes (not errors) for optional leaf-task context fields.
+
+    For ``dispatch_scope: "single_task"`` handoffs with ``codex_permission_flag``
+    true, ``token_budget`` and ``jit_file_list`` should be present to guide
+    context assembly (issue #296 / fw-adr-0021 §1). Their absence is schema-valid
+    (optional fields); these notes surface the gap without hard-rejecting.
+
+    Returns advisory strings; callers print them to stderr without incrementing
+    the error count.
+    """
+    exc = handoff.get("bounded_codex_exception")
+    if not isinstance(exc, dict):
+        return []
+    if not exc.get("codex_permission_flag", False):
+        return []
+    if exc.get("dispatch_scope") != "single_task":
+        return []
+
+    notes: list[str] = []
+    if not exc.get("token_budget"):
+        notes.append(
+            "ADVISORY: bounded_codex_exception.token_budget absent on a "
+            "single_task dispatch — populate from the T### task entry's "
+            "token-budget band (issue #296 / fw-adr-0021 §1)"
+        )
+    if not exc.get("jit_file_list"):
+        notes.append(
+            "ADVISORY: bounded_codex_exception.jit_file_list absent on a "
+            "single_task dispatch — populate from the T### task entry's JIT "
+            "file list (issue #296 / fw-adr-0021 §1)"
+        )
+    return notes
+
+
 def check_model_fallback_tier(handoff: dict) -> list[str]:
     """Enforce the data-model rule: model_fallback is acceptable only when
     capability_tier_comparison is 'same' or 'higher'.  A 'lower' value means
@@ -64,6 +152,7 @@ def validate_file(handoff_path: Path, schema: dict) -> list[str]:
         errors.append(exc.message)
 
     errors.extend(check_model_fallback_tier(handoff))
+    errors.extend(check_delegated_specialist(handoff))
 
     return errors
 
@@ -160,6 +249,16 @@ def main() -> int:
                 print(f"FAIL  {path_str}: {msg}", file=sys.stderr)
         else:
             print(f"PASS  {path_str}")
+
+        # Soft advisories: leaf-task context fields (#296). Printed to stderr
+        # as ADVISORY lines; do not affect exit code or PASS/FAIL verdict.
+        try:
+            with path.open(encoding="utf-8") as fh:
+                _h = json.load(fh)
+            for note in _advisory_leaf_context(_h):
+                print(f"ADVISORY  {path_str}: {note}", file=sys.stderr)
+        except (OSError, json.JSONDecodeError):
+            pass
 
     return 1 if any_fail else 0
 
