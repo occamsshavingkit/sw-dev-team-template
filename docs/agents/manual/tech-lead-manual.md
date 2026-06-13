@@ -223,25 +223,47 @@ findings, blockers, and escalations to `tech-lead` instead.
 
 **Rule E — Delegated-specialist briefs carry no orchestrator instructions.** When a handoff carries `delegated_role`, the session that reads it is in delegated-specialist mode on any harness: it executes `task_ref`, suppresses spawning, and returns artifacts to the orchestrator. Do not include spawn-authorization language, team-start instructions, or orchestrator directives in leaf-task handoff briefs — a delegated session has no spawn surface and will not use them.
 
-### Per-task context assembly (FW-ADR-0021, issue #296)
+### JIT Context Assembly Protocol (FW-ADR-0021, issue #296)
 
 For handoffs with `dispatch_scope: "single_task"`, assemble the brief
-from the **leaf task's context only**. Do not include feature-altitude
-context (overall feature spec, sibling task context, or session
-history beyond what the task file names).
+from the **leaf task's context only** using the **JIT Context Assembly** rules
+to keep context small and execution efficient. Do not include feature-altitude
+context (overall feature spec, sibling task context, or session history).
+
+**Four Core JIT Rules:**
+
+1. **Mandatory JIT file list.** Every task and dispatch brief must carry a
+   `JIT file list`. If no existing codebase files are needed for the task
+   (e.g., pure research, writing general text, or creating a new isolated file),
+   write `"none"` explicitly. Do not leave the list empty or omit it.
+2. **Line-range reference pointers.** To prevent the sub-agent from deep-reading
+   or parsing entire massive files, specify precise line ranges using hash anchors
+   (e.g., `path/to/file.py#L40-L80`). Do not copy-paste code blocks or fragments
+   verbatim into the dispatch brief or task statement, as this duplicates codebase
+   content and wastes tokens.
+3. **Task-scoped token budget envelopes.** The task's token budget band
+   (`tiny` | `small` | `medium` | `large` | `xl`) represents a strict envelope
+   for both input context and output. The specialist must restrict its file reads
+   exclusively to the JIT list (and directly referenced, load-bearing dependencies)
+   to respect the budget envelope.
+4. **Tech-lead pre-assembly for large/XL tasks.** For tasks estimated as `large`
+   or `xl`, listing raw codebase files will cause the sub-agent to waste numerous
+   tool calls and tokens discovering and reading them. Instead, the tech-lead
+   must pre-assemble the context beforehand (e.g., extracting key interface
+   signatures, types, and crucial code fragments) and write it to a git-ignored
+   file in `.claude/tmp/` (e.g., `.claude/tmp/T-NNNN-context.json`). Specify this
+   pre-assembly path as the primary entry in the `JIT file list` so the sub-agent
+   can load high-density context in a single read.
 
 **Procedure:**
 
 1. Read the task entry at `docs/tasks/T-NNNN.md` (or the equivalent
    task tracker row). Extract:
-   - `Token budget` band (`tiny` | `small` | `medium` | `large` | `xl`)
-     from the task's Token budget section.
-   - `JIT file list` — the explicit list of files named in the task's
-     Token budget section as the files the assignee should load first.
+   - `Token budget` band from the task's Token budget section.
+   - `JIT file list` from the task's Token budget section.
 2. Populate the handoff's `token_budget` field (enum) and
-   `jit_file_list` field (array of paths) from those values. The
-   specialist loads only the listed files; it does not scan the repo
-   for additional context.
+   `jit_file_list` field (array of paths) from those values, resolving line ranges
+   to absolute paths for tool parameters, but preserving line ranges in the brief.
 3. The dispatch brief instructs the specialist: "Load the files in
    `jit_file_list` first; do not read beyond them unless a listed file
    explicitly references another and that reference is load-bearing for

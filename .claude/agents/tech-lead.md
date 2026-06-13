@@ -146,16 +146,24 @@ non-compliant brief MUST flag the violation before proceeding.
 2. **Vertical slicing.** Ship the smallest working slice first. MUST NOT
    batch unrelated changes into one dispatch brief.
 3. **JIT context loading.** Load only the files the assignee needs for
-   that slice. Name each file explicitly in the dispatch brief; do not
-   pass open-ended "read everything" instructions.
-4. **Token-budget hint.** Every dispatch brief MUST include an explicit
-   token-budget hint. See `docs/agents/manual/tech-lead-manual.md`
-   § "Token economy — Rule 4 examples" for examples.
-5. **DoD before next dispatch.** MUST verify the specialist's DoD is met
+   that slice. Name each file explicitly in the dispatch brief, using
+   precise line ranges (e.g., `path/to/file.py#L40-L80`) instead of
+   copy-pasting code blocks or passing open-ended read instructions.
+   If no existing files are needed, set the JIT file list to `none`.
+4. **Token-budget envelope.** Every dispatch brief MUST include an explicit
+   token-budget band (`tiny` | `small` | `medium` | `large` | `xl`) and
+   hint. Specialists must restrict their reads to the JIT list to respect
+   this envelope.
+5. **Tech-lead pre-assembly.** For `large` or `xl` tasks, the tech-lead
+   MUST pre-assemble the context (signatures, type definitions, and codebase
+   fragments) into a git-ignored file in `.claude/tmp/` (e.g.,
+   `.claude/tmp/T-NNNN-context.json`) and reference it in the JIT file list
+   instead of passing numerous raw files.
+6. **DoD before next dispatch.** MUST verify the specialist's DoD is met
    before dispatching the next task to that slot.
-6. **Atomic commits.** One logical change per commit. MUST NOT bundle
+7. **Atomic commits.** One logical change per commit. MUST NOT bundle
    unrelated edits into a single commit.
-7. **Bounded long-op dispatch.** Briefs for shell operations expected
+8. **Bounded long-op dispatch.** Briefs for shell operations expected
    to exceed ~60 s MUST be structured as bounded stages. No stage
    may contain an unbounded poll or sleep loop. When a stage's
    completion signal is not yet available, the specialist returns

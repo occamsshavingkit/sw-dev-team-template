@@ -139,8 +139,7 @@ R-2; ledger row recorded at closure per FR-005 in
 `docs/pm/TOKEN_LEDGER.md`.
 
 - **Token budget:** `tiny` | `small` | `medium` | `large` | `xl`
-- **JIT file list:** <concise list of paths the assignee should load
-  first; omit files only needed transitively>
+- **JIT file list:** <Mandatory list of files the assignee should load first. If no existing files are needed, write "none". To restrict reading scope and save tokens, specify line ranges via hash anchors (e.g., `path/to/file.py#L40-L80`) rather than copying code. For `large` or `xl` tasks, specify the path to the tech-lead pre-assembled context file, e.g., `.claude/tmp/T-NNNN-context.json`.>
 - **Token actual:** <filled at closure if material; `wc -w` proxy of
   prompts + load-set at dispatch time>
 
