@@ -136,6 +136,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/subcall-limit-guard.py\"",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -164,6 +174,12 @@
             "command": "[ -x \"${CLAUDE_PROJECT_DIR}/scripts/version-check.sh\" ] && \"${CLAUDE_PROJECT_DIR}/scripts/version-check.sh\" 2>&1 || true",
             "timeout": 10,
             "statusMessage": "Checking template version..."
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/subcall-limit-reset.py\"",
+            "timeout": 5,
+            "statusMessage": "Resetting subagent subcall budget..."
           }
         ]
       },
