@@ -191,3 +191,20 @@ decision: SWEProj is the meta-project for improving sw-dev-team-template; work t
 cross-refs:
   - CUSTOMER_NOTES.md#2026-05-13-sweproj-meta-project-working-tree
 notes: Customer correction after repo-location drift; prior repo docs already contained this fact, but active entrypoint instructions did not make it explicit enough.
+---
+turn: 3
+timestamp: 2026-06-13T14:15Z
+asked-by: tech-lead
+framing: |
+  Tech-lead requested customer authorization to spawn native specialist agents
+  for the current session to address GitHub issue #350 in `sw-dev-team-template`.
+options-presented: []
+recommended-default: none
+agents-running-at-ask: []
+customer-answer: |
+  yes
+decision: Customer authorized spawning native specialist agents for the current session to address GitHub issue #350.
+cross-refs:
+  - CUSTOMER_NOTES.md#2026-06-13-spawn-authorization-issue-350
+notes: Customer approved the request during the session.
+

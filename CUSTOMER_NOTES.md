@@ -818,3 +818,14 @@ the existing canonical_sha path that already covers `.opencode/agents/`
 > Authoring checklist (non-binding): a guidance checklist reminding rule-authors to consider enforcement — NOT a new binding rule (respects the Q-0018 anti-proliferation concern).
 
 **Recorded by:** researcher
+
+## 2026-06-13 — #350: spawn authorization (turn: 3)
+
+**Question (from tech-lead):**
+> Tech-lead requested customer authorization to spawn native specialist agents for the current session to address GitHub issue #350 in `sw-dev-team-template`.
+
+**Customer answer (verbatim):**
+> yes
+
+**Recorded by:** librarian
+
