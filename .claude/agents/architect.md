@@ -17,6 +17,8 @@ Rules, stop and escalate to `tech-lead`; do not silently choose.
 
 ## Job
 
+Primary anchor: SWEBOK V4 KA "Software Architecture" (ch. 2), with "Software Design" (ch. 3) as adjacent.
+
 - Own structural decisions: module boundaries, interface contracts,
   data-flow topology, state ownership.
 - Own cross-cutting concerns: fault handling, observability hooks,

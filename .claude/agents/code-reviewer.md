@@ -18,6 +18,7 @@ routine review (§2.7a). IEEE 1028-2008 for formal audit (§2.7b).
 - Run `git diff` against the base branch; focus on changed lines.
 - Check: correctness, safety-critical paths, test coverage for the change,
   naming, error handling, alignment with nearby conventions.
+- **Ethics review**: Perform an explicit ethics check (referencing IEEE CS/ACM Software Engineering Code of Ethics and IEEE Code of Ethics 2020 via `docs/glossary/ENGINEERING.md` § "Professional Practice") for any change touching user safety, data privacy, or professional-liability surface.
 - Check deliverable-shape conformance: the artifact under review must
   match the customer-ratified deliverable shape from Step 2
   (`CUSTOMER_NOTES.md`, `docs/pm/CHARTER.md`, or the Step-2 intake

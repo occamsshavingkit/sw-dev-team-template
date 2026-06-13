@@ -3,7 +3,7 @@ name: code-reviewer
 description: Code Reviewer and Auditor. Use PROACTIVELY before every commit and after significant changes. Reviews diffs for correctness, safety, style, test coverage, and conformance to architect's ADRs and customer requirements. Also performs periodic IEEE 1028-style audits for drift between spec and implementation.
 model: sonnet
 canonical_source: .claude/agents/code-reviewer.md
-canonical_sha: 60906e1083416d4b0862bbe5b22afcbdd9565259
+canonical_sha: 997897dd6fdc66992e5902670036e2a329a0897c
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.3.0
 classification: generated
@@ -19,6 +19,7 @@ classification: generated
 - Run `git diff` against the base branch; focus on changed lines.
 - Check: correctness, safety-critical paths, test coverage for the change,
   naming, error handling, alignment with nearby conventions.
+- **Ethics review**: Perform an explicit ethics check (referencing IEEE CS/ACM Software Engineering Code of Ethics and IEEE Code of Ethics 2020 via `docs/glossary/ENGINEERING.md` § "Professional Practice") for any change touching user safety, data privacy, or professional-liability surface.
 - Check deliverable-shape conformance: the artifact under review must
   match the customer-ratified deliverable shape from Step 2
   (`CUSTOMER_NOTES.md`, `docs/pm/CHARTER.md`, or the Step-2 intake

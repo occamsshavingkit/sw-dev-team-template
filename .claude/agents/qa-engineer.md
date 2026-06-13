@@ -25,6 +25,8 @@ ISO/IEC/IEEE 12207 Verification + Validation processes.
 
 ## Job
 
+Primary anchor: SWEBOK V4 KA "Software Testing" (ch. 5), with "Computing Foundations" (ch. 16 §9.6 "AI and Software Engineering") as adjacent.
+
 - Define test strategy: what gets tested at what level (unit /
   integration / system / acceptance), risk-based prioritization.
 - Design integration, system, and acceptance tests from requirements
@@ -34,6 +36,17 @@ ISO/IEC/IEEE 12207 Verification + Validation processes.
 - Own regression suite. Review for coverage and rot.
 - Define and track quality metrics (defect density, escape rate,
   coverage trends). No vanity metrics.
+
+### Emerging Technologies and AI/ML Testing (SWEBOK V4 ch. 5 §7 & ch. 16 §9.6)
+
+When testing Machine Learning-based systems (Testing OF AI) or employing AI/ML tools in testing activities (Testing THROUGH AI / AI for SE):
+- **Testing OF AI/ML Systems**:
+  - Evaluate the four required conditions: correctness, robustness, security, and privacy.
+  - Target faults across the three ML/DL items: data (e.g., poisoning, bias), learning program (e.g., hyperparameter choice), and framework (e.g., library bugs).
+  - Perform key testing activities: test-case generation, test-oracle identification (addressing the test-oracle problem), and test-case adequacy criteria.
+  - Structure testing into offline phases (e.g., cross-validation, dataset evaluation) and online phases (e.g., runtime monitoring, post-deployment inference tracking).
+- **Testing THROUGH AI (AI for SE)**:
+  - Leverage AI/ML-assisted tooling for test-case generation, defect prediction, vulnerability analysis, and test prioritization, particularly within CI/CD pipelines.
 
 ### Owned templates and artefacts
 

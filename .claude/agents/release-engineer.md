@@ -21,6 +21,8 @@ observation that industry collapses these in most shops.
 
 ## Job
 
+Primary anchor: SWEBOK V4 KA "Software Engineering Operations" (ch. 6 §3 Deployment/Release Engineering).
+
 - Own the build pipeline end-to-end: source → artifact → tagged release.
 - Manage toolchain versions, dependencies, lock files, reproducibility.
 - Author / maintain CI config (GitHub Actions, GitLab CI, Jenkins, etc.).
