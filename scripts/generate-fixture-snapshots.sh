@@ -265,7 +265,7 @@ scaffold_and_mutate() {
     if ! (
         cd "$src_worktree" || exit 1
         ./scripts/scaffold.sh "$fixture" "gate-fixture-$src_tag" >/dev/null 2>&1
-    ); then
+    ) < /dev/null; then
         echo "generator: scaffold failed for $src_tag" >&2
         git -C "$repo_root" worktree remove --force "$src_worktree" >/dev/null 2>&1 || true
         rm -rf "$tmpdir"
@@ -277,7 +277,7 @@ scaffold_and_mutate() {
         cd "$fixture" || exit 1
         SWDT_MUTATION_SOURCE_RC="$src_tag" \
             "$mutation_script"
-    ); then
+    ) < /dev/null; then
         echo "generator: mutation failed for $src_tag/$variant" >&2
         git -C "$repo_root" worktree remove --force "$src_worktree" >/dev/null 2>&1 || true
         rm -rf "$tmpdir"
@@ -347,7 +347,9 @@ if [ "$MODE" = "check" ]; then
     # --check: regenerate to a tempdir and diff against on-disk.
     check_tmp=$(mktemp -d "${TMPDIR:-/tmp}/gen-check-XXXXXX")
     diverged=""
+    checked=0
     while IFS='	' read -r tag variant; do
+        checked=$((checked + 1))
         on_disk="$snapshots_root/$tag/$variant"
         regen="$check_tmp/$tag/$variant"
         if ! scaffold_and_mutate "$tag" "$variant" "$regen"; then
@@ -376,6 +378,10 @@ if [ "$MODE" = "check" ]; then
     done < "${TMPDIR:-/tmp}/gen-pairs.$$"
     rm -rf "$check_tmp"
     rm -f "${TMPDIR:-/tmp}/gen-pairs.$$"
+    if [ "$checked" -ne "$pair_count" ]; then
+        echo "generator --check: expected $pair_count pairs but only checked $checked" >&2
+        exit 1
+    fi
     if [ "$overall_rc" -eq 0 ]; then
         printf 'generator --check: all %d snapshot(s) match on-disk\n' "$pair_count" >&2
     else
@@ -388,7 +394,9 @@ fi
 
 # --generate (default / --all): build snapshots in place.
 generated=0
+processed=0
 while IFS='	' read -r tag variant; do
+    processed=$((processed + 1))
     target="$snapshots_root/$tag/$variant"
     printf '  generating %s/%s ...' "$tag" "$variant" >&2
     if scaffold_and_mutate "$tag" "$variant" "$target"; then
@@ -400,6 +408,11 @@ while IFS='	' read -r tag variant; do
     fi
 done < "${TMPDIR:-/tmp}/gen-pairs.$$"
 rm -f "${TMPDIR:-/tmp}/gen-pairs.$$"
+
+if [ "$processed" -ne "$pair_count" ]; then
+    echo "generator: expected to process $pair_count pairs but only processed $processed" >&2
+    exit 1
+fi
 
 printf 'generator: %d/%d snapshot(s) written\n' "$generated" "$pair_count" >&2
 exit "$overall_rc"
