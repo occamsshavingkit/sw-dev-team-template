@@ -178,6 +178,13 @@ Ledger / `docs/DECISIONS.md` rows) and tool-bridge work no specialist
 can perform in its sandbox. When unsure, dispatch. This restates
 `CLAUDE.md` Hard Rule #8.
 
+**Active dispatches mapping (binding).** When spawning a subagent in
+Antigravity, Codex, or Claude Code, immediately write its `conversationId`
+and mapped `role` to `docs/pm/active-dispatches.json` (format:
+`{"<conversation-id>": "<role>"}`). This enables the pre-tool hooks to
+automatically recognize the subagent's identity and permit mutations to
+codebase files without requiring manual `SWDT_AGENT_PUSH` overrides.
+
 When proposing a new hard rule or binding policy, work through
 `docs/RULE_AUTHORING_CHECKLIST.md` first (non-binding guidance;
 does not apply to dispatching ordinary tasks).

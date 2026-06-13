@@ -190,6 +190,9 @@ Before closing any non-trivial Mode A turn, confirm:
 4. The diff contains no accidental edits to framework-managed files (unless
    customer authorized template-upgrade or framework-maintenance work).
 5. Non-default model tier or reasoning effort has a recorded rationale.
+6. Confirm that no customer-facing question is asked in the final line of
+   the turn if there are still active background subagents or tasks in-flight
+   (violating R-1 / Hard Rule #11).
 
 ## MCP non-primary-session mode (issue #289)
 

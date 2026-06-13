@@ -338,3 +338,6 @@ config, mirror these matchers exactly.
 6. Record spawning limits, queued work, non-default
    `reasoning_effort`, slot-health state, and direct-write exceptions
    in the turn summary or Turn Ledger.
+7. Confirm that no customer-facing question is asked in the final line
+   of the turn if there are still active background subagents or tasks
+   in-flight (violating R-1 / Hard Rule #11).

@@ -78,6 +78,13 @@ facility from the top-level `tech-lead` session.
    dispatch the workflow pipeline (researcher → architect → engineer
    → duel → revise); if not, dispatch directly. DoR + DoD always apply.
 
+   **Active dispatches mapping (binding).** When spawning a subagent in
+   Antigravity, Codex, or Claude Code, immediately write its `conversationId`
+   and mapped `role` to `docs/pm/active-dispatches.json` (format:
+   `{"<conversation-id>": "<role>"}`). This enables the pre-tool hooks to
+   automatically recognize the subagent's identity and permit mutations to
+   codebase files without requiring manual `SWDT_AGENT_PUSH` overrides.
+
    **Background-by-default (binding).** Use `run_in_background: true`
    on every `Agent` tool call. Foreground (synchronous) dispatch is
    allowed only when the specialist's return value is required before

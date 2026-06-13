@@ -351,8 +351,8 @@ check "first-actions warning stays quiet after Step 0" \
 echo "-- hook guards --"
 check "settings guard covers Claude MultiEdit" \
   bash -c "grep -q '\"matcher\": \"MultiEdit\"' '$target/.claude/settings.json'"
-customer_notes_guard_path="\${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py"
-version_check_path="\${CLAUDE_PROJECT_DIR}/scripts/version-check.sh"
+customer_notes_guard_path="\${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/customer-notes-guard.py"
+version_check_path="\${CLAUDE_PROJECT_DIR:-.}/scripts/version-check.sh"
 check "settings guard commands use CLAUDE_PROJECT_DIR" \
   settings_contains_literal_path "$target" "$customer_notes_guard_path" "python3 ./scripts/hooks/customer-notes-guard.py"
 check "settings SessionStart version-check uses CLAUDE_PROJECT_DIR" \

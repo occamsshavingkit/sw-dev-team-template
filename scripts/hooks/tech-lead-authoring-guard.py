@@ -38,6 +38,7 @@ ALLOW_EXACT = frozenset(
         "docs/intake-log.md",
         "docs/DECISIONS.md",
         "docs/pm/dispatch-log.md",
+        "docs/pm/active-dispatches.json",
         "TEMPLATE_VERSION",
         "docs/AGENT_NAMES.md",
     }
@@ -799,6 +800,33 @@ def _inline_agent_push_role(command: str):
     return _validate_role(m.group(2).strip())
 
 
+def _get_active_subagent_role() -> str | None:
+    """Check the dynamic dispatches map for an active subagent role matching
+    the current ANTIGRAVITY_CONVERSATION_ID.
+    """
+    conv_id = os.environ.get("ANTIGRAVITY_CONVERSATION_ID", "").strip()
+    if not conv_id:
+        return None
+
+    project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    mapping_path = os.path.join(project_dir, "docs/pm/active-dispatches.json")
+    if os.path.exists(mapping_path):
+        try:
+            with open(mapping_path, "r", encoding="utf-8") as f:
+                mappings = json.load(f)
+                if isinstance(mappings, dict):
+                    role = mappings.get(conv_id)
+                    if isinstance(role, str):
+                        role = role.strip()
+                        return _validate_role(role)
+        except Exception as exc:
+            sys.stderr.write(
+                "tech-lead-authoring-guard: failed to load active-dispatches.json "
+                f"({type(exc).__name__}: {exc})\n"
+            )
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Decision construction.
 # ---------------------------------------------------------------------------
@@ -873,7 +901,7 @@ def _decide_for_path(path: str):
     if is_on_allow_list(path):
         return None, None
 
-    role = _agent_push_role()
+    role = _agent_push_role() or _get_active_subagent_role()
     if role is not None:
         return None, lambda: _audit_override(_normalise(path), role, "path")
 
@@ -934,7 +962,7 @@ def _decide_for_command(command: str):
         return None, None
 
     first = off_list[0]
-    role = _agent_push_role() or _inline_agent_push_role(command)
+    role = _agent_push_role() or _inline_agent_push_role(command) or _get_active_subagent_role()
     if role is not None:
         return None, lambda: _audit_override(first, role, "Bash target")
 
