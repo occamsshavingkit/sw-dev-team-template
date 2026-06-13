@@ -251,9 +251,13 @@ context (overall feature spec, sibling task context, or session history).
    tool calls and tokens discovering and reading them. Instead, the tech-lead
    must pre-assemble the context beforehand (e.g., extracting key interface
    signatures, types, and crucial code fragments) and write it to a git-ignored
-   file in `.claude/tmp/` (e.g., `.claude/tmp/T-NNNN-context.json`). Specify this
-   pre-assembly path as the primary entry in the `JIT file list` so the sub-agent
-   can load high-density context in a single read.
+   Markdown file in `.claude/tmp/` (e.g., `.claude/tmp/T-NNNN-context.md`).
+   To achieve maximum token compression and optimal LLM results, the tech-lead
+   must compile the pre-assembled Markdown context using the deterministic
+   markdown compiler `llmdc` to generate `.claude/tmp/T-NNNN-context.llmd`
+   (e.g., `llmdc .claude/tmp/T-NNNN-context.md -o .claude/tmp/T-NNNN-context.llmd`).
+   Specify this compiled `.llmd` path as the primary entry in the `JIT file list`
+   so the sub-agent can load highly compressed, high-density context in a single read.
 
 **Procedure:**
 

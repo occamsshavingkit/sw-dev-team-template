@@ -156,9 +156,10 @@ non-compliant brief MUST flag the violation before proceeding.
    this envelope.
 5. **Tech-lead pre-assembly.** For `large` or `xl` tasks, the tech-lead
    MUST pre-assemble the context (signatures, type definitions, and codebase
-   fragments) into a git-ignored file in `.claude/tmp/` (e.g.,
-   `.claude/tmp/T-NNNN-context.json`) and reference it in the JIT file list
-   instead of passing numerous raw files.
+   fragments) into a git-ignored Markdown file (e.g., `.claude/tmp/T-NNNN-context.md`),
+   compile it to `.claude/tmp/T-NNNN-context.llmd` using the deterministic
+   markdown compiler `llmdc`, and reference it in the JIT file list instead of
+   passing numerous raw files.
 6. **DoD before next dispatch.** MUST verify the specialist's DoD is met
    before dispatching the next task to that slot.
 7. **Atomic commits.** One logical change per commit. MUST NOT bundle
