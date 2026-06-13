@@ -2,7 +2,7 @@
 
 **Feature Branch**: `016-token-economy-design`
 **Created**: 2026-05-28
-**Status**: Draft
+**Status**: Complete
 **Input**: Composite token-economy design pass that gates v1.2.0 and v1.3.0 implementation entry per `docs/pm/release-plan-v1.x.md` (customer ruling Q-0025 + addendum ratifying PM's wider gate, 2026-05-28). Combines GitHub issues #239 (framework-gap: tech-lead.md missing Token economy (binding) section) and #245 (token-economy: agent contract prose audit AGT-1).
 
 ## User Scenarios & Testing *(mandatory)*
