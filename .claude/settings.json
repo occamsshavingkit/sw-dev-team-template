@@ -84,6 +84,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/subcall-limit-guard.py\"",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "TaskCompleted": [
@@ -161,6 +171,12 @@
             "command": "[ -x \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/role-routing-reminder.sh\" ] && \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/role-routing-reminder.sh\" 2>&1 || true",
             "timeout": 5,
             "statusMessage": "Role-routing rule reminder..."
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/subcall-limit-reset.py\"",
+            "timeout": 5,
+            "statusMessage": "Resetting subagent subcall budget..."
           }
         ]
       },
