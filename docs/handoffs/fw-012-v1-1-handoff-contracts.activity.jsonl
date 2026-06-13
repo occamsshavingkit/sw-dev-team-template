@@ -5,3 +5,9 @@
 {"name": "Bash: cd /home/quackdcs/SWEProj echo \"=== --resolve (re-check conflicts; handoff path ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:03:24Z"}
 {"name": "Bash: cd /home/quackdcs/SWEProj scripts/upgrade.sh --verify 2>&1 | tail -12 echo \"=== ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:03:37Z"}
 {"name": "Bash: cd /home/quackdcs/SWEProj echo \"=== upgrade change scope ===\"; git status --shor", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:03:50Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj git add -A git reset -q -- .claude/scheduled_tasks.loc", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:04:07Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj; echo \"=== meta remotes ===\"; git remote -v 2>&1 | hea", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:08:04Z"}
+{"name": "Write", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:08:29Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:08:34Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:08:42Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template git fetch origin --quiet 2>&1 | t", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:09:27Z"}

@@ -100,3 +100,14 @@ R-2) can scroll away, but this file survives.
 M9 rc9 migration: backfilled Output format placeholder for .claude/agents/code-reviewer.md (upstream rc9 ship not reachable during migration; manual fill required).
 M9 rc9 migration: backfilled Hard rules placeholder for .claude/agents/qa-engineer.md (upstream rc9 ship not reachable during migration; manual fill required).
 M14 rc14 migration pass 2: backfilled Output format for .claude/agents/tech-lead.md from upstream rc14 ship.
+
+## D-0007 — 2026-06-13 — Filter out non-agent evidence files in lint-agent-contracts.sh
+
+**Who decided:** `tech-lead`
+**Options considered:** edit the evidence files to have frontmatter / filter them out in the lint script / move them to a different directory
+**Chose:** filter them out in the lint script
+**Why:** The evidence files are documentation check-lists for prompt regression, not generated agent contracts, so they do not need frontmatter validation. Filtering them out in the lint script is the most surgical and correct fix.
+**Files touched:** `scripts/lint-agent-contracts.sh`
+**Customer visibility:** shown in turn ledger on 2026-06-13
+**Supersedes:** —
+**Notes:** Non-role markdown files in `docs/runtime/agents` that match alphanumeric-kebab regex are now ignored by the lint script if they end with `evidence`.

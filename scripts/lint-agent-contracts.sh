@@ -609,6 +609,7 @@ scan_generated() {
             | grep -E '^[a-z0-9][a-z0-9-]*$' \
             | grep -v '^sme-template$' \
             | grep -v '^readme$' \
+            | grep -v 'evidence$' \
             | LC_ALL=C sort \
             | sed 's/$/.md/' \
             | while IFS= read -r f; do
