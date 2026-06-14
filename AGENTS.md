@@ -130,10 +130,16 @@ has already explicitly authorized or required agents in the current
 session, record that statement as the authorization instead of re-asking.
 A prior session's approval does not carry forward.
 
+**Exception — Pre-authorized harnesses.** Under the Google Antigravity or
+Gemini CLI harness contexts, specialist spawning is pre-authorized. In
+these contexts, `tech-lead` does not prompt the customer/user for spawning
+authorization, and specialist dispatch proceeds immediately. The turn summary
+or Turn Ledger records the pre-authorization state (e.g., `specialists dispatched: pre-authorized`).
+
 When the active Codex harness exposes subagent spawning, `tech-lead`
 may dispatch specialists with Codex's native subagent facility only
-after that current-session authorization is recorded in the turn summary
-or Turn Ledger.
+after that current-session authorization (or pre-authorized harness status)
+is recorded in the turn summary or Turn Ledger.
 
 Before any Codex dispatch, read `docs/model-routing-guidelines.md`
 for the role tier and `reasoning_effort`, and `docs/agent-health-contract.md`

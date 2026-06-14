@@ -210,14 +210,7 @@ Rationale:
   in its `tools:` line (v0.12.1) for Claude Code compatibility. Codex
   does not consume that frontmatter directly; root `AGENTS.md` maps
   the same canonical roles onto Codex's spawn vocabulary.
-- In Codex, specialist spawning requires per-session customer
-  authorization. If spawning is unavailable, continue only with
-  orchestration or non-specialist work and record that limitation; if the
-  customer required agents or the task needs specialist-owned work, stop
-  and ask before proceeding. If spawning is available but no specialist
-  slot is free, queue the dispatch and wait for a slot unless the
-  customer explicitly authorizes local implementation for that queued
-  item.
+- In Codex, specialist spawning requires per-session customer authorization. Exception: Under the Google Antigravity or Gemini CLI harness contexts, specialist spawning is pre-authorized, and no customer prompt is required. If spawning is unavailable, continue only with orchestration or non-specialist work and record that limitation; if the customer required agents or the task needs specialist-owned work, stop and ask before proceeding. If spawning is available but no specialist slot is free, queue the dispatch and wait for a slot unless the customer explicitly authorizes local implementation for that queued item.
 
 **Upstream issue #37** (2026-04-24) logged a downstream project
 that hit this wall by spawning `tech-lead` as a subagent. Fix is

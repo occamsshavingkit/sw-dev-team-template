@@ -4,7 +4,7 @@ A ready-to-use project scaffold that turns a single Claude Code or
 Codex session into a 16-role software-development team with a strict
 escalation protocol and a per-project SME pattern.
 
-**Status.** Current release: **`v1.4.0`** (MINOR — adds Antigravity `.agents/` adapter
+**Status.** Current release: **`v1.5.0`** (MINOR — JIT context, subagent bypass, recursion limit, Antigravity pre-auth)
 (fw-adr-0026), per-role roster (16 `agent.json` + 16 `SKILL.md` files, generator v0.3.0),
 Claude→Antigravity MCP shim (fw-adr-0027, `scripts/mcp/`), `.codacy.yaml`, exec-bit
 preserve/repair + YAML intake indexing (#337), and trivial-delta auto-merge + take-upstream

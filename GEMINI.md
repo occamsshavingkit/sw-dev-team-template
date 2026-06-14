@@ -115,6 +115,20 @@ v0.44.0) to restore async capability.
 This mirrors the intent of `AGENTS.md` Rule F and `.claude/agents/tech-lead.md`
 § "Background-by-default (binding)" for the Gemini harness.
 
+## Team Startup and Spawning Model
+
+Under the Gemini CLI harness, the team startup and specialist spawning model
+is governed by pre-authorization:
+
+- **Pre-authorized Spawning:** Specialist spawning is pre-authorized by default.
+  The main session (`tech-lead`) does not prompt the customer/user for spawning
+  authorization at session startup or before dispatching specialists.
+- **Immediate Dispatch:** The orchestrator dispatches specialist agents
+  directly to perform subtasks in accordance with the task breakdown.
+- **Turn Logging:** When specialists are dispatched, the turn summary or
+  Turn Ledger records the action with the pre-authorization status
+  (e.g., `specialists dispatched: pre-authorized`).
+
 ## Agent Roster
 
 All 16 canonical roles are available. Role slugs match `.claude/agents/`

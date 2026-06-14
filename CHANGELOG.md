@@ -18,6 +18,25 @@ filed upstream include that version.
 
 ---
 
+## v1.5.0 (2026-06-14)
+
+Fifth MINOR release post v1.0.0 final. Introduces JIT Context Assembly protocol with llmdc token compression, dynamic subagent auto-bypass, infinite subcall recursion limits, role-contract updates for SWEBOK V4 and PMBOK 8 guidelines, and specialist spawning pre-authorization under Google Antigravity and Gemini CLI harnesses.
+
+### Added
+
+- **JIT Context Assembly Protocol (FW-ADR-0021, #296)**: Implements 4-core rules for leaf-task context assembly to minimize token waste: mandatory JIT lists, line-range anchors, token budget envelopes, and tech-lead pre-assembly for large/XL tasks.
+- **llmdc Context Compilation (#296)**: Integrates the `llmdc` Markdown compiler to compile high-density tech-lead pre-assembled contexts (`.claude/tmp/T-NNNN-context.md`) into highly-compressed `.llmd` context files.
+- **Dynamic Subagent Auto-Bypass (#346, #348)**: Enables pre-tool hooks to automatically recognize spawned subagents by mapping `conversationId` to `role` in `docs/pm/active-dispatches.json`, bypassing the need for manual `SWDT_AGENT_PUSH` overrides.
+- **Infinite Recursion Subcall Limit (#348)**: Restricts subagent spawning to a maximum of 3 recursive dispatches per session via `subcall-limit-guard.py` hook under `PreToolUse` on the `Agent` tool, resetting budget on `SessionStart`.
+- **SWEBOK V4 and PMBOK 8 Guidelines (#346)**: Anchors project-manager and other agent roles to SWEBOK V4 and PMBOK 8th Edition guidelines, standardizing engineering economics (7-step tradeoffs, time-value-of-money, MARR/IRR), supplier/outsourcing management (fixed-price, cost-reimbursable, T&M), and maintenance arrangement documentation.
+- **Question Lints (#348)**: Integrates checklist items into `AGENTS.md` and `GEMINI.md` to prevent customer-facing questions in the final turn line when background subagents or tasks are in-flight (Hard Rule #11).
+- **Google Antigravity & Gemini CLI Spawn Pre-authorization (ADR-0029)**: Pre-authorizes specialist spawning under Google Antigravity and Gemini CLI harness contexts to bypass disruptive startup prompts, while keeping the authorization prompt in standard Codex contexts.
+
+### Fixed
+
+- **Stdin Leak and Snapshots Regression Check (#350)**: Fixed file descriptor leak under stdin redirection and added verification regression checks in `generate-fixture-snapshots.sh`.
+- **settings.json Hook Merging (#348)**: Hardened `upgrade.sh` settings hook-merging logic to normalize fallback syntax (`${CLAUDE_PROJECT_DIR:-.}` vs `${CLAUDE_PROJECT_DIR}`) and upgrade legacy hooks without duplicate registrations.
+
 ## v1.4.0 (2026-06-11)
 
 Fourth MINOR release post v1.0.0 final. All changes are additive or
