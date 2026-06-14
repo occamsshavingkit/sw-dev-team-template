@@ -20,9 +20,12 @@
 #      The schema for this surface is inlined here (key-presence check
 #      via awk); R-VR-1 explicitly does not require a YAML parser.
 #
-#   3. Generated artefacts (docs/runtime/agents/*.md and
-#      .opencode/agents/*.md). Each file's frontmatter is extracted to
-#      JSON and validated against schemas/generated-artifact.schema.json.
+#   3. Generated artefacts (docs/runtime/agents/*.md,
+#      .opencode/agents/*.md, .gemini/agents/*.md, and
+#      .codex/agents/*.toml). Markdown frontmatter is extracted to JSON
+#      and validated against schemas/generated-artifact.schema.json;
+#      Codex TOML adapters are checked for the fields required by the
+#      typed-role loader.
 #
 #   4. Antigravity adapters (.agents/skills/<role>/SKILL.md and
 #      .agents/agents/<role>/agent.json). Validates canonical_sha match,
@@ -37,7 +40,7 @@
 # Modes (CLI flags):
 #   (default)           Scan all four surfaces.
 #   --canonical-only    Only canonical agent contracts.
-#   --generated-only    Only generated artefacts (runtime/opencode/gemini).
+#   --generated-only    Only generated artefacts (runtime/opencode/gemini/codex).
 #   --fixtures-only     Only prompt-regression fixtures.
 #   --antigravity-only  Only .agents/skills/ and .agents/agents/ surfaces.
 #   -h | --help         Print this header.
@@ -63,6 +66,7 @@ AGENTS_DIR=".claude/agents"
 RUNTIME_DIR="docs/runtime/agents"
 OPENCODE_DIR=".opencode/agents"
 GEMINI_DIR=".gemini/agents"
+CODEX_DIR=".codex/agents"
 ANTIGRAVITY_DIR=".agents"
 FIXTURES_DIR="tests/prompt-regression"
 SCHEMA_DIR="schemas"
@@ -624,6 +628,39 @@ scan_generated() {
             [ -n "${w}" ] && WARN_COUNT="${w}"
         fi
     done
+    if [ -d "${CODEX_DIR}" ]; then
+        ls "${CODEX_DIR}" 2>/dev/null \
+            | grep '\.toml$' \
+            | sed 's/\.toml$//' \
+            | grep -E '^[a-z0-9][a-z0-9-]*$' \
+            | grep -v '^sme-template$' \
+            | LC_ALL=C sort \
+            | sed 's/$/.toml/' \
+            | while IFS= read -r f; do
+                lint_codex_file "${CODEX_DIR}/${f}"
+                printf 'COUNTERS\t%d\t%d\n' "${ERR_COUNT}" "${WARN_COUNT}"
+            done > "${TMP_COUNTERS}"
+        last="$(tail -1 "${TMP_COUNTERS}" 2>/dev/null || true)"
+        if [ -n "${last}" ]; then
+            e="$(printf '%s' "${last}" | awk -F'\t' '{print $2}')"
+            w="$(printf '%s' "${last}" | awk -F'\t' '{print $3}')"
+            [ -n "${e}" ] && ERR_COUNT="${e}"
+            [ -n "${w}" ] && WARN_COUNT="${w}"
+        fi
+    fi
+}
+
+lint_codex_file() {
+    src="$1"
+    for key in description model developer_instructions name; do
+        if ! grep -Eq "^${key}[[:space:]]*=" "${src}"; then
+            err "${src}" "codex adapter missing required ${key} field"
+        fi
+    done
+    model="$(awk -F'=' '/^model[[:space:]]*=/ { v=$2; sub(/^[[:space:]]*/, "", v); gsub(/^"|"$/, "", v); print v; exit }' "${src}")"
+    if ! printf '%s\n' "${model}" | grep -Eq '^(gpt-[A-Za-z0-9.-]+|codex-auto-review)$'; then
+        err "${src}" "codex adapter model is not a concrete Codex slug: ${model}"
+    fi
 }
 
 # ---- fixture validation (inline YAML schema, R-VR-1) -----------------

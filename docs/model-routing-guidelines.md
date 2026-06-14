@@ -170,7 +170,7 @@ Lower tier or effort when all of these are true:
 ## Provider/model ID conventions
 
 - **Anthropic**: `anthropic/claude-{opus,sonnet,haiku}-<minor>-<patch>` (e.g., `anthropic/claude-sonnet-4-7`). Per-class fallback uses the closest peer within the same class.
-- **OpenAI**: `openai/<model-id>` (e.g., `openai/gpt-5-pro`). The `openai-coding` class is for code-heavy tasks; `openai-frontier` for advanced reasoning; `openai-mini` for cheap interactive use.
+- **OpenAI**: `openai/<model-id>` (e.g., `openai/gpt-5-pro`). The `openai-coding` class is for code-heavy tasks; `openai-frontier` for advanced reasoning; `openai-mini` for cheap interactive use. Codex typed-role adapters resolve these classes to concrete Codex slugs: `openai-mini` -> `gpt-5.4-mini`, `openai-coding` -> `gpt-5.4`, and `openai-frontier` -> `gpt-5.5`.
 - **Google (Gemini)**: `google/gemini-<class>-<minor>` (e.g., `google/gemini-pro-2.5`). `gemini-pro` for substantive synthesis; `gemini-flash` for fast iteration.
 - **OpenCode harness**: per ADR-0009, OpenCode is a harness adapter; the model identifier is whichever provider/model OpenCode's adapter resolves to. The routing rule that fires applies to the resolved upstream identifier, not OpenCode itself.
 
@@ -199,7 +199,23 @@ The table below is the single canonical binding default for fresh template scaff
 
 Class names use the enum from `schemas/model-routing.schema.json`: `claude-opus`, `claude-sonnet`, `claude-haiku`, `gemini-pro`, `gemini-flash`, `openai-frontier`, `openai-coding`, `openai-mini`.
 
-Provider column key: **Claude equivalent** = fallback used in Claude Code; **OpenAI equivalent** = class used in Codex; **Gemini equivalent** = class used in opencode. Harness adapters resolve these class abstractions to concrete model IDs at runtime.
+Provider column key: **Claude equivalent** = fallback used in Claude Code; **OpenAI equivalent** = class used for Codex routing; **Gemini equivalent** = class used in Gemini-compatible harness adapters. Harness adapters resolve these class abstractions to concrete model IDs at runtime; generated Codex role files store the resolved concrete slug because Codex validates the `model:` value before typed-role startup.
+
+Codex typed-role loading is implemented by the external Codex
+`multi_agent_v1` resolver, not by this template, so this repository
+cannot patch that resolver directly. The template-owned compatibility
+surface is generated under `.codex/agents/<role>.toml`; those files mirror
+the canonical `.claude/agents/<role>.md` role contract but use the
+OpenAI equivalent column resolved to a concrete Codex model slug for
+`model:`. The current concrete resolver is `openai-mini` ->
+`gpt-5.4-mini`, `openai-coding` -> `gpt-5.4`, and `openai-frontier` ->
+`gpt-5.5`. Do not point Codex role loading at canonical Claude role
+files or abstract OpenAI classes when typed dispatch validates model
+service tiers. If a running Codex session predates regenerated
+`.codex/agents/` files, use `spawn_agent(agent_type="worker",
+model=<concrete Codex model>,
+reasoning_effort=<tier>)` with the role brief until the harness is
+restarted and reloads the generated adapter roster.
 
 | Agent | default_class | Claude equivalent | OpenAI equivalent | Gemini equivalent | frontier_only_when |
 |---|---|---|---|---|---|
@@ -312,10 +328,9 @@ The binding default-class table above specifies each agent's *preferred* class. 
 Provider-specific fallback chains:
 
 - **Claude Code** (Claude only): preferred `haiku` → fall up to `sonnet` → fall up to `opus` (frontier).
-- **Codex** (OpenAI only): preferred `openai-mini` → fall up to `openai-coding` → fall up to `openai-frontier`.
+- **Codex** (OpenAI only): preferred `openai-mini` (`gpt-5.4-mini`) → fall up to `openai-coding` (`gpt-5.4`) → fall up to `openai-frontier` (`gpt-5.5`).
 - **opencode** (Gemini + OpenAI both reachable): preferred `gemini-flash` → fall up to `gemini-pro`. If both Gemini tiers exhausted: cross-provider degrade to the OpenAI equivalent column (`openai-mini` or `openai-coding` as appropriate). Same shape for an OpenAI starting point exhausted.
 
 Note that fallback **up the tier** (toward frontier) is the documented path. Falling **down** (toward `fast`) is only acceptable for non-load-bearing roles where the lower tier is explicitly listed as acceptable in the per-agent row — currently none of the 14 baseline roles have such an exception. The frontier class (`claude-opus`, `openai-frontier`, `gemini-pro` at ceiling) remains the upper bound; if frontier is also unavailable, work pauses or the operator escalates the availability issue to the customer.
 
-CI lint policy (per `scripts/lint-agent-model-routing.sh`): an agent contract's `model:` field MUST equal the preferred Claude equivalent OR the next-higher Claude tier (the availability-fallback). For example, a `sonnet`-defaulted role may declare `model: sonnet` (preferred) or `model: opus` (fallback) and pass the lint; `model: haiku` would fail. The same fallback-permissive rule applies to the Codex-side contract surface.
-
+CI lint policy (per `scripts/lint-agent-model-routing.sh`): a canonical `.claude/agents` contract's `model:` field MUST equal the preferred Claude equivalent OR the next-higher Claude tier (the availability-fallback). For example, a `sonnet`-defaulted role may declare `model: sonnet` (preferred) or `model: opus` (fallback) and pass the lint; `model: haiku` would fail. The Codex-side surface is pinned separately by `tests/lint/test-agent-model-routing.sh` case 8, which checks generated `.codex/agents` files for the current class-to-concrete-slug mapping and rejects non-concrete aliases; it does not implement the same fallback-permissive lint rule.
