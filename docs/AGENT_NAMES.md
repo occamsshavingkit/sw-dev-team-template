@@ -121,6 +121,7 @@ assigned.
 | `librarian`          |               |          |                                         |       |
 | `ui-ux-designer`     |               |          |                                         |       |
 | `mcp-liaison`        |               |          |                                         |       |
+| `security-engineer`  |               |          |                                         |       |
 
 **SMEs.** One row per `sme-<domain>` agent the project creates. Add as
 new SMEs are added.
@@ -140,15 +141,16 @@ artificially over-represent female characters.*)
 | `project-manager`    | Miss Piggy            | she / her | The Muppet Show | schedule / scope / drive |
 | `architect`          | Dr. Bunsen Honeydew   | he / him | The Muppet Show | designs things |
 | `software-engineer`  | Beaker                | he / him | The Muppet Show | builds things |
-| `researcher`         | TODO: reassign        | — | — | Sam Eagle moved to librarian (issue #291); researcher needs a new pick — pronoun verification required before committing |
-| `librarian`          | Sam Eagle             | he / him | The Muppet Show | authoritative custodian; archival instinct |
+| `researcher`         | Walter                | he / him | "Walter (Muppet), Wikipedia, https://en.wikipedia.org/wiki/Walter_(Muppet), as of 2026-06-14" | obsessive fan; detail-oriented |
+| `librarian`          | Sam Eagle             | he / him | "Sam Eagle, Wikipedia, https://en.wikipedia.org/wiki/Sam_Eagle, as of 2026-06-14" | authoritative custodian; archival instinct |
 | `qa-engineer`        | Statler & Waldorf     | he / him (both) | The Muppet Show | critics |
 | `sre`                | Animal                | he / him | The Muppet Show | keeps the beat |
 | `tech-writer`        | Rowlf                 | he / him | The Muppet Show | articulate |
 | `code-reviewer`      | Janice                | she / her | The Muppet Show | exacting, creative |
 | `release-engineer`   | Scooter               | he / him | The Muppet Show | ships things |
-| `ui-ux-designer`     | TODO: assign          | — | — | New role (issue #301); no Muppets pick yet — pronoun verification required |
-| `mcp-liaison`        | TODO: assign          | — | — | New role (issue #290); no Muppets pick yet — pronoun verification required |
+| `ui-ux-designer`     | Gonzo the Great       | he / him | "Gonzo (Muppet), Wikipedia, https://en.wikipedia.org/wiki/Gonzo_(Muppet), as of 2026-06-14" | daredevil stunts; creative design |
+| `mcp-liaison`        | Dr. Teeth             | he / him | "Dr. Teeth, Wikipedia, https://en.wikipedia.org/wiki/Dr._Teeth, as of 2026-06-14" | band leader; handles connections |
+| `security-engineer`  | Uncle Deadly          | he / him | "List of Muppets, Wikipedia, https://en.wikipedia.org/wiki/List_of_Muppets#Uncle_Deadly, as of 2026-06-14" | phantom of the theater; enigmatic defense |
 
 ## Example — Famous singers category (balanced)
 
