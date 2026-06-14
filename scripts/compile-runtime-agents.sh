@@ -23,6 +23,13 @@
 # description field (load-bearing for Gemini autonomous role selection).
 # Pass --no-gemini-adapters to skip Gemini adapter generation.
 #
+# Codex scope: also writes a thin Codex adapter stub to
+# .codex/agents/<role>.toml. The adapter resolves the OpenAI-equivalent
+# class from the same binding table to a concrete Codex model ID so
+# Codex-facing role files never expose Claude aliases such as `sonnet`
+# or abstract OpenAI classes such as `openai-coding`.
+# Pass --no-codex-adapters to skip Codex adapter generation.
+#
 # fw-adr-0026 Q-0033 scope: also writes Antigravity adapter files to
 # .agents/skills/<role>/SKILL.md and .agents/agents/<role>/agent.json.
 # toolNames is emitted as [] (passthrough) for all roles; a WARN is
@@ -34,6 +41,7 @@
 #                                     [--out-dir <path>] \
 #                                     [--no-opencode-adapters] \
 #                                     [--no-gemini-adapters] \
+#                                     [--no-codex-adapters] \
 #                                     [--no-antigravity-adapters] [role...]
 #
 # Inputs:
@@ -76,6 +84,11 @@
 #                   adapters alongside OpenCode adapters. In --verify
 #                   mode this restricts verification to compact-runtime
 #                   and OpenCode only.
+#   --no-codex-adapters
+#                   Skip writing .codex/agents/<role>.toml adapters.
+#                   Default behaviour generates Codex adapters alongside
+#                   OpenCode and Gemini. In --verify mode this restricts
+#                   verification to compact-runtime, OpenCode, and Gemini.
 #   --no-antigravity-adapters
 #                   Skip writing .agents/skills/<role>/SKILL.md and
 #                   .agents/agents/<role>/agent.json adapters
@@ -119,10 +132,14 @@ GENERATED_SCHEMA="${SCHEMA_DIR}/generated-artifact.schema.json"
 OPENCODE_OUT_DIR=".opencode/agents"
 OPENCODE_LOCAL_DIR=".opencode/agents/local"
 GEMINI_OUT_DIR=".gemini/agents"
+CODEX_OUT_DIR=".codex/agents"
+CODEX_LOCAL_DIR=".codex/agents/local"
 ANTIGRAVITY_OUT_DIR=".agents"
 ROUTING_DOC="docs/model-routing-guidelines.md"
 DEFAULT_MODEL_CLASS="claude-sonnet"
 DEFAULT_GEMINI_MODEL_CLASS="gemini-pro"
+DEFAULT_CODEX_MODEL_CLASS="openai-coding"
+DEFAULT_CODEX_MODEL_ID="gpt-5.4"
 
 # ---- ANTIGRAVITY_TOOLS_MAP -------------------------------------------
 # Maps role-slug -> toolNames array for agent.json emission.
@@ -143,6 +160,7 @@ OUT_DIR="${DEFAULT_OUT_DIR}"
 ROLES=""
 NO_OPENCODE_ADAPTERS=0
 NO_GEMINI_ADAPTERS=0
+NO_CODEX_ADAPTERS=0
 NO_ANTIGRAVITY_ADAPTERS=0
 
 while [ $# -gt 0 ]; do
@@ -187,6 +205,10 @@ while [ $# -gt 0 ]; do
       ;;
     --no-gemini-adapters)
       NO_GEMINI_ADAPTERS=1
+      shift
+      ;;
+    --no-codex-adapters)
+      NO_CODEX_ADAPTERS=1
       shift
       ;;
     --no-antigravity-adapters)
@@ -310,6 +332,10 @@ if [ "${REPRO_MODE}" -eq 1 ]; then
   if [ "${NO_GEMINI_ADAPTERS}" -eq 1 ]; then
     repro_args_a="${repro_args_a} --no-gemini-adapters"
     repro_args_b="${repro_args_b} --no-gemini-adapters"
+  fi
+  if [ "${NO_CODEX_ADAPTERS}" -eq 1 ]; then
+    repro_args_a="${repro_args_a} --no-codex-adapters"
+    repro_args_b="${repro_args_b} --no-codex-adapters"
   fi
   if [ "${NO_ANTIGRAVITY_ADAPTERS}" -eq 1 ]; then
     repro_args_a="${repro_args_a} --no-antigravity-adapters"
@@ -451,6 +477,22 @@ if [ "${REPRO_MODE}" -eq 1 ]; then
           fi
       fi
 
+      if [ "${NO_CODEX_ADAPTERS}" -eq 0 ]; then
+          a_cd="${REPRO_A}/root/${CODEX_OUT_DIR}/${r}.toml"
+          b_cd="${REPRO_B}/root/${CODEX_OUT_DIR}/${r}.toml"
+          if [ -f "${a_cd}" ] || [ -f "${b_cd}" ]; then
+              if [ ! -f "${a_cd}" ] || [ ! -f "${b_cd}" ]; then
+                  echo "reproducibility FAIL: ${r} -- diff at ${a_cd} (one side missing)"
+                  role_ok=0
+                  repro_status=1
+              elif ! cmp -s "${a_cd}" "${b_cd}"; then
+                  echo "reproducibility FAIL: ${r} -- diff at ${a_cd}"
+                  role_ok=0
+                  repro_status=1
+              fi
+          fi
+      fi
+
       if [ "${NO_ANTIGRAVITY_ADAPTERS}" -eq 0 ]; then
           a_sk="${REPRO_A}/root/${ANTIGRAVITY_OUT_DIR}/skills/${r}/SKILL.md"
           b_sk="${REPRO_B}/root/${ANTIGRAVITY_OUT_DIR}/skills/${r}/SKILL.md"
@@ -496,6 +538,7 @@ VERIFY_SCRATCH=""
 VERIFY_COMMITTED_RUNTIME=""
 VERIFY_COMMITTED_OPENCODE=""
 VERIFY_COMMITTED_GEMINI=""
+VERIFY_COMMITTED_CODEX=""
 if [ "${VERIFY_MODE}" -eq 1 ]; then
   if [ "${CHECK_MODE}" -eq 1 ]; then
     echo "compile-runtime-agents: --verify and --check are mutually exclusive" >&2
@@ -505,12 +548,14 @@ if [ "${VERIFY_MODE}" -eq 1 ]; then
   VERIFY_COMMITTED_RUNTIME="${OUT_DIR}"
   VERIFY_COMMITTED_OPENCODE="${OPENCODE_OUT_DIR}"
   VERIFY_COMMITTED_GEMINI="${GEMINI_OUT_DIR}"
+  VERIFY_COMMITTED_CODEX="${CODEX_OUT_DIR}"
   VERIFY_COMMITTED_ANTIGRAVITY="${ANTIGRAVITY_OUT_DIR}"
   OUT_DIR="${VERIFY_SCRATCH}/runtime"
   OPENCODE_OUT_DIR="${VERIFY_SCRATCH}/opencode"
   GEMINI_OUT_DIR="${VERIFY_SCRATCH}/gemini"
+  CODEX_OUT_DIR="${VERIFY_SCRATCH}/codex"
   ANTIGRAVITY_OUT_DIR="${VERIFY_SCRATCH}/antigravity"
-  mkdir -p "${OUT_DIR}" "${OPENCODE_OUT_DIR}" "${GEMINI_OUT_DIR}" "${ANTIGRAVITY_OUT_DIR}"
+  mkdir -p "${OUT_DIR}" "${OPENCODE_OUT_DIR}" "${GEMINI_OUT_DIR}" "${CODEX_OUT_DIR}" "${ANTIGRAVITY_OUT_DIR}"
   # Trap cleanup; preserved across compile_role's own EXIT trap usage
   # by being installed last and re-installing after each compile.
 fi
@@ -754,6 +799,52 @@ resolve_gemini_model_class() {
   ' "${ROUTING_DOC}"
 }
 
+# ---- codex model resolver -------------------------------------------
+# Like resolve_model_class but reads column 5 (OpenAI equivalent) of the
+# binding table. This is the Codex-facing class abstraction; canonical
+# .claude/agents files intentionally keep Claude Code aliases.
+resolve_codex_model_class() {
+  role_slug="$1"
+  if [ ! -f "${ROUTING_DOC}" ]; then
+    echo ""
+    return 0
+  fi
+  awk -v role="${role_slug}" '
+    BEGIN { FS = "|"; in_table = 0 }
+    /^##[ \t]+Binding per-agent default-class table/ { in_table = 1; next }
+    /^##[ \t]+/ { if (in_table) in_table = 0 }
+    in_table == 0 { next }
+    /^\|[ \t]*`[a-z0-9-]+`[ \t]*\|[ \t]*`[a-z0-9-]+`[ \t]*\|/ {
+      agent = $2
+      gsub(/^[ \t]+|[ \t]+$/, "", agent)
+      gsub(/`/, "", agent)
+      if (agent == role) {
+        cls = $5
+        gsub(/^[ \t]+|[ \t]+$/, "", cls)
+        gsub(/`/, "", cls)
+        print cls
+        exit
+      }
+    }
+  ' "${ROUTING_DOC}"
+}
+
+# Resolve the Codex-facing OpenAI class abstraction to a concrete model
+# slug accepted by the active Codex typed-role loader. Keep the binding
+# table abstract; only generated .codex/agents frontmatter gets slugs.
+resolve_codex_model_id() {
+  model_class="$1"
+  case "${model_class}" in
+    openai-mini) echo "gpt-5.4-mini" ;;
+    openai-coding) echo "gpt-5.4" ;;
+    openai-frontier) echo "gpt-5.5" ;;
+    *)
+      echo ""
+      return 1
+      ;;
+  esac
+}
+
 # ---- opencode adapter writer ----------------------------------------
 # Writes .opencode/agents/<role>.md with frontmatter + the fixed
 # four-line body required by R-7. canonical_sha is the same 40-hex
@@ -801,6 +892,65 @@ write_opencode_adapter() {
   if ! maybe_validate_output "${out_path}"; then
     overall_status=1
   fi
+}
+
+# ---- codex adapter writer -------------------------------------------
+# Writes .codex/agents/<role>.toml with the fields consumed by Codex
+# typed-role loading. The model value must resolve the OpenAI equivalent column to a
+# concrete Codex model slug, not copy .claude/agents/<role>.md or the
+# abstract class, because Codex typed-role loading validates concrete
+# model IDs before agent creation.
+write_codex_adapter() {
+  role="$1"
+  canonical_src="$2"
+  canonical_sha="$3"
+  canonical_desc="$4"
+
+  codex_model_class="$(resolve_codex_model_class "${role}")"
+  if [ -z "${codex_model_class}" ]; then
+    echo "compile-runtime-agents: ${role} not in routing table (OpenAI col), defaulting to ${DEFAULT_CODEX_MODEL_CLASS}" >&2
+    codex_model_class="${DEFAULT_CODEX_MODEL_CLASS}"
+  fi
+  codex_model="$(resolve_codex_model_id "${codex_model_class}" || true)"
+  if [ -z "${codex_model}" ]; then
+    echo "compile-runtime-agents: ${role} has unsupported Codex model class ${codex_model_class}, defaulting to ${DEFAULT_CODEX_MODEL_ID}" >&2
+    codex_model="${DEFAULT_CODEX_MODEL_ID}"
+  fi
+
+  mkdir -p "${CODEX_OUT_DIR}"
+  out_path="${CODEX_OUT_DIR}/${role}.toml"
+  tmp_out="${out_path}.tmp"
+
+  # TOML basic-string escaper for single-line scalar values.
+  toml_dq_esc() {
+    awk 'BEGIN{ORS=""}
+    {
+      s = $0
+      gsub(/\\/, "\\\\", s)
+      gsub(/"/, "\\\"", s)
+      gsub(/\t/, "\\t",  s)
+      gsub(/\r/, "\\r",  s)
+      if (NR > 1) printf "\\n"
+      printf "%s", s
+    }'
+  }
+
+  esc_desc="$(printf '%s' "${canonical_desc}" | toml_dq_esc)"
+
+  {
+    printf 'description = "%s"\n' "${esc_desc}"
+    printf 'model = "%s"\n' "${codex_model}"
+    printf 'developer_instructions = """\n'
+    printf 'Read `.claude/agents/%s.md` (canonical role contract).\n' "${role}"
+    printf 'If `.claude/agents/%s-local.md` exists, read it after the canonical file.\n' "${role}"
+    printf 'If `.codex/agents/local/%s.toml` exists, read it after the canonical local supplement.\n' "${role}"
+    printf 'Act only as that role.\n'
+    printf "Return output in the role's required format.\n"
+    printf '"""\n'
+    printf 'name = "%s"\n' "${role}"
+  } > "${tmp_out}"
+
+  mv "${tmp_out}" "${out_path}"
 }
 
 # ---- gemini adapter writer ------------------------------------------
@@ -1151,6 +1301,13 @@ compile_role() {
     write_gemini_adapter "${role}" "${src}" "${canonical_sha}" "${fm_desc}"
   fi
 
+  # Codex adapter — same thin-adapter shape, but using concrete Codex
+  # model slugs so typed-role loading never sees Claude aliases or
+  # abstract OpenAI classes.
+  if [ "${NO_CODEX_ADAPTERS}" -eq 0 ]; then
+    write_codex_adapter "${role}" "${src}" "${canonical_sha}" "${fm_desc}"
+  fi
+
   # Antigravity adapters (fw-adr-0026 Q-0033) — SKILL.md and agent.json.
   if [ "${NO_ANTIGRAVITY_ADAPTERS}" -eq 0 ]; then
     write_antigravity_adapters "${role}" "${src}" "${canonical_sha}" "${fm_desc}" "${fm_tools}"
@@ -1289,6 +1446,23 @@ if [ "${VERIFY_MODE}" -eq 1 ]; then
           verify_status=1
         elif ! cmp -s "${gen_gemini}" "${cmt_gemini}"; then
           echo "verify FAIL: ${cmt_gemini} differs from generator output"
+          role_ok=0
+          verify_status=1
+        fi
+      fi
+    fi
+
+    # Codex adapter (unless suppressed).
+    if [ "${NO_CODEX_ADAPTERS}" -eq 0 ]; then
+      gen_codex="${CODEX_OUT_DIR}/${role}.toml"
+      cmt_codex="${VERIFY_COMMITTED_CODEX}/${role}.toml"
+      if [ -f "${gen_codex}" ]; then
+        if [ ! -f "${cmt_codex}" ]; then
+          echo "verify FAIL: ${cmt_codex} differs from generator output (committed file missing)"
+          role_ok=0
+          verify_status=1
+        elif ! cmp -s "${gen_codex}" "${cmt_codex}"; then
+          echo "verify FAIL: ${cmt_codex} differs from generator output"
           role_ok=0
           verify_status=1
         fi

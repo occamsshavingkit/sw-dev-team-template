@@ -14,6 +14,8 @@
 #      (downward fallback) -> FAIL
 #   5. Missing agent contract (one of the 14 absent) -> FAIL
 #   6. Schema validation failure (malformed extracted JSON) -> FAIL
+#   7. --summary prints FAIL on failure path -> PASS
+#   8. Codex TOML adapter surface uses concrete Codex model slugs -> PASS
 #
 # Each case builds a minimal isolated fixture directory (temp copy of the
 # agents dir + a trimmed rubric) so the real repo contracts are never
@@ -223,6 +225,117 @@ else
     fail=$((fail + 1))
     failures+=("summary-fail-line: FAIL summary printed + non-zero exit (exit=$ACTUAL_EXIT7 fail_line_found=$SUMMARY_FAIL_FOUND)")
     echo "FAIL  summary-fail-line: FAIL summary printed + non-zero exit (exit=$ACTUAL_EXIT7 fail_line_found=$SUMMARY_FAIL_FOUND)"
+fi
+
+# --------------------------------------------------------------------------
+# Case 8: Codex typed-role adapter surface.
+# The native Codex multi_agent_v1 typed-role resolver is external to this
+# repository, so this pins the repo-side compatibility contract: generated
+# Codex-facing role files must not expose Claude aliases such as `sonnet`
+# or abstract OpenAI classes such as `openai-coding`.
+# --------------------------------------------------------------------------
+codex_model_id_for_class() {
+    case "$1" in
+        openai-mini) echo "gpt-5.4-mini" ;;
+        openai-coding) echo "gpt-5.4" ;;
+        openai-frontier) echo "gpt-5.5" ;;
+        *) echo "" ;;
+    esac
+}
+
+CODEX_ADAPTER_FAIL=0
+for role in architect software-engineer release-engineer code-reviewer project-manager researcher; do
+    adapter="$REPO_ROOT/.codex/agents/${role}.toml"
+    expected_class="$(
+        awk -v role="$role" '
+            BEGIN { FS = "|"; in_table = 0 }
+            /^##[ \t]+Binding per-agent default-class table/ { in_table = 1; next }
+            /^##[ \t]+/ { if (in_table) in_table = 0 }
+            in_table == 0 { next }
+            /^\|[ \t]*`[a-z0-9-]+`[ \t]*\|/ {
+                agent = $2
+                gsub(/^[ \t]+|[ \t]+$/, "", agent)
+                gsub(/`/, "", agent)
+                if (agent == role) {
+                    model = $5
+                    gsub(/^[ \t]+|[ \t]+$/, "", model)
+                    gsub(/`/, "", model)
+                    print model
+                    exit
+                }
+            }
+        ' "$REPO_ROOT/docs/model-routing-guidelines.md"
+    )"
+    expected_model="$(codex_model_id_for_class "$expected_class")"
+
+    if [ ! -f "$adapter" ]; then
+        CODEX_ADAPTER_FAIL=1
+        failures+=("codex-adapter: missing $adapter")
+        echo "FAIL  codex-adapter: missing $adapter"
+        continue
+    fi
+
+    if [ -z "$expected_model" ]; then
+        CODEX_ADAPTER_FAIL=1
+        failures+=("codex-adapter: $role unsupported OpenAI class=$expected_class")
+        echo "FAIL  codex-adapter: $role unsupported OpenAI class=$expected_class"
+        continue
+    fi
+
+    actual_model="$(awk -F'=' '/^model[ \t]*=/ { v=$2; sub(/^[ \t]*/, "", v); gsub(/^"|"$/, "", v); print v; exit }' "$adapter")"
+    if [ "$actual_model" != "$expected_model" ]; then
+        CODEX_ADAPTER_FAIL=1
+        failures+=("codex-adapter: $role expected model=$expected_model actual=$actual_model")
+        echo "FAIL  codex-adapter: $role expected model=$expected_model actual=$actual_model"
+        continue
+    fi
+
+    if grep -Eq '^model[[:space:]]*=[[:space:]]*"(haiku|sonnet|opus|openai-mini|openai-coding|openai-frontier)"[[:space:]]*$' "$adapter"; then
+        CODEX_ADAPTER_FAIL=1
+        failures+=("codex-adapter: $role exposes non-concrete model alias")
+        echo "FAIL  codex-adapter: $role exposes non-concrete model alias"
+        continue
+    fi
+
+    if [ -f "$REPO_ROOT/.codex/agents/${role}.md" ]; then
+        CODEX_ADAPTER_FAIL=1
+        failures+=("codex-adapter: stale Markdown adapter still present for $role")
+        echo "FAIL  codex-adapter: stale Markdown adapter still present for $role"
+        continue
+    fi
+
+    if ! printf '%s\n' "$actual_model" | grep -Eq '^(gpt-[A-Za-z0-9.-]+|codex-auto-review)$'; then
+        CODEX_ADAPTER_FAIL=1
+        failures+=("codex-adapter: $role model is not an allowed concrete Codex slug: $actual_model")
+        echo "FAIL  codex-adapter: $role model is not an allowed concrete Codex slug: $actual_model"
+        continue
+    fi
+done
+
+TMPDIR8="$(mktemp -d)"
+trap 'rm -rf "$TMPDIR2" "$TMPDIR8"' EXIT INT TERM HUP
+ADAPTER8="$TMPDIR8/frontier-fixture.toml"
+cat > "$ADAPTER8" << 'EOF'
+name: frontier-fixture
+model = "gpt-5.5"
+EOF
+
+frontier_model="$(awk -F'=' '/^model[ \t]*=/ { v=$2; sub(/^[ \t]*/, "", v); gsub(/^"|"$/, "", v); print v; exit }' "$ADAPTER8")"
+if [ "$frontier_model" != "$(codex_model_id_for_class openai-frontier)" ]; then
+    CODEX_ADAPTER_FAIL=1
+    failures+=("codex-adapter: frontier fixture expected model=$(codex_model_id_for_class openai-frontier) actual=$frontier_model")
+    echo "FAIL  codex-adapter: frontier fixture expected model=$(codex_model_id_for_class openai-frontier) actual=$frontier_model"
+elif ! printf '%s\n' "$frontier_model" | grep -Eq '^(gpt-[A-Za-z0-9.-]+|codex-auto-review)$'; then
+    CODEX_ADAPTER_FAIL=1
+    failures+=("codex-adapter: frontier fixture model is not an allowed concrete Codex slug: $frontier_model")
+    echo "FAIL  codex-adapter: frontier fixture model is not an allowed concrete Codex slug: $frontier_model"
+fi
+
+if [ "$CODEX_ADAPTER_FAIL" -eq 0 ]; then
+    pass=$((pass + 1))
+    echo "PASS  codex-adapter: concrete Codex model slug surface present"
+else
+    fail=$((fail + 1))
 fi
 
 # --------------------------------------------------------------------------
