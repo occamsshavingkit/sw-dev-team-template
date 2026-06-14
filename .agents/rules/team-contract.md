@@ -44,6 +44,7 @@ When no active handoff at `.devteam/active-handoff.json` declares
   security-critical (Hard Rule #7), customer-flagged/safety-critical
   (Hard Rule #4), and specialist-chaining tasks rather than relying on
   description matching alone.
+- Spawning authorization: Under the Google Antigravity (or Gemini CLI) harness contexts, specialist spawning is pre-authorized. The tech-lead does not prompt the customer/user for spawning authorization.
 
 ## Mode B — Delegated specialist
 
