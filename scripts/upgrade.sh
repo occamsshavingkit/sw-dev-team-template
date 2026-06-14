@@ -2335,14 +2335,16 @@ import os
 import sys
 
 
-def _command_set(hook_entry):
-    """Set of inner-hook `command` strings for one matcher entry."""
-    out = set()
-    for hk in hook_entry.get("hooks", []) or []:
-        cmd = hk.get("command")
-        if isinstance(cmd, str):
-            out.add(cmd)
-    return out
+def _normalize_cmd(cmd):
+    """Normalize hook command string to ignore CLAUDE_PROJECT_DIR fallback syntax."""
+    if not isinstance(cmd, str):
+        return ""
+    # Strip both braces variations and fallback syntax to match legacy and new styles.
+    return (
+        cmd.replace("${CLAUDE_PROJECT_DIR:-.}", "${CLAUDE_PROJECT_DIR}")
+        .replace("$CLAUDE_PROJECT_DIR", "${CLAUDE_PROJECT_DIR}")
+        .replace("./scripts/", "${CLAUDE_PROJECT_DIR}/scripts/")
+    )
 
 
 def _entry_key(entry):
@@ -2368,19 +2370,42 @@ def _merge_hook_section(project_section, upstream_section, section_label):
         key = _entry_key(up_entry)
         if key in project_by_key:
             proj_entry = project_by_key[key]
-            existing = _command_set(proj_entry)
+            
+            # Map of normalized command -> original index in proj_entry["hooks"]
+            existing_normalized = {}
+            for i, hk in enumerate(proj_entry.get("hooks", []) or []):
+                cmd = hk.get("command")
+                if isinstance(cmd, str):
+                    existing_normalized[_normalize_cmd(cmd)] = i
+
             for up_hook in up_entry.get("hooks", []) or []:
                 if not isinstance(up_hook, dict):
                     continue
                 cmd = up_hook.get("command")
-                if not isinstance(cmd, str) or cmd in existing:
+                if not isinstance(cmd, str):
                     continue
-                proj_entry.setdefault("hooks", []).append(up_hook)
-                existing.add(cmd)
-                label = key if key else "(no matcher)"
-                changes.append(
-                    "{}[{}]: added hook {}".format(section_label, label, cmd)
-                )
+                norm_cmd = _normalize_cmd(cmd)
+                
+                if norm_cmd in existing_normalized:
+                    # Upgrade legacy command to upstream one if it differs
+                    idx = existing_normalized[norm_cmd]
+                    old_hook = proj_entry["hooks"][idx]
+                    if old_hook.get("command") != cmd:
+                        old_cmd = old_hook["command"]
+                        old_hook["command"] = cmd
+                        label = key if key else "(no matcher)"
+                        changes.append(
+                            "{}[{}]: upgraded hook from {} to {}".format(
+                                section_label, label, old_cmd, cmd
+                            )
+                        )
+                else:
+                    proj_entry.setdefault("hooks", []).append(up_hook)
+                    existing_normalized[norm_cmd] = len(proj_entry["hooks"]) - 1
+                    label = key if key else "(no matcher)"
+                    changes.append(
+                        "{}[{}]: added hook {}".format(section_label, label, cmd)
+                    )
         else:
             project_section.append(up_entry)
             label = key if key else "(no matcher)"

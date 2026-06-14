@@ -59,6 +59,10 @@ Owned by `tech-lead`. One file (or inline block) per dispatch.
 
 Concise. Link; do not paste. The specialist reads these before starting.
 
+- **Token budget:** `tiny` | `small` | `medium` | `large` | `xl`
+- **JIT file list (with line ranges):** 
+  - `<path>#L<start>-L<end>` (or "none")
+- **Tech-lead Pre-Assembly File (for large/xl tasks):** `<path to .claude/tmp/T-NNNN-context.llmd | none>`
 - Prior-art doc (if trigger fired): `docs/prior-art/<task-id>.md`
 - ADR (if applicable): `docs/adr/<adr-id>.md`
 - Proposal (if applicable): `docs/proposals/<task-id>.md`

@@ -62,17 +62,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py\"",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/customer-notes-guard.py\"",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/tech-lead-authoring-guard.py\"",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/tech-lead-authoring-guard.py\"",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-pre-tool-gate.py\"",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/handoff-pre-tool-gate.py\"",
             "timeout": 5
           }
         ]
@@ -82,17 +82,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py\"",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/customer-notes-guard.py\"",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/tech-lead-authoring-guard.py\"",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/tech-lead-authoring-guard.py\"",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-pre-tool-gate.py\"",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/handoff-pre-tool-gate.py\"",
             "timeout": 5
           }
         ]
@@ -102,17 +102,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py\"",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/customer-notes-guard.py\"",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/tech-lead-authoring-guard.py\"",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/tech-lead-authoring-guard.py\"",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-pre-tool-gate.py\"",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/handoff-pre-tool-gate.py\"",
             "timeout": 5
           }
         ]
@@ -122,17 +122,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/customer-notes-guard.py\"",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/customer-notes-guard.py\"",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/tech-lead-authoring-guard.py\"",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/tech-lead-authoring-guard.py\"",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-pre-tool-gate.py\"",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/handoff-pre-tool-gate.py\"",
             "timeout": 5
           }
         ]
@@ -142,7 +142,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/subcall-limit-guard.py\"",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/subcall-limit-guard.py\"",
             "timeout": 5
           }
         ]
@@ -159,25 +159,25 @@
           },
           {
             "type": "command",
-            "command": "[ -x \"${CLAUDE_PROJECT_DIR}/scripts/hooks/atomic-question-reminder.sh\" ] && \"${CLAUDE_PROJECT_DIR}/scripts/hooks/atomic-question-reminder.sh\" 2>&1 || true",
+            "command": "[ -x \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/atomic-question-reminder.sh\" ] && \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/atomic-question-reminder.sh\" 2>&1 || true",
             "timeout": 5,
             "statusMessage": "Atomic-question rule reminder..."
           },
           {
             "type": "command",
-            "command": "[ -x \"${CLAUDE_PROJECT_DIR}/scripts/hooks/role-routing-reminder.sh\" ] && \"${CLAUDE_PROJECT_DIR}/scripts/hooks/role-routing-reminder.sh\" 2>&1 || true",
+            "command": "[ -x \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/role-routing-reminder.sh\" ] && \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/role-routing-reminder.sh\" 2>&1 || true",
             "timeout": 5,
             "statusMessage": "Role-routing rule reminder..."
           },
           {
             "type": "command",
-            "command": "[ -x \"${CLAUDE_PROJECT_DIR}/scripts/version-check.sh\" ] && \"${CLAUDE_PROJECT_DIR}/scripts/version-check.sh\" 2>&1 || true",
+            "command": "[ -x \"${CLAUDE_PROJECT_DIR:-.}/scripts/version-check.sh\" ] && \"${CLAUDE_PROJECT_DIR:-.}/scripts/version-check.sh\" 2>&1 || true",
             "timeout": 10,
             "statusMessage": "Checking template version..."
           },
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/subcall-limit-reset.py\"",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/subcall-limit-reset.py\"",
             "timeout": 5,
             "statusMessage": "Resetting subagent subcall budget..."
           }
@@ -188,7 +188,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -x \"${CLAUDE_PROJECT_DIR}/scripts/hooks/post-compact-refresh.sh\" ] && \"${CLAUDE_PROJECT_DIR}/scripts/hooks/post-compact-refresh.sh\" 2>&1 || true",
+            "command": "[ -x \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/post-compact-refresh.sh\" ] && \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/post-compact-refresh.sh\" 2>&1 || true",
             "timeout": 5,
             "statusMessage": "Post-compaction refresh directive..."
           }
@@ -200,7 +200,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-record-activity.py\"",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/handoff-record-activity.py\"",
             "timeout": 5
           }
         ]
@@ -211,7 +211,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-task-completed-gate.py\"",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/handoff-task-completed-gate.py\"",
             "timeout": 5
           }
         ]
@@ -222,7 +222,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-task-created-gate.py\"",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/handoff-task-created-gate.py\"",
             "timeout": 5
           }
         ]
@@ -233,7 +233,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-subagent-stop-gate.py\"",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/handoff-subagent-stop-gate.py\"",
             "timeout": 5
           }
         ]
@@ -244,7 +244,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR}/scripts/hooks/handoff-stop-gate.py\"",
+            "command": "SWDT_HANDOFF_GATES=warn python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/handoff-stop-gate.py\"",
             "timeout": 5
           }
         ]

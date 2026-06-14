@@ -21,6 +21,9 @@ Rules, stop and escalate to `tech-lead`; do not silently choose.
 
 ## Job
 
+Primary anchor: PMBOK Guide 8th Edition (ANSI/PMI 99-001-2025).
+Secondary anchor: SWEBOK V4 KA "Software Engineering Economics" (ch. 15).
+
 Own and maintain the PMBOK artifact set for the project. Each artifact
 lives under `docs/pm/` with a stable filename so other agents can cite
 it. `researcher` may assist with sourcing; `project-manager` owns the

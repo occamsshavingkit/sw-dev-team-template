@@ -66,7 +66,7 @@ archetypes, QA-vs-SWE test ownership), disagreement is flagged in the
 "Ambiguities" subsection — not resolved.
 
 ### Source-authority tiers
-- **Tier-1 (standards/BoK)**: SWEBOK v3, ISO/IEC/IEEE 12207:2017, IEEE 1028-2008, PMBOK, ISTQB Foundation/Advanced syllabi, SFIA v9. Authoritative by publication.
+- **Tier-1 (standards/BoK)**: SWEBOK V4 (2025) / SWEBOK v3 (historical), ISO/IEC/IEEE 12207:2017, IEEE 1028-2008, PMBOK 8th Edition, ISTQB Foundation/Advanced syllabi, SFIA v9. Authoritative by publication.
 - **Tier-2 (high-reputation vendor-neutral)**: Google SRE book (O'Reilly), Google eng-practices, staffeng.com, BLS OOH, Wikipedia for well-cross-referenced articles.
 - **Tier-3 (industry-consensus community)**: InfoWorld, Atlassian blog, Thoughtworks, BMC, DevOpsSchool, Indeed. Useful for role-boundary discussion but not authoritative when disagreement exists.
 
@@ -77,7 +77,8 @@ sources used only to characterize *ambiguities* (industry debate), not definitio
 
 | Source | URL | Retrieved |
 |---|---|---|
-| SWEBOK v3 Guide (IEEE CS) | https://www.computer.org/education/bodies-of-knowledge/software-engineering | 2026-04-18 |
+| SWEBOK V4 Guide (IEEE CS) | https://www.computer.org/education/bodies-of-knowledge/software-engineering | 2026-04-23 |
+| SWEBOK v3 Guide (IEEE CS) (historical reference) | https://www.computer.org/education/bodies-of-knowledge/software-engineering | 2026-04-18 |
 | ISO/IEC/IEEE 12207:2017 | https://www.iso.org/standard/63712.html | 2026-04-18 |
 | IEEE 1028-2008 Std for SW Reviews and Audits | https://standards.ieee.org/ieee/1028/4402/ | 2026-04-18 |
 | SFIA v9 (Skills Framework for the Information Age) | https://sfia-online.org/en | 2026-04-18 |
@@ -97,18 +98,18 @@ sources used only to characterize *ambiguities* (industry debate), not definitio
 
 ### 2.1 Software engineer / developer (implementation)
 
-**Canonical definition.** SWEBOK v3 frames "software engineering" as a
-discipline of 15 Knowledge Areas; the practitioner who owns the core
-construction KA is the software engineer. The KA "Software Construction"
+**Canonical definition.** SWEBOK V4 frames "software engineering" as a
+discipline of 18 Knowledge Areas; the practitioner who owns the core
+construction KA (ch. 4) and secondary maintenance KA (ch. 7) is the software engineer. The KA "Software Construction"
 covers coding, verification, debugging, and integration — the implementation
-core of the role. SWEBOK treats testing, design, requirements, and maintenance
+core of the role. SWEBOK V4 treats Software Testing, Software Architecture, Software Design, Software Requirements, and Software Maintenance
 as adjacent but separately-owned KAs.
 
 **SFIA mapping.** SFIA v9 places this role under the "Development and
 implementation" category, skill "Programming/Software Development," levels
 typically 2–5 (Assist → Ensure) for regular engineers, 6+ for senior ICs.
 
-**Canonical sub-responsibilities** (SWEBOK KA "Software Construction" +
+**Canonical sub-responsibilities** (SWEBOK V4 KA "Software Construction" (ch. 4) + KA "Software Maintenance" (ch. 7) +
 ISO/IEC/IEEE 12207 Implementation Process):
 - Translate design into working code
 - Unit testing and construction-phase verification
@@ -116,14 +117,16 @@ ISO/IEC/IEEE 12207 Implementation Process):
 - Integration of components
 - Performance / reliability tuning *within the constructed unit*
 - Technical-debt reduction within owned scope
+- Execute software maintenance (Program Comprehension, Reengineering, Reverse Engineering, and SLA/XaaS sourcing alignment)
 
 **Ambiguities and industry debates.**
 - **Test ownership**: SWEBOK places "Software Testing" as a distinct KA with its own practitioners (see §2.2), but industry practice splits between (a) "SWE writes tests, dedicated QA is separate" (common in SRE-influenced shops) and (b) "SWE writes unit tests, QA owns integration/system/acceptance" (common in enterprise). SWEBOK does not mandate either split.
 - **Architect-vs-SWE scope**: SWEBOK KA "Software Design" is separate from "Software Construction." Whether one person owns both is organizational, not standardized. Some sources (see §2.4) treat architect as a distinct role; others treat it as a seniority level of SWE.
-- **"Full-stack" or "DevOps" SWE**: modern practice often collapses SWE + release-engineer + operations into one role (DevOps). Not in SWEBOK v3 (2013-era), widely accepted in SFIA v9.
+- **"Full-stack" or "DevOps" SWE**: modern practice often collapses SWE + release-engineer + operations into one role (DevOps). Not in SWEBOK v3 (2013-era), but addressed in SWEBOK V4 (2025) via the Software Engineering Operations KA (ch. 6).
 
 **Sources.**
-- SWEBOK v3, Knowledge Area "Software Construction" — https://www.computer.org/education/bodies-of-knowledge/software-engineering (retrieved 2026-04-18).
+- SWEBOK V4, ch. 4 "Software Construction" and ch. 7 "Software Maintenance" — library row LIB-0002.
+- SWEBOK v3, Knowledge Area "Software Construction" (historical reference) — https://www.computer.org/education/bodies-of-knowledge/software-engineering (retrieved 2026-04-18).
 - ISO/IEC/IEEE 12207:2017 "Implementation process" — https://www.iso.org/standard/63712.html (retrieved 2026-04-18).
 - SFIA v9 skill "Programming/software development" — https://sfia-online.org/en (retrieved 2026-04-18).
 
@@ -143,8 +146,8 @@ ISO/IEC/IEEE 12207 Implementation Process):
   test execution. Responsibilities include process evaluation, test-strategy
   design, coverage measurement, and quality-system management across the SDLC.
 
-**SWEBOK mapping.** SWEBOK KA "Software Testing" (primary) and KA "Software
-Quality" (broader). Testing KA scopes techniques, levels, measures; Quality KA
+**SWEBOK mapping.** SWEBOK V4 KA "Software Testing" (ch. 5, primary) and KA "Software
+Quality" (ch. 12, broader). Software Testing KA scopes techniques, levels, measures, and ML-testing; Software Quality KA
 scopes process and culture.
 
 **ISO/IEC mapping.** ISO/IEC/IEEE 12207:2017 "Verification process" and
@@ -160,12 +163,14 @@ Test engineer (ISTQB Foundation-Level):
 - Regression test maintenance
 - Test automation (CTAL-TAE adds: automation architecture, test-code maintenance)
 
-QA engineer (ISTQB Advanced-Level Test Manager + SWEBOK KA "Software Quality"):
+QA engineer (ISTQB Advanced-Level Test Manager + SWEBOK V4 KA "Software Quality" (ch. 12)):
 - Test strategy and planning
 - Quality metrics definition and tracking
 - Process audit and improvement
 - Risk-based test prioritization
 - Test team coordination (CTAL-TM)
+- AI/ML testing: Apply SWEBOK V4 ch. 5 §7 three-aspect framework (conditions, ML items, testing activities) across offline and online phases.
+- AI-for-SE test generation and defect prediction (ch. 16 §9.6)
 
 **Ambiguities and industry debates.**
 - **Tester vs QA** — industry often uses these interchangeably despite the
@@ -181,10 +186,11 @@ QA engineer (ISTQB Advanced-Level Test Manager + SWEBOK KA "Software Quality"):
   organization-specific.
 
 **Sources.**
+- SWEBOK V4, ch. 5 "Software Testing" and ch. 12 "Software Quality" — library row LIB-0002.
 - ISTQB Certified Tester Scheme — https://istqb.org/certifications/ (retrieved 2026-04-18).
 - ISTQB Advanced Level Test Manager (CTAL-TM) — https://istqb.org/certifications/certified-tester-advanced-level-test-manager/ (retrieved 2026-04-18).
 - ISTQB Advanced Level Test Automation Engineer (CTAL-TAE) — https://istqb.org/certifications/certified-tester-advanced-level-test-automation-engineering-ctal-tae-v2-0/ (retrieved 2026-04-18).
-- SWEBOK v3 KAs "Software Testing" and "Software Quality" — https://www.computer.org/education/bodies-of-knowledge/software-engineering (retrieved 2026-04-18).
+- SWEBOK v3 KAs "Software Testing" and "Software Quality" (historical reference) — https://www.computer.org/education/bodies-of-knowledge/software-engineering (retrieved 2026-04-18).
 - ISO/IEC/IEEE 12207:2017 "Verification" and "Validation" processes — https://www.iso.org/standard/63712.html (retrieved 2026-04-18).
 
 ---
@@ -270,9 +276,7 @@ management" (CPMG), each typically at levels 4–5.
 
 ### 2.4 Software architect / technical lead (structural decisions)
 
-**Canonical definition.** SWEBOK v3 treats architecture as part of KA "Software
-Design" but names no specific role. Industry distinguishes at least three
-adjacent roles whose scopes overlap and whose boundaries are strongly
+**Canonical definition.** SWEBOK V4 creates a separate "Software Architecture" KA (ch. 2) to focus on structural decisions, view/viewpoint models, and evaluation (e.g., ATAM), while detailed design principles and strategies remain in "Software Design" (ch. 3). Industry distinguishes at least three adjacent roles whose scopes overlap and whose boundaries are strongly
 organization-dependent:
 
 - **Software architect** — owner of structural/system-design decisions and
@@ -285,7 +289,7 @@ organization-dependent:
 
 #### 2.4a Software architect
 
-Canonical sub-responsibilities (SWEBOK KA "Software Design" +
+Canonical sub-responsibilities (SWEBOK V4 KA "Software Architecture" (ch. 2) + KA "Software Design" (ch. 3) +
 industry consensus):
 - Define and communicate software architecture
 - System-decomposition and component-interface design
@@ -334,7 +338,8 @@ archetypes above.
   own both design and execution. SWEBOK and SFIA are neutral on this debate.
 
 **Sources.**
-- SWEBOK v3 KA "Software Design" — https://www.computer.org/education/bodies-of-knowledge/software-engineering (retrieved 2026-04-18).
+- SWEBOK V4, ch. 2 "Software Architecture" and ch. 3 "Software Design" — library row LIB-0002.
+- SWEBOK v3 KA "Software Design" (historical reference) — https://www.computer.org/education/bodies-of-knowledge/software-engineering (retrieved 2026-04-18).
 - StaffEng — Staff Archetypes (Will Larson) — https://staffeng.com/guides/staff-archetypes/ (retrieved 2026-04-18).
 - StaffEng FAQ — https://staffeng.com/faq/ (retrieved 2026-04-18).
 - Vendavo Engineering — "Technical Lead vs Software Architect" — https://engineering.vendavo.com/technical-lead-vs-software-architect-09621ec39f00 (retrieved 2026-04-18) — Tier-3, used for ambiguity characterization.
@@ -565,7 +570,8 @@ team — this is a binding standard-level requirement.
 - IEEE 1028-2008 PDF (1997 predecessor) — http://profs.etsmtl.ca/claporte/english/enseignement/cmu_sqa/travaux/TP_Reviews/IEEE%201028-2002%20-%20Software%20Reviews.pdf (retrieved 2026-04-18).
 - Google Engineering Practices — Code Review — https://google.github.io/eng-practices/review/ (retrieved 2026-04-18).
 - Google Eng Practices — "The Standard of Code Review" — https://google.github.io/eng-practices/review/reviewer/standard.html (retrieved 2026-04-18).
-- SWEBOK v3 KA "Software Quality" (which references review and audit as processes) — https://www.computer.org/education/bodies-of-knowledge/software-engineering (retrieved 2026-04-18).
+- SWEBOK V4, ch. 12 "Software Quality" — library row LIB-0002.
+- SWEBOK v3 KA "Software Quality" (historical reference) — https://www.computer.org/education/bodies-of-knowledge/software-engineering (retrieved 2026-04-18).
 
 ---
 
@@ -815,7 +821,7 @@ ownership.
 ### Industry-framework resolution patterns
 
 Where sources agree on resolution:
-- **SWEBOK v3** treats all KAs as separate but silent on role-binding. Neutral.
+- **SWEBOK (v3 and V4)** treats all KAs as separate but remains silent on role-binding. Neutral.
 - **ISO/IEC/IEEE 12207** defines *processes*, not roles, and explicitly
   allows organizations to bind processes to any role structure.
 - **SFIA v9** treats skills and levels independently; a single person can hold
@@ -944,12 +950,12 @@ taxonomy file changes.
 
 | Canonical Role (§2) | Primary Source | Key Sub-responsibilities (one-line) | Per-project teammate (downstream fills) |
 |---|---|---|---|
-| 2.1 Software Engineer / Developer | SWEBOK v3 KA "Software Construction"; ISO 12207 Implementation process | Translate design → code; unit test; debug; integrate | *(downstream)* |
+| 2.1 Software Engineer / Developer | SWEBOK V4 ch. 4 & 7; ISO 12207 Implementation process | Translate design → code; unit test; debug; integrate; maintenance | *(downstream)* |
 | 2.2a Test Engineer | ISTQB Foundation-Level | Design/execute tests; defect reporting; automation | *(downstream)* |
-| 2.2b QA Engineer | ISTQB CTAL-TM; SWEBOK KA "Software Quality" | Test strategy; quality metrics; process improvement | *(downstream)* |
+| 2.2b QA Engineer | ISTQB CTAL-TM; SWEBOK V4 ch. 12 | Test strategy; quality metrics; process improvement; ML-testing | *(downstream)* |
 | 2.3a SRE | Google SRE Book | SLOs; error budgets; incident response; capacity | *(downstream)* |
 | 2.3b Performance Engineer | Wikipedia Performance engineering; SFIA PETE | Non-functional requirements; perf test; profiling; tuning | *(downstream)* |
-| 2.4a Software Architect | SWEBOK KA "Software Design" | System decomposition; long-term strategy; cross-cutting concerns | *(downstream)* |
+| 2.4a Software Architect | SWEBOK V4 ch. 2 & 3 | System decomposition; long-term strategy; cross-cutting concerns | *(downstream)* |
 | 2.4b Tech Lead | staffeng.com archetypes | Day-to-day team guidance; sprint design; mentoring | *(downstream)* |
 | 2.4c Staff Engineer (archetype-based) | staffeng.com | Level, not role; 4 archetypes (TL/Arch/Solver/Right Hand) | *(downstream)* |
 | 2.5a Technical Writer | BLS OOH 27-3042.00 | User docs; API refs; how-tos | *(downstream)* |
@@ -961,7 +967,7 @@ taxonomy file changes.
 | 2.8a Build Engineer | Wikipedia Release Engineering (inferred) | Build-system arch; toolchain; deps; compile-pipeline | *(downstream)* |
 | 2.8b Release Engineer | Wikipedia Release Engineering | Release pipeline; tagging; packaging; reproducibility | *(downstream)* |
 | 2.8c DevOps Engineer | Atlassian / BMC (Tier-3) | CI/CD; IaC; observability; DORA metrics | *(downstream)* |
-| 2.9a Project Manager | PMI PMBOK | Schedule; budget; scope; risk; stakeholder comms | *(downstream)* |
+| 2.9a Project Manager | PMI PMBOK 8th Edition; SWEBOK V4 ch. 15 | Schedule; budget; scope; risk; stakeholder; economics | *(downstream)* |
 | 2.9b Product Manager | Industry consensus (no Tier-1) | Vision; roadmap; prioritization; market research | *(downstream)* |
 | 2.10 UX/UI Designer | SFIA v9 HCEV + ACCS | Interaction design; accessibility auditing (WCAG); inclusive design | *(downstream)* |
 | Custom — Researcher | Template-specific (see §5 note 6) | Tier-1 sourcing; prior-art scans; pronoun verification | *(downstream)* |

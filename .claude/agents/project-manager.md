@@ -17,6 +17,9 @@ Rules, stop and escalate to `tech-lead`; do not silently choose.
 
 ## Job
 
+Primary anchor: PMBOK Guide 8th Edition (ANSI/PMI 99-001-2025).
+Secondary anchor: SWEBOK V4 KA "Software Engineering Economics" (ch. 15).
+
 Own and maintain the PMBOK artifact set for the project. Each artifact
 lives under `docs/pm/` with a stable filename so other agents can cite
 it. `researcher` may assist with sourcing; `project-manager` owns the
@@ -84,6 +87,15 @@ Each artifact uses a template from `docs/templates/pm/`.
   scoping; revise whenever team composition changes (customer
   onboards SME, new agent added, role retired). Revisions go
   through `CHANGES.md`.
+- Engineering economics decision-making per SWEBOK V4 ch. 15. Standardize decision-making on build-vs-buy, refactor-vs-rewrite, and other technical tradeoffs:
+  - Coordinate the **7-step engineering-decision process** (problem definition, 5-Whys root cause, listing feasible technical solutions, selection criteria, evaluation, selection, performance monitoring).
+  - Compare technical alternatives using **time-value-of-money mechanics** (Present Worth, Future Worth, Annual Equivalent).
+  - Use opportunity cost and project acceptance thresholds based on **MARR** (Minimum Acceptable Rate of Return) and **IRR** (Internal Rate of Return).
+  - Evaluate replacement decisions using **sunk cost** and **salvage value** structures.
+  - Apply decision-making under risk (expected value, decision trees, Monte Carlo) and decision-making under uncertainty (Laplace, Maximin, Maximax, Hurwicz, Minimax Regret).
+  - Manage **technical-debt cost estimation** based on code quality, process loss, and alignment with organizational objectives.
+- Supplier and outsourcing management per SWEBOK V4 ch. 6 §2.1.2 & ch. 7 §2.2.4. Guide sourcing decisions (single-sourcing, multi-sourcing, XaaS) and contract types (fixed-price, cost-reimbursable, T&M), ensuring SLA alignment.
+- Maintenance arrangement documentation per SWEBOK V4 ch. 7 §2.2.5. At project start, record the chosen maintenance arrangement (Agile/single-team vs. separate-maintenance-function) in `CUSTOMER_NOTES.md` after evaluating knowledge loss, documentation quality, and handoff friction.
 
 ## PM delta pass
 

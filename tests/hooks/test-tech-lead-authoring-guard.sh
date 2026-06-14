@@ -836,6 +836,49 @@ run_case "issue#208: CLAUDE_PROJECT_DIR unset — out-of-project absolute procee
     proceed
 
 # ---------------------------------------------------------------------------
+# Subagent auto-bypass via active-dispatches.json (ANTIGRAVITY_CONVERSATION_ID)
+# ---------------------------------------------------------------------------
+# Setup mock active-dispatches.json mapping dummy uuids to roles
+mkdir -p "$REPO_ROOT/docs/pm"
+cat > "$REPO_ROOT/docs/pm/active-dispatches.json" <<EOF
+{
+  "test-subagent-uuid-se": "software-engineer",
+  "test-subagent-uuid-pm": "project-manager",
+  "test-subagent-uuid-invalid": "not-a-role"
+}
+EOF
+
+# Case 1: ANTIGRAVITY_CONVERSATION_ID set to mapped software-engineer subagent
+# trying to write to codebase scripts/foo.sh -> proceeds (auto-bypass)
+run_case "subagent-auto-bypass: software-engineer write to codebase proceeds" \
+    "ANTIGRAVITY_CONVERSATION_ID=test-subagent-uuid-se" \
+    '{"tool_input":{"file_path":"scripts/foo.sh","content":"x"}}' \
+    proceed
+
+# Case 2: ANTIGRAVITY_CONVERSATION_ID set to mapped software-engineer subagent
+# running bash command editing src/foo.py -> proceeds (auto-bypass)
+run_case "subagent-auto-bypass: software-engineer command proceeds" \
+    "ANTIGRAVITY_CONVERSATION_ID=test-subagent-uuid-se" \
+    '{"tool_input":{"command":"echo x > src/foo.py"}}' \
+    proceed
+
+# Case 3: ANTIGRAVITY_CONVERSATION_ID set to unmapped subagent ID
+# trying to write to scripts/foo.sh -> denied
+run_case "subagent-auto-bypass: unmapped subagent write denied" \
+    "ANTIGRAVITY_CONVERSATION_ID=test-subagent-uuid-unmapped" \
+    '{"tool_input":{"file_path":"scripts/foo.sh","content":"x"}}' \
+    deny
+
+# Case 4: ANTIGRAVITY_CONVERSATION_ID set to mapped subagent but invalid role -> denied
+run_case "subagent-auto-bypass: invalid subagent role denied" \
+    "ANTIGRAVITY_CONVERSATION_ID=test-subagent-uuid-invalid" \
+    '{"tool_input":{"file_path":"scripts/foo.sh","content":"x"}}' \
+    deny
+
+# Clean up mock
+rm -f "$REPO_ROOT/docs/pm/active-dispatches.json"
+
+# ---------------------------------------------------------------------------
 # Summary.
 # ---------------------------------------------------------------------------
 
