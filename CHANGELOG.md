@@ -18,6 +18,28 @@ filed upstream include that version.
 
 ---
 
+## v1.5.2 (2026-06-16)
+
+Patch release carrying the `#353` tech-lead authoring-guard follow-up
+after the `v1.5.1` subcall-budget patch landed. This release restores
+Claude Code specialist-caller parity while keeping top-level write
+denials and Antigravity fallback behavior intact.
+
+### Fixed
+
+- **Claude Code explicit agent identity allowed in the tech-lead
+  authoring guard (#353)**: `tech-lead-authoring-guard.py` now
+  recognizes the official Claude Code `agent_type` caller identity,
+  keeps `subagent_role` as a compatibility alias, and preserves the
+  Google Antigravity `active-dispatches.json` fallback instead of
+  denying legitimate specialist-owned writes.
+- **Guard denials kept strict for main-session writes (#353)**: the
+  guard still rejects `tech-lead`, still denies unknown main-session
+  callers, and now explicitly allow-lists SME scaffold paths
+  (`.claude/agents/sme-*.md`, `.claude/agents/sme-*-local.md`,
+  `docs/sme/**`) so authorized specialist scaffolding is not
+  misclassified as a forbidden top-level authoring attempt.
+
 ## v1.5.1 (2026-06-16)
 
 Patch release fixing the v1.5.0 subcall-budget regression in the
