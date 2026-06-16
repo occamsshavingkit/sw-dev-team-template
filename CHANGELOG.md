@@ -18,6 +18,28 @@ filed upstream include that version.
 
 ---
 
+## v1.5.1 (2026-06-16)
+
+Patch release fixing the v1.5.0 subcall-budget regression in the
+session hook path. The prior release hardcoded a 3-spawn ceiling per
+session, which deadlocked the FIRST ACTIONS flow and other legitimate
+multi-specialist sequences.
+
+### Fixed
+
+- **Broader subcall budget fix (#352)**: `scripts/hooks/subcall-limit-guard.py`
+  now defaults to an effective session budget of 100 subcalls instead of 3.
+  Operators can override the budget with `SWDT_SUBCALL_BUDGET`; unset,
+  non-numeric, zero, and negative values all fall back to 100.
+- **Reset parity for configured budgets (#352)**:
+  `scripts/hooks/subcall-limit-reset.py` now restores the same effective
+  budget used by the guard, so `SessionStart` and `PreToolUse` no longer
+  disagree about the allowed subcall count.
+- **Exhaustion guidance clarified (#352)**: the deny message now tells the
+  operator to raise `SWDT_SUBCALL_BUDGET` or reuse/resume an existing named
+  teammate where supported, reducing dead-end failures during dispatch-heavy
+  sessions.
+
 ## v1.5.0 (2026-06-14)
 
 Fifth MINOR release post v1.0.0 final. Introduces JIT Context Assembly protocol with llmdc token compression, dynamic subagent auto-bypass, infinite subcall recursion limits, role-contract updates for SWEBOK V4 and PMBOK 8 guidelines, and specialist spawning pre-authorization under Google Antigravity and Gemini CLI harnesses.
