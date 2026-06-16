@@ -3,7 +3,7 @@ name: tech-writer
 description: Technical Writer. Use for user documentation, operator manuals, API/function-block references, how-to guides, changelogs, and release notes. Prose artifacts intended for human readers outside the agent team.
 model: sonnet
 canonical_source: .claude/agents/tech-writer.md
-canonical_sha: fc426200f9766813c15276ed3e39dc8778616a46
+canonical_sha: 41e3e246a41388a6e1959f4812c348a80cc16b4d
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.3.0
 classification: generated

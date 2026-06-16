@@ -2,7 +2,7 @@
 name: researcher
 model: gemini-pro
 canonical_source: .claude/agents/researcher.md
-canonical_sha: fd225cdfb4bac818bed60b5fb0c2c0210b896008
+canonical_sha: 482b8b91505cd8a4f59d28d01503270ef5ddb3fc
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.3.0
 classification: generated

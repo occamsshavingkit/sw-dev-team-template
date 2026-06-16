@@ -2,7 +2,7 @@
 name: qa-engineer
 description: "QA / Test Engineer. Use for test strategy, test design beyond unit tests (integration, system, acceptance), defect isolation, regression-test maintenance, and quality-metrics definition. Not for unit tests written alongside production code — those belong to software-engineer."
 canonical_source: .claude/agents/qa-engineer.md
-canonical_sha: 8a4ae053ff83c70cc962659c1be3c8f3d15415a3
+canonical_sha: 12a4b44704f25823c1fe699b164533b5fa08569e
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.3.0
 classification: generated

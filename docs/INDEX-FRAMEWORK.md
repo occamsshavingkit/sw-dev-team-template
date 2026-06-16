@@ -53,7 +53,7 @@ Project-authored content lives in
 | `docs/OPEN_QUESTIONS.md` | Register of open questions with ID / answerer / status / resolution. Stewarded by `librarian`. Active file (current quarter); older entries rolled to `docs/OPEN_QUESTIONS-YYYY-QN.md` shards; `docs/OPEN_QUESTIONS-INDEX.md` provides cross-shard lookup. Per FW-ADR-0025. |
 | `docs/ISSUE_FILING.md` | Convention for filing framework gaps against the upstream template repo (includes template-version citation). |
 | `docs/TEMPLATE_UPGRADE.md` | Scaffold + template version check + upgrade strategy + per-version migrations. Extracted from `CLAUDE.md` per issue #120. |
-| `docs/agent-health-contract.md` | **Binding.** Failure modes, detection signals, health-check protocol, and respawn procedure for long-lived named teammates — including the triadic tech-lead self-diagnosis (project-manager / peer / customer backstop). |
+| `docs/agent-health-contract.md` | **Binding.** Failure modes, detection signals, health-check protocol, and respawn procedure for one-shot dispatch specialists — including the triadic tech-lead self-diagnosis (project-manager / peer / customer backstop). |
 | `docs/framework-project-boundary.md` | Practical downstream separation model: framework-managed paths, project-owned product paths, project-filled registers, and review / commit split guidance. |
 | `docs/handovers/` | Respawn handover briefs (one per respawn, dated). Gitignored after 30 days by convention. |
 | `docs/model-routing-guidelines.md` | Draft post-v1.0.0 guidance for agent model tier, effort, and plan-mode selection across OpenAI / ChatGPT and Claude / Claude Code. |

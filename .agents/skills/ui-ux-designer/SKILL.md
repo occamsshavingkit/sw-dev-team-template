@@ -2,7 +2,7 @@
 name: ui-ux-designer
 description: "UX/UI Designer. Use when the task requires user-experience design, interaction design, wireframing, visual design review, or accessibility auditing (WCAG). Owns the accesslint MCP integration for automated accessibility checks; wraps audit findings into design feedback rather than raw tool output. Does not contact the customer directly."
 canonical_source: .claude/agents/ui-ux-designer.md
-canonical_sha: d0d77e69cf4f2b8989f1140aa7e1cf7e3be63edb
+canonical_sha: 2e9a5cbb86c38b7bce982b9f0c1f86d4aed42409
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.3.0
 classification: generated

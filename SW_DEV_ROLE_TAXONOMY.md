@@ -876,14 +876,14 @@ Not all roles carry the same tool surface. Some agents lack `Bash` in their
 commands, invoke `git`, or execute scripts directly. Roles confirmed to
 **lack Bash** as of this refresh (2026-06-03):
 
-- `architect` — Read, Grep, Glob, Write, Edit, SendMessage only.
-- `tech-writer` — Read, Write, Edit, Grep, Glob, SendMessage only.
-- `librarian` — Read, Write, Edit, Grep, Glob, SendMessage only.
-- `researcher` — Read, Write, Edit, Grep, Glob, WebSearch, WebFetch, SendMessage only.
-- `ui-ux-designer` — Read, Write, Edit, Grep, Glob, SendMessage + accesslint MCPs only.
-- `mcp-liaison` — Read, Write, Edit, Grep, Glob, SendMessage only.
-- `security-engineer` — Read, Write, Edit, Grep, Glob, SendMessage only.
-- `sme-template` (baseline scaffold) — Read, Grep, Glob, Write, Edit, SendMessage only.
+- `architect` — Read, Grep, Glob, Write, Edit only.
+- `tech-writer` — Read, Write, Edit, Grep, Glob only.
+- `librarian` — Read, Write, Edit, Grep, Glob only.
+- `researcher` — Read, Write, Edit, Grep, Glob, WebSearch, WebFetch only.
+- `ui-ux-designer` — Read, Write, Edit, Grep, Glob + accesslint MCPs only.
+- `mcp-liaison` — Read, Write, Edit, Grep, Glob only.
+- `security-engineer` — Read, Write, Edit, Grep, Glob only.
+- `sme-template` (baseline scaffold) — Read, Grep, Glob, Write, Edit only.
 
 These roles cannot `git commit`, execute build scripts, or run test runners
 without routing through a Bash-capable agent. Per Hard Rule #8 in `CLAUDE.md`,
@@ -911,8 +911,7 @@ Consequence for long-running operations: an agent cannot issue a shell command
 and then loop-poll for its completion across dispatch boundaries. Long
 operations must be structured as bounded stages with explicit handoff state
 (the **Deferred-wait report** protocol). Tech-lead owns re-dispatch once a
-completion signal arrives, either via SendMessage-warm (specialist kept alive)
-or ScheduleWakeup re-dispatch.
+completion signal arrives via ScheduleWakeup re-dispatch.
 
 Cross-references:
 - `tech-lead.md` § "Token economy" Rule 7 (bounded long-op dispatch,

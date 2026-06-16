@@ -54,7 +54,6 @@ imply[Edit]="amend the|revise the|update the|update .* file|insert a row|insert 
 imply[Bash]="run a script|run the script|run the build|run tests|execute the|shell command|bash command|git log|git diff|git status|run \`|shell script|invoke a shell|invoke .* script"
 imply[Grep]="grep|search for|scan for|audit files|find references"
 imply[Glob]="glob|walk the tree|list files matching"
-imply[SendMessage]="sendmessage|send a message to|ping the|hand off to|dispatch to"
 imply[WebSearch]="web search|search the web|web-search|look up online"
 imply[WebFetch]="webfetch|fetch the url|download .* page|pull the .* docs"
 

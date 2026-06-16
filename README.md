@@ -4,12 +4,7 @@ A ready-to-use project scaffold that turns a single Claude Code or
 Codex session into a 16-role software-development team with a strict
 escalation protocol and a per-project SME pattern.
 
-**Status.** Current release: **`v1.5.0`** (MINOR — JIT context, subagent bypass, recursion limit, Antigravity pre-auth)
-(fw-adr-0026), per-role roster (16 `agent.json` + 16 `SKILL.md` files, generator v0.3.0),
-Claude→Antigravity MCP shim (fw-adr-0027, `scripts/mcp/`), `.codacy.yaml`, exec-bit
-preserve/repair + YAML intake indexing (#337), and trivial-delta auto-merge + take-upstream
-collision default + `--keep-local` (fw-adr-0028, #262); see `CHANGELOG.md` for full
-details). Version identity
+**Status.** Current release: **`v1.5.3`** (PATCH — removes the experimental Claude Code agent-teams feature (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) and reverts to standard one-shot subagents, working around upstream Claude Code bugs #355/#356; see `docs/adr/fw-adr-0029-drop-experimental-agent-teams-flag.md` and `CHANGELOG.md` for full details). Version identity
 also lives in the `VERSION` file at the tagged commit; see
 `docs/versioning.md`. Each release updates this README (enforced by
 `scripts/pre-release-gate.sh` per spec 007's `readme-current` sub-gate).
@@ -53,18 +48,16 @@ stripped, and a `git init`'d history. The scaffold script does not
 make any commits — the first commit is yours to make so your repo's
 git conventions apply.
 
-### 3. Enable the agent-teams panel
+### 3. Note on agent-teams (disabled as of v1.5.3)
 
-The template assumes the Claude Code experimental agent-teams feature
-is on. Set the environment variable before running `claude`:
-
-```
-export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
-```
-
-Or pin it in `~/.claude/settings.json`. Without it, named teammates
-won't appear in the TUI's bottom panel and `SendMessage` routing
-between agents will not work.
+The experimental Claude Code agent-teams feature
+(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) is **not enabled** in this
+template. It was disabled at v1.5.3 due to upstream Claude Code bugs
+#355 and #356 (subagent prompts not surfaced on remote control;
+subagents not inheriting the main-session permission mode). The
+framework uses standard one-shot subagents instead — no persistent
+named teammates, no TUI status panel, no `SendMessage`. See
+`CLAUDE.md` § "Subagent model (one-shot)".
 
 ### 4. Start the session
 
@@ -241,7 +234,7 @@ contract, including per-version migration scripts under `migrations/`.
 | `SW_DEV_ROLE_TAXONOMY.md` | Reference taxonomy (SWEBOK / ISO 12207 / IEEE 1028 / ISTQB / SFIA v9 / Google SRE / PMBOK) that CLAUDE.md cites. |
 | `docs/glossary/ENGINEERING.md` | **Binding** generic software-engineering terminology. All agents use these senses. |
 | `docs/glossary/PROJECT.md` | **Binding** project-specific jargon (customer-domain, vendor, site, codenames). |
-| `docs/AGENT_NAMES.md` | Canonical role → teammate name → pronouns mapping (agent-teams panel). |
+| `docs/AGENT_NAMES.md` | Canonical role → teammate name → pronouns mapping (used in logs, Turn Ledger, and customer-facing text). |
 | `docs/OPEN_QUESTIONS.md` | Register of open questions, with answerer and status. |
 | `docs/INDEX.md` | Table of contents for everything under `docs/` plus repo-root bindings. |
 | `docs/ISSUE_FILING.md` | How to file framework-gap issues upstream; cites the template version. |

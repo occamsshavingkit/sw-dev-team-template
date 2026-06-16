@@ -1,10 +1,15 @@
 # Agent health + respawn contract (binding)
 
-Long-lived named teammates (via the experimental agent-teams
-feature) accumulate failure modes that single-turn agents never
-see. This document defines what "agent context health" means for
-this template, how health is diagnosed, and how an unhealthy
-agent is respawned without losing work.
+This framework uses standard one-shot subagents: each specialist
+is spawned, completes its task, and returns. There are no
+persistent named teammates, no addressable agent panel, and no
+`SendMessage` channel. Despite the one-shot model, specialists
+dispatched on long-running work can still accumulate bad context
+within a single long dispatch, or can be re-dispatched on
+successive turns with stale prior artifacts. This document
+defines what "agent context health" means under that model, how
+health is diagnosed, and how a failing dispatch is re-dispatched
+without losing work.
 
 ## 1. Failure modes (what can go wrong)
 
@@ -45,43 +50,14 @@ health check.** Red result = respawn.
 
 7. `code-reviewer` flags the same class of issue on the same
    agent's work ≥ 3 times across unrelated changes.
-8. Token count for the named teammate approaches the model's
-   context limit (default threshold: 80 %).
+8. Token count for a dispatch approaches the model's context limit
+   (default threshold: 80 %). This is most relevant for long
+   dispatches; it is a signal to split the remaining work and
+   re-dispatch rather than continuing into a degraded context.
 9. Same question routed to the same agent ≥ 2 times in a
    session without a useful answer.
 10. Agent asks for an SME answer that is already recorded in
     `CUSTOMER_NOTES.md` within its own memory window.
-11. **Silent hang / lost heartbeat.** A backgrounded subagent has
-    produced no tool output (status message, file write, or
-    `SendMessage`) for longer than the liveness window. Default
-    windows by task class: quick lookup / verification — 3 min;
-    single-file edit — 10 min; research survey or audit — 20 min;
-    multi-file refactor — 30 min. `tech-lead` sets the window at
-    dispatch time (in the brief) for tasks that don't fit these
-    defaults.
-
-### Liveness protocol (binding)
-
-When signal 11 fires, `tech-lead` runs this procedure:
-
-1. Send a liveness ping to the named teammate, for example
-   `SendMessage` with recipient `<name>` and body `are you alive?
-   respond with one line within 60 seconds.` This is a cheap ping,
-   not a fresh ask.
-2. If the agent responds within 60 s → record the ping outcome,
-   extend the window once, continue.
-3. If no response → grade the agent Red immediately and proceed
-   to § 4 respawn. Do not re-ping; a non-responsive backgrounded
-   agent is indistinguishable from a crashed one.
-4. If the agent has a partial artifact on disk (file writes
-   partway through), preserve it under `docs/handovers/
-   <name>-<YYYY-MM-DD-HHMM>-partial.md` so the respawned
-   instance can resume from whatever state survived.
-
-Liveness windows are **floors on patience**, not ceilings on
-runtime — a genuinely long-running subagent that still emits
-intermediate tool output (file writes, status messages) resets
-the window on every emission.
 
 ### Slot queue and closure protocol (Codex-compatible)
 
@@ -94,8 +70,8 @@ Some Codex harnesses expose a limited number of specialist slots. Treat
   specialist-owned work, stop and ask before proceeding; do not perform
   specialist work locally without a customer-approved one-item exception.
 - **No free slot:** queue the specialist brief with canonical role,
-  teammate name, write scope, trigger clauses, liveness window, and
-  required `reasoning_effort`. Do not implement the queued work locally
+  write scope, trigger clauses, expected duration, and required
+  `reasoning_effort`. Do not implement the queued work locally
   unless the customer explicitly grants an exception for that item.
 
 When a specialist returns, `tech-lead` reviews the result, verifies any
@@ -108,9 +84,8 @@ Turn Ledger records completed agents closed and queued waves launched.
 no-longer-needed specialists is routine slot hygiene and does NOT
 require additional customer authorization — that authorization was
 granted upstream for the dispatch. Customer auth gates DISPATCH, not
-CLOSE. Do not close a still-running specialist unless it has failed
-liveness checks (§ 2 signal 11 + Liveness protocol), the customer
-redirects the work, or the work is no longer needed.
+CLOSE. Do not close a still-running specialist unless the customer
+redirects the work or the work is no longer needed.
 
 **Spawn authorization is not transferable (binding).** Customer
 authorization to spawn specialists belongs to the top-level `tech-lead`
@@ -177,37 +152,28 @@ with a smaller prompt and an explicit preamble:
 > delegate, or contact the customer; return findings, blockers, and
 > escalation requests to tech-lead.
 
-### Heartbeat convention (binding for long-running agents)
+### Progress signals for long-running dispatches (non-binding guidance)
 
-Named teammates whose tasks routinely exceed 10 minutes —
+Specialists dispatched on tasks estimated to exceed 10 minutes —
 `researcher` (surveys, audits), `architect` (decomposition and
 ADR drafting), `project-manager` (artifact production),
 `qa-engineer` (test-plan drafting), `software-engineer`
 (multi-file refactors), `sre` (capacity / DR plan drafting),
 `security-engineer` (threat-model / assurance-case drafting) —
-SHOULD emit a one-line progress heartbeat at least every 10
-minutes of wall-clock work.
+SHOULD write intermediate artifacts to disk as work progresses
+rather than accumulating everything in context and writing at the
+end. File writes serve two purposes: they give `tech-lead`
+reviewable evidence of partial work if the dispatch is
+interrupted, and they make the "resumable from" field of a
+re-dispatch concrete.
 
-Accepted heartbeat forms (any one resets the liveness window):
+The dispatching `tech-lead` should note the expected checkpoint
+artifact path in the brief for long tasks. Example brief phrasing:
 
-- A file write to a durable artifact (e.g., appending a section
-  to the audit / report / template the agent is producing).
-- A harness status message naming the current step, such as
-  `TaskUpdate` where available.
-- A `SendMessage` to `tech-lead`, where available, with a one-line
-  progress note
-  ("still working on §3; ETA another 10 min").
-
-The dispatching `tech-lead` should include an explicit heartbeat
-expectation in the brief for background dispatches when the task
-is expected to exceed 10 minutes. Example brief phrasing:
-
-> "Budget ~45 minutes. Emit a one-line heartbeat (file write or
-> `SendMessage`) at least every 10 minutes so the liveness
-> window resets."
-
-The heartbeat is a floor, not a ceiling — a genuinely fast agent
-can finish before the first heartbeat is due, and that is fine.
+> "Budget ~45 minutes. Write each completed section to
+> `docs/pm/pre-release-gate-log.md` as you go so the task is
+> resumable from a partial artifact if the dispatch is
+> interrupted."
 
 ## 3. Health-check protocol (per agent)
 
@@ -288,22 +254,22 @@ the in-memory context window.
 ### 4.1 Steps
 
 1. **Write the handover brief** at
-   `docs/handovers/<teammate-name>-<YYYY-MM-DD-HHMM>.md` using
+   `docs/handovers/<role>-<YYYY-MM-DD-HHMM>.md` using
    `docs/templates/handover-template.md`. Every claim cites a
    file + line.
-2. **Stop the current teammate:** preferred via
-   a `SendMessage` stop request to `<name>` where available;
-   fallback, let the turn end and the teammate expire.
-3. **Spawn a fresh teammate** with identical canonical role and
-   teammate `name`. In Claude Code, the canonical role is
-   `subagent_type`; in Codex, use the native equivalent. The spawn
-   prompt = the handover brief plus the specific task that needs
-   doing next.
-4. **Agent-teams panel continuity:** the slot stays; the human
-   sees no name change.
-5. **Log the respawn** in `docs/pm/LESSONS.md` (why triggered,
-   what the brief said, whether the new instance recovered).
-6. **Archive the handover brief** after 30 days or at project
+2. **Let the current dispatch end.** One-shot subagents complete
+   and return naturally; there is no persistent agent to stop.
+   If a dispatch is mid-flight, wait for it to return, then
+   treat its partial output as the state to hand over. If the
+   harness permits cancellation, cancel; otherwise wait.
+3. **Re-dispatch a fresh one-shot specialist** with the same
+   canonical role. The spawn prompt = the handover brief plus
+   the specific task that needs doing next, plus the paths of
+   any surviving partial artifacts from the prior dispatch.
+4. **Log the re-dispatch** in `docs/pm/LESSONS.md` (why
+   triggered, what the brief said, whether the new instance
+   recovered).
+5. **Archive the handover brief** after 30 days or at project
    close (whichever is sooner).
 
 ### 4.2 Handover brief — required fields
@@ -407,7 +373,13 @@ The customer is never silently handed to a replacement instance.
   nuance that files do not record.
 - The mechanical signal set (§2) is conservative by design.
   Tune it, but do not tune it so loose that passive signals
-  alone trigger respawns.
-- This contract does not cover single-turn agents or
-  one-shot helpers. They have no persistent context to go
-  bad; respawn semantics do not apply.
+  alone trigger re-dispatches.
+- The "respawn" concept in this contract means re-dispatch: a
+  new one-shot spawn with a fresh prompt seeded from the
+  handover brief. There is no persistent in-memory context to
+  reset; what survives is what is written to disk.
+- Very short one-shot dispatches (quick lookups, single-file
+  verifications) rarely accumulate context problems within a
+  single run. The detection signals in §2 and the health-check
+  protocol in §3 are most relevant for dispatches that span
+  many tool calls or that are re-dispatched across sessions.

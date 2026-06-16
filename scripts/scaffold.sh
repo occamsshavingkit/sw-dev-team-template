@@ -235,7 +235,8 @@ file holds this project's mapping only.
 | \`sme-<domain>\`        |               |          |                    |
 
 From Step 3 onward, \`tech-lead\` passes teammate names to the Agent
-tool's \`name\` parameter so teammates appear on the agent-teams panel.
+tool's \`name\` parameter when dispatching one-shot specialists. Dispatched
+specialists complete their task and return output; re-dispatch to continue.
 EOF
 
 # --- Stamp TEMPLATE_VERSION --------------------------------------------------

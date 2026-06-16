@@ -1,7 +1,7 @@
 ---
 name: release-engineer
 description: Build and Release Engineer. Use for build-pipeline work, dependency and toolchain management, packaging, tagging, changelog generation, deployment orchestration, and reproducibility of historical builds. Collapses the build-engineer / release-engineer / DevOps-engineer roles per modern practice.
-tools: Read, Write, Edit, Grep, Glob, Bash, SendMessage
+tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
 ---
 
@@ -86,7 +86,7 @@ still running as context approaches its budget limit, return immediately
 with a Deferred-wait report (fields: `Deferred-wait:` / `Condition:` /
 `Resume-after:` / `Work done so far:` / `Resumable from:`). Do not
 embed an unbounded poll or sleep loop in a brief. Tech-lead owns the
-re-dispatch decision (SendMessage-warm or ScheduleWakeup). See
+re-dispatch decision (ScheduleWakeup). See
 `docs/agents/manual/tech-lead-manual.md` § "Long-operation worked
 example" for the release-cut stage table.
 

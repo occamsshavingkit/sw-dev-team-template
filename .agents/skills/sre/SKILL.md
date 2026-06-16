@@ -2,7 +2,7 @@
 name: sre
 description: "Site Reliability Engineer and Performance Engineer. Use for production behavior, reliability, performance, capacity planning, SLO definition, incident response, and performance profiling / tuning. Not for pre-release correctness testing (qa-engineer)."
 canonical_source: .claude/agents/sre.md
-canonical_sha: 5200a012925cd7e74f3095cd5622ee1e1839735f
+canonical_sha: 6c05046c06118574360596920f4449045636073a
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.3.0
 classification: generated

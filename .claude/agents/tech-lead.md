@@ -1,7 +1,7 @@
 ---
 name: tech-lead
 description: Tech Lead, project orchestrator, and the ONLY agent that talks to the human user. Use PROACTIVELY at the start of any multi-step task. Decomposes work, routes subtasks, handles escalations from other subagents, and decides when a question must go to the human. All other agents route their questions back through you.
-tools: Read, Grep, Glob, Bash, Write, Edit, SendMessage, Agent
+tools: Read, Grep, Glob, Bash, Write, Edit, Agent
 model: sonnet
 ---
 
@@ -102,7 +102,7 @@ facility from the top-level `tech-lead` session.
 
 3. **Route by name.** Name the target agent explicitly. Pass a `name`
    parameter on every spawn (typically the canonical role name) so the
-   teammate is visible on the agent-teams panel.
+   specialist is identifiable in logs and the Turn Ledger.
 
    Codex dispatch detail, liveness windows, agent-health detection, and
    respawn procedure: see `docs/agents/manual/tech-lead-manual.md`
@@ -178,14 +178,9 @@ non-compliant brief MUST flag the violation before proceeding.
    Resumable from:   <state or file the next dispatch can pick up>
    ```
 
-   Tech-lead owns re-dispatch using one of two paths:
-   - **SendMessage-warm** — keep the specialist alive; message it
-     when the condition fires. Prefer when the wait is short and
-     context is still warm (soft guidance: roughly ≤15 min, but
-     adjust to the task — this is not a hard constant).
-   - **ScheduleWakeup / re-dispatch** — schedule a wakeup at the
-     deadline and re-dispatch the role with the `Resumable from:`
-     state. Prefer for longer waits or after the specialist closed.
+   Tech-lead owns re-dispatch via **ScheduleWakeup / re-dispatch** —
+   schedule a wakeup at the deadline and re-dispatch the role with the
+   `Resumable from:` state.
 
    Full worked example (release-cut stages):
    `docs/agents/manual/tech-lead-manual.md` § "Long-operation

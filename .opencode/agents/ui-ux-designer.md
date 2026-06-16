@@ -2,7 +2,7 @@
 name: ui-ux-designer
 model: claude-sonnet
 canonical_source: .claude/agents/ui-ux-designer.md
-canonical_sha: d0d77e69cf4f2b8989f1140aa7e1cf7e3be63edb
+canonical_sha: 2e9a5cbb86c38b7bce982b9f0c1f86d4aed42409
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.3.0
 classification: generated

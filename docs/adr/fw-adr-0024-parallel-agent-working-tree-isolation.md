@@ -58,7 +58,7 @@ Shape per MADR 3.0 + this template's Three-Path Rule
   `docs/agents/manual/tech-lead-manual.md` § "Parallelism default"
   and § "Dispatch discipline"; `.claude/agents/code-reviewer.md`;
   `.claude/agents/tech-lead.md` (background-by-default rule);
-  `CLAUDE.md` § "Agent-teams panel"
+  `CLAUDE.md` § "Subagent model (one-shot)"
 
 ## Scaffold placement note
 

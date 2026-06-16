@@ -147,7 +147,8 @@ A URL that 404s becomes a `blocked:` row until a replacement is found.
 **File-creation handoff.** When any agent creates a new file under
 `docs/sme/<domain>/` or adds external material to `local/`, the creating
 agent must either (a) update `INVENTORY.md` in the same turn, or (b)
-`SendMessage` to `librarian` with the new path. An `INVENTORY.md` that
+embed the new path in its return to `tech-lead` so `tech-lead` can
+re-dispatch `librarian` to update `INVENTORY.md`. An `INVENTORY.md` that
 does not list every item in its domain directory is a process failure —
 surface it to `tech-lead` as a routing gap, not a silent fix.
 

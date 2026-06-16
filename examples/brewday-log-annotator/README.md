@@ -30,7 +30,7 @@ real work subagent.
 | `SW_DEV_ROLE_TAXONOMY.md` | Reference taxonomy (SWEBOK / ISO 12207 / IEEE 1028 / ISTQB / SFIA v9 / Google SRE / PMBOK) that CLAUDE.md cites. |
 | `docs/glossary/ENGINEERING.md` | **Binding** generic software-engineering terminology. All agents use these senses. |
 | `docs/glossary/PROJECT.md` | **Binding** project-specific jargon (customer-domain, vendor, site, codenames). |
-| `docs/AGENT_NAMES.md` | Canonical role → teammate name → pronouns mapping (agent-teams panel). |
+| `docs/AGENT_NAMES.md` | Canonical role → teammate name → pronouns mapping. |
 | `docs/OPEN_QUESTIONS.md` | Register of open questions, with answerer and status. |
 | `docs/INDEX.md` | Table of contents for everything under `docs/` plus repo-root bindings. |
 | `docs/templates/` | Document templates shaped after the relevant standards (ISO/IEC/IEEE 29148 / 42010 / 12207, arc42, C4, INVEST). |

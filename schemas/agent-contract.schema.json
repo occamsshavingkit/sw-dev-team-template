@@ -15,7 +15,7 @@
         "name": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9-]{1,63}$",
-          "description": "Canonical role slug; matches the file basename and the SendMessage `to` field"
+          "description": "Canonical role slug; matches the file basename and the Agent tool's name parameter"
         },
         "description": {
           "type": "string",

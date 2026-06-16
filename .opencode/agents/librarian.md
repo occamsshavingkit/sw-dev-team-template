@@ -2,7 +2,7 @@
 name: librarian
 model: claude-sonnet
 canonical_source: .claude/agents/librarian.md
-canonical_sha: f3314d4ab544d024271425cc50e9051f5e458d84
+canonical_sha: bb77468997cd6d6b6b8936dc379878e2363f7832
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.3.0
 classification: generated

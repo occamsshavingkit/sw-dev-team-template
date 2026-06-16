@@ -49,8 +49,9 @@ answer.
 - Avoid adding a new canonical role during rc4.
 - Preserve Hard Rules #1, #3, #4, #7, and #8 without weakening their
   evidence trails.
-- Preserve Codex parity when Claude Code hooks or named agent panels are
-  unavailable.
+- Preserve Codex parity when Claude Code hooks are unavailable (the
+  framework uses standard one-shot subagents with no panel or
+  `SendMessage` channel).
 - Keep specialist slot pressure from collapsing routed work back into
   local `tech-lead` implementation.
 

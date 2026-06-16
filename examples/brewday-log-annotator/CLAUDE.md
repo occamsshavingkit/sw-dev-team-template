@@ -155,9 +155,8 @@ Only after Step 2 is complete does `tech-lead` move on to Step 3.
 ### Step 3 — Agent naming (optional but encouraged)
 
 `tech-lead` offers the customer the chance to name the team. Named
-teammates show on the bottom panel of the TUI (when the experimental
-agent-teams feature is on — see `## Agent-teams panel` below) and make
-the session more readable than raw role names.
+teammates make work logs and escalation traces more readable than raw
+role names.
 
 Ask as **one question, when all agents are idle**:
 
@@ -204,19 +203,21 @@ entries across the roster must all match. Once created, `researcher`
 seeds `docs/sme/<domain>/INVENTORY.md` from `docs/sme/INVENTORY-template.md`
 so external-material tracking is in place from day one.
 
-## Agent-teams panel
+## Subagent model (one-shot)
 
-This project assumes the Claude Code experimental **agent-teams** feature
-is on (env var `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, pinned in
-`.claude/settings.json`). When the feature is on and a subagent is
-spawned with a `name` parameter, the teammate appears on the TUI
-status panel at the bottom and is addressable via `SendMessage({to:
-<name>})`. Named teammates persist across turns; unnamed one-shot
-agents do not.
+The experimental Claude Code agent-teams feature
+(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) is **NOT enabled** in this
+project. The framework uses standard one-shot subagents: `tech-lead`
+spawns a specialist via the `Agent` tool, the specialist completes its
+task and returns output, and `tech-lead` acts on the result. There are
+no persistent named teammates, no addressable TUI status panel, and no
+`SendMessage` channel.
 
-`tech-lead` spawns specialists by name (typically the role file name,
-e.g. `name: "architect"`). Short one-shot helpers (quick research
-queries, verification passes) may stay unnamed.
+Escalation is **pull-based**: a specialist that hits a blocker embeds
+the blocker in its return output. `tech-lead` reads the return, decides
+how to handle the blocker (route to another specialist, ask the
+customer, re-dispatch with amended context), and dispatches the next
+wave.
 
 ## Routing defaults
 

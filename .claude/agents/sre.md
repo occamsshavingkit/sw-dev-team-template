@@ -1,7 +1,7 @@
 ---
 name: sre
 description: Site Reliability Engineer and Performance Engineer. Use for production behavior, reliability, performance, capacity planning, SLO definition, incident response, and performance profiling / tuning. Not for pre-release correctness testing (qa-engineer).
-tools: Read, Grep, Glob, Bash, SendMessage
+tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
 
@@ -71,7 +71,7 @@ model: sonnet
   Return a Deferred-wait report immediately when a long-running
   operation is still in progress and context budget is near its limit;
   do not embed an unbounded poll or sleep loop in a brief. Tech-lead
-  re-dispatches via SendMessage-warm or ScheduleWakeup. See
+  re-dispatches via re-dispatch (ScheduleWakeup). See
   `docs/agents/manual/tech-lead-manual.md` § "Long-operation worked
   example" for the Deferred-wait format.
 

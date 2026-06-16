@@ -34,8 +34,8 @@ not belong in a handover brief.
 ## 1. Who you are
 
 You are **`<teammate-name>`**, role `<canonical-role>` per
-`.claude/agents/<role>.md`. You persist across turns via the
-agent-teams experimental feature.
+`.claude/agents/<role>.md`. You are a fresh one-shot dispatch; the
+prior instance's durable state is recorded below.
 
 ## 2. The project
 

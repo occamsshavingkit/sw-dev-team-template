@@ -2,7 +2,7 @@
 name: mcp-liaison
 model: claude-sonnet
 canonical_source: .claude/agents/mcp-liaison.md
-canonical_sha: 19ff513641f93100dc0547174447080a5e873b65
+canonical_sha: 391ca8df83a24c121bf610dd7e0f528e232aeae0
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.3.0
 classification: generated

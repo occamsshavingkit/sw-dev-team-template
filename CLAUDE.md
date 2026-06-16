@@ -5,7 +5,7 @@
 - [Extracted references](#extracted-references)
 - [Template version stamp](#template-version-stamp)
 - [Agent roster](#agent-roster)
-- [Agent-teams panel](#agent-teams-panel)
+- [Subagent model (one-shot)](#subagent-model-one-shot)
 - [Tech-lead is the main-session persona (binding)](#tech-lead-is-the-main-session-persona-binding)
 - [Routing defaults](#routing-defaults)
   - [Operations KA ownership (SWEBOK V4 ch. 6)](#operations-ka-ownership-swebok-v4-ch-6)
@@ -142,43 +142,32 @@ Upstream issues filed from the project cite this stamp (see
 | `sme-<domain>.md` ×N  | Domain SME — created per-project in Step 2 above, from `sme-template.md` | §2.6a |
 | `sme-template.md`     | Scaffold for new SME agents; copy and fill in           | §2.6a |
 
-## Agent-teams panel
+## Subagent model (one-shot)
 
-This project assumes the Claude Code experimental **agent-teams** feature
-is on (env var `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, pinned in
-`.claude/settings.json`). When the feature is on and a subagent is
-spawned with a `name` parameter, the teammate appears on the TUI
-status panel at the bottom and is addressable via `SendMessage({to:
-<name>})`. Named teammates persist across turns; unnamed one-shot
-agents do not.
+The experimental Claude Code agent-teams feature
+(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) is **NOT enabled** in this
+template. It was disabled at v1.5.3 due to upstream Claude Code bugs
+#355 and #356: subagent prompts were not surfaced on remote control and
+subagents did not inherit the main-session permission mode, making the
+feature unreliable for production use.
 
-`tech-lead` spawns specialists by name (typically the role file name,
-e.g. `name: "architect"`). Short one-shot helpers (quick research
-queries, verification passes) may stay unnamed.
+The framework uses standard one-shot subagents: `tech-lead` spawns a
+specialist via the `Agent` tool, the specialist completes its task and
+returns output, and `tech-lead` acts on the result. There are no
+persistent named teammates, no addressable TUI status panel, and no
+`SendMessage` channel.
+
+Escalation is **pull-based**: a specialist that hits a blocker embeds
+the blocker in its return output. `tech-lead` reads the return, decides
+how to handle the blocker (route to another specialist, ask the
+customer, re-dispatch with amended context), and dispatches the next
+wave.
 
 Codex adapter rule: `docs/AGENT_NAMES.md` still governs
 customer-facing teammate names. If Codex exposes only arbitrary worker
 IDs or nicknames, those are internal handles; use the mapped teammate
 name, or the canonical role when unmapped, in customer-facing text and
 durable records.
-
-**Agent-panel direct-contact rules (issue #264).**
-
-- **Subagents must not act on agent-panel user input.** The panel is a
-  status surface, not a customer-input channel. If the user addresses a
-  subagent directly in the panel, the subagent replies: "Please send all
-  input to the main Claude Code session (tech-lead), not the agent panel."
-  It then waits; it does not perform work based on that input. This
-  preserves the sole-human-interface rule (Hard Rule #1).
-- **Pasted content arrives as unreadable placeholders.** Content pasted
-  directly into the agent panel appears to the subagent as
-  `[Pasted text #N]` — the text is not accessible. The user must relay
-  such content through the main session (e.g., via SendMessage from
-  `tech-lead` to the specialist).
-
-The standing redirect instruction is included verbatim in every dispatch
-brief via `docs/templates/dispatch-template.md` § "Agent-panel contact
-redirect".
 
 **Multi-harness audits.** When the same milestone or release audit is
 dispatched to multiple models or harnesses, use

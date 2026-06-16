@@ -101,12 +101,16 @@ run_case() {
 
 # rc8-era downstream: only the SessionStart version-check hook present,
 # permissions block populated, no PreToolUse entries at all.
+# MY_PROJECT_API_URL is a neutral representative customer env key used to
+# verify that the merge preserves project-local env entries (the old
+# representative key, CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS, was dropped
+# at v1.5.3 when agent-teams support was removed).
 build_rc8_style() {
     cat > "$1" <<'JSON'
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+    "MY_PROJECT_API_URL": "https://api.example.com"
   },
   "permissions": {
     "allow": [
@@ -147,7 +151,7 @@ build_no_hooks_block() {
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+    "MY_PROJECT_API_URL": "https://api.example.com"
   },
   "permissions": {
     "allow": ["Read"]
@@ -307,7 +311,7 @@ check_customer_preserved() {
 import json, sys
 with open(sys.argv[1]) as fh:
     s = json.load(fh)
-if s.get("env", {}).get("CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS") != "1":
+if s.get("env", {}).get("MY_PROJECT_API_URL") != "https://api.example.com":
     sys.stderr.write("customer env not preserved\n")
     sys.exit(1)
 allow = s.get("permissions", {}).get("allow") or []

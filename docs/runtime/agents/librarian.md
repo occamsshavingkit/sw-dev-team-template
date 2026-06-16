@@ -3,7 +3,7 @@ name: librarian
 description: Record custodian. Use when the task requires maintaining CUSTOMER_NOTES.md (appending verbatim customer answers), OPEN_QUESTIONS.md stewardship, glossary stewardship (ENGINEERING.md and PROJECT.md), SME inventory stewardship (docs/sme/<domain>/INVENTORY.md), or archival of closed register rows. Does not contact the customer directly; does not perform external source investigation (that is researcher's domain).
 model: sonnet
 canonical_source: .claude/agents/librarian.md
-canonical_sha: f3314d4ab544d024271425cc50e9051f5e458d84
+canonical_sha: bb77468997cd6d6b6b8936dc379878e2363f7832
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.3.0
 classification: generated
@@ -74,8 +74,9 @@ custodial scope of this role). Paired with `researcher` (investigation).
    **File-creation handoff (binding).** When any agent creates a new
    file under `docs/sme/<domain>/` or adds external material to a
    domain's `local/`, the creating agent must either (a) update
-   `INVENTORY.md` in the same turn, or (b) `SendMessage` to `librarian`
-   with the new path so `librarian` can record it. An `INVENTORY.md`
+   `INVENTORY.md` in the same turn, or (b) include the request in its
+   return to `tech-lead` for re-dispatch to `librarian` with the new
+   path so `librarian` can record it. An `INVENTORY.md`
    that does not list every item in its domain directory is a process
    failure — surface it to `tech-lead` as a routing gap.
 

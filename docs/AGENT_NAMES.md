@@ -2,8 +2,8 @@
 
 Records the mapping between **canonical role** (the `.claude/agents/*.md`
 file and the agent type used in routing) and the **teammate name** the
-customer has chosen to display on the agent-teams panel at the bottom
-of the TUI.
+customer has chosen. Names are used in logs, Turn Ledger entries, handover
+briefs, issue comments, and all customer-facing text.
 
 **Stewarded by `tech-lead`;** written by `researcher`; names and
 pronouns are confirmed against an authoritative Tier-1 / Tier-2 source
@@ -189,12 +189,6 @@ parameter, e.g.:
       name: "Dr. Bunsen Honeydew",
       prompt: "...",
     })
-
-When the agent-teams experimental feature is on
-(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, pinned in
-`.claude/settings.json`), the teammate then appears on the bottom panel
-of the TUI and is addressable via `SendMessage({to: "Dr. Bunsen
-Honeydew"})`.
 
 In Codex, use the native subagent spawn interface and preserve the same
 canonical role plus teammate name where the harness supports naming.

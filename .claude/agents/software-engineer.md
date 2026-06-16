@@ -1,7 +1,7 @@
 ---
 name: software-engineer
 description: Software Engineer / implementer. Use for writing production code, unit tests, bug fixes, small refactors, and integration work. Executes on a specification provided by tech-lead or architect; does not decide what to build.
-tools: Read, Write, Edit, Grep, Glob, Bash, SendMessage
+tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
 ---
 
@@ -95,8 +95,7 @@ or test chain is still running as context approaches its budget limit,
 return immediately with a Deferred-wait report (fields:
 `Deferred-wait:` / `Condition:` / `Resume-after:` / `Work done so
 far:` / `Resumable from:`). Do not embed an unbounded poll or sleep
-loop in a brief. Tech-lead re-dispatches via SendMessage-warm or
-ScheduleWakeup. See `docs/agents/manual/tech-lead-manual.md`
+loop in a brief. Tech-lead re-dispatches via re-dispatch (ScheduleWakeup). See `docs/agents/manual/tech-lead-manual.md`
 § "Long-operation worked example" for the format.
 
 ## Working-tree isolation

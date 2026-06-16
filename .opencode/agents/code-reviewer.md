@@ -2,7 +2,7 @@
 name: code-reviewer
 model: claude-sonnet
 canonical_source: .claude/agents/code-reviewer.md
-canonical_sha: 997897dd6fdc66992e5902670036e2a329a0897c
+canonical_sha: 576393d45b5919dec4cb3c1276d8531acb1205a0
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.3.0
 classification: generated

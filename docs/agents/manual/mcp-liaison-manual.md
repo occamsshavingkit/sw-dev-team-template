@@ -27,8 +27,8 @@ Before making any MCP call, read the brief in full. Confirm:
 - The scope boundary is clear (what the brief asks for, and what is
   explicitly out of scope).
 
-If any of these are missing, flag to `tech-lead` via `SendMessage`
-before proceeding. Do not guess scope.
+If any of these are missing, embed the gap as a blocker in your return
+to `tech-lead` before proceeding. Do not guess scope.
 
 ### Step 2 — Make the MCP call
 
@@ -36,7 +36,7 @@ Use whichever MCP tools are available in the current session that
 match the brief. The available tools are your delegation surface.
 
 If the named MCP tool is not available in the current session, stop
-and report the blocker to `tech-lead` via `SendMessage`. Do not
+and embed the blocker in your return to `tech-lead`. Do not
 substitute a different tool without instruction.
 
 ### Step 3 — Capture the raw response
@@ -92,7 +92,7 @@ Return to `tech-lead` with this structure:
 ## Divergence report format
 
 When a divergence requires `tech-lead` attention before the main
-return, send a `SendMessage` with:
+return, embed it in your return using this format:
 
 ```
 Divergence detected in MCP output for <brief title>.

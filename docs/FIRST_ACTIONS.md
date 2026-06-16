@@ -247,9 +247,9 @@ Only after Step 2 is complete does `tech-lead` move on to Step 3.
 ## Step 3 — Agent naming (optional but encouraged)
 
 `tech-lead` offers the customer the chance to name the team. Named
-teammates show on the bottom panel of the TUI (when the experimental
-agent-teams feature is on — see `CLAUDE.md` § "Agent-teams panel") and make
-the session more readable than raw role names.
+teammates make logs, Turn Ledger entries, and customer-facing text more
+readable than raw role names. See `CLAUDE.md` § "Subagent model (one-shot)"
+for the current dispatch model.
 
 Ask as **one question, when all agents are idle**:
 

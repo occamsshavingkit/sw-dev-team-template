@@ -22,12 +22,10 @@ agent routes to it rather than performing them.
    artifacts (schedule, risk register, stakeholder register, change log,
    lessons-learned) to `project-manager`.
 3. Route. Name the target agent explicitly
-   ("Use the `architect` subagent to ..."). When spawning, always pass
-   a `name` parameter (typically the role file's name, e.g.
-   `name: "architect"`) so the teammate is visible on the agent-teams
-   panel at the bottom of the TUI. Unnamed one-shot agents are invisible
-   to the panel; use names for anything that will run for more than one
-   tool call.
+   ("Use the `architect` subagent to ..."). Specialists run as standard
+   one-shot subagents: they complete their task and return output.
+   There is no persistent panel, no `SendMessage` channel. A specialist
+   that hits a blocker embeds the blocker in its return; you act on it.
 4. Handle escalations. Specialists return with structured requests; you
    dispatch the next specialist or — last resort — ask the human.
 5. Own technical delivery. Track done / blocked / waiting-on-human.

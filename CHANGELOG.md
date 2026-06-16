@@ -18,6 +18,39 @@ filed upstream include that version.
 
 ---
 
+## v1.5.3 (2026-06-16)
+
+Removes the experimental Claude Code agent-teams feature and reverts the
+framework to standard one-shot subagents (spawn -> do -> return). This
+works around two upstream Claude Code bugs filed during this release
+(#355, #356) that made agent-teams unusable in Claude Code; the prior
+behavior still functions under Codex and Antigravity. See
+`docs/adr/fw-adr-0029-drop-experimental-agent-teams-flag.md`, which
+records the decision and the trigger to re-evaluate re-enabling the flag
+once the upstream bugs are fixed.
+
+### Changed
+
+- **Dropped `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`** from the scaffold
+  settings and added `permissions.defaultMode: acceptEdits` so standard
+  subagents inherit the session permission posture and write without
+  prompting.
+- **Removed `SendMessage` from all agent contracts** (`tools:` lines and
+  bodies) and regenerated the runtime mirrors; escalation is now PULL
+  (blocker embedded in the return value, handled on the next dispatch).
+- **Rewrote the agent-health contract** around one-shot subagents:
+  file-based health signals and respawn-as-re-dispatch replace liveness
+  pings and the status panel.
+- **Updated orchestration docs, role taxonomy, scaffold/respawn/audit
+  scripts, contract schema, and the bundled example** to the one-shot
+  model; newly scaffolded projects no longer enable the flag.
+
+### Fixed
+
+- **Filed upstream (#355, #356)**: subagent permission prompts not
+  surfaced in the remote-control interface, and spawned subagents not
+  inheriting the main-session permission mode.
+
 ## v1.5.2 (2026-06-16)
 
 Patch release carrying the `#353` tech-lead authoring-guard follow-up
