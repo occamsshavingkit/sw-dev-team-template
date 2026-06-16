@@ -829,3 +829,60 @@ the existing canonical_sha path that already covers `.opencode/agents/`
 
 **Recorded by:** librarian
 
+## 2026-06-16 — v1.5.1/v1.5.2 template release: authorization-guard security sign-off (HR-7/HR-4)
+
+**Question (from tech-lead):**
+> v1.5.2 modifies an authorization guard, so Hard Rule #7/#4 needs live sign-off before it ships. Do you accept the two documented LOW-severity residuals (harness-trust on `agent_type`; pre-existing Antigravity self-map bypass) and authorize the release to go up?
+
+**Customer answer (verbatim):**
+> Approve & ship
+
+(Earlier in the same session, verbatim: "yes. I want everything sent up.")
+
+**security-engineer verdict:** SIGN-OFF-WITH-CONDITIONS, no code blockers, covering `scripts/hooks/tech-lead-authoring-guard.py` (v1.5.2) and the v1.5.1 subcall-budget change.
+
+**Accepted residuals:**
+- (a) Harness-trust assumption on top-level `agent_type`: the "allow specialist write" path is safe only because the Claude Code harness does not populate `agent_type` with a canonical specialist role on main-session PreToolUse events. Architectural assumption, not a code invariant.
+- (b) Antigravity two-step bypass (pre-existing, not new in v1.5.2): `docs/pm/active-dispatches.json` is on the guard's ALLOW_EXACT list, so under Antigravity a main session could self-map to a non-`tech-lead` specialist role and bypass the off-list write denial. Accepted because `SWDT_AGENT_PUSH` is a simpler already-accepted equivalent and the guard's threat model is accidental Hard-Rule-8 violations, not an adversarial main session.
+
+**Assurance artefact:** `docs/security/sa-v1.5.2-authoring-guard.md`
+
+**Recorded by:** librarian (steward of record). Mechanical append performed by tech-lead as Hard-Rule-8 tool-bridge work because the librarian subagent's sandbox write could not be approved through the UI.
+
+## 2026-06-16 — v1.5.3 design decision: role-deterministic CUSTOMER_NOTES gate (HR-1 leak)
+
+**Question (from tech-lead):**
+> Do you accept making the CUSTOMER_NOTES gate role-deterministic — librarian writes proceed with no human prompt, with integrity assured by the role gate + tech-lead review instead of a per-write confirmation — and ship that as v1.5.3 Layer-1, filing Layers 2–3 upstream?
+
+**Customer answer (verbatim):**
+> yes
+
+**Decision recorded:** v1.5.3 Layer-1 approved — `customer-notes-guard.py` becomes role-aware (librarian → allow, other specialist → deny, main-session/unknown → ask). This intentionally removes the per-write human "ask" checkpoint on customer-truth for librarian writes; residual integrity carried by the agent_type role gate + tech-lead review of the dispatch brief. Design: `docs/pm/v1.5.3-hr1-permission-leak-design.md`. Security analysis (sa-v1.5.3) pending; HR-7 sign-off still required before implementation commits.
+
+**Recorded by:** librarian (steward of record). Tool-bridge append by tech-lead (librarian subagent writes cannot be approved from the customer's remote-control interface — see SME note below).
+
+## 2026-06-16 — SME ground-truth: Claude Code harness permission-prompt routing (customer is SME)
+
+**Question (from tech-lead):**
+> How does the Claude Code remote-control interface surface permission prompts for the main session versus spawned subagents?
+
+**Customer answer (verbatim):**
+> remote control does have a prompting system, but prompts from subagents do not trigger it
+
+**Related verbatim (same session):**
+> I changed things so agents could talk to each other a limited number of times and that ability is being used to talk to the main session directly
+
+**Significance:** Confirms the HR-1 permission-leak root cause has three layers — (1) `customer-notes-guard` role-blind "ask" [scaffold-fixable, v1.5.3 Layer-1]; (2) spawned subagents do not inherit the main session's permissive mode, so they prompt on writes [Claude Code harness behavior]; (3) on the remote-control interface, subagent prompts are not surfaced at all, so the subagent hangs un-actionably [Claude Code harness behavior]. Layers 2–3 are to be filed upstream per `docs/ISSUE_FILING.md` with operator mitigations (operate from desktop when dispatching writer-subagents; do not dispatch writer-subagents while on remote control).
+
+**Recorded by:** librarian (steward of record). Tool-bridge append by tech-lead per the harness limitation above.
+
+
+## 2026-06-16 — v1.5.3 approach pivot: drop-the-flag supersedes the role-aware-guard
+
+**Update to the v1.5.3 design-decision entry above.** The v1.5.3 direction changed after that entry was recorded. The customer confirmed by test that, with the experimental agent-teams flag removed, standard subagents inherit the session permission mode and write silently — i.e. bugs #355/#356 are flag-specific. The team therefore dropped the experimental agent-teams flag entirely (FW-ADR-0029) instead of pursuing the role-aware customer-notes-guard.
+
+Consequences:
+- The role-aware-guard design (`docs/pm/v1.5.3-hr1-permission-leak-design.md`) is SUPERSEDED.
+- The pending `sa-v1.5.3` security analysis was not authored and is not required: v1.5.3 as shipped is a configuration/documentation change with no authorization-guard code change, so the earlier "HR-7 sign-off required before implementation commits" note does not apply. Security rationale for v1.5.3 is recorded in FW-ADR-0029.
+
+**Recorded by:** librarian (steward of record). Tool-bridge append by tech-lead.
