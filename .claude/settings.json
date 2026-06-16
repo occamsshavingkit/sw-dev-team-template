@@ -48,8 +48,8 @@
     "autoMode": {
       "allow": [
         "$defaults",
-        "Edit(/home/quackdcs/SWEProj/**) \u2014 project-managed agent contracts and templates; the project owns these and they are tracked in git.",
-        "Write(/home/quackdcs/SWEProj/**) \u2014 same as above; new artifacts under the project root are project-owned."
+        "Edit(/home/quackdcs/SWEProj/**) — project-managed agent contracts and templates; the project owns these and they are tracked in git.",
+        "Write(/home/quackdcs/SWEProj/**) — same as above; new artifacts under the project root are project-owned."
       ]
     }
   },
@@ -178,6 +178,12 @@
             "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/subcall-limit-reset.py\"",
             "timeout": 5,
             "statusMessage": "Resetting subagent subcall budget..."
+          },
+          {
+            "type": "command",
+            "command": "[ -x \"${CLAUDE_PROJECT_DIR:-.}/scripts/agent-teams-revisit-check.sh\" ] && \"${CLAUDE_PROJECT_DIR:-.}/scripts/agent-teams-revisit-check.sh\" 2>&1 || true",
+            "timeout": 8,
+            "statusMessage": "Checking agent-teams revisit status..."
           }
         ]
       },
