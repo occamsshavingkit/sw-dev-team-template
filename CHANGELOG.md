@@ -18,6 +18,31 @@ filed upstream include that version.
 
 ---
 
+## v1.5.4 (2026-06-23)
+
+Patch release closing the remote-control wedge that v1.5.3's `acceptEdits`
+left open: spawned subagents still prompted on `Bash` tool calls (not just
+edits), and those prompts do not surface in the Claude Code remote-control
+interface, hanging the subagent (upstream bugs #355, #356).
+
+### Changed
+
+- **Scaffold permission posture:** `allow: ["Bash(*)"]` plus an 18-pattern
+  destructive `deny` list (privilege escalation, disk destruction,
+  destructive local and remote git). Pre-authorizes routine subagent Bash
+  so prompts never fire, while blocking the obvious destructive commands.
+  See `docs/adr/fw-adr-0030-subagent-bash-permission-posture.md`.
+
+### Added
+
+- **Hard Rule #13 — destructive Bash is a tech-lead duty.** Subagents are
+  denied destructive commands at the permission layer and route the request
+  to `tech-lead`, who executes from the main session (bypass mode).
+  Centralizes destructive shell execution at the single supervised
+  orchestrator. The deny list is coarse defense-in-depth; the duty is the
+  primary control. GitHub branch/tag protection recommended as an
+  independent remote-side backstop.
+
 ## v1.5.3 (2026-06-16)
 
 Removes the experimental Claude Code agent-teams feature and reverts the

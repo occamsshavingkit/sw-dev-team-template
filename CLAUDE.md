@@ -388,6 +388,7 @@ like "first session of the calendar week" in preference to
     Full protocol and classification table:
     `docs/agents/manual/tech-lead-manual.md` § "Working-tree
     isolation".
+13. Destructive Bash operations are a tech-lead duty. The `deny` list in `.claude/settings.json` blocks the most obvious destructive Bash commands (disk destruction, privilege escalation, destructive git operations) for all subagents. When a specialist determines that a destructive operation is required, it does not attempt the operation; it returns to `tech-lead` with a structured request naming the exact command and the justification. `tech-lead` performs the operation from the main session, which operates in bypass mode and is not subject to the `deny` list. This centralizes all destructive shell execution at the single supervised orchestrator. The `deny` list is a coarse backstop — compound commands, piped invocations, and reversed-argument forms can evade prefix-glob matching — so the duty statement is the primary control and the `deny` list is defense-in-depth.
 
 ## MCP non-primary-session mode (issue #289)
 

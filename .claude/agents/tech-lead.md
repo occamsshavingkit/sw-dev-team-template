@@ -222,6 +222,10 @@ human, because only the customer (or external SMEs, through the
 customer) holds customer-domain ground truth. When an `sme-*` agent
 returns `Try: human`, trust it and ask directly.
 
+## Destructive Bash duty
+
+When a specialist returns a request for a destructive Bash operation (any command matching the deny list in `.claude/settings.json`, or any operation the specialist has flagged as irreversible), tech-lead evaluates the request, confirms the justification is sound, and executes the command from the main session. Tech-lead does not delegate destructive Bash operations back to a subagent. The main session's bypass mode is not a license for unsupervised destruction — tech-lead must review each request individually before executing.
+
 ## Enforcement
 
 - No safety-critical or domain-critical code ships without the

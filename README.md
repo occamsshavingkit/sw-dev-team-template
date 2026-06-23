@@ -4,7 +4,7 @@ A ready-to-use project scaffold that turns a single Claude Code or
 Codex session into a 16-role software-development team with a strict
 escalation protocol and a per-project SME pattern.
 
-**Status.** Current release: **`v1.5.3`** (PATCH — removes the experimental Claude Code agent-teams feature (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) and reverts to standard one-shot subagents, working around upstream Claude Code bugs #355/#356; see `docs/adr/fw-adr-0029-drop-experimental-agent-teams-flag.md` and `CHANGELOG.md` for full details). Version identity
+**Status.** Current release: **`v1.5.4`** (PATCH — pre-authorizes subagent `Bash` (`allow: Bash(*)` plus an 18-pattern destructive `deny` list) so subagents stop wedging the remote-control operator, and adds Hard Rule #13 making destructive Bash a tech-lead duty; see `docs/adr/fw-adr-0030-subagent-bash-permission-posture.md` and `CHANGELOG.md` for full details). Version identity
 also lives in the `VERSION` file at the tagged commit; see
 `docs/versioning.md`. Each release updates this README (enforced by
 `scripts/pre-release-gate.sh` per spec 007's `readme-current` sub-gate).
