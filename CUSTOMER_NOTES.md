@@ -886,3 +886,14 @@ Consequences:
 - The pending `sa-v1.5.3` security analysis was not authored and is not required: v1.5.3 as shipped is a configuration/documentation change with no authorization-guard code change, so the earlier "HR-7 sign-off required before implementation commits" note does not apply. Security rationale for v1.5.3 is recorded in FW-ADR-0029.
 
 **Recorded by:** librarian (steward of record). Tool-bridge append by tech-lead.
+
+## 2026-06-23 — v1.5.4 subagent permission posture: hybrid Bash(*) + destructive guard list
+
+**Question (from tech-lead):** how to stop subagent Bash prompts wedging the operator on remote control — (A) allow `Bash(*)` and accept the residual risk, (B) targeted allow-list, or (C) hybrid: allow `Bash(*)` plus a small ask/deny list for genuinely destructive patterns.
+
+**Customer answer (verbatim):**
+> C
+
+**Decision / ratification:** Adopt the HYBRID. The scaffold `permissions` will `allow` `Bash(*)` so subagents stop wedging on remote control, PLUS a small guard list for genuinely destructive patterns. Because "ask" prompts do not surface on remote control, the destructive list should prefer `deny`/block over `ask` to avoid re-wedging. The three deny-hooks (authoring-guard, customer-notes-guard, handoff-gate) continue to enforce role/path/customer-truth rules regardless of the allow entry. Customer ratifies the residual-risk acceptance: non-flagged Bash auto-runs without a human prompt; the guard list backstops catastrophic commands. Exact `permissions` block designed by security-engineer; to be recorded in the v1.5.4 ADR. Does not cross HR-7 (no auth/secrets/network code changed).
+
+**Recorded by:** librarian (steward of record). Tool-bridge append by tech-lead (remote-control limitation; a librarian subagent prompt would not surface).
