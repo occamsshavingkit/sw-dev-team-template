@@ -30,6 +30,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Install PyYAML
+        run: pip install pyyaml
       - name: Install check-jsonschema
         run: pipx install check-jsonschema==0.37.2
       - name: Run lint-agent-contracts.sh
