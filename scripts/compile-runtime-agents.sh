@@ -703,30 +703,44 @@ maybe_validate_output() {
   fi
   # Extract frontmatter into a JSON doc and validate.
   tmpjson="$(mktemp)"
-  awk '
-    BEGIN { state = "pre" }
-    {
-      if (state == "pre") {
-        if ($0 == "---") { state = "fm"; next }
-        exit
-      }
-      if (state == "fm") {
-        if ($0 == "---") { exit }
-        print $0
-      }
-    }
-  ' "${out_path}" \
-    | awk '
-        BEGIN { print "{" ; first = 1 }
-        /^[a-zA-Z_][a-zA-Z0-9_]*[ \t]*:/ {
-          k = $0; sub(/[ \t]*:.*$/, "", k)
-          v = $0; sub(/^[^:]*:[ \t]*/, "", v)
-          gsub(/\\/, "\\\\", v); gsub(/"/, "\\\"", v)
-          if (!first) printf ",\n"; first = 0
-          printf "  \"%s\": \"%s\"", k, v
+  # Use Python for proper YAML→JSON conversion (handles nested objects
+  # like OpenCode's permission: map).
+  if command -v python3 >/dev/null 2>&1; then
+    python3 -c '
+import sys, json, yaml
+with open(sys.argv[1]) as f:
+    parts = f.read().split("---")
+    if len(parts) >= 3:
+        fm = yaml.safe_load(parts[1])
+        json.dump(fm, sys.stdout, default=str)
+' "${out_path}" > "${tmpjson}" 2>/dev/null
+  else
+    # Fallback: extract flat YAML frontmatter with awk (no nested support).
+    awk '
+      BEGIN { state = "pre" }
+      {
+        if (state == "pre") {
+          if ($0 == "---") { state = "fm"; next }
+          exit
         }
-        END { printf "\n}\n" }
-      ' > "${tmpjson}"
+        if (state == "fm") {
+          if ($0 == "---") { exit }
+          print $0
+        }
+      }
+    ' "${out_path}" \
+      | awk '
+          BEGIN { print "{" ; first = 1 }
+          /^[a-zA-Z_][a-zA-Z0-9_]*[ \t]*:/ {
+            k = $0; sub(/[ \t]*:.*$/, "", k)
+            v = $0; sub(/^[^:]*:[ \t]*/, "", v)
+            gsub(/\\/, "\\\\", v); gsub(/"/, "\\\"", v)
+            if (!first) printf ",\n"; first = 0
+            printf "  \"%s\": \"%s\"", k, v
+          }
+          END { printf "\n}\n" }
+        ' > "${tmpjson}"
+  fi
   if ! "${CHECK_JSONSCHEMA}" --schemafile "${GENERATED_SCHEMA}" "${tmpjson}" >/dev/null 2>&1; then
     rm -f "${tmpjson}"
     echo "compile-runtime-agents: output frontmatter failed schema validation: ${out_path}" >&2
@@ -846,45 +860,110 @@ resolve_codex_model_id() {
 }
 
 # ---- opencode adapter writer ----------------------------------------
-# Writes .opencode/agents/<role>.md with frontmatter + the fixed
-# four-line body required by R-7. canonical_sha is the same 40-hex
-# value already resolved for the compact-runtime contract.
+# Writes .opencode/agents/<role>.md with full role instructions adapted
+# from the canonical .claude/agents/<role>.md. Embeds the body content
+# directly so OpenCode subagents receive their role contract as a system
+# prompt.
+#
+# Permission mapping from canonical tools: to opencode keys:
+#   Read   → read
+#   Write,Edit → edit
+#   Grep   → grep
+#   Glob   → glob
+#   Bash   → bash
+#   WebSearch → websearch
+#   WebFetch  → webfetch
+# All subagents get task:deny and question:deny (only tech-lead spawns/asks).
+#
+# canonical_sha is the same 40-hex value already resolved for the
+# compact-runtime contract. fm_desc and fm_tools come from the parse
+# pass in the main compile loop.
 write_opencode_adapter() {
   role="$1"
   canonical_src="$2"
   canonical_sha="$3"
-
-  model_class="$(resolve_model_class "${role}")"
-  if [ -z "${model_class}" ]; then
-    echo "compile-runtime-agents: ${role} not in routing table, defaulting to ${DEFAULT_MODEL_CLASS}" >&2
-    model_class="${DEFAULT_MODEL_CLASS}"
-  fi
+  fm_desc="$4"
+  fm_tools="$5"
 
   mkdir -p "${OPENCODE_OUT_DIR}"
   out_path="${OPENCODE_OUT_DIR}/${role}.md"
   tmp_out="${out_path}.tmp"
 
-  local_supplement="${OPENCODE_LOCAL_DIR}/${role}.md"
+  # Build the permission map from canonical tools.
+  perm_read="deny"
+  perm_edit="deny"
+  perm_grep="deny"
+  perm_glob="deny"
+  perm_bash="deny"
+  perm_websearch="deny"
+  perm_webfetch="deny"
+
+  if [ -n "${fm_tools}" ]; then
+    # Normalize: lowercase, replace commas with spaces, collapse whitespace.
+    tools_norm="$(printf '%s' "${fm_tools}" | tr '[:upper:]' '[:lower:]' | tr ',' ' ' | sed 's/  */ /g')"
+    case " ${tools_norm} " in
+      *" read "*)    perm_read="allow" ;;
+    esac
+    case " ${tools_norm} " in
+      *" write "*|*" edit "*) perm_edit="allow" ;;
+    esac
+    case " ${tools_norm} " in
+      *" grep "*)    perm_grep="allow" ;;
+    esac
+    case " ${tools_norm} " in
+      *" glob "*)    perm_glob="allow" ;;
+    esac
+    case " ${tools_norm} " in
+      *" bash "*)    perm_bash="allow" ;;
+    esac
+    case " ${tools_norm} " in
+      *" websearch "*) perm_websearch="allow" ;;
+    esac
+    case " ${tools_norm} " in
+      *" webfetch "*) perm_webfetch="allow" ;;
+    esac
+  fi
+
+  # Write frontmatter with description, mode, permissions.
   {
     printf -- '---\n'
     printf 'name: %s\n' "${role}"
-    printf 'model: %s\n' "${model_class}"
+    if [ -n "${fm_desc}" ]; then
+      # YAML-safe: use literal block scalar (|) to avoid quoting issues
+      # with descriptions containing colons, quotes, or special chars.
+      printf 'description: |\n'
+      printf '  %s\n' "${fm_desc}"
+    fi
+    printf 'mode: subagent\n'
+    printf 'permission:\n'
+    printf '  read: %s\n' "${perm_read}"
+    printf '  edit: %s\n' "${perm_edit}"
+    printf '  grep: %s\n' "${perm_grep}"
+    printf '  glob: %s\n' "${perm_glob}"
+    printf '  bash: %s\n' "${perm_bash}"
+    printf '  websearch: %s\n' "${perm_websearch}"
+    printf '  webfetch: %s\n' "${perm_webfetch}"
+    printf '  task: deny\n'
+    printf '  question: deny\n'
+    printf '  todowrite: deny\n'
+    printf '  skill: deny\n'
     printf 'canonical_source: %s\n' "${canonical_src}"
     printf 'canonical_sha: %s\n' "${canonical_sha}"
-    if [ -f "${local_supplement}" ]; then
-      printf 'local_supplement: %s\n' "${local_supplement}"
-    fi
     printf 'generator: %s\n' "${GENERATOR_PATH}"
     printf 'generator_version: %s\n' "${GENERATOR_VERSION}"
     printf 'classification: generated\n'
     printf -- '---\n'
     printf '\n'
-    # shellcheck disable=SC2016  # literal backticks for Markdown output
-    printf 'Read `.claude/agents/%s.md` (canonical role contract).\n' "${role}"
-    # shellcheck disable=SC2016  # literal backticks for Markdown output
-    printf 'If `local_supplement` resolves to an existing file, read it after the canonical file.\n'
-    printf 'Act only as that role.\n'
-    printf "Return output in the role's required format.\n"
+    # Embed the canonical body content (everything after the frontmatter).
+    # Strip the leading ---...--- block and emit the role instructions.
+    awk '
+      BEGIN { in_body = 0; fm_end = 0 }
+      /^---$/ {
+        if (fm_end == 0) { fm_end = 1; next }
+        if (fm_end == 1) { in_body = 1; next }
+      }
+      { if (in_body && $0 !~ /^---$/) print }
+    ' "${canonical_src}"
   } > "${tmp_out}"
 
   mv "${tmp_out}" "${out_path}"
@@ -1286,12 +1365,14 @@ compile_role() {
     canonical_sha="0000000000000000000000000000000000000000"
   fi
 
-  # OpenCode adapter (FR-021 / R-7) — always written when adapters
-  # are enabled, regardless of section completeness, because the
-  # adapter body is fixed and only depends on the canonical slug +
-  # sha + routing-table class.
-  if [ "${NO_OPENCODE_ADAPTERS}" -eq 0 ]; then
-    write_opencode_adapter "${role}" "${src}" "${canonical_sha}"
+  # OpenCode adapter — always written when adapters are enabled.
+  # Embeds full role instructions from the canonical file so
+  # OpenCode subagents receive their role contract as a system prompt.
+  # fm_desc is load-bearing for OpenCode autonomous selection;
+  # fm_tools determines the agent's permission surface.
+  # Skip tech-lead: the main session persona, never a subagent.
+  if [ "${NO_OPENCODE_ADAPTERS}" -eq 0 ] && [ "${role}" != "tech-lead" ]; then
+    write_opencode_adapter "${role}" "${src}" "${canonical_sha}" "${fm_desc}" "${fm_tools}"
   fi
 
   # Gemini adapter (fw-adr-0022) — same conditions as opencode. The

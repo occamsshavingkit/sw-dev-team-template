@@ -16,6 +16,15 @@
       "type": "string",
       "description": "Configured model class or concrete harness model ID for adapters that consume this artifact; optional for compact runtime contracts"
     },
+    "mode": {
+      "type": "string",
+      "enum": ["primary", "subagent", "all"],
+      "description": "OpenCode agent mode; omitted for non-OpenCode adapters"
+    },
+    "permission": {
+      "type": "object",
+      "description": "OpenCode permission surface; omitted for non-OpenCode adapters. Maps tool keys to allow/ask/deny."
+    },
     "description": {
       "type": "string",
       "minLength": 20,
