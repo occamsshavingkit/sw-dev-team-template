@@ -1,8 +1,12 @@
-# SW-dev Team Template for Claude Code and Codex
+# SW-dev Team Template for Claude Code, OpenCode, and Codex
 
-A ready-to-use project scaffold that turns a single Claude Code or
-Codex session into a 16-role software-development team with a strict
-escalation protocol and a per-project SME pattern.
+A ready-to-use project scaffold that turns a single Claude Code,
+OpenCode, or Codex session into a 16-role software-development team
+with a strict escalation protocol and a per-project SME pattern.
+
+**Latest release:** v1.6.0 (2026-07-02) — OpenCode harness adapter,
+full-role-content adapters across all four harnesses (Claude Code,
+OpenCode, Codex, Gemini CLI), harness-agnostic AGENTS.md.
 
 **Status.** Current release: **`v1.5.4`** (PATCH — pre-authorizes subagent `Bash` (`allow: Bash(*)` plus an 18-pattern destructive `deny` list) so subagents stop wedging the remote-control operator, and adds Hard Rule #13 making destructive Bash a tech-lead duty; see `docs/adr/fw-adr-0030-subagent-bash-permission-posture.md` and `CHANGELOG.md` for full details). Version identity
 also lives in the `VERSION` file at the tagged commit; see
