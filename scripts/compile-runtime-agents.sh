@@ -716,7 +716,7 @@ with open(sys.argv[1]) as f:
 ' "${out_path}" > "${tmpjson}" 2>/dev/null
   else
     # Fallback: extract flat YAML frontmatter with awk (no nested support).
-    awk '
+    fm_yaml="$(awk '
       BEGIN { state = "pre" }
       {
         if (state == "pre") {
@@ -728,7 +728,15 @@ with open(sys.argv[1]) as f:
           print $0
         }
       }
-    ' "${out_path}" \
+    ' "${out_path}")"
+    # WARN: awk fallback cannot handle YAML block scalars (description: |)
+    # or nested maps (permission:). Skip validation to avoid false failures.
+    if echo "${fm_yaml}" | grep -qE '^[a-zA-Z_][a-zA-Z0-9_]*:[ \t]*\|' \
+      || echo "${fm_yaml}" | grep -qE '^permission:'; then
+      echo "compile-runtime-agents: WARN: awk fallback cannot validate ${out_path} (block scalars or nested maps); skipping validation" >&2
+      return 0
+    fi
+    echo "${fm_yaml}" \
       | awk '
           BEGIN { print "{" ; first = 1 }
           /^[a-zA-Z_][a-zA-Z0-9_]*[ \t]*:/ {
@@ -1020,11 +1028,14 @@ write_codex_adapter() {
     printf 'description = "%s"\n' "${esc_desc}"
     printf 'model = "%s"\n' "${codex_model}"
     printf 'developer_instructions = """\n'
-    printf 'Read `.claude/agents/%s.md` (canonical role contract).\n' "${role}"
-    printf 'If `.claude/agents/%s-local.md` exists, read it after the canonical file.\n' "${role}"
-    printf 'If `.codex/agents/local/%s.toml` exists, read it after the canonical local supplement.\n' "${role}"
-    printf 'Act only as that role.\n'
-    printf "Return output in the role's required format.\n"
+    awk '
+      BEGIN { in_body = 0; fm_end = 0 }
+      /^---$/ {
+        if (fm_end == 0) { fm_end = 1; next }
+        if (fm_end == 1) { in_body = 1; next }
+      }
+      { if (in_body && $0 !~ /^---$/) print }
+    ' "${canonical_src}"
     printf '"""\n'
     printf 'name = "%s"\n' "${role}"
   } > "${tmp_out}"
@@ -1069,12 +1080,14 @@ write_gemini_adapter() {
     printf 'classification: generated\n'
     printf -- '---\n'
     printf '\n'
-    # shellcheck disable=SC2016  # literal backticks for Markdown output
-    printf 'Read `.claude/agents/%s.md` (canonical role contract).\n' "${role}"
-    # shellcheck disable=SC2016  # literal backticks for Markdown output
-    printf 'If `local_supplement` resolves to an existing file, read it after the canonical file.\n'
-    printf 'Act only as that role.\n'
-    printf "Return output in the role's required format.\n"
+    awk '
+      BEGIN { in_body = 0; fm_end = 0 }
+      /^---$/ {
+        if (fm_end == 0) { fm_end = 1; next }
+        if (fm_end == 1) { in_body = 1; next }
+      }
+      { if (in_body && $0 !~ /^---$/) print }
+    ' "${canonical_src}"
   } > "${tmp_out}"
 
   mv "${tmp_out}" "${out_path}"
