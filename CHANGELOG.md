@@ -18,6 +18,70 @@ filed upstream include that version.
 
 ---
 
+## v1.6.0 (2026-07-02)
+
+MINOR release adding the OpenCode harness adapter and upgrading Codex/Gemini
+adapters from pointer stubs to full role content.
+
+### Added
+
+- **OpenCode harness adapter.** New `opencode.json` with permission config,
+  dispatch policy for all 15 specialist roles, and bash allow/deny lists.
+  Generated `.opencode/agents/<role>.md` files now embed the full canonical
+  role contract inline (not thin stubs). OpenCode subagents receive their
+  role instructions as a system prompt without needing to read the canonical
+  file first.
+
+- **Full-role-content Codex/Gemini adapters.** `write_codex_adapter()` and
+  `write_gemini_adapter()` now embed the canonical role body directly in
+  `developer_instructions` / frontmatter body (was 2-line "read canonical
+  file" pointer). Reduces a dispatch round-trip and makes all four harness
+  formats consistent.
+
+- **Harness-agnostic scaffold AGENTS.md.** Replaced the Codex-specific
+  `# Codex Agent Instructions` with a concise multi-harness document
+  (Claude Code, OpenCode, Codex, Gemini CLI). Entry points mapped via
+  a table. No harness-specific dispatch rules in the shared entry point.
+
+### Changed
+
+- **OpenCode permission model.** `write_opencode_adapter()` maps canonical
+  `tools:` frontmatter to OpenCode permission keys (read/edit/grep/glob/
+  bash/websearch/webfetch). All subagents get `task: deny` (no sub-spawning).
+  `tech-lead` is not generated as an opencode subagent (main session persona).
+
+- **YAML description quoting.** `write_gemini_adapter()` and the compact
+  runtime contract writer now use YAML literal block scalars (`|`) for
+  descriptions, fixing YAML parse failures on descriptions with embedded
+  colons or double-quotes (e.g., mcp-liaison, process-auditor).
+
+- **`--verify` mode** output for opencode, gemini, and runtime contracts
+  now validates correctly (Python-based YAML→JSON frontmatter extraction).
+
+- **`lint-agent-contracts.sh`** uses Python YAML parser for frontmatter
+  extraction (was awk, broken on block scalars and nested permission maps).
+  CI workflow installs PyYAML.
+
+- **`lint-canonical-sha.sh`** skips tech-lead for opencode adapter checks.
+
+### Fixed
+
+- Dead cross-references in `GEMINI.md` ("Codex Pre-Close Checklist",
+  "AGENTS.md Rule F", stray "Codex adapter" line).
+- `CLAUDE.md` Pre-Close Checklist reference updated to harness-agnostic.
+- Removed unused `CODEX_LOCAL_DIR` from `compile-runtime-agents.sh`.
+- TOML `"""` guard in `write_codex_adapter()` prevents invalid output
+  if a canonical body ever contains triple-quotes.
+- Codex and Gemini adapters no longer generate `tech-lead` typed roles.
+
+### Removed
+
+- `.opencode/agents/tech-lead.md` (main session persona, never a subagent).
+- `.codex/agents/tech-lead.toml` (same).
+- `.gemini/agents/tech-lead.md` (same).
+
+---
+
 ## v1.5.4 (2026-06-23)
 
 Patch release closing the remote-control wedge that v1.5.3's `acceptEdits`
