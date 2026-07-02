@@ -112,8 +112,7 @@ in the Turn Ledger and proceed synchronously — this is a harness
 limitation, not a protocol violation. Upgrade to >= v0.38.1 (stable
 v0.44.0) to restore async capability.
 
-This mirrors the intent of `AGENTS.md` Rule F and `.claude/agents/tech-lead.md`
-§ "Background-by-default (binding)" for the Gemini harness.
+This mirrors `.claude/agents/tech-lead.md` § "Background-by-default (binding)" for the Gemini harness.
 
 ## Team Startup and Spawning Model
 
@@ -191,7 +190,7 @@ appends the entry to `CUSTOMER_NOTES.md` using the canonical shape in
 `docs/templates/customer-note-entry-template.md`. No other agent writes
 customer-truth entries directly.
 
-## Codex Pre-Close Checklist Equivalent
+## Pre-Close Checklist
 
 Before closing any non-trivial Mode A turn, confirm:
 
@@ -256,5 +255,3 @@ reference:
 - `onboarding-auditor` → `.claude/agents/onboarding-auditor.md`
 - `process-auditor` → `.claude/agents/process-auditor.md`
 - `sme-<domain>` → `.claude/agents/sme-<domain>.md`
-
-Codex adapter: `AGENTS.md` (structural parallel to this file).

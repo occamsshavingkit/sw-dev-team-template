@@ -133,7 +133,6 @@ OPENCODE_OUT_DIR=".opencode/agents"
 OPENCODE_LOCAL_DIR=".opencode/agents/local"
 GEMINI_OUT_DIR=".gemini/agents"
 CODEX_OUT_DIR=".codex/agents"
-CODEX_LOCAL_DIR=".codex/agents/local"
 ANTIGRAVITY_OUT_DIR=".agents"
 ROUTING_DOC="docs/model-routing-guidelines.md"
 DEFAULT_MODEL_CLASS="claude-sonnet"
@@ -1028,14 +1027,25 @@ write_codex_adapter() {
     printf 'description = "%s"\n' "${esc_desc}"
     printf 'model = "%s"\n' "${codex_model}"
     printf 'developer_instructions = """\n'
-    awk '
-      BEGIN { in_body = 0; fm_end = 0 }
-      /^---$/ {
-        if (fm_end == 0) { fm_end = 1; next }
-        if (fm_end == 1) { in_body = 1; next }
-      }
-      { if (in_body && $0 !~ /^---$/) print }
-    ' "${canonical_src}"
+    # Guard: check canonical body for """ which would break the TOML
+    # multi-line basic string. If found, emit a WARN and write a pointer
+    # stub instead (the body cannot be safely embedded in TOML).
+    if grep -q '"""' "${canonical_src}"; then
+      echo "compile-runtime-agents: WARN: ${role}: canonical body contains \"\"\" — cannot embed in TOML basic string; writing pointer stub" >&2
+      printf 'Read `.claude/agents/%s.md` (canonical role contract).\n' "${role}"
+      printf 'If `.claude/agents/%s-local.md` exists, read it after the canonical file.\n' "${role}"
+      printf 'Act only as that role.\n'
+      printf "Return output in the role's required format.\n"
+    else
+      awk '
+        BEGIN { in_body = 0; fm_end = 0 }
+        /^---$/ {
+          if (fm_end == 0) { fm_end = 1; next }
+          if (fm_end == 1) { in_body = 1; next }
+        }
+        { if (in_body && $0 !~ /^---$/) print }
+      ' "${canonical_src}"
+    fi
     printf '"""\n'
     printf 'name = "%s"\n' "${role}"
   } > "${tmp_out}"
@@ -1389,17 +1399,16 @@ compile_role() {
     write_opencode_adapter "${role}" "${src}" "${canonical_sha}" "${fm_desc}" "${fm_tools}"
   fi
 
-  # Gemini adapter (fw-adr-0022) — same conditions as opencode. The
-  # description is passed explicitly because it is load-bearing for
-  # Gemini autonomous role selection and must be copied verbatim.
-  if [ "${NO_GEMINI_ADAPTERS}" -eq 0 ]; then
+  # Gemini adapter (fw-adr-0022) — same conditions as opencode.
+  # Skip tech-lead: the main session persona, never a subagent.
+  if [ "${NO_GEMINI_ADAPTERS}" -eq 0 ] && [ "${role}" != "tech-lead" ]; then
     write_gemini_adapter "${role}" "${src}" "${canonical_sha}" "${fm_desc}"
   fi
 
   # Codex adapter — same thin-adapter shape, but using concrete Codex
   # model slugs so typed-role loading never sees Claude aliases or
-  # abstract OpenAI classes.
-  if [ "${NO_CODEX_ADAPTERS}" -eq 0 ]; then
+  # abstract OpenAI classes. Skip tech-lead: the main session persona.
+  if [ "${NO_CODEX_ADAPTERS}" -eq 0 ] && [ "${role}" != "tech-lead" ]; then
     write_codex_adapter "${role}" "${src}" "${canonical_sha}" "${fm_desc}"
   fi
 

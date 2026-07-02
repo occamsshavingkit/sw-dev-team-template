@@ -340,7 +340,8 @@ like "first session of the calendar week" in preference to
    perform in its sandbox. When unsure, dispatch.
 9. Before closing a non-trivial turn, `tech-lead` runs the harness-
    appropriate pre-close audit: Claude Code hook output where available,
-   or the Codex Pre-Close Checklist in `AGENTS.md`. The audit confirms
+   or the Pre-Close Checklist in the harness entry point (`AGENTS.md`
+   for OpenCode/Codex, `GEMINI.md` for Gemini). The audit confirms
    direct writes stayed within Rule #8, customer-truth stewardship
    stayed with `librarian`, required specialist work was dispatched or
    queued, completed specialists were closed after review, and any
