@@ -235,7 +235,7 @@ check "scripts/smoke-test.sh not carried (template tool)"  test ! -f "$target/sc
 
 echo "-- content-shape --"
 check "AGENTS.md present"                                  test -f "$target/AGENTS.md"
-check "AGENTS.md binds Codex tech-lead"                    bash -c "grep -q 'main Codex session plays \`tech-lead\` directly' '$target/AGENTS.md'"
+check "AGENTS.md binds tech-lead (harness-agnostic)"           bash -c "grep -q 'main session plays.*tech-lead.*directly' '$target/AGENTS.md'"
 check "OPEN_QUESTIONS.md is empty register (no Q-0001 row)"  bash -c "! grep -q 'Q-0001' '$target/docs/OPEN_QUESTIONS.md'"
 check "AGENT_NAMES.md has empty mapping table"               bash -c "grep -q '| \`tech-lead\` *|' '$target/docs/AGENT_NAMES.md'"
 check "TEMPLATE_VERSION first line is a SemVer"              bash -c "head -1 '$target/TEMPLATE_VERSION' | grep -qE '^v[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$'"
@@ -732,9 +732,9 @@ EOF
   check "no rc4 stabilization plan after upgrade"     test ! -f "$target/docs/v1.0-rc4-stabilization.md"
   check "no final checklist after upgrade"            test ! -f "$target/docs/v1.0.0-final-checklist.md"
   check "memory-only AGENTS.md stub replaced by adapter" \
-    bash -c "grep -q 'main Codex session plays \`tech-lead\` directly' '$target/AGENTS.md'"
-  check "memory-only AGENTS.md memory context preserved" \
-    bash -c "grep -q 'Generated-only downstream memory' '$target/AGENTS.md'"
+    bash -c "grep -q 'main session plays.*tech-lead.*directly' '$target/AGENTS.md'"
+  check "memory-only AGENTS.md harness table preserved" \
+    bash -c "grep -q 'Harness Entry Points' '$target/AGENTS.md'"
 
   # Stable default should stamp the latest final tag, not the rc tag.
   post_version="$(head -1 "$target/TEMPLATE_VERSION" | tr -d '[:space:]')"
