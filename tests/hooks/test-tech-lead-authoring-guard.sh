@@ -142,6 +142,18 @@ run_case "allow: docs/tasks/T-0042.md" "" \
     '{"tool_input":{"file_path":"docs/tasks/T-0042.md","content":"x"}}' \
     proceed
 
+run_case "allow: .claude/agents/sme-brewing.md" "" \
+    '{"tool_input":{"file_path":".claude/agents/sme-brewing.md","content":"x"}}' \
+    proceed
+
+run_case "allow: .claude/agents/sme-brewing-local.md" "" \
+    '{"tool_input":{"file_path":".claude/agents/sme-brewing-local.md","content":"x"}}' \
+    proceed
+
+run_case "allow: docs/sme/brewing/notes.md" "" \
+    '{"tool_input":{"file_path":"docs/sme/brewing/notes.md","content":"x"}}' \
+    proceed
+
 # ---------------------------------------------------------------------------
 # Off-list paths — deny with specialist hint.
 # ---------------------------------------------------------------------------
@@ -838,6 +850,38 @@ run_case "issue#208: CLAUDE_PROJECT_DIR unset — out-of-project absolute procee
 # ---------------------------------------------------------------------------
 # Subagent auto-bypass via active-dispatches.json (ANTIGRAVITY_CONVERSATION_ID)
 # ---------------------------------------------------------------------------
+# Claude Code-compatible explicit caller identity: PreToolUse payload may
+# carry agent_type directly. This is the documented field; subagent_role is
+# retained as a compatibility alias. Both must permit specialist-owned writes
+# without relying on ANTIGRAVITY_CONVERSATION_ID, while still rejecting
+# invalid roles and spawned tech-lead.
+run_case "agent-type payload: software-engineer write proceeds" "" \
+    '{"agent_type":"software-engineer","agent_id":"agent-se-001","tool_input":{"file_path":"scripts/foo.sh","content":"x"}}' \
+    proceed \
+    "agent_type=software-engineer"
+
+run_case "agent-type payload: software-engineer command proceeds" "" \
+    '{"agent_type":"software-engineer","agent_id":"agent-se-001","tool_input":{"command":"echo x > src/foo.py"}}' \
+    proceed \
+    "agent_type=software-engineer"
+
+run_case "agent-type payload: invalid role denied" "" \
+    '{"agent_type":"not-a-role","agent_id":"agent-bad-001","tool_input":{"file_path":"scripts/foo.sh","content":"x"}}' \
+    deny
+
+run_case "agent-type payload: tech-lead denied" "" \
+    '{"agent_type":"tech-lead","agent_id":"agent-tl-001","tool_input":{"file_path":"scripts/foo.sh","content":"x"}}' \
+    deny
+
+run_case "subagent-role alias payload: software-engineer write proceeds" "" \
+    '{"subagent_role":"software-engineer","tool_input":{"file_path":"scripts/foo.sh","content":"x"}}' \
+    proceed \
+    "subagent_role=software-engineer"
+
+run_case "main-session unknown caller: off-list write denied" "" \
+    '{"tool_input":{"file_path":"scripts/foo.sh","content":"x"}}' \
+    deny
+
 # Setup mock active-dispatches.json mapping dummy uuids to roles
 mkdir -p "$REPO_ROOT/docs/pm"
 cat > "$REPO_ROOT/docs/pm/active-dispatches.json" <<EOF

@@ -11,3 +11,496 @@
 {"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:08:34Z"}
 {"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:08:42Z"}
 {"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template git fetch origin --quiet 2>&1 | t", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-12T16:09:27Z"}
+{"name": "Bash: echo \"=== local tags (meta) ===\" && git tag -l 'v1.5.*' && echo \"=== remote tags", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:29:08Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template && echo \"=== submodule local tags", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:29:10Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj && echo \"=== meta VERSION file ===\" && cat VERSION 2>/", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:29:11Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template && echo \"=== submodule status ===", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:29:22Z"}
+{"name": "Bash: git diff -- CHANGELOG.md | head -60", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:29:27Z"}
+{"name": "Bash: echo \"=== SCAFFOLD full status ===\" && git status && echo \"\" && echo \"=== branch", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:31:21Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj && echo \"=== META full status ===\" && git status && ec", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:31:22Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template && echo \"=== README diff (scaffol", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:31:24Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:32:44Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:32:54Z"}
+{"name": "AskUserQuestion", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:48:34Z"}
+{"name": "ToolSearch", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:49:06Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:49:18Z"}
+{"name": "SendMessage", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:49:33Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj && echo \"=== CUSTOMER_NOTES tail ===\" && git diff -- C", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:49:48Z"}
+{"name": "Bash: echo \"=== CUSTOMER_NOTES.md exists? ===\" && ls -la CUSTOMER_NOTES.md 2>&1; echo ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:49:59Z"}
+{"name": "SendMessage", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:50:02Z"}
+{"name": "Bash: echo \"=== artefact exists ===\" && ls -la docs/security/sa-v1.5.2-authoring-guard", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:52:39Z"}
+{"name": "SendMessage", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:52:46Z"}
+{"name": "Bash: echo \"=== CUSTOMER_NOTES diff stat ===\" && git diff --stat -- CUSTOMER_NOTES.md;", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:53:02Z"}
+{"name": "SendMessage", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T08:53:21Z"}
+{"name": "SendMessage", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:04:49Z"}
+{"name": "Bash: wc -l CUSTOMER_NOTES.md && echo \"--- exact last 12 lines with line numbers ---\" ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:04:50Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:04:57Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:05:20Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:06:41Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template && echo \"=== VERSION ===\" && cat ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:06:42Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:06:50Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj && echo \"=== count of my heading ===\" && grep -c \"auth", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:07:40Z"}
+{"name": "ToolSearch", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:08:39Z"}
+{"name": "TaskList", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:08:44Z"}
+{"name": "Bash: echo \"=== meta settings hooks (PreToolUse) ===\" && python3 -c \"import json,sys; ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:12:45Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj for f in \".claude/settings.json\" \".claude/settings.loc", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:15:02Z"}
+{"name": "AskUserQuestion", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:18:40Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:19:37Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:19:38Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:20:35Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template echo \"=== grep scaffold for SendM", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:20:38Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template echo \"=== permissionDecision occu", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:21:32Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:27:48Z"}
+{"name": "SendMessage", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:27:59Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj && ls -la docs/security/ 2>&1 && echo \"=== design doc ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:33:39Z"}
+{"name": "SendMessage", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:33:48Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:56:12Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T09:57:45Z"}
+{"name": "Bash: nl -ba CUSTOMER_NOTES.md | tail -6", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T10:02:01Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T10:02:05Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T10:03:36Z"}
+{"name": "Bash: echo \"=== remote ===\" && git remote -v && echo \"=== gh auth ===\" && gh auth stat", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T10:16:17Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj REPO=occamsshavingkit/sw-dev-team-template  gh issue c", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T10:18:51Z"}
+{"name": "SendMessage", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T10:27:34Z"}
+{"name": "Bash: echo \"=== meta .claude/settings.json env block ===\" && python3 -c \"import json; ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T10:40:17Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T10:40:40Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj SWDT_AGENT_PUSH=release-engineer python3 - <<'PY' p = ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T10:41:22Z"}
+{"name": "Bash: printf '%s\\n' \"test line for agent-teams\" > /tmp/test-teams.txt && cat /tmp/test", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:00:32Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:01:09Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:01:11Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:01:14Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj REPO=occamsshavingkit/sw-dev-team-template NOTE=\"$(cat", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:05:12Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:08:53Z"}
+{"name": "Bash: ls /home/quackdcs/SWEProj/sw-dev-team-template/.claude/agents/", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:08:53Z"}
+{"name": "Bash: grep -n \"^tools:\" /home/quackdcs/SWEProj/sw-dev-team-template/.claude/agents/*.m", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:08:58Z"}
+{"name": "Bash: ls /home/quackdcs/SWEProj/sw-dev-team-template/docs/runtime/agents/ 2>/dev/null ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:08:59Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:03Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:03Z"}
+{"name": "Bash: grep -n \"^tools:\" /home/quackdcs/SWEProj/sw-dev-team-template/docs/runtime/agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:05Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:11Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:11Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:12Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:23Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:33Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:33Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:34Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:35Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:35Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:36Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:36Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:37Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:37Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:38Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:38Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:38Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:39Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:40Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:40Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:41Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:41Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:46Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:47Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:48Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:49Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:49Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:51Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:52Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:52Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:53Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:54Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:55Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:55Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:56Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:57Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:58Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:09:59Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:10:00Z"}
+{"name": "Bash: python3 -c \"import json, sys; json.load(open('/home/quackdcs/SWEProj/sw-dev-team", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:10:04Z"}
+{"name": "Bash: grep -rn \"SendMessage\" /home/quackdcs/SWEProj/sw-dev-team-template/.claude/agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:10:05Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:10:09Z"}
+{"name": "Bash: grep -n \"^tools:.*SendMessage\" /home/quackdcs/SWEProj/sw-dev-team-template/.clau", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:10:09Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:10:19Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:10:22Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:10:45Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:10:49Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:10:56Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:10:59Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:11:13Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:11:29Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:11:46Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:11:52Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:11:57Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:12:01Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:12:05Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:12:06Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:12:11Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:12:12Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:12:16Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:12:23Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:12:27Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:12:35Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:12:42Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:12:48Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:12:48Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:12:52Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:13:09Z"}
+{"name": "Bash: git status", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:11Z"}
+{"name": "Bash: git diff --name-only", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:11Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:16Z"}
+{"name": "Bash: git diff .claude/settings.json", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:16Z"}
+{"name": "Bash: git diff .claude/agents/ | head -300", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:17Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:21Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:22Z"}
+{"name": "Bash: grep -rn \"SendMessage\\|agent-teams\\|CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|status", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:25Z"}
+{"name": "Bash: git diff CLAUDE.md", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:26Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:32Z"}
+{"name": "Bash: grep -n \"SendMessage\\|agent-teams\\|CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|status ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:40Z"}
+{"name": "Bash: grep -n \"SendMessage\\|agent-teams\\|CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|status ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:41Z"}
+{"name": "Bash: grep -n \"SendMessage\\|agent-teams\\|CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|status ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:43Z"}
+{"name": "Bash: grep -rn \"SendMessage\\|agent-teams\\|CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|status", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:47Z"}
+{"name": "Bash: grep -rn \"SendMessage\\|agent-teams\\|CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|status", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:49Z"}
+{"name": "Bash: grep -n \"SendMessage\\|agent-teams\\|CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|status ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:53Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:54Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:57Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:58Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:14:58Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:01Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:02Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:03Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:08Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:08Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:09Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:13Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:14Z"}
+{"name": "Bash: grep -n \"named teammate\\|agent panel\\|agent-teams\" /home/quackdcs/SWEProj/sw-dev", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:14Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:18Z"}
+{"name": "Bash: grep -n \"SendMessage\\|agent-teams\\|CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|named t", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:20Z"}
+{"name": "Bash: git diff README.md | head -120", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:20Z"}
+{"name": "Bash: git diff README.md | grep \"agent-teams\\|SendMessage\\|CLAUDE_CODE_EXPERIMENTAL\\|T", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:25Z"}
+{"name": "Bash: grep -n \"agent-teams\\|SendMessage\\|CLAUDE_CODE_EXPERIMENTAL\\|TUI.*panel\\|panel.*", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:26Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:29Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:29Z"}
+{"name": "Bash: grep -n \"SendMessage\\|agent-teams\\|CLAUDE_CODE_EXPERIMENTAL\" /home/quackdcs/SWEP", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:33Z"}
+{"name": "Bash: grep -n \"SendMessage\\|agent-teams\\|CLAUDE_CODE_EXPERIMENTAL\" /home/quackdcs/SWEP", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:34Z"}
+{"name": "Bash: grep -rn \"agent-teams experimental\" /home/quackdcs/SWEProj/sw-dev-team-template/", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:35Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:38Z"}
+{"name": "Bash: grep -rn \"SendMessage\\|agent-teams\\|CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\" /home/", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:15:39Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:17:13Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:18:38Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:18:38Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:18:45Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:18:45Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:18:48Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:18:49Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:18:53Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:18:53Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:18:54Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:18:54Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:18:59Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:18:59Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:18:59Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:02Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:03Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:06Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:07Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:08Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:11Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:12Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:15Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:17Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:18Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:23Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:26Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:26Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:31Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:33Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:35Z"}
+{"name": "Bash: grep -n \"SendMessage\" /home/quackdcs/SWEProj/sw-dev-team-template/.claude/agents", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:36Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:39Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:40Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:43Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:44Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:46Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:49Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:50Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:52Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:56Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:19:59Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:20:02Z"}
+{"name": "Bash: bash scripts/compile-runtime-agents.sh 2>&1", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:20:03Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:20:05Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:20:10Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:20:14Z"}
+{"name": "Bash: bash /home/quackdcs/SWEProj/sw-dev-team-template/scripts/lint-agent-contracts.sh", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:20:17Z"}
+{"name": "Bash: bash /home/quackdcs/SWEProj/sw-dev-team-template/scripts/lint-canonical-sha.sh 2", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:20:17Z"}
+{"name": "Bash: grep -rn \"SendMessage\" /home/quackdcs/SWEProj/sw-dev-team-template/.claude/agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:20:21Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:20:33Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:20:34Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template echo \"=== remaining live referenc", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:21:12Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:22:57Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:22:57Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:03Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:03Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:03Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:03Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:04Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:05Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:11Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:14Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:18Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:25Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:26Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:30Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:34Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:39Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:43Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:50Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:54Z"}
+{"name": "Bash: grep -n \"settings.json\\|EXPERIMENTAL_AGENT_TEAMS\\|agent.teams\" /home/quackdcs/SW", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:23:59Z"}
+{"name": "Bash: bash scripts/smoke-test.sh 2>&1", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:24:41Z"}
+{"name": "Bash: for f in tests/hooks/*.sh; do echo \"=== $f ===\"; bash \"$f\" 2>&1; echo \"EXIT: $?\"", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:25:04Z"}
+{"name": "Bash: bash /home/quackdcs/SWEProj/sw-dev-team-template/scripts/lint-agent-contracts.sh", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:25:19Z"}
+{"name": "Bash: bash /home/quackdcs/SWEProj/sw-dev-team-template/scripts/lint-canonical-sha.sh 2", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:25:19Z"}
+{"name": "Bash: bash /home/quackdcs/SWEProj/sw-dev-team-template/scripts/lint-questions.sh 2>&1;", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:25:19Z"}
+{"name": "Bash: grep -rniE \"SendMessage|EXPERIMENTAL_AGENT_TEAMS|agent-teams panel|SendMessage-w", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:25:25Z"}
+{"name": "Bash: grep -rniE \"SendMessage|EXPERIMENTAL_AGENT_TEAMS|agent-teams panel|SendMessage-w", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:25:31Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:25:53Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:27Z"}
+{"name": "Bash: grep -r \"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|SendMessage\" /home/quackdcs/SWEPr", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:28Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:34Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:34Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:34Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:35Z"}
+{"name": "Bash: find /home/quackdcs/SWEProj/sw-dev-team-template/examples/brewday-log-annotator ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:35Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:35Z"}
+{"name": "Write", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:43Z"}
+{"name": "Glob", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:43Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:44Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:46Z"}
+{"name": "Bash: python3 -c \"import json,sys; json.load(open('/home/quackdcs/SWEProj/sw-dev-team-", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:46Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:52Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:54Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:54Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:31:56Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:32:00Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:32:00Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:32:13Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:32:18Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:32:24Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:32:34Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:32:38Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:32:49Z"}
+{"name": "Write", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:34:02Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:34:16Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:34:34Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template echo \"=== example's OWN agent fil", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:35:05Z"}
+{"name": "Bash: find /home/quackdcs/SWEProj/sw-dev-team-template -type f | sort | head -80", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:06Z"}
+{"name": "Bash: cat /home/quackdcs/SWEProj/sw-dev-team-template/.claude/settings.json", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:06Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:07Z"}
+{"name": "Bash: grep -rn \"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|SendMessage\\|agent-teams\\|TUI.*p", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:19Z"}
+{"name": "Bash: grep -rn \"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|SendMessage\\|agent-teams panel\\|", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:20Z"}
+{"name": "Bash: grep -n \"SendMessage\\|CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|agent-teams\\|named t", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:26Z"}
+{"name": "Bash: grep -rn \"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|SendMessage\\|agent-teams\\|TUI.*p", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:27Z"}
+{"name": "Bash: grep -rn \"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|SendMessage\\b\" \\   /home/quackdc", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:32Z"}
+{"name": "Bash: find /home/quackdcs/SWEProj/sw-dev-team-template -type f | sort | grep -v \".git/", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:33Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:38Z"}
+{"name": "Bash: find /home/quackdcs/SWEProj/sw-dev-team-template/examples -type f | sort", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:38Z"}
+{"name": "Bash: grep -rn \"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|SendMessage\\|agent-teams\\|TUI.*p", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:40Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:44Z"}
+{"name": "Bash: grep -n \"SendMessage\\|CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|agent-teams\\|TUI.*pa", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:45Z"}
+{"name": "Bash: cat /home/quackdcs/SWEProj/sw-dev-team-template/examples/brewday-log-annotator/.", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:46Z"}
+{"name": "Bash: grep -n \"^tools:\" /home/quackdcs/SWEProj/sw-dev-team-template/.claude/agents/tec", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:55Z"}
+{"name": "Bash: grep -n \"^tools:\" /home/quackdcs/SWEProj/sw-dev-team-template/.claude/agents/arc", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:36:57Z"}
+{"name": "Bash: grep -n \"SendMessage\\|agent-teams\\|CLAUDE_CODE_EXPERIMENTAL\\|TUI.*panel\\|named t", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:04Z"}
+{"name": "Bash: grep -n \"SendMessage\\|agent-teams\\|CLAUDE_CODE_EXPERIMENTAL\\|TUI.*panel\\|named t", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:07Z"}
+{"name": "Bash: bash tests/hooks/test-settings-merge.sh 2>&1", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:10Z"}
+{"name": "Bash: grep -rn \"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|SendMessage\" \\   /home/quackdcs/", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:12Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:15Z"}
+{"name": "Bash: grep -n \"CLAUDE_CODE_EXPERIMENTAL\\|SendMessage\" /home/quackdcs/SWEProj/sw-dev-te", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:16Z"}
+{"name": "Bash: grep -n \"SendMessage\\|CLAUDE_CODE_EXPERIMENTAL\" /home/quackdcs/SWEProj/sw-dev-te", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:19Z"}
+{"name": "Bash: grep -n \"SendMessage\\|CLAUDE_CODE_EXPERIMENTAL\" /home/quackdcs/SWEProj/sw-dev-te", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:20Z"}
+{"name": "Bash: grep -n \"SendMessage\\|CLAUDE_CODE_EXPERIMENTAL\" /home/quackdcs/SWEProj/sw-dev-te", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:20Z"}
+{"name": "Bash: bash scripts/lint-canonical-sha.sh 2>&1 | tail -20", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:26Z"}
+{"name": "Bash: grep -n \"SendMessage\\|CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\\|agent-teams\\|named t", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:28Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:31Z"}
+{"name": "Bash: grep -n \"SendMessage\\|CLAUDE_CODE_EXPERIMENTAL\\|agent-teams\\|named teammate\\|TUI", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:31Z"}
+{"name": "Bash: grep -n \"SendMessage\\|CLAUDE_CODE_EXPERIMENTAL\\|agent-teams\\|named teammate\\|TUI", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:39Z"}
+{"name": "Bash: find /home/quackdcs/SWEProj/sw-dev-team-template/docs/runtime -type f | sort | h", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:40Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:48Z"}
+{"name": "Bash: grep -n \"SendMessage\\|CLAUDE_CODE_EXPERIMENTAL\\|agent-teams\\|named teammate\\|TUI", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:37:49Z"}
+{"name": "Bash: bash /home/quackdcs/SWEProj/sw-dev-team-template/scripts/lint-agent-contracts.sh", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:02Z"}
+{"name": "Bash: grep -rn \"SendMessage\\|CLAUDE_CODE_EXPERIMENTAL\" \\   /home/quackdcs/SWEProj/sw-d", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:02Z"}
+{"name": "Bash: bash /home/quackdcs/SWEProj/sw-dev-team-template/scripts/lint-questions.sh 2>&1 ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:16Z"}
+{"name": "Bash: bash /home/quackdcs/SWEProj/sw-dev-team-template/tests/hooks/test-tech-lead-auth", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:20Z"}
+{"name": "Bash: bash /home/quackdcs/SWEProj/sw-dev-team-template/tests/hooks/test-subcall-limit-", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:25Z"}
+{"name": "Bash: # Check if there are any other test files to run ls /home/quackdcs/SWEProj/sw-de", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:26Z"}
+{"name": "Bash: bash /home/quackdcs/SWEProj/sw-dev-team-template/tests/hooks/test-customer-notes", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:29Z"}
+{"name": "Bash: bash /home/quackdcs/SWEProj/sw-dev-team-template/tests/hooks/test-canonical-sha-", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:29Z"}
+{"name": "Bash: # Quick check that runtime mirrors don't have tools lines with SendMessage grep ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:34Z"}
+{"name": "Bash: # Verify fw-adr-0024 cross-ref update grep -n \"fw-adr-0029\\|0029\\|agent-teams\\|S", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:36Z"}
+{"name": "Bash: ls /home/quackdcs/SWEProj/sw-dev-team-template/docs/adr/ | grep -E \"0024|0029\"", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:40Z"}
+{"name": "Bash: grep -rn \"^tools:\" /home/quackdcs/SWEProj/sw-dev-team-template/docs/runtime/agen", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:40Z"}
+{"name": "Bash: grep -n \"SendMessage\\|CLAUDE_CODE_EXPERIMENTAL\\|agent-teams\\|named teammate\" \\  ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:44Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:44Z"}
+{"name": "Bash: # Verify runtime mirror matches canonical by checking sha canonical_sha=$(git -C", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:49Z"}
+{"name": "Bash: # Check the example project's other agent tools: lines for SendMessage grep -n \"", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:52Z"}
+{"name": "Bash: grep -n \"SendMessage\\|CLAUDE_CODE_EXPERIMENTAL\\|agent-teams\\|named teammate\\|TUI", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:58Z"}
+{"name": "Bash: grep -n \"SendMessage\\|CLAUDE_CODE_EXPERIMENTAL\\|agent-teams\\|named teammate\\|TUI", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:38:59Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:39:01Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:39:07Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:39:47Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template echo \"=== README diff (which hunk", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:41:55Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template echo \"=== how the guard reads SWD", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:45:16Z"}
+{"name": "Bash: SWDT_AGENT_PUSH=release-engineer python3 - <<'PY' base=\"/home/quackdcs/SWEProj/s", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:47:03Z"}
+{"name": "Bash: SWDT_AGENT_PUSH=release-engineer python3 - <<'PY' base=\"/home/quackdcs/SWEProj/s", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:47:33Z"}
+{"name": "Bash: SWDT_AGENT_PUSH=release-engineer bash -c 'git add -A && git reset -q -- .claude/", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:50:32Z"}
+{"name": "Bash: SWDT_AGENT_PUSH=release-engineer git -C /home/quackdcs/SWEProj/sw-dev-team-templ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:52:18Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template echo \"=== tags ===\" && git tag -l", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:53:30Z"}
+{"name": "Bash: SWDT_AGENT_PUSH=release-engineer bash scripts/generate-fixture-snapshots.sh --al", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:57:44Z"}
+{"name": "Bash: git push origin v1.5.1 v1.5.2 v1.5.3 && echo \"=== TAGS PUSHED ===\" && git ls-rem", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T11:59:55Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T12:00:02Z"}
+{"name": "Bash: echo \"=== v1.5.3 release ===\" && gh release view v1.5.3 -R occamsshavingkit/sw-d", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T12:00:53Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj echo \"=== current meta TEMPLATE_VERSION ===\" && cat TE", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T12:08:40Z"}
+{"name": "Bash: git -C /home/quackdcs/SWEProj add TEMPLATE_VERSION sw-dev-team-template CUSTOMER", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T12:11:03Z"}
+{"name": "Bash: tail -8 /home/quackdcs/SWEProj/CUSTOMER_NOTES.md", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T12:45:00Z"}
+{"name": "Bash: SWDT_AGENT_PUSH=release-engineer python3 - <<'PY' p=\"/home/quackdcs/SWEProj/CUST", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T12:45:37Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:11:34Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:11:34Z"}
+{"name": "Bash: ls /home/quackdcs/SWEProj/scripts/", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:11:39Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:11:39Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:11:45Z"}
+{"name": "Bash: which gh 2>/dev/null && gh --version 2>/dev/null | head -1 || echo \"gh not found", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:11:45Z"}
+{"name": "Bash: cat > /home/quackdcs/SWEProj/scripts/agent-teams-revisit-check.sh << 'SCRIPT' #!", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:12:24Z"}
+{"name": "Bash: chmod +x /home/quackdcs/SWEProj/scripts/agent-teams-revisit-check.sh && ls -l /h", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:12:27Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:12:31Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:12:36Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:12:39Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:12:43Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:12:46Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:12:49Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:12:52Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:12:57Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:13:01Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:13:03Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:13:09Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:13:12Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:13:15Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:13:19Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:13:26Z"}
+{"name": "Bash: python3 - <<'EOF' import json  path = \"/home/quackdcs/SWEProj/.claude/settings.j", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:13:35Z"}
+{"name": "Bash: /home/quackdcs/SWEProj/scripts/agent-teams-revisit-check.sh", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:13:39Z"}
+{"name": "Bash: python3 -c \"import json; json.load(open('/home/quackdcs/SWEProj/.claude/settings", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:13:39Z"}
+{"name": "Bash: python3 -c \" import json data = json.load(open('/home/quackdcs/SWEProj/.claude/s", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:13:45Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:13:55Z"}
+{"name": "Bash: git -C /home/quackdcs/SWEProj add .claude/settings.json scripts/agent-teams-revi", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-16T16:14:16Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template echo \"=== v1.3.0 settings.json: p", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:31:21Z"}
+{"name": "Bash: SWDT_AGENT_PUSH=release-engineer python3 - <<'PY' body = \"\"\"**Update — the v1.5.", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:51:42Z"}
+{"name": "Glob", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:01Z"}
+{"name": "Glob", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:02Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:04Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:04Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:05Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:13Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:14Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:14Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:18Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:19Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:19Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:23Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:24Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:24Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:28Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:28Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:32Z"}
+{"name": "Glob", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:32Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:36Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:36Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:37Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:41Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:43Z"}
+{"name": "Glob", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:48Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:52:48Z"}
+{"name": "Write", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:54:55Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T17:55:08Z"}
+{"name": "Bash: SWDT_AGENT_PUSH=release-engineer python3 - <<'PY' entry = \"\"\" ## 2026-06-23 — v1", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:05Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:08Z"}
+{"name": "Glob", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:09Z"}
+{"name": "Glob", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:14Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:15Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:17Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:22Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:23Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:28Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:28Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:37Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:38Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:42Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:45Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:45Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:53Z"}
+{"name": "Grep", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:00:56Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:01:01Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:02:11Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:02:22Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template python3 -c \"import json; d=json.l", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:03:32Z"}
+{"name": "Bash: SWDT_AGENT_PUSH=release-engineer python3 - <<'PY' p=\"/home/quackdcs/SWEProj/sw-d", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:04:44Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj python3 -c \"import json; d=json.load(open('.claude/set", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:05:36Z"}
+{"name": "Glob", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:05:52Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:05:52Z"}
+{"name": "Glob", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:05:56Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:05:57Z"}
+{"name": "Glob", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:06:02Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:06:05Z"}
+{"name": "Glob", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:06:11Z"}
+{"name": "Write", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:07:45Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:07:50Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:17:18Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:17:18Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:17:23Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:17:23Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:18:43Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:19:17Z"}
+{"name": "Bash: SWDT_AGENT_PUSH=release-engineer python3 - <<'PY' import json deny = [   \"Bash(s", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:20:55Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:21:11Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:21:11Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:21:22Z"}
+{"name": "Glob", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:21:22Z"}
+{"name": "Glob", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:21:25Z"}
+{"name": "Glob", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:21:28Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:21:32Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:21:32Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:21:39Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:22:05Z"}
+{"name": "Edit", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:22:13Z"}
+{"name": "Write", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:24:22Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:24:38Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template echo \"=== smoke-test (from root) ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:26:25Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template SWDT_AGENT_PUSH=release-engineer ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:27:20Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:27:25Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:27:27Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:27:31Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:27:31Z"}
+{"name": "Bash: ls /home/quackdcs/SWEProj/sw-dev-team-template/docs/adr/ | grep -E \"fw-adr-002[8", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:27:37Z"}
+{"name": "Bash: find /home/quackdcs/SWEProj -name \"v1.5.4*\" -type f 2>/dev/null", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:27:44Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:27:48Z"}
+{"name": "Bash: python3 -c \" import json with open('/home/quackdcs/SWEProj/sw-dev-team-template/", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:27:53Z"}
+{"name": "Bash: grep -n \"^[0-9]\\{1,2\\}\\.\" /home/quackdcs/SWEProj/sw-dev-team-template/CLAUDE.md ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:27:59Z"}
+{"name": "Bash: grep -n \"Destructive Bash\" /home/quackdcs/SWEProj/sw-dev-team-template/.claude/a", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:28:02Z"}
+{"name": "Bash: # Check whether any deny entry lacks a trailing wildcard where one might matter ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:28:18Z"}
+{"name": "Bash: python3 -c \" import fnmatch # Simulate Claude Code's glob matching for Bash tool", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:28:38Z"}
+{"name": "Bash: grep -r \"git restore\" /home/quackdcs/SWEProj/sw-dev-team-template/.claude/agents", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:28:44Z"}
+{"name": "Bash: grep -rn \"git restore\\|git checkout --\\|git reset --hard\\|git clean\" /home/quack", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:28:50Z"}
+{"name": "Agent", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:29:54Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template echo \"=== lint-agent-contracts er", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:30:37Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template echo \"=== generators that write .", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:31:38Z"}
+{"name": "Bash: SWDT_AGENT_PUSH=release-engineer python3 - <<'PY' p=\"/home/quackdcs/SWEProj/sw-d", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:32:52Z"}
+{"name": "Bash: SWDT_AGENT_PUSH=release-engineer python3 - <<'PY' base=\"/home/quackdcs/SWEProj/s", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:35:10Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template echo \"=== tree left (the 1 file) ", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:40:11Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj/sw-dev-team-template git add .gemini/agents/tech-lead.", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:41:52Z"}
+{"name": "Bash: SWDT_AGENT_PUSH=release-engineer bash /home/quackdcs/SWEProj/sw-dev-team-templat", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:45:59Z"}
+{"name": "Bash: git -C /home/quackdcs/SWEProj/sw-dev-team-template push origin v1.5.4 && echo \"=", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:46:13Z"}
+{"name": "Read", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:48:39Z"}
+{"name": "Bash: SWDT_AGENT_PUSH=release-engineer python3 - <<'PY' notes = \"\"\"Closes the remote-c", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:49:02Z"}
+{"name": "Bash: SWDT_AGENT_PUSH=release-engineer python3 - <<'PY' import subprocess sha = subpro", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:49:53Z"}
+{"name": "Bash: echo \"=== remaining uncommitted in meta (should all be pre-existing stop-gap) ==", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:50:14Z"}
+{"name": "Bash: cd /home/quackdcs/SWEProj SWDT_AGENT_PUSH=release-engineer python3 -c \"import os", "result": "passed", "evidence_kind": "accepted", "source": "PostToolUse", "actor_role": "hook", "timestamp": "2026-06-23T18:51:04Z"}

@@ -47,11 +47,16 @@ ALLOW_EXACT = frozenset(
 # Glob patterns. fnmatch is used for `*` matches; `**` is expanded to recursive
 # via pathlib.PurePath.match.
 ALLOW_GLOBS_SHALLOW = (
+    ".claude/agents/sme-*.md",
+    ".claude/agents/sme-*-local.md",
     "docs/pm/intake-*.md",
     "docs/pm/intake-*.local.md",
     "docs/tasks/T-*.md",
 )
-ALLOW_GLOBS_RECURSIVE = ("docs/tech-lead/**",)
+ALLOW_GLOBS_RECURSIVE = (
+    "docs/sme/**",
+    "docs/tech-lead/**",
+)
 
 
 # ---------------------------------------------------------------------------
@@ -800,9 +805,34 @@ def _inline_agent_push_role(command: str):
     return _validate_role(m.group(2).strip())
 
 
-def _get_active_subagent_role() -> str | None:
-    """Check the dynamic dispatches map for an active subagent role matching
-    the current ANTIGRAVITY_CONVERSATION_ID.
+def _event_subagent_role(event: dict) -> tuple[str | None, str | None]:
+    """Return ``(role, source)`` from explicit hook-payload caller fields.
+
+    Claude Code documents ``agent_type`` as the role/name carrier for agent
+    hook events. ``subagent_role`` is retained as a compatibility alias for
+    older payload shapes. ``tech-lead`` is still rejected via
+    ``_validate_role()`` so a spawned tech-lead cannot bypass the guard.
+    """
+    if not isinstance(event, dict):
+        return None, None
+
+    for field in ("agent_type", "subagent_role"):
+        role = event.get(field) or ""
+        if not isinstance(role, str):
+            continue
+        validated = _validate_role(role.strip())
+        if validated is not None:
+            return validated, field
+
+    return None, None
+
+
+def _active_dispatch_subagent_role() -> str | None:
+    """Return a validated role from active-dispatches.json for Antigravity.
+
+    Preserves the existing ``ANTIGRAVITY_CONVERSATION_ID`` +
+    ``docs/pm/active-dispatches.json`` behavior as a fallback for harnesses
+    that do not pass an explicit caller role in the hook payload.
     """
     conv_id = os.environ.get("ANTIGRAVITY_CONVERSATION_ID", "").strip()
     if not conv_id:
@@ -825,6 +855,19 @@ def _get_active_subagent_role() -> str | None:
                 f"({type(exc).__name__}: {exc})\n"
             )
     return None
+
+
+def _resolve_subagent_role(event: dict) -> tuple[str | None, str | None]:
+    """Return ``(role, source)`` for a positively-identified specialist."""
+    role, source = _event_subagent_role(event)
+    if role is not None:
+        return role, source
+
+    role = _active_dispatch_subagent_role()
+    if role is not None:
+        return role, "active-dispatches"
+
+    return None, None
 
 
 # ---------------------------------------------------------------------------
@@ -850,9 +893,9 @@ def _deny_output(path: str, kind: str) -> dict:
     }
 
 
-def _audit_override(path: str, role: str, kind: str) -> None:
+def _audit_override(path: str, role: str, kind: str, source: str) -> None:
     sys.stderr.write(
-        f"tech-lead-authoring-guard: SWDT_AGENT_PUSH={role} override permitted "
+        f"tech-lead-authoring-guard: {source}={role} override permitted "
         f"write to {kind} '{path}'.\n"
     )
 
@@ -862,7 +905,7 @@ def _audit_override(path: str, role: str, kind: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _decide_for_path(path: str):
+def _decide_for_path(path: str, caller_role: str | None = None, caller_source: str | None = None):
     """Return (decision, audit_callable) for a single target path.
 
     decision is one of:
@@ -901,9 +944,10 @@ def _decide_for_path(path: str):
     if is_on_allow_list(path):
         return None, None
 
-    role = _agent_push_role() or _get_active_subagent_role()
+    role = _agent_push_role() or caller_role
     if role is not None:
-        return None, lambda: _audit_override(_normalise(path), role, "path")
+        source = "SWDT_AGENT_PUSH" if _agent_push_role() is not None else (caller_source or "caller")
+        return None, lambda: _audit_override(_normalise(path), role, "path", source)
 
     return _deny_output(_normalise(path), "path"), None
 
@@ -949,7 +993,11 @@ def _filter_off_list_targets(targets: list) -> list:
     return off_list
 
 
-def _decide_for_command(command: str):
+def _decide_for_command(
+    command: str,
+    caller_role: str | None = None,
+    caller_source: str | None = None,
+):
     if not command:
         return None, None
 
@@ -962,9 +1010,16 @@ def _decide_for_command(command: str):
         return None, None
 
     first = off_list[0]
-    role = _agent_push_role() or _inline_agent_push_role(command) or _get_active_subagent_role()
+    env_role = _agent_push_role()
+    role = env_role or _inline_agent_push_role(command) or caller_role
     if role is not None:
-        return None, lambda: _audit_override(first, role, "Bash target")
+        if env_role is not None:
+            source = "SWDT_AGENT_PUSH"
+        elif _inline_agent_push_role(command) is not None:
+            source = "SWDT_AGENT_PUSH"
+        else:
+            source = caller_source or "caller"
+        return None, lambda: _audit_override(first, role, "Bash target", source)
 
     return _deny_output(first, "Bash target"), None
 
@@ -1012,7 +1067,11 @@ def _collect_target_paths(tool_input: dict):
     return paths
 
 
-def _evaluate_paths(target_paths: list):
+def _evaluate_paths(
+    target_paths: list,
+    caller_role: str | None = None,
+    caller_source: str | None = None,
+):
     """Evaluate every file-target path and return (decision, audit).
 
     The first deny decision wins; the first audited-override is remembered
@@ -1022,7 +1081,7 @@ def _evaluate_paths(target_paths: list):
     decision = None
     audit = None
     for path in target_paths:
-        path_decision, path_audit = _decide_for_path(path)
+        path_decision, path_audit = _decide_for_path(path, caller_role, caller_source)
         if path_decision is not None:
             return path_decision, path_audit
         if path_audit is not None and audit is None:
@@ -1040,7 +1099,13 @@ def _parse_tool_input(event: dict):
     return tool_input
 
 
-def _merge_command_result(decision, audit, command: str):
+def _merge_command_result(
+    decision,
+    audit,
+    command: str,
+    caller_role: str | None = None,
+    caller_source: str | None = None,
+):
     """Evaluate ``command`` when path evaluation found no denial.
 
     Returns ``(decision, audit)`` updated with the command evaluation
@@ -1049,7 +1114,7 @@ def _merge_command_result(decision, audit, command: str):
     """
     if decision is not None or not (isinstance(command, str) and command):
         return decision, audit
-    cmd_decision, cmd_audit = _decide_for_command(command)
+    cmd_decision, cmd_audit = _decide_for_command(command, caller_role, caller_source)
     if cmd_decision is not None:
         return cmd_decision, cmd_audit
     if cmd_audit is not None and audit is None:
@@ -1072,9 +1137,16 @@ def main() -> int:
 
     target_paths = _collect_target_paths(tool_input)
     command = tool_input.get("command") or ""
+    caller_role, caller_source = _resolve_subagent_role(event)
 
-    decision, audit = _evaluate_paths(target_paths)
-    decision, audit = _merge_command_result(decision, audit, command)
+    decision, audit = _evaluate_paths(target_paths, caller_role, caller_source)
+    decision, audit = _merge_command_result(
+        decision,
+        audit,
+        command,
+        caller_role,
+        caller_source,
+    )
 
     if audit is not None:
         audit()

@@ -1,7 +1,7 @@
 {
-  "integration": "codex",
+  "integration": "agy",
   "version": "0.8.8",
-  "installed_at": "2026-06-16T08:27:15.945236+00:00",
+  "installed_at": "2026-06-16T08:28:38.501961+00:00",
   "files": {
     ".agents/skills/speckit-analyze/SKILL.md": "23d10a774acad3a26e5ab01041eb65a39e627aadee6e0e366d79713ad054fdf6",
     ".agents/skills/speckit-checklist/SKILL.md": "2db3121cd5d97ca2c0902be413d39d9ec0d9323932a976330eefa208e72a483a",
