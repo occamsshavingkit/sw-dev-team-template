@@ -227,8 +227,7 @@ record the failed item and stop closure until `tech-lead` resolves it.
   for hooks and permissions.
 - **OpenCode** reads this `AGENTS.md` and `opencode.json` for permissions,
   with subagents defined in `.opencode/agents/`.
-- **Codex** originally consumed this `AGENTS.md`; Codex sessions should
-  read `CLAUDE.md` directly and use the `.codex/` TOML adapters.
+- **Codex** reads this `AGENTS.md` and uses `.codex/` TOML adapters.
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
