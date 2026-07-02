@@ -519,32 +519,45 @@ lint_generated_file() {
     is_gemini="${2:-}"
     workdir="$(mktemp -d)"
     tmpjson="${workdir}/fm.json"
-    # Extract frontmatter to a JSON object. Same recipe used by the
-    # compiler's maybe_validate_output().
-    awk '
-        BEGIN { state = "pre" }
-        {
-            if (state == "pre") {
-                if ($0 == "---") { state = "fm"; next }
-                exit
+    # Extract frontmatter to a JSON object. Use Python YAML for proper
+    # handling of block scalars (description: |) and nested maps
+    # (permission: with indented keys). Falls back to awk if Python is
+    # unavailable (awk handles flat YAML only).
+    if command -v python3 >/dev/null 2>&1; then
+        python3 -c '
+import sys, json, yaml
+with open(sys.argv[1]) as f:
+    parts = f.read().split("---")
+    if len(parts) >= 3:
+        fm = yaml.safe_load(parts[1])
+        json.dump(fm, sys.stdout, default=str)
+' "${src}" > "${tmpjson}" 2>/dev/null
+    else
+        awk '
+            BEGIN { state = "pre" }
+            {
+                if (state == "pre") {
+                    if ($0 == "---") { state = "fm"; next }
+                    exit
+                }
+                if (state == "fm") {
+                    if ($0 == "---") { exit }
+                    print $0
+                }
             }
-            if (state == "fm") {
-                if ($0 == "---") { exit }
-                print $0
-            }
-        }
-    ' "${src}" \
-        | awk '
-            BEGIN { print "{" ; first = 1 }
-            /^[a-zA-Z_][a-zA-Z0-9_]*[ \t]*:/ {
-                k = $0; sub(/[ \t]*:.*$/, "", k)
-                v = $0; sub(/^[^:]*:[ \t]*/, "", v)
-                gsub(/\\/, "\\\\", v); gsub(/"/, "\\\"", v)
-                if (!first) printf ",\n"; first = 0
-                printf "  \"%s\": \"%s\"", k, v
-            }
-            END { printf "\n}\n" }
-        ' > "${tmpjson}"
+        ' "${src}" \
+            | awk '
+                BEGIN { print "{" ; first = 1 }
+                /^[a-zA-Z_][a-zA-Z0-9_]*[ \t]*:/ {
+                    k = $0; sub(/[ \t]*:.*$/, "", k)
+                    v = $0; sub(/^[^:]*:[ \t]*/, "", v)
+                    gsub(/\\/, "\\\\", v); gsub(/"/, "\\\"", v)
+                    if (!first) printf ",\n"; first = 0
+                    printf "  \"%s\": \"%s\"", k, v
+                }
+                END { printf "\n}\n" }
+            ' > "${tmpjson}"
+    fi
 
     if ! "${CHECK_JSONSCHEMA}" --schemafile "${GENERATED_SCHEMA}" "${tmpjson}" \
             >"${workdir}/out" 2>&1; then
@@ -560,26 +573,35 @@ lint_generated_file() {
     # Not enforced via the shared schema to avoid breaking runtime/opencode
     # adapters that legitimately omit description.
     if [ "${is_gemini}" = "gemini" ]; then
-        desc_val="$(awk -F'\t' '$1=="description" {print $0; exit}' "${tmpjson}" 2>/dev/null || true)"
-        # Re-extract directly from the raw frontmatter for reliability.
-        desc_val="$(awk '
-            BEGIN { state = "pre" }
-            {
-                if (state == "pre") {
-                    if ($0 == "---") { state = "fm"; next }
-                    exit
-                }
-                if (state == "fm") {
-                    if ($0 == "---") { exit }
-                    if ($0 ~ /^description[ \t]*:/) {
-                        v = $0
-                        sub(/^description[ \t]*:[ \t]*/, "", v)
-                        print v
+        if command -v python3 >/dev/null 2>&1; then
+            desc_val="$(python3 -c '
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+    print(d.get("description", ""))
+except Exception:
+    pass
+' "${tmpjson}" 2>/dev/null)"
+        else
+            desc_val="$(awk '
+                BEGIN { state = "pre" }
+                {
+                    if (state == "pre") {
+                        if ($0 == "---") { state = "fm"; next }
                         exit
                     }
+                    if (state == "fm") {
+                        if ($0 == "---") { exit }
+                        if ($0 ~ /^description[ \t]*:/) {
+                            v = $0
+                            sub(/^description[ \t]*:[ \t]*/, "", v)
+                            print v
+                            exit
+                        }
+                    }
                 }
-            }
-        ' "${src}")"
+            ' "${src}")"
+        fi
         if [ -z "${desc_val}" ]; then
             err "${src}" "gemini adapter missing required description field (fw-adr-0022 §4)"
         fi
