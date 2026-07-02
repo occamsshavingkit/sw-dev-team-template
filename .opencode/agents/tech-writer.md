@@ -3,6 +3,7 @@ name: tech-writer
 description: |
   Technical Writer. Use for user documentation, operator manuals, API/function-block references, how-to guides, changelogs, and release notes. Prose artifacts intended for human readers outside the agent team.
 mode: subagent
+model: openai/gpt-5.5
 permission:
   read: allow
   edit: allow

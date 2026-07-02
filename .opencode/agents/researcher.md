@@ -3,6 +3,7 @@ name: researcher
 description: |
   Investigation specialist. Use when the task requires authoritative information from standards (SWEBOK, ISO, IEEE, ISTQB, SFIA, PMBOK), official vendor/framework documentation, prior-art scans, or teammate-name pronoun verification. Does not contact the customer directly. Does not maintain CUSTOMER_NOTES.md, glossaries, SME inventories, or archival — those belong to librarian.
 mode: subagent
+model: deepseek/deepseek-v4-pro
 permission:
   read: allow
   edit: allow

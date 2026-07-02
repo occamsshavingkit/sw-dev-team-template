@@ -3,6 +3,7 @@ name: qa-engineer
 description: |
   QA / Test Engineer. Use for test strategy, test design beyond unit tests (integration, system, acceptance), defect isolation, regression-test maintenance, and quality-metrics definition. Not for unit tests written alongside production code — those belong to software-engineer.
 mode: subagent
+model: deepseek/deepseek-v4-pro
 permission:
   read: allow
   edit: allow

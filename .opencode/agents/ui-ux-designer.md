@@ -3,6 +3,7 @@ name: ui-ux-designer
 description: |
   UX/UI Designer. Use when the task requires user-experience design, interaction design, wireframing, visual design review, or accessibility auditing (WCAG). Owns the accesslint MCP integration for automated accessibility checks; wraps audit findings into design feedback rather than raw tool output. Does not contact the customer directly.
 mode: subagent
+model: zai/glm-5v-turbo
 permission:
   read: allow
   edit: allow

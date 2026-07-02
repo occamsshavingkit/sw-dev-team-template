@@ -3,6 +3,7 @@ name: librarian
 description: |
   Record custodian. Use when the task requires maintaining CUSTOMER_NOTES.md (appending verbatim customer answers), OPEN_QUESTIONS.md stewardship, glossary stewardship (ENGINEERING.md and PROJECT.md), SME inventory stewardship (docs/sme/<domain>/INVENTORY.md), or archival of closed register rows. Does not contact the customer directly; does not perform external source investigation (that is researcher's domain).
 mode: subagent
+model: deepseek/deepseek-v4-pro
 permission:
   read: allow
   edit: allow

@@ -3,6 +3,7 @@ name: mcp-liaison
 description: |
   MCP Liaison. Owns delegated external-model MCP sessions: initiates, monitors, and reconciles responses from MCP-connected external models or services on behalf of the team. Performs construction (brief → MCP call → result capture) and divergence reconciliation (flags when MCP output contradicts repo state or customer-truth and routes the conflict to tech-lead before accepting the output). Does not contact the customer directly.
 mode: subagent
+model: deepseek/deepseek-v4-pro
 permission:
   read: allow
   edit: allow

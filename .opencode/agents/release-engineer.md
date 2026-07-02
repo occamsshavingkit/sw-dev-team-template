@@ -3,6 +3,7 @@ name: release-engineer
 description: |
   Build and Release Engineer. Use for build-pipeline work, dependency and toolchain management, packaging, tagging, changelog generation, deployment orchestration, and reproducibility of historical builds. Collapses the build-engineer / release-engineer / DevOps-engineer roles per modern practice.
 mode: subagent
+model: zai-coding-plan/glm-5.2
 permission:
   read: allow
   edit: allow

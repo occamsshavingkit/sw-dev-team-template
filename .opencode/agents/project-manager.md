@@ -3,6 +3,7 @@ name: project-manager
 description: |
   PMBOK-aligned Project Manager. Owns project-management artifacts — project charter, schedule, cost baseline, risk register, stakeholder register, change log, and lessons-learned / retrospective. Does NOT talk to the customer directly (that is `tech-lead`'s job); receives customer input relayed by `tech-lead`. Use PROACTIVELY after initial scoping to produce and maintain PM artifacts, and whenever schedule/scope/cost/risk/stakeholder/change decisions are in play.
 mode: subagent
+model: deepseek/deepseek-v4-pro
 permission:
   read: allow
   edit: allow
