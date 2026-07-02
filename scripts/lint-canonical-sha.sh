@@ -197,8 +197,9 @@ for canonical in "${AGENTS_DIR}"/*.md; do
         fi
     fi
 
-    # Check opencode adapter artefact.
-    if [ "${NO_OPENCODE}" -eq 0 ]; then
+    # Check opencode adapter artefact. Skip tech-lead: the main-session
+    # persona is never generated as an opencode subagent.
+    if [ "${NO_OPENCODE}" -eq 0 ] && [ "${base}" != "tech-lead" ]; then
         opencode_artefact="${OPENCODE_DIR}/${base}.md"
         if [ ! -f "${opencode_artefact}" ]; then
             printf 'lint-canonical-sha: MISSING_ARTEFACT: %s (no paired opencode adapter)\n' \
