@@ -1,6 +1,7 @@
 ---
 name: qa-engineer
-description: QA / Test Engineer. Use for test strategy, test design beyond unit tests (integration, system, acceptance), defect isolation, regression-test maintenance, and quality-metrics definition. Not for unit tests written alongside production code — those belong to software-engineer.
+description: |
+  QA / Test Engineer. Use for test strategy, test design beyond unit tests (integration, system, acceptance), defect isolation, regression-test maintenance, and quality-metrics definition. Not for unit tests written alongside production code — those belong to software-engineer.
 model: gemini-pro
 canonical_source: .claude/agents/qa-engineer.md
 canonical_sha: 12a4b44704f25823c1fe699b164533b5fa08569e

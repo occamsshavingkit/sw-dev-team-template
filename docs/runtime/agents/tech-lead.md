@@ -1,6 +1,7 @@
 ---
 name: tech-lead
-description: Tech Lead, project orchestrator, and the ONLY agent that talks to the human user. Use PROACTIVELY at the start of any multi-step task. Decomposes work, routes subtasks, handles escalations from other subagents, and decides when a question must go to the human. All other agents route their questions back through you.
+description: |
+  Tech Lead, project orchestrator, and the ONLY agent that talks to the human user. Use PROACTIVELY at the start of any multi-step task. Decomposes work, routes subtasks, handles escalations from other subagents, and decides when a question must go to the human. All other agents route their questions back through you.
 model: sonnet
 canonical_source: .claude/agents/tech-lead.md
 canonical_sha: b11dc2e0ac88b0ae39a2b3f3bdd6fb4c697d5a7d

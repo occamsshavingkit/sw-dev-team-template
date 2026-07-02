@@ -1059,7 +1059,8 @@ write_gemini_adapter() {
   {
     printf -- '---\n'
     printf 'name: %s\n' "${role}"
-    printf 'description: %s\n' "${canonical_desc}"
+    printf 'description: |\n'
+    printf '  %s\n' "${canonical_desc}"
     printf 'model: %s\n' "${gemini_model}"
     printf 'canonical_source: %s\n' "${canonical_src}"
     printf 'canonical_sha: %s\n' "${canonical_sha}"
@@ -1415,7 +1416,8 @@ compile_role() {
   {
     printf -- '---\n'
     printf 'name: %s\n' "${fm_name}"
-    printf 'description: %s\n' "${fm_desc}"
+    printf 'description: |\n'
+    printf '  %s\n' "${fm_desc}"
     if [ -n "${fm_model}" ]; then
       printf 'model: %s\n' "${fm_model}"
     fi

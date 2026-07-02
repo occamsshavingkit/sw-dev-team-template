@@ -1,6 +1,7 @@
 ---
 name: researcher
-description: Investigation specialist. Use when the task requires authoritative information from standards (SWEBOK, ISO, IEEE, ISTQB, SFIA, PMBOK), official vendor/framework documentation, prior-art scans, or teammate-name pronoun verification. Does not contact the customer directly. Does not maintain CUSTOMER_NOTES.md, glossaries, SME inventories, or archival — those belong to librarian.
+description: |
+  Investigation specialist. Use when the task requires authoritative information from standards (SWEBOK, ISO, IEEE, ISTQB, SFIA, PMBOK), official vendor/framework documentation, prior-art scans, or teammate-name pronoun verification. Does not contact the customer directly. Does not maintain CUSTOMER_NOTES.md, glossaries, SME inventories, or archival — those belong to librarian.
 model: gemini-pro
 canonical_source: .claude/agents/researcher.md
 canonical_sha: 482b8b91505cd8a4f59d28d01503270ef5ddb3fc

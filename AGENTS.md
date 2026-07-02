@@ -1,15 +1,24 @@
-# Codex Agent Instructions
+# Multi-Harness Agent Instructions
 
 This project is a multi-agent software-development template that must
-run under both Codex and Claude Code. If a harness cannot satisfy a
-binding instruction, record the incompatibility, stop the affected work,
-and escalate instead of silently weakening the rule.
+run under Claude Code, OpenCode, Codex, and Gemini CLI. If a harness
+cannot satisfy a binding instruction, record the incompatibility, stop
+the affected work, and escalate instead of silently weakening the rule.
+
+## Harness Entry Points
+
+| Harness      | Entry Point |
+|--------------|-------------|
+| Claude Code  | `CLAUDE.md` |
+| OpenCode     | `AGENTS.md` |
+| Codex        | `AGENTS.md` |
+| Gemini CLI   | `GEMINI.md` |
 
 ## Role Binding
 
-The main Codex session plays `tech-lead` directly. Do not spawn
-`tech-lead` as a subagent. The top-level session is the sole human
-interface, owns orchestration, and dispatches specialists.
+The main session plays `tech-lead` directly. Do not spawn `tech-lead`
+as a subagent. The top-level session is the sole human interface, owns
+orchestration, and dispatches specialists.
 
 Before starting substantive work, read:
 
@@ -32,49 +41,13 @@ matches:
 - `docs/framework-project-boundary.md` — downstream path ownership.
 
 Treat `CLAUDE.md` and `.claude/agents/*.md` as the shared team
-contract. Claude Code reads them natively; Codex uses this `AGENTS.md`
-as the adapter into the same contract.
-
-## Delegated-specialist mode
-
-Before reading anything else, check for an active handoff. If
-`.devteam/active-handoff.json` exists and resolves to a handoff file
-at `docs/handoffs/<task_id>.json` that carries a `delegated_role`
-field, this session is a **delegated specialist**, not `tech-lead`.
-
-In delegated-specialist mode:
-
-1. **Adopt the named role.** Read `.claude/agents/<delegated_role>.md`
-   as the binding role contract for this session.
-2. **Execute only `task_ref`.** The single task identified by `task_ref`
-   in the handoff is the complete scope. Do not expand scope.
-3. **Suppress all orchestrator behavior.** Do not spawn specialists, do
-   not act as `tech-lead`, do not contact the customer, and do not ask
-   the spawn-authorization question from "Specialist Dispatch In Codex"
-   below — that question applies only to orchestrating sessions, not
-   delegated ones.
-4. **Treat paths and action scope as binding.** The handoff's
-   `allowed_paths` and `forbidden_paths` govern every file write in
-   this session. Also stay within the action named by
-   `permitted_role_owned_action` on the handoff's
-   `bounded_codex_exception` block — do not perform role-owned actions
-   beyond what that field permits.
-5. **Return to the orchestrator.** On completion, return completed
-   artifacts, modified file paths, and any blockers to the session
-   that dispatched this handoff. Do not open a new orchestration loop.
-
-**Malformed-handoff guard.** If `delegated_role` is `"tech-lead"`, halt
-immediately and report a malformed handoff to the operator. A session
-cannot be delegated into the orchestrator role.
-
-If no active handoff exists, or the handoff carries no `delegated_role`,
-proceed with the normal Role Binding above (main session as `tech-lead`).
+contract.
 
 ## Framework / Project Boundary
 
 In downstream repositories, distinguish product work from the
-`sw-dev-team-template` framework embedded in the same tree. Before a
-Codex session reviews, stages, commits, or edits broad change sets,
+`sw-dev-team-template` framework embedded in the same tree. Before
+a session reviews, stages, commits, or edits broad change sets,
 read `docs/framework-project-boundary.md` and apply its path ownership
 model.
 
@@ -96,254 +69,35 @@ Keep commits and PRs split: product files plus their project-filled
 register updates in one review path; template upgrades or framework
 maintenance in another.
 
-## MCP-connection / non-primary-session mode (issue #289)
+## Specialist Role Mapping
 
-When Codex is invoked as an **MCP tool** (tool-bridge call from another
-session, not as the primary orchestrator), it is already a spawned
-specialist. In that context:
+Canonical role files in `.claude/agents/` map to agents across all
+harnesses:
 
-- **Do NOT start the team, ask for spawn authorization, or prompt for
-  subagent spawning.** The spawning prompt does not fit the MCP-tool
-  invocation model and blocks the scoped task.
-- **Act as the dispatched specialist role** described in the MCP tool
-  call or the preamble provided by the calling session. If no role is
-  specified, default to `software-engineer`.
-- **Skip the spawn-authorization question** below entirely.
-- Return findings, file changes, and escalation requests directly in
-  the tool response; do not try to contact the customer or open a
-  parallel orchestration loop.
-
-**Detection heuristic:** if the session preamble or system prompt
-indicates it was spawned by another session (e.g., contains "Top-level
-tech-lead dispatched you", "You have already been spawned", or the
-equivalent MCP tool-call framing), treat the session as non-primary and
-skip team-start. When in doubt, read the first few lines of context for
-an explicit role assignment; if present, execute that role without
-prompting for spawn authorization.
-
-## Specialist Dispatch In Codex
-
-At every new Codex session, after reading the binding project
-instructions, ask one atomic question to confirm whether the customer
-authorizes native specialist spawning for this session. If the customer
-has already explicitly authorized or required agents in the current
-session, record that statement as the authorization instead of re-asking.
-A prior session's approval does not carry forward.
-
-**Exception — Pre-authorized harnesses.** Under the Google Antigravity or
-Gemini CLI harness contexts, specialist spawning is pre-authorized. In
-these contexts, `tech-lead` does not prompt the customer/user for spawning
-authorization, and specialist dispatch proceeds immediately. The turn summary
-or Turn Ledger records the pre-authorization state (e.g., `specialists dispatched: pre-authorized`).
-
-When the active Codex harness exposes subagent spawning, `tech-lead`
-may dispatch specialists with Codex's native subagent facility only
-after that current-session authorization (or pre-authorized harness status)
-is recorded in the turn summary or Turn Ledger.
-
-Before any Codex dispatch, read `docs/model-routing-guidelines.md`
-for the role tier and `reasoning_effort`, and `docs/agent-health-contract.md`
-for slot state, queueing, completion, and liveness vocabulary; record
-the selected effort and slot-health state in the turn summary or Turn
-Ledger.
-
-Specialist dispatch briefs, whether sent through Claude Code `Agent` or
-Codex `spawn_agent`, are limited to concise, role/task-specific context
-needed for that specialist's assignment. Do not fork or paste the full
-top-level conversation, broad repo state, or unrelated project context
-into a specialist; cite required files or sections for the specialist to
-read instead, so the top-level session preserves its own context budget.
-Exception: include only the minimum extra context needed to preserve
-binding customer constraints, safety limits, or exact excerpt under
-review; if broader context is required, stop and ask `tech-lead` to
-narrow the brief.
-
-**Rule A — No role-stealing (binding).** The Codex `tech-lead` session
-orchestrates; it does not author production artifacts. Code, tests,
-scripts, schemas, prose deliverables, requirements, ADRs, release
-notes, paraphrase content, and customer-truth records route to the
-owning specialist. Direct `tech-lead` writes stay within the
-orchestration scope of `CLAUDE.md` Hard Rule #8. When unsure, dispatch.
-
-**Rule B — No context-forking briefs (binding).** When dispatching N
-independent tasks, send N separate concise briefs — one per task —
-not one mega-brief covering several. **Independence test:** if task
-X could land before task Y without breaking Y, and vice versa, X and
-Y are independent; split them into separate briefs. A shared brief is
-allowed only when one task is a hard prerequisite for the other; record
-that prerequisite in the brief.
-
-If spawning is unavailable, continue only with orchestration or other
-non-specialist work, record "Codex spawning unavailable" in the turn
-summary, and do not claim specialist work occurred. If the customer has
-required agents, or the current task needs specialist-owned work, stop
-and ask before proceeding; do not perform specialist work locally unless
-the customer explicitly grants a one-item exception. If spawning exists
-but no slot is free, record "Codex specialist slot unavailable", queue
-the specialist brief, and wait for a slot; do not implement the queued
-specialist's work locally unless the customer explicitly grants an
-exception for that item.
-
-**Rule C — No top-level fallback when agents are required (binding).**
-When the customer has authorized or required agents for the current
-scope, `tech-lead` orchestrates only. If spawning is unavailable, no
-slot is free, or the requested specialist cannot be dispatched,
-`tech-lead` STOPS AND ASKS rather than performing the specialist's work
-locally. Any exception requires explicit customer authorization for the
-specific item; prior or scope-wide authorization does not generalize.
-
-**Rule D — Spawn authorization is not transferable (binding).**
-Customer authorization to spawn specialists is granted to the top-level
-`tech-lead` session only. A specialist receiving a brief from
-`tech-lead` does not inherit spawning rights. Specialists return
-requests and escalations to `tech-lead`; only `tech-lead` owns the
-native spawn surface. In dispatch briefs, avoid phrasing such as
-"customer authorized spawning" unless it is explicitly qualified as
-top-level-only authorization; unqualified wording is misreadable as
-transferable. Preferred Codex specialist brief preface (template, not
-mandatory verbatim):
-
-> Top-level tech-lead dispatched you. You have already been spawned
-> successfully; do not report spawning unavailable. Do not spawn,
-> delegate, or contact the customer; return findings, blockers, and
-> escalation requests to tech-lead.
-
-If a successfully spawned specialist claims that native spawning is
-unavailable, but the top-level session has a live agent id or durable
-completed payload, classify the result as `failed` role drift and
-re-dispatch with a smaller prompt plus the standard preamble above.
-Exception: exact customer authorization text may be quoted only in the
-top-level Turn Ledger or a customer-truth record routed to `librarian`;
-specialist briefs still use the non-transferable preface.
-
-**Rule E — Closing completed specialists is routine (binding).**
-Closing completed, failed, or no-longer-needed specialists is routine
-slot hygiene. It does NOT require additional customer authorization —
-that authorization was granted upstream for the dispatch. Customer auth
-gates DISPATCH, not CLOSE. Do not close a still-running specialist
-unless it has failed liveness checks per `docs/agent-health-contract.md`,
-the customer redirects the work, or the work is no longer needed.
-
-**Rule F — Background-by-default dispatch (binding).** When the Codex
-harness supports asynchronous specialist spawning, use it by default.
-Synchronous (foreground, blocking) dispatch is allowed only when the
-specialist's return value is required before the next customer-facing
-turn — e.g., a quick lookup whose answer feeds the very next reply. If
-the next customer action does not require the result this turn, dispatch
-asynchronously so the customer chat stays interactive while specialists
-work.
-
-**Turn-summary requirement (binding).** Each turn that involved
-specialist-scoped work states one of: `specialists dispatched`,
-`specialist unavailable: stopped`, or `customer exception granted`
-(naming the specific item).
-
-Map the canonical role files to Codex agent prompts:
-
-- `architect` -> `.claude/agents/architect.md`
-- `software-engineer` -> `.claude/agents/software-engineer.md`
-- `qa-engineer` -> `.claude/agents/qa-engineer.md`
-- `code-reviewer` -> `.claude/agents/code-reviewer.md`
-- `researcher` -> `.claude/agents/researcher.md`
-- `librarian` -> `.claude/agents/librarian.md`
-- `ui-ux-designer` -> `.claude/agents/ui-ux-designer.md`
-- `mcp-liaison` -> `.claude/agents/mcp-liaison.md`
-- `security-engineer` -> `.claude/agents/security-engineer.md`
-- `sre` -> `.claude/agents/sre.md`
-- `project-manager` -> `.claude/agents/project-manager.md`
-- `release-engineer` -> `.claude/agents/release-engineer.md`
-- `tech-writer` -> `.claude/agents/tech-writer.md`
-- `onboarding-auditor` -> `.claude/agents/onboarding-auditor.md`
-- `process-auditor` -> `.claude/agents/process-auditor.md`
-- `sme-<domain>` -> `.claude/agents/sme-<domain>.md`
+| Role                 | Canonical File                          |
+|----------------------|----------------------------------------|
+| `architect`          | `.claude/agents/architect.md`          |
+| `software-engineer`  | `.claude/agents/software-engineer.md`  |
+| `qa-engineer`        | `.claude/agents/qa-engineer.md`        |
+| `code-reviewer`      | `.claude/agents/code-reviewer.md`      |
+| `researcher`         | `.claude/agents/researcher.md`         |
+| `librarian`          | `.claude/agents/librarian.md`          |
+| `ui-ux-designer`     | `.claude/agents/ui-ux-designer.md`     |
+| `mcp-liaison`        | `.claude/agents/mcp-liaison.md`        |
+| `security-engineer`  | `.claude/agents/security-engineer.md`  |
+| `sre`                | `.claude/agents/sre.md`                |
+| `project-manager`    | `.claude/agents/project-manager.md`    |
+| `release-engineer`   | `.claude/agents/release-engineer.md`   |
+| `tech-writer`        | `.claude/agents/tech-writer.md`        |
+| `onboarding-auditor` | `.claude/agents/onboarding-auditor.md` |
+| `process-auditor`    | `.claude/agents/process-auditor.md`    |
+| `sme-<domain>`       | `.claude/agents/sme-<domain>.md`       |
 
 For each dispatch, tell the specialist to read its role file and any
 matching `-local.md` supplement before acting. Keep write scopes
 disjoint when parallelizing, and verify returned file changes before
 accepting a write task.
 
-Use `docs/AGENT_NAMES.md` as the public teammate-name map. If the
-Codex harness returns arbitrary worker names or IDs, treat them as
-internal handles only; customer-facing text, Turn Ledgers, queue
-entries, and handovers use the project teammate name, or the canonical
-role when no teammate name is assigned.
-
-Close completed specialists promptly after their results are reviewed
-and any durable output is verified. When queued work exists, free the
-slot, dispatch the next queued specialist wave, and record the wave in
-the Turn Ledger.
-
-Codex specialist state vocabulary is binding: `queued`, `running`,
-`completed`, `failed`, `closed`, and `unknown/unreachable`. A
-`wait_agent` timeout, empty status, missing transcript, or absent
-return payload is `unknown/unreachable`, not `completed`; it does not
-authorize `tech-lead` to perform the specialist's work locally. Preserve
-the issue #100 rule: silent workers do not collapse specialist work into
-top-level implementation.
-
-When status is ambiguous, send one direct status-check ping asking the
-specialist to return completed findings, a stuck-state summary, or
-confirmation that it has not started and remains queued. Give the ping a
-bounded response window, normally 60 seconds unless the task brief set a
-stricter liveness rule. After repeated timed-out waits or status pings,
-close the silent or unknown specialist if the harness permits, record
-the lost report, and re-dispatch the same canonical role with the prior
-prompt and surviving context. If close is unavailable, record that
-harness limitation and re-dispatch only when capacity permits.
-
-Completed notifications and `wait_agent` results may diverge. Reconcile
-channels conservatively: accept work only from durable returned results,
-verified file changes, or an explicit completed notification with enough
-content to review. If one channel says completed and another is empty or
-timed out, treat the result as incomplete until durable evidence exists.
-
-## Harness Vocabulary
-
-Claude Code examples refer to the `Agent` tool with `subagent_type`
-and `name`. In Codex, use the equivalent native subagent API exposed by
-the harness. Preserve the role name and, where supported, the teammate
-name from `docs/AGENT_NAMES.md`.
-
-If the Codex harness does not expose spawning, continue only with
-orchestration or non-specialist work and record the limitation in the
-turn summary. If the customer required agents, or the task needs
-specialist-owned work, stop and ask before proceeding. Do not pretend a
-specialist completed work that was never dispatched; record
-`specialist unavailable: stopped` and escalate to `tech-lead`.
-
-## Codex Pre-Close Checklist
-
-Codex does not consume Claude Code hooks, so mirror hook-backed
-safeguards in `.claude/settings.json` as an explicit checklist before
-closing any non-trivial turn. If the checklist cannot be completed,
-record the failed item and stop closure until `tech-lead` resolves it.
-
-Matcher-vocabulary note: the `PreToolUse` matchers in
-`.claude/settings.json` (`Write`, `Edit`, `Bash`) are verified
-compatible with both harnesses. Per Codex hooks docs
-(developers.openai.com/codex/hooks) and Codex PR #18391, Codex maps
-`apply_patch` onto `Edit` / `Write` aliases and `exec_command` onto
-`Bash` for hook compatibility. Claude Code also has `MultiEdit`
-covered in `.claude/settings.json`; Codex has no `MultiEdit`
-equivalent. The `customer-notes-guard.py` hook is harness-agnostic
-(inspects `tool_input.file_path` / `path` / `command`), so the same
-config serves both runtimes; if Codex ever ships a separate hook
-config, mirror these matchers exactly.
-
-1. Inspect `git diff --stat` and the relevant diffs.
-2. Confirm every direct `tech-lead` edit is within the allowed
-   orchestration or tool-bridge scope from `CLAUDE.md` Hard Rule #8.
-3. Confirm customer-truth text and customer authorization records were
-   routed or queued for `librarian`, not written directly by
-   `tech-lead`.
-4. Confirm required specialist work was dispatched, queued for a free
-   slot, or covered by an explicit customer exception.
-5. For product-only audits or fixes, confirm the diff contains no
-   accidental framework-managed file edits, including release/version
-   files called out in `docs/framework-project-boundary.md`.
-6. Record spawning limits, queued work, non-default
-   `reasoning_effort`, slot-health state, and direct-write exceptions
-   in the turn summary or Turn Ledger.
-7. Confirm that no customer-facing question is asked in the final line
-   of the turn if there are still active background subagents or tasks
-   in-flight (violating R-1 / Hard Rule #11).
+Use `docs/AGENT_NAMES.md` as the public teammate-name map. Customer-
+facing text, Turn Ledgers, queue entries, and handovers use the project
+teammate name, or the canonical role when no teammate name is assigned.

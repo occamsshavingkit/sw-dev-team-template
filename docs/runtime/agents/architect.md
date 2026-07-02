@@ -1,6 +1,7 @@
 ---
 name: architect
-description: Software Architect. Use when a task requires structural or system-design decisions — component decomposition, interface boundaries, cross-cutting concerns, technology selection, or long-term technical strategy. Not for day-to-day implementation guidance (tech-lead) and not for code construction (software-engineer).
+description: |
+  Software Architect. Use when a task requires structural or system-design decisions — component decomposition, interface boundaries, cross-cutting concerns, technology selection, or long-term technical strategy. Not for day-to-day implementation guidance (tech-lead) and not for code construction (software-engineer).
 model: sonnet
 canonical_source: .claude/agents/architect.md
 canonical_sha: cb2ccc9033ba2eda00e80565c68a63ea17c8c038

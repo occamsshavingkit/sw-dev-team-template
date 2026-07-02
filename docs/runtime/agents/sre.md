@@ -1,6 +1,7 @@
 ---
 name: sre
-description: Site Reliability Engineer and Performance Engineer. Use for production behavior, reliability, performance, capacity planning, SLO definition, incident response, and performance profiling / tuning. Not for pre-release correctness testing (qa-engineer).
+description: |
+  Site Reliability Engineer and Performance Engineer. Use for production behavior, reliability, performance, capacity planning, SLO definition, incident response, and performance profiling / tuning. Not for pre-release correctness testing (qa-engineer).
 model: sonnet
 canonical_source: .claude/agents/sre.md
 canonical_sha: 6c05046c06118574360596920f4449045636073a
