@@ -175,6 +175,7 @@ function runSubprocess(command, args, { cwd, env, stdinPayload, timeoutMs }) {
 
     let stdout = "";
     let stderr = "";
+    let stdoutTruncated = false;
     let settled = false;
     let timedOut = false;
 
@@ -193,7 +194,27 @@ function runSubprocess(command, args, { cwd, env, stdinPayload, timeoutMs }) {
       reject(err);
     });
 
+    // MAX_STDOUT_BYTES caps accumulation (reviewer LOW note): every guard
+    // hook's documented contract is a single small JSON verdict object, so
+    // a runaway subprocess writing unbounded stdout is itself a symptom of
+    // something wrong, not a case to support. Cap, log once, and keep
+    // reading (still need the stream to drain so `close` fires) rather
+    // than kill the process -- killing here would turn a merely-verbose
+    // hook into a bridge-infrastructure failure it doesn't deserve.
+    const MAX_STDOUT_BYTES = 1_000_000;
     child.stdout.on("data", (chunk) => {
+      if (stdout.length >= MAX_STDOUT_BYTES) {
+        if (!stdoutTruncated) {
+          stdoutTruncated = true;
+          console.error(
+            `hook-bridge: stdout from '${command} ${args.join(" ")}' exceeded ` +
+              `${MAX_STDOUT_BYTES} bytes; truncating further output (the ` +
+              "verdict-parse step downstream will see a truncated -- likely " +
+              "malformed -- payload and log accordingly).",
+          );
+        }
+        return;
+      }
       stdout += chunk;
     });
     child.stderr.on("data", (chunk) => {
@@ -264,7 +285,17 @@ function applyVerdict(hookName, stdout) {
     // ADR's binding fail-posture split. Not a bridge-infrastructure
     // failure: the process ran and exited 0; it is the hook's own
     // stdout contract that was not honored, which is the hook author's
-    // call, not the bridge's to escalate.
+    // call, not the bridge's to escalate. Still log loudly (finding
+    // M-2): the fail-open *decision* is correct and unchanged, but an
+    // accidental stray print() in a shared guard (tech-lead-authoring-
+    // guard.py has a six-times-patched history) would otherwise defeat
+    // that guard with zero operator-visible signal.
+    console.error(
+      `hook-bridge: guard hook '${hookName}' produced stdout that did not ` +
+        "parse as JSON; inheriting the hook's fail-open posture (proceeding) " +
+        `per fw-adr-0031, but this is a signal the hook itself is broken. ` +
+        `stdout (truncated): ${text.slice(0, 500)}`,
+    );
     return;
   }
 
@@ -389,7 +420,9 @@ export const HookBridge = async (input) => {
   // session.created; read everywhere else). Three maps/sets:
   //   sessionParent: sessionID -> parentID | null. Lets session.idle
   //     (which carries no parentID of its own, confirmed by the runtime
-  //     spike) decide Stop-vs-SubagentStop semantics.
+  //     spike) decide Stop-vs-SubagentStop semantics. First-write-wins
+  //     (finding H-1(b), see the session.created handler below): a
+  //     re-fire for an already-recorded sessionID cannot change it.
   //   sessionAgent: sessionID -> OpenCode `agent` name (e.g.
   //     "software-engineer") captured from session.created's info.agent.
   //     Forwarded as `agent_type` in guard payloads so
@@ -398,6 +431,8 @@ export const HookBridge = async (input) => {
   //     buildGuardPayload's docstring). The main/top-level session's
   //     agent is a mode name (e.g. "build"), not a canonical role, and
   //     correctly fails `_validate_role()` -- no special-casing needed.
+  //     First-write-wins (finding H-1(b)): once set for a sessionID, a
+  //     re-fire cannot silently change the guard-visible role.
   //   handledIdleSessions: sessionIDs whose session.idle has already been
   //     processed. session.idle was observed firing twice for the same
   //     child session in one spike run; both handoff-stop-gate.py and
@@ -528,8 +563,57 @@ export const HookBridge = async (input) => {
         const info = event.properties?.info ?? {};
         const sessionID = event.properties?.sessionID ?? info.id;
         if (!sessionID) return;
-        sessionParent.set(sessionID, info.parentID ?? null);
-        if (info.agent) sessionAgent.set(sessionID, info.agent);
+
+        // First-write-wins for both maps (finding H-1(b)). session.created
+        // re-firing for a sessionID already recorded (an in-session agent
+        // switch, a resume, a re-attach -- whether OpenCode actually does
+        // this is being spiked separately, but the fix does not depend on
+        // the answer) must NOT silently change what this bridge forwards.
+        //   - sessionAgent is what reaches guard payloads as `agent_type`,
+        //     and tech-lead-authoring-guard.py grants an unconditional
+        //     write bypass once any validated non-tech-lead role is
+        //     present -- an overwrite here would silently change the
+        //     guard-visible role mid-conversation with no re-dispatch
+        //     through tech-lead.
+        //   - sessionParent drives Stop-vs-SubagentStop routing at
+        //     session.idle (below); an overwrite here would silently flip
+        //     which lifecycle gate a session's idle event resolves to.
+        // Retain-and-log, do not throw: this is an event handler, not a
+        // gate, and an uncaught throw here has no defined abort semantics
+        // (see runLifecycleGateHook's identical reasoning for session.idle).
+        const incomingParentID = info.parentID ?? null;
+        if (sessionParent.has(sessionID)) {
+          const retainedParentID = sessionParent.get(sessionID);
+          if (incomingParentID !== retainedParentID) {
+            console.error(
+              `hook-bridge: session.created re-fired for session ` +
+                `'${sessionID}' with a different parentID ('${incomingParentID}' ` +
+                `vs retained '${retainedParentID}'). Retaining the first-` +
+                "recorded parent; a later change would silently flip Stop " +
+                "vs SubagentStop routing at session.idle.",
+            );
+          }
+        } else {
+          sessionParent.set(sessionID, incomingParentID);
+        }
+
+        if (info.agent) {
+          if (sessionAgent.has(sessionID)) {
+            const retainedAgent = sessionAgent.get(sessionID);
+            if (info.agent !== retainedAgent) {
+              console.error(
+                `hook-bridge: session.created re-fired for session ` +
+                  `'${sessionID}' with a different agent ('${info.agent}' ` +
+                  `vs retained '${retainedAgent}'). Retaining the first-` +
+                  "recorded role; tech-lead-authoring-guard.py's write " +
+                  "bypass must not change mid-session without re-dispatch " +
+                  "through tech-lead.",
+              );
+            }
+          } else {
+            sessionAgent.set(sessionID, info.agent);
+          }
+        }
 
         if (info.parentID) {
           // Child (subagent-spawned) session: no SessionStart-equivalent
