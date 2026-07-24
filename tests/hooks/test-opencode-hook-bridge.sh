@@ -524,6 +524,67 @@ EOF
     else
         record_fail "privilege forwarding (W1): unknown session denied" "verdict=$verdict sent_agent_type=$sent_agent_type"
     fi
+
+    # ---- B12: HIGH-severity privilege-escalation fix — session.updated
+    # FOLLOWS an agent-identity change on the SAME sessionID.
+    #
+    # session.created establishes agent="software-engineer"; a LATER
+    # session.updated on the same sessionID reports agent="tech-writer"
+    # (the runtime-spike-verified path: resuming a session with a
+    # different `--agent` changes info.agent via plain session.updated,
+    # and session.created never re-fires for it). Both software-engineer
+    # and tech-writer are validated non-tech-lead roles, so
+    # tech-lead-authoring-guard.py's write bypass fires either way --
+    # checking the verdict ALONE would pass even with the pre-fix bug
+    # (stale agent_type="software-engineer" forwarded forever). The
+    # load-bearing assertion is on the ACTUAL WIRE PAYLOAD sent to the
+    # guard: agent_type must be the NEW 'tech-writer', never the stale
+    # 'software-engineer'. Also asserts the identity change is logged
+    # (console.error) -- security-relevant even when handled correctly.
+    payload_log=$(mktemp)
+    stderr_log=$(mktemp)
+    shim_dir=$(mk_pathshim "$payload_log")
+    steps='[{"kind":"event","event":{"type":"session.created","properties":{"sessionID":"esc-follow","info":{"id":"esc-follow","agent":"software-engineer"}}}},{"kind":"event","event":{"type":"session.updated","properties":{"info":{"id":"esc-follow","agent":"tech-writer"}}}},{"kind":"tool-before","tool":"write","sessionID":"esc-follow","args":{"filePath":"scripts/foo.sh","content":"x"}}]'
+    result=$(printf '%s' "$steps" | PATH="$shim_dir:$PATH" node "$INVOKER" run "$PLUGIN" 2>"$stderr_log")
+    rm -rf "$shim_dir"
+    step3_verdict=$(printf '%s' "$result" | sed -n '3p' | python3 -c "import json,sys; print(json.load(sys.stdin)['verdict'])" 2>/dev/null)
+    sent_agent_type=$(grep "^tech-lead-authoring-guard.py	" "$payload_log" | head -1 | cut -f2- \
+        | python3 -c "import json,sys; print(json.load(sys.stdin).get('agent_type', '<ABSENT>'))" 2>/dev/null)
+    logged_change=$(grep -c "agent identity changed" "$stderr_log" 2>/dev/null || true)
+    rm -f "$payload_log" "$stderr_log"
+    if [ "$step3_verdict" = "proceed" ] && [ "$sent_agent_type" = "tech-writer" ] && [ "${logged_change:-0}" -ge 1 ]; then
+        record_pass "HIGH-severity fix: session.updated(agent=tech-writer) after session.created(agent=software-engineer) on the SAME sessionID -> the wire payload sent to tech-lead-authoring-guard.py carries agent_type=tech-writer (the NEW agent, not the stale software-engineer), and the identity change is logged to stderr"
+    else
+        record_fail "HIGH-severity fix: session.updated follows the agent change" "step3_verdict=$step3_verdict sent_agent_type=$sent_agent_type logged_change=${logged_change:-0}"
+    fi
+
+    # ---- B13: top-level-session safety — session.updated populating
+    # sessionAgent for a PRIMARY/top-level session (which previously had
+    # NO sessionAgent entry at all — see the corrected sessionAgent
+    # declaration comment) must NOT thereby grant it a specialist write
+    # bypass. session.created carries NO info.agent for a top-level
+    # session (runtime-spike-verified); this project's opencode.json
+    # pins `default_agent: "tech-lead"`, so the first session.updated for
+    # that session reports info.agent="tech-lead", which
+    # `_validate_role()` rejects by name. Assert BOTH the verdict
+    # (throw — no bypass) AND the actual wire payload (agent_type=
+    # "tech-lead"), so this passes because the guard's dedicated
+    # tech-lead self-claim rejection is doing the work, not because the
+    # bridge silently failed to forward anything.
+    payload_log=$(mktemp)
+    shim_dir=$(mk_pathshim "$payload_log")
+    steps='[{"kind":"event","event":{"type":"session.created","properties":{"sessionID":"toplevel-1","info":{"id":"toplevel-1"}}}},{"kind":"event","event":{"type":"session.updated","properties":{"info":{"id":"toplevel-1","agent":"tech-lead"}}}},{"kind":"tool-before","tool":"write","sessionID":"toplevel-1","args":{"filePath":"scripts/foo.sh","content":"x"}}]'
+    result=$(printf '%s' "$steps" | PATH="$shim_dir:$PATH" node "$INVOKER" run "$PLUGIN" 2>/dev/null)
+    rm -rf "$shim_dir"
+    step3_verdict=$(printf '%s' "$result" | sed -n '3p' | python3 -c "import json,sys; print(json.load(sys.stdin)['verdict'])" 2>/dev/null)
+    sent_agent_type=$(grep "^tech-lead-authoring-guard.py	" "$payload_log" | head -1 | cut -f2- \
+        | python3 -c "import json,sys; print(json.load(sys.stdin).get('agent_type', '<ABSENT>'))" 2>/dev/null)
+    rm -f "$payload_log"
+    if [ "$step3_verdict" = "throw" ] && [ "$sent_agent_type" = "tech-lead" ]; then
+        record_pass "top-level-session safety: session.created(no info.agent) then session.updated(info.agent=tech-lead, matching opencode.json's default_agent) -> write to off-allow-list path still throws (no specialist bypass granted), with agent_type=tech-lead observed on the actual wire payload"
+    else
+        record_fail "top-level-session safety: session.updated must not grant a top-level session a specialist bypass" "step3_verdict=$step3_verdict sent_agent_type=$sent_agent_type"
+    fi
 fi
 
 # ===========================================================================

@@ -424,15 +424,59 @@ export const HookBridge = async (input) => {
   //     (finding H-1(b), see the session.created handler below): a
   //     re-fire for an already-recorded sessionID cannot change it.
   //   sessionAgent: sessionID -> OpenCode `agent` name (e.g.
-  //     "software-engineer") captured from session.created's info.agent.
-  //     Forwarded as `agent_type` in guard payloads so
-  //     tech-lead-authoring-guard.py can resolve caller_role the same
-  //     way it does from Claude Code's hook payload (see
-  //     buildGuardPayload's docstring). The main/top-level session's
-  //     agent is a mode name (e.g. "build"), not a canonical role, and
-  //     correctly fails `_validate_role()` -- no special-casing needed.
-  //     First-write-wins (finding H-1(b)): once set for a sessionID, a
-  //     re-fire cannot silently change the guard-visible role.
+  //     "software-engineer") captured from session.created's and
+  //     session.updated's info.agent. Forwarded as `agent_type` in guard
+  //     payloads so tech-lead-authoring-guard.py can resolve caller_role
+  //     the same way it does from Claude Code's hook payload (see
+  //     buildGuardPayload's docstring).
+  //
+  //     Corrected comment (this line was WRONG -- HIGH-severity
+  //     privilege-escalation finding, runtime spike against opencode
+  //     1.18.5): for a top-level/primary session, `info.agent` is ABSENT
+  //     ENTIRELY from session.created -- it is not present-with-an-
+  //     invalid-value. It arrives later, on that session's first
+  //     session.updated. This project's opencode.json pins
+  //     `default_agent: "tech-lead"`, so that session.updated carries
+  //     `info.agent === "tech-lead"` for a top-level session, which
+  //     `_validate_role()` rejects BY NAME (see that function's explicit
+  //     self-push guard) -- caller_role resolves to `None`, the safe/
+  //     restrictive outcome, same as before this fix, just reached by the
+  //     guard's dedicated tech-lead rejection instead of by omission.
+  //     Verified by the "top-level session" test in
+  //     tests/hooks/test-opencode-hook-bridge.sh.
+  //
+  //   TWO DIFFERENT UPDATE POLICIES for the same map, by design -- do
+  //   not "fix" this into one consistent policy, they answer different
+  //   questions:
+  //     - session.created: FIRST-WRITE-WINS (finding H-1(b), retained
+  //       below unchanged). A re-fire for an already-recorded sessionID
+  //       is anomalous; there is no verified runtime meaning for it to
+  //       attach to, so retaining the first-recorded role is the safe
+  //       default.
+  //     - session.updated: FOLLOW, NOT RETAIN (this fix). The runtime
+  //       spike proved `info.agent` for an EXISTING sessionID changes via
+  //       plain session.updated when the session is resumed with a
+  //       different `--agent` -- session.created never re-fires for that
+  //       path. Retaining the original role here would make this bridge
+  //       assert a STALE, still-privileged role for a session whose real
+  //       running identity (system prompt, tool set, permissions) has
+  //       already moved on -- that mismatch IS the escalation. Tracking
+  //       the truth removes it.
+  //       Escalation-vector check ("can following itself widen access?"):
+  //       tech-lead-authoring-guard.py grants the SAME unconditional
+  //       write bypass to every validated non-tech-lead role (it
+  //       distinguishes tech-lead from not-tech-lead, not role-
+  //       appropriate paths), and `_validate_role()` rejects the literal
+  //       string "tech-lead" outright. So a followed change can only move
+  //       a session between "some specialist" (already an equivalent
+  //       bypass under the guard's current model) and "tech-lead-or-
+  //       unknown" (`None`, the safe/restrictive outcome) -- there is no
+  //       transition this handler can produce that grants a tier the
+  //       session could not already reach by being freshly dispatched as
+  //       that role. Logged via console.error on every observed change
+  //       regardless (see the session.updated handler below): even a
+  //       correctly-handled identity change is security-relevant and
+  //       should leave a trace.
   //   handledIdleSessions: sessionIDs whose session.idle has already been
   //     processed. session.idle was observed firing twice for the same
   //     child session in one spike run; both handoff-stop-gate.py and
@@ -554,9 +598,12 @@ export const HookBridge = async (input) => {
     },
 
     // -------------------------------------------------------------
-    // event: session.created (SessionStart-equivalent) and
-    // session.idle (Stop / SubagentStop-equivalent, distinguished by
-    // parentID recorded at session.created time).
+    // event: session.created (SessionStart-equivalent), session.updated
+    // (agent-identity tracking -- HIGH-severity privilege-escalation
+    // fix, see the sessionAgent declaration comment above for the
+    // follow-vs-retain asymmetry with session.created), and session.idle
+    // (Stop / SubagentStop-equivalent, distinguished by parentID
+    // recorded at session.created time).
     // -------------------------------------------------------------
     event: async ({ event }) => {
       if (event.type === "session.created") {
@@ -628,6 +675,57 @@ export const HookBridge = async (input) => {
         }
 
         await runSessionStartSet(projectDir);
+        return;
+      }
+
+      if (event.type === "session.updated") {
+        // HIGH-severity privilege-escalation fix (runtime spike against
+        // opencode 1.18.5): session.created never re-fires for an
+        // existing sessionID, but `info.agent` for an existing sessionID
+        // DOES change -- via plain session.updated -- when the session
+        // is resumed with a different `--agent`. Without this branch,
+        // sessionAgent kept forwarding the ORIGINAL agent forever, so a
+        // session that once ran as (say) software-engineer kept getting
+        // tech-lead-authoring-guard.py's write bypass on every later
+        // call even after its real running agent -- system prompt, tool
+        // set, permissions -- had been repointed elsewhere. Any
+        // bash-capable session can enumerate sessions and resume one
+        // with a different agent, so the attack cost is trivial.
+        //
+        // FOLLOW, NOT RETAIN here -- deliberately the opposite of
+        // session.created's first-write-wins policy a few lines above.
+        // See the sessionAgent declaration comment (top of this
+        // factory) for the full "why the same map has two different
+        // update policies" reasoning and the escalation-vector analysis
+        // for why following the change cannot itself widen access.
+        const info = event.properties?.info ?? {};
+        const sessionID = event.properties?.sessionID ?? info.id;
+        if (!sessionID) return;
+        if (!info.agent) return; // No agent carried on this particular
+        // update (e.g. an update unrelated to agent identity) -- nothing
+        // to follow. Do NOT clear an existing entry on an agent-less
+        // update; that would turn a routine session.updated into an
+        // accidental privilege change (silently dropping to caller_role
+        // = None is the SAFE direction, but still an unrequested change
+        // with no verified runtime trigger to justify it).
+
+        const previousAgent = sessionAgent.get(sessionID);
+        if (info.agent === previousAgent) return; // No change.
+
+        sessionAgent.set(sessionID, info.agent);
+        // Security-relevant even when handled correctly (this branch IS
+        // the fix, not a bug) -- leave a trace so an operator can spot an
+        // unexpected mid-session agent swap.
+        console.error(
+          `hook-bridge: session '${sessionID}' agent identity changed ` +
+            `via session.updated (was '${previousAgent ?? "<none recorded>"}', ` +
+            `now '${info.agent}'). Forwarding the NEW agent as agent_type ` +
+            "on this session's subsequent guard payloads -- following the " +
+            "session's current real agent, per the HIGH-severity " +
+            "privilege-escalation fix (see the sessionAgent declaration " +
+            "comment for why this differs from session.created's first-" +
+            "write-wins policy).",
+        );
         return;
       }
 
