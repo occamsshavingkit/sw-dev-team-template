@@ -108,6 +108,23 @@ const GUARD_CHAIN_BY_TOOL = {
   task: ["subcall-limit-guard.py"],
 };
 
+// -----------------------------------------------------------------------
+// Deferred fail-closed, part 2: TOOL_ARG_MAP loaded successfully but is
+// missing an entry for one of the four GUARD_CHAIN_BY_TOOL keys (e.g. a
+// future edit to scripts/opencode/tool-arg-map.json drops or typos
+// "bash"). Computed once at module load, right next to the load
+// try/catch above, so this failure mode is caught before any guarded
+// call needs the map -- without this, buildGuardPayload would return
+// null for that tool id, tool.execute.before's `if (!payload) return;`
+// would exit, and the entire guard chain for that tool would stop
+// running with no error and no log line (code review finding W2).
+// -----------------------------------------------------------------------
+const TOOL_ARG_MAP_MISSING_TOOL_IDS = TOOL_ARG_MAP
+  ? Object.keys(GUARD_CHAIN_BY_TOOL).filter(
+      (toolId) => !TOOL_ARG_MAP.tools || !TOOL_ARG_MAP.tools[toolId],
+    )
+  : [];
+
 // Per-hook environment overrides. Mirrors the `SWDT_HANDOFF_GATES=warn`
 // prefix .claude/settings.json applies to every handoff-*-gate.py /
 // handoff-record-activity.py invocation (soft-launch, non-blocking today).
@@ -398,14 +415,24 @@ export const HookBridge = async (input) => {
       const chain = GUARD_CHAIN_BY_TOOL[toolId];
       if (!chain) return; // Not a guarded OpenCode tool.
 
-      if (!TOOL_ARG_MAP) {
-        // Bridge-infrastructure absence: the mapping table itself failed
-        // to load. Fail closed on every guarded call rather than run
-        // silently unenforced for the rest of the session.
+      if (!TOOL_ARG_MAP || TOOL_ARG_MAP_MISSING_TOOL_IDS.length > 0) {
+        // Bridge-infrastructure absence, in either of two forms: the
+        // mapping table itself failed to load, or it loaded but is
+        // missing an entry for a tool id GUARD_CHAIN_BY_TOOL declares as
+        // guarded (finding W2). Both are the same failure class -- the
+        // bridge cannot trust the map -- so both fail closed on every
+        // guarded call rather than run silently unenforced for the rest
+        // of the session.
         throw new Error(
-          "hook-bridge: scripts/opencode/tool-arg-map.json failed to load " +
-            `(${TOOL_ARG_MAP_LOAD_ERROR?.message ?? "unknown error"}). ` +
-            "Refusing to proceed on a guarded tool call.",
+          TOOL_ARG_MAP_LOAD_ERROR
+            ? "hook-bridge: scripts/opencode/tool-arg-map.json failed to " +
+                `load (${TOOL_ARG_MAP_LOAD_ERROR.message}). Refusing to ` +
+                "proceed on a guarded tool call."
+            : "hook-bridge: scripts/opencode/tool-arg-map.json loaded but " +
+                "has no entry for guarded tool id(s) " +
+                `[${TOOL_ARG_MAP_MISSING_TOOL_IDS.join(", ")}] declared in ` +
+                "GUARD_CHAIN_BY_TOOL. Refusing to proceed on a guarded " +
+                "tool call.",
         );
       }
 
@@ -414,7 +441,20 @@ export const HookBridge = async (input) => {
         output.args,
         sessionAgent.get(beforeInput.sessionID),
       );
-      if (!payload) return; // No mapping entry for this tool id.
+      if (!payload) {
+        // Unreachable in normal operation: the module-load assertion
+        // above guarantees every GUARD_CHAIN_BY_TOOL key has a
+        // tool-arg-map.json entry, so buildGuardPayload cannot return
+        // null for a toolId that reached this point. If it does, the
+        // invariant was violated some other way -- fail loud rather than
+        // silently skip the guard chain (finding W2's whole point).
+        throw new Error(
+          "hook-bridge: internal invariant violated -- buildGuardPayload " +
+            `returned null for guarded tool id '${toolId}' despite passing ` +
+            "the module-load tool-arg-map completeness assertion. Failing " +
+            "closed rather than running this tool call unenforced.",
+        );
+      }
 
       for (const hookName of chain) {
         // eslint-disable-next-line no-await-in-loop -- ordering is the

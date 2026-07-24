@@ -87,6 +87,16 @@ else
     record_fail "scripts/opencode/tool-arg-map.json matches reference table" "$map_diff_out"
 fi
 
+# NOTE (code-review finding W1): the three checks immediately below
+# exercise `task`'s `subagent_type` argument -- the SPAWN-TARGET the
+# `task` tool hands to a new subagent. That is a DIFFERENT mechanism from
+# `agent_type`, the field this bridge forwards on `session.created` so
+# scripts/hooks/tech-lead-authoring-guard.py can identify WHICH ALREADY-
+# RUNNING role is making a write/edit/bash call (privilege forwarding).
+# The two names are confusingly similar but test different code paths; do
+# not treat coverage of one as coverage of the other. See B9-B11 below
+# ("privilege forwarding (W1): ...") for the agent_type coverage.
+#
 # Regression: a naive blanket snake_case<->camelCase transform gets
 # task.subagent_type wrong (it is deliberately unchanged casing on the
 # OpenCode side, unlike every other key in the map).
@@ -417,6 +427,102 @@ print('; '.join(problems))
         done <<EOF
 $entries_tsv
 EOF
+    fi
+
+    # ---- B9/B10/B11: privilege forwarding (code-review finding W1) ----
+    #
+    # .opencode/plugin/hook-bridge.js:284-300 forwards session.created's
+    # info.agent as a top-level `agent_type` field on every guarded
+    # tool.execute.before payload for that sessionID.
+    # scripts/hooks/tech-lead-authoring-guard.py's `_resolve_subagent_role()`
+    # (~line 860) reads `event.get("agent_type")` to decide `caller_role`,
+    # which is the entire allow/deny decision for a caller that is NOT
+    # tech-lead itself -- so this is the highest-risk mechanism in the
+    # bridge and had ZERO coverage before this task (see W1). These three
+    # scenarios chain a session.created step with a tool.execute.before
+    # step on the SAME sessionID (opencode-bridge-invoke.mjs's single
+    # Hooks instance preserves sessionAgent state across the chain -- see
+    # that file's header comment) and assert on the actual verdict
+    # (throw vs proceed) AND, where practical, on the exact `agent_type`
+    # value observed on the real wire payload sent to
+    # tech-lead-authoring-guard.py -- not just on the downstream verdict,
+    # which could still pass by accident if forwarding silently broke.
+    #
+    # Deliberately named "privilege forwarding (W1): ..." (not
+    # "agent_type" or "subagent_type") so these cannot be confused with
+    # the unrelated task.subagent_type spawn-target checks above.
+
+    # ---- B9: privilege forwarding — specialist ALLOWED. session.created
+    # with info.agent="software-engineer", then a write to a path OFF
+    # tech-lead's allow-list (scripts/foo.sh -- the SAME path B2 denies
+    # with no prior session.created / no agent_type). Proceeding here,
+    # combined with observing agent_type="software-engineer" on the
+    # actual payload sent to tech-lead-authoring-guard.py, proves the
+    # field is both forwarded AND honoured end-to-end -- not that some
+    # unrelated allow rule happened to fire.
+    payload_log=$(mktemp)
+    shim_dir=$(mk_pathshim "$payload_log")
+    steps='[{"kind":"event","event":{"type":"session.created","properties":{"sessionID":"priv-allow","info":{"id":"priv-allow","agent":"software-engineer"}}}},{"kind":"tool-before","tool":"write","sessionID":"priv-allow","args":{"filePath":"scripts/foo.sh","content":"x"}}]'
+    result=$(printf '%s' "$steps" | PATH="$shim_dir:$PATH" node "$INVOKER" run "$PLUGIN" 2>/dev/null)
+    rm -rf "$shim_dir"
+    step2_verdict=$(printf '%s' "$result" | sed -n '2p' | python3 -c "import json,sys; print(json.load(sys.stdin)['verdict'])" 2>/dev/null)
+    sent_agent_type=$(grep "^tech-lead-authoring-guard.py	" "$payload_log" | head -1 | cut -f2- \
+        | python3 -c "import json,sys; print(json.load(sys.stdin).get('agent_type', '<ABSENT>'))" 2>/dev/null)
+    rm -f "$payload_log"
+    if [ "$step2_verdict" = "proceed" ] && [ "$sent_agent_type" = "software-engineer" ]; then
+        record_pass "privilege forwarding (W1): session.created(info.agent=software-engineer) then write to off-allow-list path -> proceed, with agent_type=software-engineer observed on the actual tech-lead-authoring-guard.py wire payload"
+    else
+        record_fail "privilege forwarding (W1): specialist allowed" "step2_verdict=$step2_verdict sent_agent_type=$sent_agent_type"
+    fi
+
+    # ---- B10: privilege forwarding — tech-lead SELF-CLAIM DENIED.
+    # session.created with info.agent="tech-lead", then the SAME write.
+    # _validate_role() (tech-lead-authoring-guard.py:734-754) explicitly
+    # rejects the literal string "tech-lead" even though it is otherwise
+    # a canonical role, closing the self-push escalation path. Assert
+    # BOTH that the verdict is throw AND that agent_type="tech-lead" WAS
+    # actually forwarded on the wire -- proving the guard is the one
+    # rejecting it (a deliberate, defended-in-depth reject), not that the
+    # bridge silently failed to forward tech-lead's claim (which would
+    # make this pass for the wrong reason and mask a forwarding bug).
+    payload_log=$(mktemp)
+    shim_dir=$(mk_pathshim "$payload_log")
+    steps='[{"kind":"event","event":{"type":"session.created","properties":{"sessionID":"priv-tl-selfclaim","info":{"id":"priv-tl-selfclaim","agent":"tech-lead"}}}},{"kind":"tool-before","tool":"write","sessionID":"priv-tl-selfclaim","args":{"filePath":"scripts/foo.sh","content":"x"}}]'
+    result=$(printf '%s' "$steps" | PATH="$shim_dir:$PATH" node "$INVOKER" run "$PLUGIN" 2>/dev/null)
+    rm -rf "$shim_dir"
+    step2_line=$(printf '%s' "$result" | sed -n '2p')
+    step2_verdict=$(printf '%s' "$step2_line" | python3 -c "import json,sys; print(json.load(sys.stdin)['verdict'])" 2>/dev/null)
+    step2_message=$(printf '%s' "$step2_line" | python3 -c "import json,sys; print(json.load(sys.stdin).get('message') or '')" 2>/dev/null)
+    sent_agent_type=$(grep "^tech-lead-authoring-guard.py	" "$payload_log" | head -1 | cut -f2- \
+        | python3 -c "import json,sys; print(json.load(sys.stdin).get('agent_type', '<ABSENT>'))" 2>/dev/null)
+    rm -f "$payload_log"
+    if [ "$step2_verdict" = "throw" ] && [ "$sent_agent_type" = "tech-lead" ] \
+        && printf '%s' "$step2_message" | grep -q "software-engineer"; then
+        record_pass "privilege forwarding (W1): session.created(info.agent=tech-lead) then write to off-allow-list path -> throw naming software-engineer, WITH agent_type=tech-lead confirmed forwarded on the wire (guard rejects the self-claim; the bridge did not silently drop it)"
+    else
+        record_fail "privilege forwarding (W1): tech-lead self-claim denied" "step2_verdict=$step2_verdict sent_agent_type=$sent_agent_type message=$step2_message"
+    fi
+
+    # ---- B11: privilege forwarding — UNKNOWN SESSION DENIED (fail-safe).
+    # A tool.execute.before write on a sessionID that had NO prior
+    # session.created step at all (a fresh Hooks instance per run_node_steps
+    # call guarantees no leftover state from B9/B10). Must throw, and the
+    # payload actually sent to tech-lead-authoring-guard.py must have NO
+    # agent_type key at all (not an empty string -- genuinely absent),
+    # confirming the fail-safe: absent agent_type denies rather than grants.
+    payload_log=$(mktemp)
+    shim_dir=$(mk_pathshim "$payload_log")
+    steps='[{"kind":"tool-before","tool":"write","sessionID":"priv-unknown-session","args":{"filePath":"scripts/foo.sh","content":"x"}}]'
+    result=$(printf '%s' "$steps" | PATH="$shim_dir:$PATH" node "$INVOKER" run "$PLUGIN" 2>/dev/null)
+    rm -rf "$shim_dir"
+    verdict=$(printf '%s' "$result" | python3 -c "import json,sys; print(json.load(sys.stdin)['verdict'])" 2>/dev/null)
+    sent_agent_type=$(grep "^tech-lead-authoring-guard.py	" "$payload_log" | head -1 | cut -f2- \
+        | python3 -c "import json,sys; print(json.load(sys.stdin).get('agent_type', '<ABSENT>'))" 2>/dev/null)
+    rm -f "$payload_log"
+    if [ "$verdict" = "throw" ] && [ "$sent_agent_type" = "<ABSENT>" ]; then
+        record_pass "privilege forwarding (W1): tool.execute.before with no prior session.created for that sessionID -> throw, with agent_type genuinely ABSENT from the wire payload (fail-safe: no identity forwarded means deny, not grant)"
+    else
+        record_fail "privilege forwarding (W1): unknown session denied" "verdict=$verdict sent_agent_type=$sent_agent_type"
     fi
 fi
 
