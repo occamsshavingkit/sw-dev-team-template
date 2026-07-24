@@ -485,6 +485,83 @@ export const HookBridge = async (input) => {
   const sessionAgent = new Map();
   const handledIdleSessions = new Set();
 
+  // -----------------------------------------------------------------
+  // S1 -- bounded eviction (unbounded session-state growth). Analysis:
+  //
+  // These three structures are never explicitly deleted from and this
+  // factory runs once per process (see "Plugin process lifetime" above),
+  // so a long-lived OpenCode server accumulates one entry per session,
+  // forever, across however many sessions it ever serves.
+  //
+  // Is there a safe LIFECYCLE signal to evict on? No. The bridge's wired
+  // event surface (session.created, session.updated, session.idle,
+  // experimental.session.compacting -- fw-adr-0031's "Portability
+  // inventory", confirmed by the 2026-07-24 runtime spike) has no
+  // session-ended / session-deleted event. `session.idle` is the
+  // Stop-equivalent ("end of the main session's turn" per the ADR's own
+  // mapping-table wording), not "this session will never be touched
+  // again" -- nothing in the observed event catalog rules out more
+  // tool.execute.before / session.updated calls arriving for the same
+  // sessionID in a later turn. Evicting sessionParent/sessionAgent at
+  // first idle would risk exactly the correctness regression this fix
+  // must not introduce: the next guarded call on a still-live session
+  // would silently lose its recorded parentID/agent and resolve
+  // caller_role = None instead of the session's real role. Reusing "a
+  // SECOND session.idle for this sessionID" as a stronger done-signal
+  // does not work either -- that is precisely the case
+  // handledIdleSessions exists to dedupe (the ADR's documented
+  // double-fire spike finding); treating it as "now it's really over"
+  // would misfire on both the legitimate every-turn case and the known
+  // spurious double-fire case. So: no safe lifecycle-signal eviction
+  // point exists with the event surface OpenCode currently exposes to
+  // this bridge.
+  //
+  // Fallback: a single shared FIFO cap, keyed on first-seen order
+  // across all three structures together (one ledger, so they can never
+  // drift out of sync with each other -- an entry is evicted from all
+  // three at once or none). subcall-limit-guard.py's
+  // DEFAULT_SUBCALL_BUDGET (100 subagent spawns per top-level session,
+  // operator-raisable via SWDT_SUBCALL_BUDGET) is the closest existing
+  // bound on how many sessions one real top-level session's lifetime
+  // can plausibly produce; SESSION_STATE_CAP below is two orders of
+  // magnitude above that default specifically so this only fires for a
+  // process that has served an implausible number of distinct sessions
+  // -- at which point evicting the single oldest-first-seen entry (by
+  // far the most likely to be long finished) and logging it is the
+  // reasonable trade the fix's task brief authorizes for this
+  // low-severity issue. This does NOT eliminate the theoretical risk of
+  // evicting a still-live session's state on a sufficiently
+  // long-lived/high-volume process; it bounds how implausible that has
+  // to be before it can happen, and logs loudly if it ever does.
+  const SESSION_STATE_CAP = 10000;
+  const sessionInsertOrder = new Set(); // Insertion-ordered ledger of
+  // every sessionID seen via session.created in this process; used only
+  // to pick FIFO eviction order below. A JS Set iterates in insertion
+  // order, so `.values().next().value` is always the oldest entry.
+
+  function trackSessionAndEvictIfOverCap(sessionID) {
+    if (sessionInsertOrder.has(sessionID)) return;
+    sessionInsertOrder.add(sessionID);
+    if (sessionInsertOrder.size <= SESSION_STATE_CAP) return;
+
+    const oldest = sessionInsertOrder.values().next().value;
+    sessionInsertOrder.delete(oldest);
+    sessionParent.delete(oldest);
+    sessionAgent.delete(oldest);
+    handledIdleSessions.delete(oldest);
+    console.error(
+      `hook-bridge: session-state cap (${SESSION_STATE_CAP} distinct ` +
+        `sessions) exceeded; evicted oldest-tracked session '${oldest}'. ` +
+        "If that session is somehow still live, its next guarded tool " +
+        "call will resolve caller_role = None (fail-safe, but a " +
+        "functional regression) and a subsequent session.idle for it " +
+        "could re-run its Stop/SubagentStop gate. This should only occur " +
+        "for a process that has served an implausible number of distinct " +
+        "sessions -- see the S1 bounded-eviction comment above " +
+        "sessionInsertOrder's declaration.",
+    );
+  }
+
   return {
     // -------------------------------------------------------------
     // tool.execute.before: PreToolUse-equivalent guard chain.
@@ -610,6 +687,15 @@ export const HookBridge = async (input) => {
         const info = event.properties?.info ?? {};
         const sessionID = event.properties?.sessionID ?? info.id;
         if (!sessionID) return;
+
+        // S1 bounded eviction: record this sessionID's first-seen order
+        // and evict the oldest tracked session's state if the shared cap
+        // is exceeded. Must run before the first-write-wins population
+        // below so a freshly-evicted-then-immediately-reused sessionID
+        // (implausible, but the cap's whole premise is "implausible
+        // things become possible at extreme scale") is tracked fresh
+        // rather than silently skipped as "already seen".
+        trackSessionAndEvictIfOverCap(sessionID);
 
         // First-write-wins for both maps (finding H-1(b)). session.created
         // re-firing for a sessionID already recorded (an in-session agent
