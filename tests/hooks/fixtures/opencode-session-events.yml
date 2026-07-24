@@ -1,0 +1,198 @@
+# SPDX-License-Identifier: MIT
+# Copyright 2026 occamsshavingkit/sw-dev-team-template contributors
+#
+# Session-event corpus for the OpenCode enforcement hook bridge's `event`
+# hook (.opencode/plugin/hook-bridge.js, fw-adr-0031-opencode-hook-bridge.md).
+#
+# Unlike tests/hooks/fixtures/customer-notes-guard.yml /
+# tech-lead-authoring-guard.yml (per-hook negative corpora consumed by
+# tests/hooks/run-negative-corpus.sh), these entries exercise the bridge's
+# SESSION LIFECYCLE wiring, not a single PreToolUse guard: session.created
+# (SessionStart-equivalent) and session.idle (Stop / SubagentStop-
+# equivalent, disambiguated by parentID captured at session.created time).
+#
+# Driver: tests/hooks/test-opencode-hook-bridge.sh (§ "Session-event
+# fixtures"). Each entry's `steps` list is replayed, in order, against ONE
+# .opencode/plugin/hook-bridge.js Hooks instance via
+# tests/hooks/lib/opencode-bridge-invoke.mjs's `run` subcommand — session
+# state (sessionParent / sessionAgent / handledIdleSessions) is closure-
+# scoped to one Hooks instance, so steps within a single entry share state
+# exactly the way one real OpenCode process would, while different entries
+# get fresh instances (no cross-entry leakage).
+#
+# `expected_gate_invocations` is verified via PATH-shimming `python3`
+# (see the driver): a wrapper script logs every invocation's target
+# script basename to a file, so the test can assert an exact per-script
+# call COUNT rather than only "did some hook run" — this is what makes
+# the idempotency entries (below) meaningful rather than vacuous.
+#
+# Entry shape:
+#   - label:                     human-readable test name
+#   - category:                  session-lifecycle | idempotency
+#   - rationale:                 one-line justification
+#   - regression:                (optional) provenance note
+#   - steps:                     JSON array of step objects, replayed
+#                                 in order (see opencode-bridge-invoke.mjs
+#                                 header comment for the step shapes)
+#   - expected_gate_invocations: JSON object {script_basename: count}.
+#                                 A script absent from this object is
+#                                 asserted to have been invoked ZERO times.
+
+entries:
+
+  # =====================================================================
+  # session.created, no parentID (root/main session) — SessionStart-
+  # equivalent set. version-check.sh / atomic-question-reminder.sh /
+  # role-routing-reminder.sh are informational (stderr banner only, per
+  # hook-bridge.js's runSessionStartSet doc comment — OpenCode's `event`
+  # hook has no output-mutation channel for session.created); only
+  # subcall-limit-reset.py has a real, checkable side effect
+  # (python3 invocation), so it is the signal this entry checks.
+  # =====================================================================
+
+  - label: "session.created (root, no parentID) runs the SessionStart set"
+    category: session-lifecycle
+    rationale: >
+      fw-adr-0031 portability inventory: session.created with no parentID
+      is the closest OpenCode analog to Claude Code's SessionStart
+      (unmatched). subcall-limit-reset.py is the one script in that set
+      with a real (non-banner-only) effect, so it is the invocation-count
+      oracle for this scenario.
+    steps: |
+      [
+        {"kind": "event", "event": {"type": "session.created", "properties": {"sessionID": "root-1", "info": {"id": "root-1", "agent": "build", "parentID": null}}}}
+      ]
+    expected_gate_invocations: |
+      {"subcall-limit-reset.py": 1}
+
+  # =====================================================================
+  # session.created WITH parentID (subagent-spawned child session) — must
+  # NOT run the SessionStart set. hook-bridge.js's own comment: running
+  # subcall-limit-reset.py on every subagent spawn would hand each
+  # subagent a fresh full budget, defeating the shared per-project budget
+  # subcall-limit-guard.py enforces.
+  # =====================================================================
+
+  - label: "session.created (child, parentID set) does NOT run the SessionStart set"
+    category: session-lifecycle
+    rationale: >
+      A child session re-running subcall-limit-reset.py would silently
+      reset the shared subcall budget on every subagent spawn — a real
+      enforcement hole, not a cosmetic one. hook-bridge.js's event handler
+      returns early for info.parentID truthy before reaching
+      runSessionStartSet().
+    steps: |
+      [
+        {"kind": "event", "event": {"type": "session.created", "properties": {"sessionID": "root-2", "info": {"id": "root-2", "agent": "build", "parentID": null}}}},
+        {"kind": "event", "event": {"type": "session.created", "properties": {"sessionID": "child-2", "info": {"id": "child-2", "agent": "software-engineer", "parentID": "root-2"}}}}
+      ]
+    expected_gate_invocations: |
+      {"subcall-limit-reset.py": 1}
+
+  # =====================================================================
+  # session.idle, sessionID has NO recorded parent -> Stop-equivalent ->
+  # handoff-stop-gate.py.
+  # =====================================================================
+
+  - label: "session.idle (no parentID recorded) routes to handoff-stop-gate.py"
+    category: session-lifecycle
+    rationale: >
+      fw-adr-0031: session.idle is the closest OpenCode analog to Claude
+      Code's Stop (main session) / SubagentStop (spawned session), and the
+      bridge disambiguates using the parentID recorded at session.created
+      time (session.idle itself carries no parentID, confirmed at
+      implementation time). A root session's idle must fire
+      handoff-stop-gate.py, not handoff-subagent-stop-gate.py.
+    steps: |
+      [
+        {"kind": "event", "event": {"type": "session.created", "properties": {"sessionID": "root-3", "info": {"id": "root-3", "agent": "build", "parentID": null}}}},
+        {"kind": "event", "event": {"type": "session.idle", "properties": {"sessionID": "root-3"}}}
+      ]
+    expected_gate_invocations: |
+      {"subcall-limit-reset.py": 1, "handoff-stop-gate.py": 1}
+
+  # =====================================================================
+  # session.idle, sessionID has a recorded parent -> SubagentStop-
+  # equivalent -> handoff-subagent-stop-gate.py, NOT handoff-stop-gate.py.
+  # =====================================================================
+
+  - label: "session.idle (parentID recorded) routes to handoff-subagent-stop-gate.py"
+    category: session-lifecycle
+    rationale: >
+      A spawned specialist session's idle must fire the SubagentStop-
+      equivalent gate, not the main-session Stop gate — these check
+      different evidence (subagent return-evidence vs. active-handoff
+      terminal-state consistency) and firing the wrong one is a silent
+      enforcement gap dressed up as a pass.
+    steps: |
+      [
+        {"kind": "event", "event": {"type": "session.created", "properties": {"sessionID": "root-4", "info": {"id": "root-4", "agent": "build", "parentID": null}}}},
+        {"kind": "event", "event": {"type": "session.created", "properties": {"sessionID": "child-4", "info": {"id": "child-4", "agent": "qa-engineer", "parentID": "root-4"}}}},
+        {"kind": "event", "event": {"type": "session.idle", "properties": {"sessionID": "child-4"}}}
+      ]
+    expected_gate_invocations: |
+      {"subcall-limit-reset.py": 1, "handoff-subagent-stop-gate.py": 1, "handoff-stop-gate.py": 0}
+
+  # =====================================================================
+  # Idempotency — session.idle observed firing TWICE for the same child
+  # session in a real runtime spike (per hook-bridge.js's own comment on
+  # `handledIdleSessions`). This is a REAL observed behaviour, not a
+  # hypothetical: the gate must run at most once per sessionID.
+  # =====================================================================
+
+  - label: "duplicate session.idle for the same child sessionID fires the gate ONCE"
+    category: idempotency
+    regression: "runtime spike observed session.idle firing twice for one child session"
+    rationale: >
+      Without dedup, a duplicated session.idle would run
+      handoff-subagent-stop-gate.py twice per subagent turn — harmless
+      today (SWDT_HANDOFF_GATES=warn is idempotent to re-run) but the
+      wrong invariant to ship, and a live risk once handoff gates are
+      promoted out of warn mode with any effectful branch (e.g. a
+      write-once completion marker). hook-bridge.js's
+      `handledIdleSessions` Set is the fix under test.
+    steps: |
+      [
+        {"kind": "event", "event": {"type": "session.created", "properties": {"sessionID": "root-5", "info": {"id": "root-5", "agent": "build", "parentID": null}}}},
+        {"kind": "event", "event": {"type": "session.created", "properties": {"sessionID": "child-5", "info": {"id": "child-5", "agent": "software-engineer", "parentID": "root-5"}}}},
+        {"kind": "event", "event": {"type": "session.idle", "properties": {"sessionID": "child-5"}}},
+        {"kind": "event", "event": {"type": "session.idle", "properties": {"sessionID": "child-5"}}}
+      ]
+    expected_gate_invocations: |
+      {"subcall-limit-reset.py": 1, "handoff-subagent-stop-gate.py": 1}
+
+  - label: "duplicate session.idle for the same ROOT sessionID fires the gate ONCE"
+    category: idempotency
+    rationale: >
+      Same idempotency property, root-session variant (handoff-stop-gate.py
+      rather than handoff-subagent-stop-gate.py) — the dedup Set is keyed
+      by sessionID alone, not by parent-vs-root, so both paths need
+      independent coverage rather than assuming the child-session case
+      generalises.
+    steps: |
+      [
+        {"kind": "event", "event": {"type": "session.created", "properties": {"sessionID": "root-6", "info": {"id": "root-6", "agent": "build", "parentID": null}}}},
+        {"kind": "event", "event": {"type": "session.idle", "properties": {"sessionID": "root-6"}}},
+        {"kind": "event", "event": {"type": "session.idle", "properties": {"sessionID": "root-6"}}}
+      ]
+    expected_gate_invocations: |
+      {"subcall-limit-reset.py": 1, "handoff-stop-gate.py": 1}
+
+  - label: "two DIFFERENT child sessionIDs each fire their own gate once (no cross-session dedup)"
+    category: idempotency
+    rationale: >
+      The dedup Set must be keyed per-sessionID, not global — a naive
+      "have we ever handled ANY idle event" flag would wrongly suppress
+      the second distinct subagent's legitimate first idle. Negative
+      case for the idempotency fix: two DIFFERENT sessions must NOT
+      dedup against each other.
+    steps: |
+      [
+        {"kind": "event", "event": {"type": "session.created", "properties": {"sessionID": "root-7", "info": {"id": "root-7", "agent": "build", "parentID": null}}}},
+        {"kind": "event", "event": {"type": "session.created", "properties": {"sessionID": "child-7a", "info": {"id": "child-7a", "agent": "software-engineer", "parentID": "root-7"}}}},
+        {"kind": "event", "event": {"type": "session.created", "properties": {"sessionID": "child-7b", "info": {"id": "child-7b", "agent": "qa-engineer", "parentID": "root-7"}}}},
+        {"kind": "event", "event": {"type": "session.idle", "properties": {"sessionID": "child-7a"}}},
+        {"kind": "event", "event": {"type": "session.idle", "properties": {"sessionID": "child-7b"}}}
+      ]
+    expected_gate_invocations: |
+      {"subcall-limit-reset.py": 1, "handoff-subagent-stop-gate.py": 2}

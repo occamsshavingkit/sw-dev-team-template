@@ -375,3 +375,7 @@ if [ -f "${GATE_LIB_DIR:-$(dirname "$0")}/gate-hook-negative-corpus.sh" ]; then
     # shellcheck disable=SC1090,SC1091
     . "${GATE_LIB_DIR:-$(dirname "$0")}/gate-hook-negative-corpus.sh"
 fi
+if [ -f "${GATE_LIB_DIR:-$(dirname "$0")}/gate-opencode-hook-parity.sh" ]; then
+    # shellcheck disable=SC1090,SC1091
+    . "${GATE_LIB_DIR:-$(dirname "$0")}/gate-opencode-hook-parity.sh"
+fi
