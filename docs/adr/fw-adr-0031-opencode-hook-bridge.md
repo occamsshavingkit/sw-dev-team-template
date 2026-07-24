@@ -91,6 +91,23 @@ Decision) and revisits it only if OpenCode ships a way to invoke
 plugin hooks under non-interactive operation, or if this bridge is
 ever run with a TTY attached (not the case today).
 
+**Build provenance note (revision 2, 2026-07-25):** the paragraph
+above and every "2026-07-24 runtime spike" / "OpenCode 1.18.4"
+citation elsewhere in this ADR reflect the **first** runtime spike,
+run against OpenCode 1.18.4. The binary now on this project's PATH
+reports **1.18.5**; a second runtime spike (2026-07-25) ran against
+1.18.5 and its findings are folded into this revision, each labeled
+with that build. Existing 1.18.4 citations are left unchanged — they
+are an accurate record of what that build did, not a claim about the
+binary running today — and this revision does not re-verify the first
+spike's findings (deny-by-throw, the callable toolset, `permission.ask`
+non-invocation, the full `event.type` catalog, plugin process
+lifetime/discovery) against 1.18.5. Nothing in the second spike
+contradicted them; they stand as 1.18.4-sourced evidence pending
+contrary observation, consistent with this ADR's practice of citing
+exactly what was run and on which build rather than extrapolating
+across point releases.
+
 `customer-notes-guard.py` and the other Python hooks read a JSON
 payload from stdin (`{tool_name, tool_input: {...}}`) and write a JSON
 verdict to stdout (`{"hookSpecificOutput": {"permissionDecision": ...,
@@ -277,6 +294,190 @@ long-lived server, never again for the next hundred sessions that
 process serves. This is an explicit implementation constraint for
 `software-engineer`, not a stylistic preference.
 
+### Session identity is mutable: `session.updated` follows, `session.created` retains (binding — 2026-07-25 spike, HIGH-severity finding, now fixed)
+
+A second runtime spike (2026-07-25, against OpenCode 1.18.5) verified
+a live privilege-escalation path in the plugin's per-session
+agent-identity tracking, and the fix is now in commit `c4bc456` on
+this branch. Findings:
+
+- `session.created` never re-fires for an existing `sessionID` (this
+  was already the first spike's basis for first-write-wins; retained
+  here as finding **H-1(b)**, unchanged).
+- `info.agent` for an existing `sessionID` **does** change — via a
+  plain `session.updated` event, with no accompanying `session.created`
+  — when the session is resumed with a different agent
+  (`opencode run --session <id> --agent <other-role> ...`). Verified
+  end to end on a child session originally spawned via `task` with a
+  validated canonical role, then resumed under a different agent.
+- Before the fix, the bridge cached only the spawn-time agent (from
+  `session.created`) and never revisited it. Because
+  `tech-lead-authoring-guard.py` grants an unconditional write bypass
+  to *any* validated non-tech-lead role — the guard distinguishes
+  tech-lead from not-tech-lead, not role-appropriate paths, so role
+  identity functions as a binary privilege switch rather than a scoped
+  grant — a session that had once been legitimately dispatched as a
+  specialist kept asserting that specialist's write-bypass on every
+  later guarded call, even after the session's real running agent
+  (system prompt, tool set, permissions) had been repointed elsewhere
+  by a plain resume. Any bash-capable session can enumerate sessions
+  and resume one under a different agent, so the attack cost was
+  trivial.
+
+**Binding requirement:** the bridge MUST subscribe to `session.updated`
+and follow the session's *current* `info.agent`, not the value
+recorded at `session.created`. The two events carry deliberately
+**opposite** policies over the same per-session state, and a future
+reader must not "harmonise" them into one consistent rule — that would
+reopen the hole this fix closes:
+
+- `session.created`: **retain**, first-write-wins. A re-fire for an
+  already-recorded `sessionID` is anomalous — there is no verified
+  runtime trigger for it — so retaining the first-recorded role is the
+  safe default (finding H-1(b)).
+- `session.updated`: **follow**, not retain. This is the channel a
+  genuine agent-identity change arrives on for an existing session;
+  retaining a stale, already-privileged role here IS the escalation,
+  not a defensive posture.
+
+Escalation-vector check, recorded for a future reader who might worry
+"follow" is itself a new hole: because `tech-lead-authoring-guard.py`'s
+bypass is binary (any validated non-tech-lead role grants the full
+bypass) and `_validate_role()` already rejects the literal string
+`"tech-lead"`, a followed change can only move a session between "some
+specialist" (already an equivalent bypass under the guard's current
+model) and "tech-lead-or-unknown" (`None`, the safe/restrictive
+outcome). There is no transition this handler produces that grants a
+privilege tier the session could not already reach by being freshly
+dispatched as that role. Every observed identity change is still
+logged (`console.error`) regardless, because even a correctly-handled
+change is security-relevant and should leave a trace.
+
+**Also confirmed by the same spike:** top-level/primary sessions carry
+**no** `info.agent` at `session.created` at all — it is not
+present-with-an-invalid-value, it is simply absent, and arrives later
+on that session's first `session.updated`. Because `opencode.json`
+pins `default_agent: "tech-lead"`, that later value is the literal
+string `"tech-lead"`, which `_validate_role()` rejects by name (its
+explicit self-push guard). So top-level sessions correctly resolve to
+`caller_role = None` — no specialist write-bypass — reached via the
+guard's dedicated tech-lead rejection rather than by the earlier,
+accidental omission of `info.agent`. Verified by the top-level-session
+case in `tests/hooks/test-opencode-hook-bridge.sh` (case B13).
+
+The requirement above describes behavior already implemented in
+commit `c4bc456` on this branch; it is recorded here as binding text —
+the durable source of the policy — even though the code shipped first.
+No status change results; this ADR remains Accepted.
+
+### Trust-boundary properties confirmed by the second spike (2026-07-25, OpenCode 1.18.5)
+
+Two assumptions this ADR's guard-chain design depended on were tested
+directly rather than left as inference from type declarations or from
+the first spike's toolset enumeration:
+
+**H-1(a) — `subagent_type` is validated, RESOLVED.** A `task` call
+whose `subagent_type` names no agent OpenCode has defined is rejected
+outright by OpenCode itself, surfacing
+`Unknown agent type: <name> is not a valid agent type`, and **no child
+session spawns at all** — there is no `session.created` for it, so
+this bridge's guard chain and its `agent_type` forwarding are never
+reached with an invalid role in the first place. Verified with a
+bogus name and with a canonical-looking-but-locally-undefined name; a
+positive control (a real, defined agent name) spawned correctly for
+comparison. **Consequence for this ADR's trust model:** a caller
+cannot mint an arbitrary guard-visible role string via `subagent_type`
+— OpenCode's own dispatch layer is a verified trust boundary this
+bridge can rely on for that specific input. This is distinct from, and
+upstream of, the session-identity-mutability finding above, which is
+about a *validly* dispatched role changing later, not about spoofing
+an invalid one at spawn time.
+
+**H-2 — the unguarded `skill` tool is not a gap, RESOLVED.** Two
+independent findings close this:
+
+  (a) Per-agent `permission:` frontmatter (e.g. `skill: deny`) is
+  genuinely enforced by OpenCode itself, at the model's
+  tool-list/dispatch layer, **before** `tool.execute.before` ever
+  runs — an agent configured `skill: deny` never has `skill` on its
+  available tool list at all, and an attempted call is rerouted to a
+  synthetic `invalid` tool rather than reaching the plugin. A control
+  case (an agent without the deny frontmatter) confirmed this is the
+  frontmatter taking effect, not a subagent-wide default.
+
+  (b) `skill` is read-only/informational, not an execution primitive:
+  its arguments are `{name}`, and it returns the skill's markdown body
+  plus a listing of bundled file paths — it does not execute anything.
+  A skill with a bundled script that writes a marker file was invoked
+  directly and the marker was never created. Actually running anything
+  discovered via `skill` requires a separate `bash` call, which is
+  already inside this bridge's guarded chain.
+
+  **Consequence:** the bridge's silence on `skill` — it was never
+  separately wired — is acceptable; there is no execution surface
+  behind it that the guard chain needs to cover. The residual risk is
+  named honestly rather than dismissed: skill-returned markdown
+  content remains a prompt-injection vector against the model reading
+  it (adversarial content inside a skill file could steer the model
+  into requesting a dangerous follow-up tool call), which is a
+  materially smaller and different concern than unguarded execution,
+  and is not new to this ADR — it is the same class of risk any tool
+  that returns untrusted text to the model carries.
+
+### Security posture verdict (security-engineer assessment, Hard Rule #7, 2026-07-25)
+
+The Hard Rule #7 security assessment for this bridge concluded — and
+this ADR records that verdict rather than restating it as settled
+architecture — that **the bridge is a discipline/compliance control,
+not a hard security boundary.** The distinction matters for how a
+downstream reader should rely on it:
+
+- OpenCode plugins load additively and unordered from the operator's
+  global configuration, not exclusively from this project's
+  `opencode.json`. Nothing in the plugin API verifies or constrains
+  the execution order of multiple co-loaded plugins' `tool.execute.
+  before` hooks, and nothing prevents a co-loaded plugin from
+  pre-empting or otherwise suppressing this bridge's throw.
+- This is not hypothetical: a concrete instance of unrelated-plugin
+  interference was already observed during this work — a third-party
+  global plugin made `tech-lead` spawnable as a subagent (a state this
+  framework treats as a defect, per the main-session-persona rule)
+  until this branch's own `mode: primary` registration shadowed it.
+- Consequently: this bridge is trustworthy as an honest-operator
+  compliance mechanism — it reliably translates and enforces the
+  Python guards' verdicts against a *cooperating* OpenCode installation
+  with no other plugin actively working against it — but it is **not**
+  a boundary this ADR can claim holds against an adversarial or
+  misconfigured plugin environment. Any future claim that OpenCode-side
+  enforcement matches Claude Code's hook layer in strength would
+  overstate what this bridge provides; this ADR states the ceiling
+  plainly rather than implying boundary-grade protection.
+
+This verdict does not change any binding contract clause of this ADR
+(adapter-not-port, deny-by-throw, ask-degrades-to-deny,
+warn-degrades-to-silent-allow, the fail-open/fail-closed split, the
+explicit mapping table, the parity sub-gate, the
+`compile-runtime-agents.sh` exclusion). It reframes how much
+protection the bridge as a whole should be understood to provide; see
+the new Negative consequence below.
+
+### Follow-up (named, not solved by this ADR): unguarded network egress on the ingestion path
+
+The same security review surfaced a pre-existing, cross-harness gap
+that is explicitly out of scope for this ADR and recorded here only as
+a named follow-up: `researcher` holds `webfetch: allow` and
+`websearch: allow` together with `edit: allow`, and its role is
+specifically to ingest external documentation — the classic
+prompt-injection intake path, where untrusted fetched content reaches
+a role that can also write files. Neither Claude Code's 14-hook set
+nor this bridge guards network egress at all; both are silent on
+`webfetch`/`websearch` as a tool category. This is not a regression
+introduced by this ADR — it predates the bridge and applies equally
+under Claude Code — but this bridge's design work is what surfaced it
+clearly enough to name. Tracked as follow-up scope for a future ADR
+(role-permission scoping or an egress-aware guard); not addressed
+here.
+
 ### Portability inventory (honest scope boundary)
 
 | Claude hook | Event | OpenCode mapping | Confidence |
@@ -318,6 +519,22 @@ narrowings (warn-drop, ask-hardens-to-deny) stand unchanged — but the
 structural event-mapping question this inventory exists to answer is
 now closed for all 14 hooks.
 
+**Revision-2 addendum (2026-07-25, OpenCode 1.18.5):** the second spike
+did not revisit this event-mapping question — nothing above is
+contingent on the 1.18.4-vs-1.18.5 point release, and this inventory's
+14-of-14 mapping stands unchanged. The second spike instead closed a
+HIGH-severity trust-boundary gap in the plugin's per-session
+agent-identity tracking (see the binding session-identity subsection
+above, fixed in commit `c4bc456`) and confirmed two threat-model
+assumptions this ADR previously left as inference (H-1(a),
+`subagent_type` validation; H-2, `skill`'s enforced deny + read-only
+scope — both above). The accompanying security-engineer assessment
+concluded the bridge overall is a discipline/compliance control, not a
+hard security boundary (see Security posture verdict above); that
+conclusion changes no binding contract clause of this ADR but does add
+one new binding requirement (`session.updated`-follows) and reframes
+the strength claim a reader should attach to the bridge as a whole.
+
 ## Consequences
 
 ### Positive
@@ -347,6 +564,16 @@ now closed for all 14 hooks.
 - The portability inventory is honest about gaps rather than claiming
   full parity, which keeps the customer and `tech-lead` from operating
   OpenCode sessions under a false sense of equivalent protection.
+- **New this revision (2026-07-25 spike):** two threat-model
+  assumptions this ADR's guard-chain design depended on are now
+  verified rather than inferred: OpenCode itself rejects an undefined
+  `subagent_type` before any child session spawns (H-1(a)), and
+  per-agent `permission: skill: deny` frontmatter is enforced by
+  OpenCode's own dispatch layer before `tool.execute.before` runs,
+  with `skill` itself confirmed read-only and non-executing (H-2).
+  Neither required new bridge-side wiring; both are now confirmed
+  trust-boundary properties this bridge can rely on rather than
+  assumed ones.
 
 ### Negative
 
@@ -397,6 +624,28 @@ now closed for all 14 hooks.
   have not yet adopted OpenCode inherit this surface on template
   upgrade with no functional effect (the plugin is inert without an
   active OpenCode session) but a larger file footprint.
+- **New, now-fixed, HIGH-severity finding (2026-07-25 spike):** the
+  bridge's per-session agent-identity cache was vulnerable to a live
+  privilege-escalation path — a session resumed under a different
+  agent via `session.updated` kept asserting its original, possibly
+  more-privileged role to `tech-lead-authoring-guard.py`'s binary
+  write-bypass. Fixed in commit `c4bc456` by the binding
+  `session.updated`-follows requirement recorded above. Recorded here
+  as a negative consequence of the class of state this bridge must
+  maintain — a per-session identity cache is inherently a place a
+  resume-based attack can target — not as an open risk; the specific
+  instance found is closed.
+- **Security posture ceiling (security-engineer assessment,
+  2026-07-25):** this bridge is a discipline/compliance control, not a
+  hard security boundary. OpenCode's additive, unordered global-plugin
+  loading means there is no guarantee another co-loaded plugin cannot
+  pre-empt or suppress this bridge's `tool.execute.before` throw; a
+  concrete instance of unrelated-plugin interference (a global plugin
+  making `tech-lead` subagent-spawnable) was already observed on this
+  branch before its own `mode: primary` registration shadowed it. Any
+  downstream expectation that OpenCode-side enforcement matches Claude
+  Code's hook-layer guarantee in strength is not supported by this
+  ADR.
 
 ### Neutral
 
@@ -415,6 +664,13 @@ now closed for all 14 hooks.
   `SWDT_HANDOFF_GATES` unchanged) means the OpenCode session inherits
   exactly the same override vocabulary Claude Code sessions use — no
   new escape-hatch surface is introduced by this ADR.
+- **Named follow-up, out of scope for this ADR:** the security review
+  separately surfaced that `researcher`'s combined
+  `webfetch`/`websearch`/`edit` permissions form an unguarded
+  prompt-injection intake path, and that neither Claude Code's hooks
+  nor this bridge guard network egress at all. Pre-existing,
+  cross-harness, not a regression from this ADR; tracked as follow-up
+  scope for a future ADR, not solved here.
 
 ## Alternatives considered
 
@@ -644,6 +900,44 @@ adapter (over C), full analyzed-portable scope (S over M).
   `CHANGELOG.md`).
 - `scripts/reserve-number.sh` — confirmed `fw-adr-0031` as next-free
   before authoring (max existing ADR at authoring time: `fw-adr-0030`).
+- **2026-07-25 second runtime spike against the live OpenCode 1.18.5
+  binary** — the evidentiary basis for this revision's binding
+  session-identity subsection and its H-1(a)/H-2 trust-boundary
+  findings. Verified: `session.updated` changing an existing
+  `sessionID`'s `info.agent` on a plain agent-resume with no
+  accompanying `session.created`; `session.created`'s continued
+  first-write-wins behavior (H-1(b), unchanged from the first spike);
+  top-level/primary sessions carrying no `info.agent` at
+  `session.created`, arriving only on a later `session.updated`
+  carrying `opencode.json`'s pinned `default_agent: "tech-lead"`; a
+  `task` call with an undefined `subagent_type` being rejected by
+  OpenCode itself with no child session spawned (H-1(a), tested against
+  a bogus name, a canonical-looking-but-locally-undefined name, and a
+  real-agent positive control); per-agent `permission: skill: deny`
+  frontmatter removing `skill` from that agent's tool list before
+  `tool.execute.before` runs, with a non-deny control case for
+  comparison; and `skill`'s read-only scope (returns markdown +
+  bundled-file listing; a bundled marker-writing script was not
+  executed when the skill was invoked) (H-2). Scratch evidence for this
+  spike was not archived to a stable path; the findings summarized
+  above and reflected throughout this revision are the durable record.
+- `.opencode/plugin/hook-bridge.js` — read directly to confirm the
+  shipped fix for the session-identity finding: the `sessionAgent` map,
+  its first-write-wins `session.created` handler (H-1(b)), and its new
+  follow-not-retain `session.updated` handler, all in commit `c4bc456`
+  on this branch.
+- `tests/hooks/test-opencode-hook-bridge.sh` — case B13
+  ("top-level-session safety") exercises the
+  `session.created`-then-`session.updated` sequence for a primary
+  session and confirms no specialist write-bypass is granted.
+- Security-engineer's Hard Rule #7 assessment of this bridge
+  (2026-07-25) — the source of the "discipline/compliance control, not
+  a hard security boundary" verdict and the `researcher`
+  webfetch/websearch/edit follow-up, both recorded above. No separate
+  persisted assessment artifact was found in-repo at the time this ADR
+  revision was authored (see this response's escalations); this ADR
+  cites the verdict as conveyed for this revision rather than citing a
+  file path.
 
 ## Change log
 
@@ -683,3 +977,43 @@ adapter (over C), full analyzed-portable scope (S over M).
   ask-degrades-to-deny; warn-degrades-to-silent-allow; the fail-open/
   fail-closed split; the explicit checked-in mapping table; the parity
   sub-gate; the `compile-runtime-agents.sh` exclusion) changed.
+- 2026-07-25 — Revision following a second runtime spike (against
+  OpenCode 1.18.5 — the binary now on PATH; the first spike's findings
+  remain attributed to 1.18.4 and are not re-asserted against 1.18.5,
+  see the new Context build-provenance note) and the security-engineer's
+  Hard Rule #7 assessment of this bridge. Summary of changes: (1) added
+  a version-provenance note distinguishing which findings came from
+  which OpenCode build; (2) added a new binding requirement — the
+  bridge MUST subscribe to `session.updated` and follow the session's
+  current `info.agent`, deliberately opposite to `session.created`'s
+  first-write-wins retention — closing a HIGH-severity
+  privilege-escalation finding in which a resumed session kept
+  asserting its stale, spawn-time agent role to
+  `tech-lead-authoring-guard.py`'s binary write-bypass; fixed in commit
+  `c4bc456`; also recorded that top-level/primary sessions carry no
+  `info.agent` at `session.created`, correctly resolving to no
+  specialist bypass once `_validate_role()` rejects the later
+  `session.updated`'s `"tech-lead"` value by name; (3) resolved finding
+  H-1(a) — OpenCode rejects an undefined `subagent_type` outright, with
+  no child session spawned, closing off the arbitrary-role-string
+  concern at the `task`-dispatch boundary; (4) resolved finding H-2 —
+  per-agent `permission: skill: deny` frontmatter is enforced by
+  OpenCode's own dispatch layer before `tool.execute.before` runs, and
+  `skill` itself is confirmed read-only/non-executing, so the bridge's
+  silence on `skill` is not a gap (residual prompt-injection risk on
+  skill-returned content named separately); (5) recorded the security
+  assessment's verdict that this bridge is a discipline/compliance
+  control, not a hard security boundary, citing OpenCode's additive
+  unordered global-plugin loading and an observed instance of
+  unrelated-plugin interference (a global plugin making `tech-lead`
+  subagent-spawnable until this branch's `mode: primary` shadowed it);
+  (6) named a new out-of-scope follow-up — `researcher`'s combined
+  `webfetch`/`websearch`/`edit` permissions as an unguarded
+  prompt-injection intake path, with no network-egress guard on either
+  harness — for a future ADR, not solved here. Status remains
+  Accepted. No existing binding contract clause (adapter-not-port;
+  deny-by-throw; ask-degrades-to-deny; warn-degrades-to-silent-allow;
+  the fail-open/fail-closed split; the explicit checked-in mapping
+  table; the parity sub-gate; the `compile-runtime-agents.sh`
+  exclusion) was weakened; one new binding requirement
+  (`session.updated`-follows) was added.
