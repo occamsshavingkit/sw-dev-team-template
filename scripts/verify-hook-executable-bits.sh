@@ -18,19 +18,51 @@
 # added.
 #
 # This script parses every `command` string under `.claude/settings.json`'s
-# `hooks` object for that `[ -x "<path>" ]` guard idiom and asserts each
-# referenced script IS executable in the candidate tree. It intentionally
-# does NOT touch hooks that are NOT wrapped in this idiom (e.g. the
-# `python3 "<path>"` invocations) -- those are unconditional and any
-# missing-file / not-executable problem there surfaces as an immediate,
-# loud failure the first time the hook fires, which is a different (and
-# already self-evident) failure mode than this silent-no-op class.
+# `hooks` object for exec-bit-guard idioms -- `[ -x ... ]`, `[ ! -x ... ]`,
+# `test -x ...`, and `[[ -x ... ]]`, each tolerant of single/double/no
+# quoting and of the optional `${CLAUDE_PROJECT_DIR:-.}`/`$CLAUDE_PROJECT_DIR`
+# prefix -- and asserts each referenced script IS executable in the
+# candidate tree.
+#
+# CR-OPENCODE-HOOK-BRIDGE-0003 (fw-adr-0031 review): the original version
+# of this script matched a single literal spelling of the guard idiom, so
+# a hook wired via an equally-idiomatic but differently-spelled form (e.g.
+# `test -x "<path>" && ...`) was invisible to the parser -- reproducing,
+# inside the tool built to catch it, the exact silent-no-op class this
+# gate exists to prevent. Fixing the enumerated spellings alone does not
+# close that class of bug for good: a FUTURE fifth spelling would be
+# equally invisible under a purely allow-list approach. So this script
+# does not stop at recognizing more spellings -- it inverts the check:
+# every `.py`/`.sh` script path referenced ANYWHERE in `hooks{}` is
+# enumerated first, independent of whether it was matched by a guard
+# form, and only THEN classified:
+#
+#   - GUARDED   -- the path appears inside a recognized `-x` test in the
+#                  same command string. Must be present + executable.
+#   - UNCONDITIONAL -- the command string contains no `-x`-style test at
+#                  all (e.g. a bare `python3 "<path>"` invocation). Not
+#                  checked here: an unconditional hook that is missing or
+#                  not executable fails loudly the first time it fires,
+#                  which is a different, already-self-evident failure
+#                  mode from the silent-no-op this gate targets.
+#   - UNCLASSIFIABLE -- the command string DOES contain something that
+#                  looks like a `-x` test (so the author's intent was
+#                  plainly "guard this"), but this script's guard forms
+#                  could not parse which path it targets. Reported as a
+#                  FAILURE, not silently skipped -- a parser that cannot
+#                  classify a guarded-looking reference must not be
+#                  allowed to fall through to PASS, or this gate
+#                  reintroduces its own incident class one syntax
+#                  variant at a time. See CR-OPENCODE-HOOK-BRIDGE-0003.
 #
 # Exit codes:
-#   0  every `[ -x ... ]`-guarded hook script referenced in the settings
-#      file is present and executable
-#   1  at least one such script is missing or not executable
-#   2  usage / environment error (missing input file, python3 absent, etc.)
+#   0  every guarded hook script referenced in the settings file is
+#      present and executable, and every guarded-looking reference was
+#      successfully classified
+#   1  at least one such script is missing, not executable, or a
+#      guarded-looking reference could not be classified
+#   2  usage / environment error (missing input file, malformed JSON,
+#      python3 absent, etc.)
 #
 # Usage:
 #   scripts/verify-hook-executable-bits.sh [--settings <path>]
@@ -53,10 +85,12 @@ usage() {
     cat >&2 <<'EOF'
 Usage: scripts/verify-hook-executable-bits.sh [--settings <path>]
 
-Checks that every hook script referenced via the
-`[ -x "<path>" ] && "<path>" ... || true` guard idiom in
+Checks that every hook script referenced via an exec-bit guard idiom
+(`[ -x ... ]`, `[ ! -x ... ]`, `test -x ...`, `[[ -x ... ]]`) in
 .claude/settings.json is actually executable, catching the class of bug
-where a hook committed at mode 100644 silently no-ops forever.
+where a hook committed at mode 100644 silently no-ops forever. Also
+fails on any guarded-looking hook reference it cannot classify, rather
+than silently skipping it.
 EOF
 }
 
@@ -97,15 +131,83 @@ import sys
 
 settings_path, repo_root = sys.argv[1], sys.argv[2]
 
-with open(settings_path, encoding="utf-8") as f:
-    settings = json.load(f)
+# CR-OPENCODE-HOOK-BRIDGE-0004: a malformed settings file is a usage /
+# environment error (documented exit 2), not an uncaught traceback that
+# happens to also exit non-zero for the wrong reason.
+try:
+    with open(settings_path, encoding="utf-8") as f:
+        settings = json.load(f)
+except json.JSONDecodeError as exc:
+    print(
+        f"verify-hook-executable-bits: {settings_path} is not valid JSON: {exc}",
+        file=sys.stderr,
+    )
+    sys.exit(2)
+except OSError as exc:
+    print(
+        f"verify-hook-executable-bits: could not read {settings_path}: {exc}",
+        file=sys.stderr,
+    )
+    sys.exit(2)
 
-# Matches the `[ -x "${CLAUDE_PROJECT_DIR:-.}/<path>" ]` idiom exactly as
-# used throughout .claude/settings.json. <path> is captured relative to
-# the repo root.
-GUARD_RE = re.compile(
-    r'\[\s*-x\s+"\$\{CLAUDE_PROJECT_DIR:-\.\}/([^"]+)"\s*\]'
+# ---------------------------------------------------------------------------
+# Guard-idiom recognition. Four spellings, each tolerant of an optional `!`
+# negation, double/single/no quoting, and an optional
+# `${CLAUDE_PROJECT_DIR:-.}` / `${CLAUDE_PROJECT_DIR}` / `$CLAUDE_PROJECT_DIR`
+# prefix on the path (stripped during classification, not by the regex).
+# ---------------------------------------------------------------------------
+
+_QUOTED_OR_BARE = (
+    r'(?:"(?P<dq>[^"]+)"'
+    r"|'(?P<sq>[^']+)'"
+    r'|(?P<bare>[^\s\]&|;)]+))'
 )
+
+GUARD_FORMS = [
+    # [ -x "<path>" ]  /  [ ! -x "<path>" ]
+    re.compile(r'\[\s*(?:!\s*)?-x\s+' + _QUOTED_OR_BARE + r'\s*\]'),
+    # [[ -x "<path>" ]]  /  [[ ! -x "<path>" ]]
+    re.compile(r'\[\[\s*(?:!\s*)?-x\s+' + _QUOTED_OR_BARE + r'\s*\]\]'),
+    # test -x "<path>"  /  test ! -x "<path>"
+    re.compile(r'\btest\s+(?:!\s*)?-x\s+' + _QUOTED_OR_BARE),
+]
+
+# Presence check: does this command string contain *something* that looks
+# like a `-x` exec-bit test, regardless of whether GUARD_FORMS above can
+# fully parse its target path? Used to distinguish "unconditional
+# invocation" (no -x test anywhere -- skip, per the documented scope
+# decision) from "guarded-looking but unparseable" (report, don't skip).
+HAS_XTEST_RE = re.compile(r'(?:\[\[|\[|\btest\b)\s*(?:!\s*)?-x\b')
+
+# Broad reference scan: every script-path-shaped token (quoted or bare,
+# ending in .py or .sh) appearing anywhere in a command string, guarded or
+# not. This is the enumeration CR-OPENCODE-HOOK-BRIDGE-0003 asked for --
+# classify every reference, don't just collect what one regex recognizes.
+_PATH_CHARS = r'[A-Za-z0-9_./${}:\-]+\.(?:py|sh)'
+PATH_REF_RE = re.compile(
+    r'"(?P<dq>' + _PATH_CHARS + r')"'
+    r"|'(?P<sq>" + _PATH_CHARS + r")'"
+    r'|(?<![\w"\'])(?P<bare>' + _PATH_CHARS + r')(?![\w"\'])'
+)
+
+_PROJECT_DIR_PREFIX_RE = re.compile(
+    r'^\$\{CLAUDE_PROJECT_DIR(?::-\.)?\}/(?P<rest>.+)$'
+    r'|^\$CLAUDE_PROJECT_DIR/(?P<rest2>.+)$'
+)
+
+
+def strip_project_dir_prefix(path):
+    """Normalize the optional ${CLAUDE_PROJECT_DIR:-.}-style prefix away so
+    guarded-path and referenced-path values compare equal regardless of
+    whether either occurrence spelled the prefix out."""
+    m = _PROJECT_DIR_PREFIX_RE.match(path)
+    if m:
+        return m.group("rest") or m.group("rest2")
+    return path
+
+
+def _captured(match):
+    return match.group("dq") or match.group("sq") or match.group("bare")
 
 
 def iter_commands(node):
@@ -121,14 +223,45 @@ def iter_commands(node):
 
 
 hooks_root = settings.get("hooks", {})
-guarded_paths = set()
-for command in iter_commands(hooks_root):
-    for match in GUARD_RE.finditer(command):
-        guarded_paths.add(match.group(1))
 
-if not guarded_paths:
+guarded_paths = set()
+unconditional_paths = set()
+unclassifiable = []  # list of (raw_path, command) for diagnostics
+
+for command in iter_commands(hooks_root):
+    referenced_in_command = {
+        strip_project_dir_prefix(_captured(m)) for m in PATH_REF_RE.finditer(command)
+    }
+    if not referenced_in_command:
+        continue
+
+    guarded_in_command = set()
+    for form in GUARD_FORMS:
+        for m in form.finditer(command):
+            guarded_in_command.add(strip_project_dir_prefix(_captured(m)))
+
+    guarded_paths |= guarded_in_command & referenced_in_command
+
+    remainder = referenced_in_command - guarded_in_command
+    if not remainder:
+        continue
+
+    if HAS_XTEST_RE.search(command):
+        # This command string is guard-shaped (it has SOME -x test) but at
+        # least one referenced path did not resolve to a recognized guard
+        # form. Do not silently treat it as unconditional -- that is
+        # exactly the fail-open behaviour CR-0003 flagged.
+        for rel_path in sorted(remainder):
+            unclassifiable.append((rel_path, command))
+    else:
+        # No -x test anywhere in this command string at all: genuinely
+        # unconditional (e.g. `python3 "<path>"`), out of scope by design
+        # (see module docstring / header comment).
+        unconditional_paths |= remainder
+
+if not guarded_paths and not unclassifiable:
     print(
-        "verify-hook-executable-bits: found zero `[ -x ... ]`-guarded hook "
+        "verify-hook-executable-bits: found zero exec-bit-guarded hook "
         f"references in {settings_path}; refusing to pass trivially -- this "
         "almost certainly means the settings shape or guard idiom changed "
         "and this gate's parser needs updating, not that there is nothing "
@@ -146,22 +279,53 @@ for rel_path in sorted(guarded_paths):
     elif not os.access(abs_path, os.X_OK):
         not_executable.append(rel_path)
 
-if missing or not_executable:
+if missing or not_executable or unclassifiable:
     print(
-        "verify-hook-executable-bits: FAIL -- the following hook script(s) "
-        f"are guarded by `[ -x ... ]` in {settings_path} but are not "
-        "reachable that way (a `[ -x ... ] && ... || true` wiring around "
-        "any of these silently no-ops with exit 0 instead of running):",
-        file=sys.stderr,
+        "verify-hook-executable-bits: FAIL", file=sys.stderr,
     )
-    for rel_path in not_executable:
-        print(f"  - {rel_path}: exists but is not executable (fix: git update-index --chmod=+x {rel_path})", file=sys.stderr)
-    for rel_path in missing:
-        print(f"  - {rel_path}: file not found", file=sys.stderr)
+    if not_executable or missing:
+        print(
+            f"  the following hook script(s) are guarded by an exec-bit "
+            f"test in {settings_path} but are not reachable that way (a "
+            "guard like `[ -x ... ] && ... || true` silently no-ops with "
+            "exit 0 instead of running):",
+            file=sys.stderr,
+        )
+        for rel_path in not_executable:
+            print(f"    - {rel_path}: exists but is not executable (fix: git update-index --chmod=+x {rel_path})", file=sys.stderr)
+        for rel_path in missing:
+            print(f"    - {rel_path}: file not found", file=sys.stderr)
+    if unclassifiable:
+        print(
+            "  the following hook reference(s) look exec-bit-guarded "
+            f"(some `-x` test is present in the command) but this "
+            "script's guard-form parser could not determine which path "
+            "they target -- reported rather than silently skipped, since "
+            "an unrecognized guard spelling must not fall through to "
+            "PASS:",
+            file=sys.stderr,
+        )
+        seen = set()
+        for rel_path, command in unclassifiable:
+            if (rel_path, command) in seen:
+                continue
+            seen.add((rel_path, command))
+            print(f"    - {rel_path}", file=sys.stderr)
+            print(f"      in command: {command}", file=sys.stderr)
+        print(
+            "    fix: rephrase the guard using one of the recognized "
+            "forms ([ -x ... ], [ ! -x ... ], test -x ..., [[ -x ... ]]), "
+            "or extend GUARD_FORMS in "
+            "scripts/verify-hook-executable-bits.sh to cover this "
+            "spelling.",
+            file=sys.stderr,
+        )
     sys.exit(1)
 
 print(
     "verify-hook-executable-bits: PASS -- "
-    f"{len(guarded_paths)} `[ -x ... ]`-guarded hook script(s) all present and executable."
+    f"{len(guarded_paths)} exec-bit-guarded hook script(s) all present and "
+    f"executable ({len(unconditional_paths)} unconditional reference(s) "
+    "out of scope by design)."
 )
 PYEOF

@@ -383,3 +383,7 @@ if [ -f "${GATE_LIB_DIR:-$(dirname "$0")}/gate-hook-exec-bits.sh" ]; then
     # shellcheck disable=SC1090,SC1091
     . "${GATE_LIB_DIR:-$(dirname "$0")}/gate-hook-exec-bits.sh"
 fi
+if [ -f "${GATE_LIB_DIR:-$(dirname "$0")}/gate-hook-bridge-suite.sh" ]; then
+    # shellcheck disable=SC1090,SC1091
+    . "${GATE_LIB_DIR:-$(dirname "$0")}/gate-hook-bridge-suite.sh"
+fi

@@ -99,11 +99,20 @@ import sys
 
 settings_path, map_path = sys.argv[1], sys.argv[2]
 
-with open(settings_path, encoding="utf-8") as f:
-    settings = json.load(f)
-
-with open(map_path, encoding="utf-8") as f:
-    tool_map = json.load(f)
+# CR-OPENCODE-HOOK-BRIDGE-0004 (fw-adr-0031 review): a malformed input file
+# is a usage / environment error (documented exit 2), not an uncaught
+# traceback that happens to also exit non-zero for the wrong reason.
+try:
+    with open(settings_path, encoding="utf-8") as f:
+        settings = json.load(f)
+    with open(map_path, encoding="utf-8") as f:
+        tool_map = json.load(f)
+except json.JSONDecodeError as exc:
+    print(f"verify-opencode-hook-parity: not valid JSON: {exc}", file=sys.stderr)
+    sys.exit(2)
+except OSError as exc:
+    print(f"verify-opencode-hook-parity: could not read input file: {exc}", file=sys.stderr)
+    sys.exit(2)
 
 # ---- Step 1: enumerate every Claude tool name guarded by PreToolUse. ----
 #
