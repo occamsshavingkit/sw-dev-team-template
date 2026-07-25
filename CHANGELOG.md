@@ -18,6 +18,138 @@ filed upstream include that version.
 
 ---
 
+## v1.7.0 (2026-07-25)
+
+MINOR release porting the enforcement layer to the OpenCode harness, plus
+a de-scoping of upstream template-maintenance directories from what the
+template ships.
+
+### Added
+
+- **OpenCode enforcement hook bridge** (`.opencode/plugin/hook-bridge.js`).
+  Previously the framework's enforcement layer existed only as Claude Code
+  hooks (`.claude/settings.json` wires 14 hook invocations); OpenCode
+  sessions got the Hard Rules as prose with no mechanical floor. The bridge
+  is a protocol-translation adapter: it contains no guard policy logic and
+  shells out to the unchanged `scripts/hooks/*.py` scripts, which remain
+  the single source of truth for policy under both harnesses. Maps event
+  correspondence for all 14 Claude-side hook wirings (`PreToolUse
+  Write/Edit/Bash` -> `tool.execute.before` on `write`/`edit`/`bash`;
+  `PreToolUse Agent` -> `tool.execute.before` on `task`; `PostToolUse` ->
+  `tool.execute.after`; `SessionStart` -> `event` on `session.created`;
+  `Stop`/`SubagentStop` -> `event` on `session.idle`, filtered on
+  parentID absence/presence; `SessionStart(compact)` ->
+  `experimental.session.compacting`). **13 of the 14 are directly
+  invoked; one is deliberately not.** `handoff-task-completed-gate.py`
+  fires from its own dedicated `tool.execute.after` call on the `task`
+  tool with `{hook_event_name: "TaskCompleted"}`, under
+  `SWDT_HANDOFF_GATES=warn` to match `.claude/settings.json`; it reads
+  nothing else from the event, loads the active handoff, and reports
+  `missing_evidence_gates()` — the after-path now parses that stdout and
+  surfaces findings via `console.error` instead of dropping them.
+  `handoff-task-created-gate.py` stays unwired, and this is a considered
+  limitation, not an oversight: its Check 1 (`owner_role` canonical) maps
+  cleanly onto the `task` tool's `subagent_type`, but Check 2 requires
+  the event to *cite* the active handoff, and OpenCode's `task` args
+  (`{description, prompt, subagent_type}`) carry no such field —
+  synthesizing the citation from the same handoff being checked against
+  would make Check 2 vacuous. Because `main()` falls through to Check 2
+  unconditionally, wiring it today would be invisible under `warn` but
+  become an unconditional deny on every `task` dispatch the moment
+  `SWDT_HANDOFF_GATES` is promoted to `enforce` — worse than the honest
+  gap. Closing it properly needs a caller-side handoff-citation
+  convention that does not exist under Claude Code either. Encoded as
+  regression test B21, which asserts the gate is never invoked.
+
+- **Verdict-translation contract (binding).** `permissionDecision ===
+  "deny"` throws from `tool.execute.before`, aborting the call.
+  `"ask"` (currently only `customer-notes-guard.py`) degrades to deny —
+  OpenCode's `tool.execute.before` has no interactive re-prompt channel —
+  and throws with the librarian-dispatch-or-escape-hatch remedy named
+  verbatim. `"allow"` proceeds; an `allow`-with-reason ("warn" mode) has
+  no side channel on `tool.execute.before` and is silently dropped —
+  a named, accepted parity gap, not a bug. Bridge-infrastructure absence
+  (missing `python3`, missing/unreadable hook script, spawn failure,
+  timeout, non-zero exit) fails closed; a guard's own decided-on posture
+  (no stdout, unparseable stdout) is inherited unchanged.
+
+- **`tech-lead` as the OpenCode main-session persona.** `opencode.json`
+  sets `default_agent: tech-lead`, and `compile-runtime-agents.sh` now
+  emits `.opencode/agents/tech-lead.md` at `mode: primary` (v1.6.0 had
+  stopped generating this file at all, on the theory that tech-lead
+  is never a subagent). This closes a real leak: under OpenCode,
+  `tech-lead` was resolving as a spawnable subagent because a
+  third-party global plugin imports `.claude/agents/tech-lead.md`
+  directly — the same failure mode as upstream issue #37.
+
+- **Three new release-gate sub-gates**, registered in
+  `scripts/pre-release-gate.sh`:
+  - `opencode-hook-parity` — verifies `scripts/opencode/tool-arg-map.json`
+    accounts for every Claude tool name a `PreToolUse` hook guards in
+    `.claude/settings.json`, mapped or explicitly recorded as unmapped.
+    Catches "Claude side grew a new guarded tool and nobody updated the
+    map" before tag.
+  - `hook-exec-bits` — verifies every `[ -x ... ]`-guarded hook script
+    referenced in `.claude/settings.json` is present and executable (see
+    Fixed, below, for the incident this closes).
+  - `hook-bridge-suite` — runs the 43-scenario differential parity suite
+    (`tests/hooks/test-opencode-hook-bridge.sh`) as part of the gate and
+    fails it on any undisposed `record_finding()`. Before this sub-gate
+    existed the suite was invoked by nothing automated, and a real
+    regression (an S1/S2 session-state eviction bug) was caught only
+    because a human happened to run the file by hand. Grew from 40 to
+    43 scenarios during this release (B20/B21, added closing the
+    task-created/task-completed gap above).
+
+### Changed — de-scoped from what the template ships
+
+- **`docs/adr/`, `docs/review/`, and `docs/security/` no longer ship** to
+  downstream projects (`scripts/scaffold.sh`'s tar exclude list and the
+  `ship_files` filter shared by `scripts/upgrade.sh` and
+  `scripts/lib/manifest.sh`). These directories hold this template's own
+  upstream `FW-ADR-NNNN` decision history and internal review /
+  security-assessment records — maintenance history about how the
+  *template* is built, not template content a downstream project
+  consumes. `docs/adr/` no longer even exists in a freshly scaffolded
+  project; it is created on demand the first time a project reserves an
+  ADR number or writes its first project-scoped `ADR-NNNN`.
+
+  **Existing downstream copies are not deleted.** `scripts/upgrade.sh`
+  has no orphan-deletion path — its sync loop only visits paths still
+  listed in `ship_files` — so a file that drops out of `ship_files`
+  simply drops out of the regenerated `TEMPLATE_MANIFEST.lock` on next
+  upgrade and becomes ordinary project-owned content, the same bucket
+  `manifest_verify` already assigns to `sme-*` and `docs/pm/*`. Verified
+  end to end: a project scaffolded from real `v1.6.0` carrying all 38
+  affected files, upgraded against a build carrying this change, saw
+  `upgrade.sh` exit 0, report every file verified clean against the
+  manifest, leave every file byte-identical on disk, and pass
+  `--verify` afterward.
+
+### Fixed
+
+- `tests/hooks/run-negative-corpus.sh` used `IFS=$'\t'` to split its
+  TSV transport; `read -r` treats a run of tab characters as IFS
+  whitespace and collapses it, so any negative-corpus entry with an
+  empty field (e.g. an empty rationale) had its base64 payload shifted
+  out of its column, was fed empty stdin, and trivially "passed" while
+  exercising nothing. Field separator is now ASCII Unit Separator
+  (`0x1F`), which cannot collapse.
+- `scripts/hooks/role-routing-reminder.sh` was committed non-executable
+  (mode `100644`). `.claude/settings.json` wires it as
+  `[ -x "<path>" ] && "<path>" ... || true`, so "missing/non-executable"
+  and "clean pass" were indistinguishable — the Hard Rule #8
+  role-routing reminder never fired in any clone or scaffolded project
+  since its introduction. Fixed the exec bit; the new `hook-exec-bits`
+  gate (above) catches this class of regression going forward.
+
+**Note:** `FW-ADR-0031` (the OpenCode hook-bridge decision record) and
+this work's code-review and security-assessment records live in the
+meta-project that develops this template, not in the template itself —
+consistent with the de-scoping above.
+
+---
+
 ## v1.6.0 (2026-07-02)
 
 MINOR release adding the OpenCode harness adapter and upgrading Codex/Gemini

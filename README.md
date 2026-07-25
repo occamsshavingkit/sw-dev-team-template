@@ -4,11 +4,16 @@ A ready-to-use project scaffold that turns a single Claude Code,
 OpenCode, or Codex session into a 16-role software-development team
 with a strict escalation protocol and a per-project SME pattern.
 
-**Latest release:** v1.6.0 (2026-07-02) — OpenCode harness adapter,
-full-role-content adapters across all four harnesses (Claude Code,
-OpenCode, Codex, Gemini CLI), harness-agnostic AGENTS.md.
+**Latest release:** v1.7.0 (2026-07-25) — OpenCode enforcement hook
+bridge (protocol-translation adapter over the unchanged
+`scripts/hooks/*.py` guards), `tech-lead` as the OpenCode main-session
+persona, three new release-gate sub-gates, and a de-scoping of
+`docs/adr/`, `docs/review/`, and `docs/security/` from what the
+template ships (existing downstream copies are kept as project-owned
+content, nothing is deleted).
 
-**Status.** Current release: **`v1.5.4`** (PATCH — pre-authorizes subagent `Bash` (`allow: Bash(*)` plus an 18-pattern destructive `deny` list) so subagents stop wedging the remote-control operator, and adds Hard Rule #13 making destructive Bash a tech-lead duty; see `docs/adr/fw-adr-0030-subagent-bash-permission-posture.md` and `CHANGELOG.md` for full details). Version identity
+**Status.** Current release: **`v1.7.0`** (MINOR — see `CHANGELOG.md`
+for full details). Version identity
 also lives in the `VERSION` file at the tagged commit; see
 `docs/versioning.md`. Each release updates this README (enforced by
 `scripts/pre-release-gate.sh` per spec 007's `readme-current` sub-gate).
