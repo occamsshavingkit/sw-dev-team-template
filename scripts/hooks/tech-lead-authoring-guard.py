@@ -881,8 +881,9 @@ def _deny_output(path: str, kind: str) -> dict:
         f"FW-ADR-0012: tech-lead may not write {kind} '{path}' directly. "
         f"Dispatch '{specialist}' to author this file, or set "
         "SWDT_AGENT_PUSH=<role> if this is tool-bridge work on behalf of a "
-        "specialist whose sandbox cannot write. Allow-list lives in "
-        "docs/adr/fw-adr-0012-tech-lead-authoring-guard.md."
+        "specialist whose sandbox cannot write. Allow-list is defined in "
+        "this script (ALLOW_EXACT, ALLOW_GLOBS_SHALLOW, "
+        "ALLOW_GLOBS_RECURSIVE in scripts/hooks/tech-lead-authoring-guard.py)."
     )
     return {
         "hookSpecificOutput": {

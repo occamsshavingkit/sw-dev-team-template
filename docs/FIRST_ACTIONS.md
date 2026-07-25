@@ -101,7 +101,9 @@ Skill packs to consider installing. Which should I help install?
                                           CLAUDE.md § Escalation protocol,
                                           tech-lead.md, and researcher.md
                                           already assume it is installed.
-                                          See docs/adr/fw-adr-0001-context-memory-strategy.md.
+                                          See docs/MEMORY_POLICY.md (FW-ADR-0001
+                                          is the upstream design rationale;
+                                          not shipped downstream).
         /plugin marketplace add thedotmack/claude-mem
         /plugin install claude-mem@thedotmack
 

@@ -276,7 +276,8 @@ They carry their own context scope by design and are grandfathered from
 this rule.
 
 References:
-- `docs/adr/fw-adr-0021-harness-agnostic-leaf-task-dispatch.md`
+- FW-ADR-0021 (design rationale; upstream template-maintenance
+  history, not shipped to downstream projects)
 - `docs/templates/task-template.md` § "Token budget" (band definitions
   and JIT-file-list field)
 
@@ -457,9 +458,10 @@ levels.
 
 Before re-reading long artifacts (`WORK_LOG.md`, `CHANGELOG.md`,
 past release reviews, old session transcripts) or escalating to
-the human, query `claude-mem` if installed (default per
-`docs/adr/fw-adr-0001-context-memory-strategy.md`; full stance in
-`docs/MEMORY_POLICY.md`):
+the human, query `claude-mem` if installed (default policy:
+`docs/MEMORY_POLICY.md`, FW-ADR-0001's shipped successor — the ADR
+itself is upstream template-maintenance history and is not shipped
+to downstream projects):
 
 - `claude-mem:mem-search` or `smart_search` — semantic search
   across prior-session observations.

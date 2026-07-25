@@ -6,9 +6,11 @@ Sessions accumulate context quickly. The template takes an explicit
 stance on two adjacent tool categories: **memory layers** (passive
 session summarization + search) and **orchestration frameworks**
 (multi-agent coordination with their own rosters, routers, and
-escalation models). The reasoning is recorded in
-`docs/adr/fw-adr-0001-context-memory-strategy.md` (also the canonical
-worked example for the Three-Path ADR template).
+escalation models). The reasoning is recorded in FW-ADR-0001
+(also the canonical worked example for the Three-Path ADR
+template) — that ADR is upstream template-maintenance history and
+is not shipped to downstream projects; this file is the operative,
+shipped statement of the resulting policy.
 
 **Recommended default: `claude-mem`** (passive memory layer,
 thedotmack/claude-mem). Summarizes each session into searchable

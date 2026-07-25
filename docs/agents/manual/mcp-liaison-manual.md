@@ -121,7 +121,9 @@ output with a recorded rationale.
 
 The `antigravity_delegate` tool is `mcp-liaison`'s transport for delegating
 work to Google Antigravity from within a Claude Code session. See
-`docs/adr/fw-adr-0027-antigravity-mcp-delegate-shim.md` for the full design.
+`docs/mcp/antigravity-delegate-setup.md` for setup and operation
+(design rationale: FW-ADR-0027, upstream template-maintenance
+history, not shipped to downstream projects).
 
 ### Brief construction
 

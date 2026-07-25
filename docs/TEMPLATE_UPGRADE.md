@@ -414,9 +414,11 @@ upgrade through multiple intermediate versions, apply the copy once
 before the first hop; subsequent hops use the already-fixed bootstrap.
 
 This is a documented workaround for an immutable historical gap, not a
-normal step in the upgrade sequence. See `docs/adr/fw-adr-0013-rc-to-rc-pre-bootstrap.md`
-(Amendment: rc7→rc8 lib-enumeration bootstrap cliff) for the full
-architectural rationale.
+normal step in the upgrade sequence. Full architectural rationale is
+FW-ADR-0013 (Amendment: rc7→rc8 lib-enumeration bootstrap cliff) —
+that ADR is upstream template-maintenance history and is not shipped
+to downstream projects; the workaround steps above are the complete,
+shipped procedure.
 
 ## GitHub labels (FR-025)
 

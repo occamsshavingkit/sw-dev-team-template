@@ -858,8 +858,11 @@ that work met requirements.** The performer (operator) and the verifier
 
 This principle is implicit in the §3 heatmap's HIGH (SWE ↔ Code Reviewer)
 and MED (SRE/Perf ↔ QA/Test) entries. It is reinforced structurally by the
-working-tree isolation model in `docs/adr/fw-adr-0024-parallel-agent-working-tree-isolation.md`,
-which classifies every specialist dispatch as either **writer** (operator) or
+working-tree isolation model (design rationale: FW-ADR-0024, upstream
+template-maintenance history, not shipped to downstream projects;
+operative protocol shipped in `docs/agents/manual/tech-lead-manual.md`
+§ "Working-tree isolation"), which classifies every specialist dispatch
+as either **writer** (operator) or
 **reader** (auditor/verifier) and routes them through separate isolation lanes —
 readers cannot mutate shared git state precisely to preserve their independence
 from the writer's actions.

@@ -120,8 +120,10 @@ points to the actual file on disk. Python 3 must be on `PATH`.
 
 ## Reference
 
-- Authoritative design: `docs/adr/fw-adr-0027-antigravity-mcp-delegate-shim.md`
+- Authoritative design: FW-ADR-0027 (upstream template-maintenance
+  history, not shipped to downstream projects — this document is the
+  shipped, operative setup guide)
 - Complementary setup (Antigravity-as-orchestrator direction):
-  `docs/adr/fw-adr-0026-antigravity-harness-adapter.md`
+  FW-ADR-0026 (same upstream-only caveat)
 - Model selection: `docs/model-routing-guidelines.md`
 - Brief construction and delegation: `docs/agents/manual/mcp-liaison-manual.md`
