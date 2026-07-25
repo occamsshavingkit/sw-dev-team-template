@@ -47,6 +47,15 @@
 # the two session.idle events) and from B18 (a session's FIRST-EVER
 # session.idle after an S1-eviction-then-resume, no dedup involved).
 #
+# B20/B21 (added closing the TaskCreated/TaskCompleted gate-coverage gap,
+# 2026-07-25) close out the two lifecycle gates that appeared ZERO times in
+# hook-bridge.js despite being documented as "all 14 mapped": B20 proves
+# handoff-task-completed-gate.py is now wired at tool.execute.after(task) and
+# reaches its real decision logic (not just spawned); B21 proves
+# handoff-task-created-gate.py is DELIBERATELY left un-wired (Check 2, the
+# durable-handoff citation, has no honest OpenCode source and no synthesis
+# is permitted) and turns that decision into an executable regression guard.
+#
 # Usage:
 #   tests/hooks/test-opencode-hook-bridge.sh
 
@@ -953,6 +962,116 @@ PY
     else
         record_fail "CR-OPENCODE-HOOK-BRIDGE-0002: handledIdleSessions dedup must be scoped to a turn -- a legitimately resumed session's second session.idle must still run its gate" \
             "subagent_gate_calls=${subagent_gate_calls:-0} (want 2) main_gate_calls=${main_gate_calls:-0} (want 0) resume_clear_logged=${resume_clear_logged:-0} (want 1) spurious_suppress_logged=${spurious_suppress_logged:-0} (want 0) -- if subagent_gate_calls=1, the second idle was silently swallowed (the finding this test reproduces)"
+    fi
+
+    # ---- B20/B21: TaskCreated/TaskCompleted lifecycle-gate coverage
+    # closure. Both handoff-task-created-gate.py and
+    # handoff-task-completed-gate.py appeared ZERO times in hook-bridge.js
+    # before this pass -- documented as "all 14 mapped" when it was
+    # actually 12. Both gates early-return unless the incoming event's
+    # `hook_event_name` matches exactly ("TaskCreated" / "TaskCompleted"
+    # respectively) -- so wiring a call without that field is worse than
+    # not wiring it at all: it LOOKS like coverage while never reaching
+    # either gate's real decision logic. B20/B21 prove, per gate, which
+    # of those two states actually holds now.
+
+    # ---- B20: handoff-task-completed-gate.py -- newly wired at
+    # tool.execute.after for the `task` tool (OpenCode's
+    # TaskCompleted-equivalent; see runTaskCompletedGate's declaration
+    # comment in hook-bridge.js). Proves the gate ACTUALLY RUNS and
+    # ACTUALLY REACHES ITS DECISION LOGIC -- not merely that a subprocess
+    # was spawned -- two ways at once:
+    #   (1) the ACTUAL WIRE PAYLOAD observed via the PATH shim carries
+    #       hook_event_name="TaskCompleted", the exact field this gate's
+    #       own main() early-returns on when absent/mismatched (the field
+    #       that silently disabled both gates before this pass);
+    #   (2) the bridge's own stderr shows it PARSED a REAL
+    #       permissionDecision derived from missing_evidence_gates() run
+    #       against a real, deterministic active-handoff fixture
+    #       (tests/hooks/fixtures/handoff/completion-evidence-missing.json,
+    #       already independently exercised against this exact script by
+    #       tests/hooks/test-handoff-task-completed-gate.sh) -- not an
+    #       accident of whatever handoff happens to be active in this
+    #       repo right now. A wrong/absent hook_event_name would make the
+    #       early-return fire before load_active_handoff is ever called,
+    #       producing empty stdout and no stderr summary at all -- (1)
+    #       alone could pass by accident if the bridge sent SOME payload
+    #       that merely happened to include the right key while the gate
+    #       itself never actually ran to completion (e.g. a crash
+    #       swallowed upstream); (2) closes that gap by requiring the
+    #       gate's own computed reason text to appear.
+    #
+    # The sandbox symlinks the real scripts/ and schemas/ trees (the gate
+    # script and its scripts/hooks/lib/handoff.py dependency are read
+    # through the symlink, unmodified) and supplies its OWN
+    # .devteam/active-handoff.json + docs/handoffs/ fixture, independent
+    # of this repo's actual active handoff -- same technique
+    # tests/hooks/test-handoff-task-completed-gate.sh's own make_sandbox
+    # helper uses, just driven through the live bridge instead of calling
+    # the script directly.
+    sandbox=$(mktemp -d)
+    ln -s "$REPO_ROOT/scripts" "$sandbox/scripts"
+    ln -s "$REPO_ROOT/schemas" "$sandbox/schemas"
+    mkdir -p "$sandbox/.devteam" "$sandbox/docs/handoffs"
+    cp "$REPO_ROOT/tests/hooks/fixtures/handoff/completion-evidence-missing.json" \
+        "$sandbox/docs/handoffs/completion-evidence-missing.json"
+    printf '{"handoff_path":"docs/handoffs/completion-evidence-missing.json"}\n' \
+        >"$sandbox/.devteam/active-handoff.json"
+
+    payload_log=$(mktemp)
+    stderr_log=$(mktemp)
+    shim_dir=$(mk_pathshim "$payload_log")
+    steps='[{"kind":"tool-after","tool":"task","sessionID":"b20","args":{"description":"d","prompt":"p","subagent_type":"software-engineer"}}]'
+    OPENCODE_BRIDGE_TEST_DIRECTORY="$sandbox" PATH="$shim_dir:$PATH" bash -c \
+        "printf '%s' '$steps' | node '$INVOKER' run '$PLUGIN'" >/dev/null 2>"$stderr_log"
+    rm -rf "$shim_dir" "$sandbox"
+    sent_payload=$(grep "^handoff-task-completed-gate.py	" "$payload_log" | head -1 | cut -f2-)
+    rm -f "$payload_log"
+    sent_event_name=$(printf '%s' "$sent_payload" \
+        | python3 -c "import json,sys; print(json.load(sys.stdin).get('hook_event_name', '<ABSENT>'))" 2>/dev/null)
+    reached_decision=$(grep -c \
+        "handoff-task-completed-gate.py reported allow.*test:tests/hooks/test-handoff-task-completed-gate.sh, review" \
+        "$stderr_log" 2>/dev/null || true)
+    rm -f "$stderr_log"
+    if [ "$sent_event_name" = "TaskCompleted" ] && [ "${reached_decision:-0}" -ge 1 ]; then
+        record_pass "handoff-task-completed-gate.py wired at tool.execute.after(task): actual wire payload carries hook_event_name=TaskCompleted, AND the bridge's stderr shows it parsed a real permissionDecision computed from missing_evidence_gates() against a deterministic fixture handoff -- the gate ran to completion, not merely spawned"
+    else
+        record_fail "handoff-task-completed-gate.py must reach its decision logic on tool.execute.after(task)" \
+            "sent_event_name=$sent_event_name (want TaskCompleted) reached_decision=${reached_decision:-0} (want >=1)"
+    fi
+
+    # ---- B21: handoff-task-created-gate.py -- deliberately NOT wired.
+    # Executable proof for the decision comment above
+    # GUARD_CHAIN_BY_TOOL's declaration in hook-bridge.js: a `task`
+    # dispatch (tool.execute.before is OpenCode's natural analog of
+    # TaskCreated; a tool.execute.after is included too, to cover
+    # either interpretation) must never invoke
+    # handoff-task-created-gate.py. Check 2 of that gate (durable
+    # handoff citation) has no honest OpenCode source -- the `task`
+    # tool's callable args are `{description, prompt, subagent_type}`
+    # only -- and synthesizing the citation from the active handoff this
+    # bridge would use to validate it would make the check vacuous
+    # (explicitly out of bounds; see that comment). Wiring it anyway
+    # would plant an enforce-mode landmine: every dispatch would fail
+    # Check 2 unconditionally the moment SWDT_HANDOFF_GATES is promoted
+    # out of warn. This test turns that documented decision into a
+    # regression guard -- if a future change adds this hook back to
+    # GUARD_CHAIN_BY_TOOL (or invokes it any other way for `task`)
+    # without also resolving the Check-2 landmine, this test fails and
+    # forces an explicit decision, rather than the hook silently
+    # reappearing unaddressed.
+    payload_log=$(mktemp)
+    shim_dir=$(mk_pathshim "$payload_log")
+    steps='[{"kind":"tool-before","tool":"task","sessionID":"b21","args":{"description":"d","prompt":"p","subagent_type":"software-engineer"}},{"kind":"tool-after","tool":"task","sessionID":"b21","args":{"description":"d","prompt":"p","subagent_type":"software-engineer"}}]'
+    printf '%s' "$steps" | PATH="$shim_dir:$PATH" node "$INVOKER" run "$PLUGIN" >/dev/null 2>/dev/null
+    rm -rf "$shim_dir"
+    created_gate_calls=$(grep -c "^handoff-task-created-gate.py	" "$payload_log" 2>/dev/null || true)
+    rm -f "$payload_log"
+    if [ "${created_gate_calls:-0}" = "0" ]; then
+        record_pass "handoff-task-created-gate.py deliberately NOT wired: a task tool.execute.before + tool.execute.after pair never invokes it (Check 2 has no honest OpenCode citation source; wiring it would plant an enforce-mode landmine -- see the decision comment above GUARD_CHAIN_BY_TOOL's declaration in hook-bridge.js)"
+    else
+        record_fail "handoff-task-created-gate.py must stay un-wired until Check 2 has a legitimate, non-synthesized OpenCode citation source" \
+            "expected 0 invocations, got ${created_gate_calls:-0} -- if this was added intentionally, the decision comment above GUARD_CHAIN_BY_TOOL in hook-bridge.js and this test must be updated together"
     fi
 fi
 

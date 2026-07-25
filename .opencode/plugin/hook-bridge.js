@@ -110,6 +110,69 @@ const GUARD_CHAIN_BY_TOOL = {
 };
 
 // -----------------------------------------------------------------------
+// handoff-task-created-gate.py -- deliberately NOT wired here. Recorded
+// explicitly (not silently absent) so this is read as "investigated and
+// rejected", not "forgotten alongside handoff-task-completed-gate.py".
+//
+// The hook's Check 1 (owner_role must be a canonical roster role) has an
+// honest OpenCode source: the `task` tool's own `subagent_type` arg IS
+// the role being dispatched, same value already forwarded elsewhere in
+// this file as `agent_type` (see buildGuardPayload's docstring). Check 2
+// (the event must cite the active handoff via `handoff_task_id` /
+// `active_handoff_task_id`, matching the currently active handoff's
+// `task_id`) has NO honest OpenCode source: the `task` tool's callable
+// args are `{description, prompt, subagent_type}` only (see
+// scripts/opencode/tool-arg-map.json's `task` entry) -- no field carries
+// a handoff citation the CALLER supplied. Synthesizing that field from
+// the active handoff this bridge would read to VALIDATE it (i.e.
+// asserting handoff_task_id := the same active handoff's own task_id)
+// makes Check 2 vacuous: it would always pass, by construction, testing
+// nothing. That is explicitly out of bounds here, not a style choice.
+//
+// This is not a "wire it and accept some noise" case. The script's own
+// Check 1 -> Check 2 sequencing (see handoff-task-created-gate.py's
+// main()) means a call that CLEARS Check 1 (a genuinely valid
+// subagent_type) always falls through into Check 2, which can never be
+// satisfied under OpenCode -- so today, in SWDT_HANDOFF_GATES=warn, EVERY
+// task dispatch would carry a citation violation. That violation happens
+// to be invisible right now (this bridge's applyVerdict only throws on
+// deny/ask; an allow-with-warning verdict -- exactly what warn mode
+// produces for every one of these citation failures -- is dropped with
+// no console.error at all, per the verdict-translation contract's named
+// "warn-mode reason dropped" parity gap). But the moment
+// SWDT_HANDOFF_GATES is promoted to "enforce" (the whole reason the deny
+// path is honored ahead of that promotion elsewhere in this file, e.g.
+// runLifecycleGateHook's own comment), Check 2's permissionDecision
+// becomes "deny" unconditionally, and this bridge's tool.execute.before
+// throws on every single `task` dispatch under OpenCode regardless of
+// how valid the subagent_type is -- i.e. wiring this hook today would
+// silently plant a landmine that detonates as "subagent dispatch is
+// completely broken under OpenCode" on the day gates are promoted, with
+// zero warning surfaced beforehand to reveal it coming. That is a worse
+// outcome than the current, honest gap: an un-wired hook is visibly
+// absent from GUARD_CHAIN_BY_TOOL (this comment IS that visibility); a
+// wired-but-doomed-to-block hook looks like coverage right up until an
+// operator flips one env var and loses task dispatch entirely.
+//
+// Getting a legitimate citation onto the wire would require inventing a
+// NEW caller-side convention (e.g. requiring tech-lead to embed the
+// active handoff's task_id as parseable text inside the `task` tool's
+// free-form `prompt` field, then having this bridge parse it back out)
+// that does not exist today under Claude Code either -- out of scope for
+// a bridge whose whole contract is translating an EXISTING protocol, not
+// authoring a new one. That is an architecture-level call for
+// `architect`/`tech-lead`, not something to invent unilaterally inside
+// this file.
+//
+// Net effect: this scaffold ships 13 of the 14 Claude Code hooks wired
+// under OpenCode, not 14. Recorded here, and flagged for the FW-ADR-0031
+// portability inventory (meta-project, not shipped with this scaffold)
+// to carry the same "13 of 14, Check 2 structurally unportable without a
+// new citation convention" accounting -- an accurate 13 beats a
+// decorative, silently-doomed 14.
+// -----------------------------------------------------------------------
+
+// -----------------------------------------------------------------------
 // Deferred fail-closed, part 2: TOOL_ARG_MAP loaded successfully but is
 // missing an entry for one of the four GUARD_CHAIN_BY_TOOL keys (e.g. a
 // future edit to scripts/opencode/tool-arg-map.json drops or typos
@@ -134,6 +197,7 @@ const HOOK_ENV_OVERRIDES = {
   "handoff-record-activity.py": { SWDT_HANDOFF_GATES: "warn" },
   "handoff-stop-gate.py": { SWDT_HANDOFF_GATES: "warn" },
   "handoff-subagent-stop-gate.py": { SWDT_HANDOFF_GATES: "warn" },
+  "handoff-task-completed-gate.py": { SWDT_HANDOFF_GATES: "warn" },
 };
 
 // Guard-hook subprocess timeout. Mirrors the 5s timeout every guard hook
@@ -419,6 +483,96 @@ async function runGuardHook(hookName, payload, projectDir) {
   }
 
   applyVerdict(hookName, result.stdout);
+}
+
+// -----------------------------------------------------------------------
+// handoff-task-completed-gate.py -- OpenCode's TaskCompleted-equivalent,
+// fired from tool.execute.after for the `task` tool only (below). Unlike
+// handoff-task-created-gate.py (deliberately NOT wired -- see the long
+// comment above GUARD_CHAIN_BY_TOOL's declaration), this hook is fully
+// portable: beyond the `hook_event_name` discriminator its main() reads
+// nothing else from the event -- it loads the active handoff straight off
+// disk and reports missing_evidence_gates() -- so the only payload this
+// bridge needs to construct is `{hook_event_name: "TaskCompleted"}`, the
+// exact field this hook's own early-return guards on. No `tool_name` /
+// `tool_input` shape is needed here (this call does not go through
+// buildGuardPayload / runGuardHook / GUARD_CHAIN_BY_TOOL at all -- it is
+// its own dedicated call, parallel to how handoff-record-activity.py is
+// invoked as its own dedicated call in tool.execute.after rather than
+// through the tool.execute.before guard-chain machinery).
+//
+// Never fails closed, matching this file's binding tool.execute.after
+// posture (see the "tool.execute.after: PostToolUse-equivalent activity
+// bookkeeping" header comment on the returned hooks object below): the
+// `task` call has already completed, so there is nothing left to block.
+// Spawn failure, non-zero exit, and a hook that could not be read are all
+// logged to stderr and swallowed, exactly like the handoff-record-
+// activity.py call alongside it.
+//
+// Unlike handoff-record-activity.py (whose own contract is "does not
+// produce a stdout JSON response" -- nothing to surface), this hook DOES
+// emit a real hookSpecificOutput payload in "warn" mode when required
+// completion evidence is missing, and this file's tool.execute.after
+// handler never parses stdout at all (see the block below -- it only
+// checks the exit code). Without an explicit surface step here, this
+// hook would run for real (unlike the un-wired created-gate) but its one
+// user-visible signal would still land nowhere an operator could see it
+// -- the same "wired but inert" failure this whole task exists to close,
+// one layer deeper. So: parse the stdout (reusing
+// parseGuardVerdictOutput, already used for the verdict-bearing path
+// above) and console.error a summary when present. This is NOT verdict
+// application (no throw for deny/ask -- there is nothing left to deny),
+// purely an echo, matching this file's own "silence is the failure mode
+// this port has repeatedly been bitten by" precedent
+// (CR-OPENCODE-HOOK-BRIDGE-0002's identical reasoning for session.idle
+// dedup logging).
+//
+// No dedup is needed here the way session.idle needed handledIdleSessions:
+// OpenCode's tool.execute.after fires once per completed tool CALL (there
+// is no observed double-fire for a single call the way session.idle was
+// observed double-firing for one session in the runtime spike), and each
+// `task` dispatch is its own distinct call with its own callID -- there is
+// no shared per-sessionID state this hook's repeated invocation could
+// desynchronize the way handledIdleSessions guards against.
+async function runTaskCompletedGate(projectDir) {
+  const hookName = "handoff-task-completed-gate.py";
+  const hookPath = path.join(projectDir, "scripts", "hooks", hookName);
+  try {
+    accessSync(hookPath, fsConstants.R_OK);
+    const result = await runSubprocess("python3", [hookPath], {
+      cwd: projectDir,
+      env: {
+        ...process.env,
+        CLAUDE_PROJECT_DIR: projectDir,
+        ...(HOOK_ENV_OVERRIDES[hookName] ?? {}),
+      },
+      stdinPayload: JSON.stringify({ hook_event_name: "TaskCompleted" }),
+      timeoutMs: GUARD_HOOK_TIMEOUT_MS,
+    });
+    if (result.code !== 0) {
+      console.error(
+        `hook-bridge: ${hookName} exited ${result.code} (non-blocking, ` +
+          `after-hook only). stderr: ${(result.stderr || "").slice(-2000)}`,
+      );
+      return;
+    }
+    const text = (result.stdout || "").trim();
+    if (!text) return; // No opinion -- required evidence is present, or
+    // the gate is off/not in warn-or-enforce mode. Nothing to surface.
+    const hso = parseGuardVerdictOutput(hookName, text);
+    if (!hso) return; // Malformed JSON already logged by
+    // parseGuardVerdictOutput itself; nothing further to do here.
+    console.error(
+      `hook-bridge: ${hookName} reported ${hso.permissionDecision ?? "(no decision)"} ` +
+        "(non-blocking, after-hook only -- the task call already completed): " +
+        `${hso.warning || hso.permissionDecisionReason || "(no reason given)"}`,
+    );
+  } catch (err) {
+    console.error(
+      `hook-bridge: could not run ${hookName} (non-blocking, after-hook ` +
+        `only): ${err.message}`,
+    );
+  }
 }
 
 // -----------------------------------------------------------------------
@@ -1265,6 +1419,17 @@ export const HookBridge = async (input) => {
           `hook-bridge: could not run ${hookName} (non-blocking, after-hook ` +
             `only): ${err.message}`,
         );
+      }
+
+      if (toolId === "task") {
+        // TaskCompleted-equivalent -- fires as its own dedicated call
+        // (not through GUARD_CHAIN_BY_TOOL) alongside the
+        // handoff-record-activity.py call above, which runs for every
+        // tool id. See runTaskCompletedGate's own declaration comment
+        // for the payload shape, the never-fail-closed posture, and why
+        // this needs no session-scoped dedup the way session.idle's
+        // handledIdleSessions does.
+        await runTaskCompletedGate(projectDir);
       }
     },
 
