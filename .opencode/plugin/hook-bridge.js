@@ -423,6 +423,24 @@ export const HookBridge = async (input) => {
   //     spike) decide Stop-vs-SubagentStop semantics. First-write-wins
   //     (finding H-1(b), see the session.created handler below): a
   //     re-fire for an already-recorded sessionID cannot change it.
+  //     ALSO repaired from session.updated (finding CR-OPENCODE-HOOK-
+  //     BRIDGE-0001, see the session.updated handler below) when this
+  //     sessionID has NO recorded entry at all -- e.g. an S1/S2-evicted
+  //     session (SESSION_STATE_CAP) that later resumes. The 2026-07-25
+  //     runtime spike (/tmp/ocspike2/logs/events.jsonl) confirms
+  //     session.updated's info object DOES carry parentID for a child
+  //     session (present on every observed session.updated for a
+  //     spawned subagent session, matching that session's own
+  //     session.created value; absent, like session.created's, for a
+  //     top-level session) -- this is a genuine repair from real data,
+  //     not a guess. This is the SAME first-write-wins policy as
+  //     session.created's, just sourced from a second event type:
+  //     write only when absent, retain-and-log on a later disagreement.
+  //     Unlike sessionAgent's FOLLOW policy below, parentID has no
+  //     legitimate reason to change for a live session, so there is no
+  //     privilege-relevant reason to prefer "follow" here -- see that
+  //     policy's own escalation-vector analysis for why sessionAgent is
+  //     different.
   //   sessionAgent: sessionID -> OpenCode `agent` name (e.g.
   //     "software-engineer") captured from session.created's and
   //     session.updated's info.agent. Forwarded as `agent_type` in guard
@@ -477,6 +495,23 @@ export const HookBridge = async (input) => {
   //       regardless (see the session.updated handler below): even a
   //       correctly-handled identity change is security-relevant and
   //       should leave a trace.
+  //
+  //   CR-OPENCODE-HOOK-BRIDGE-0001 fix (code-review finding,
+  //   2026-07-25): the session.updated handler now ALSO calls
+  //   trackSessionAndEvictIfOverCap for the sessionID it is about to
+  //   write, before writing either sessionParent or sessionAgent. Before
+  //   this fix, a sessionID already evicted by SESSION_STATE_CAP (an
+  //   operator resume of a long-idle session -- exactly the threat model
+  //   this FOLLOW fix targets) had its sessionAgent entry silently
+  //   resurrected OUTSIDE sessionInsertOrder's accounting: permanently
+  //   exempt from any future eviction, since a resumed session can never
+  //   re-fire session.created to re-register normally. Now a resurrected
+  //   entry re-enters the SAME shared ledger session.created uses, so it
+  //   is bounded exactly like every other entry -- no permanent carve-
+  //   out. This does not change WHAT gets forwarded (still the current,
+  //   correct agent -- the FOLLOW policy and its escalation-vector
+  //   analysis above are unchanged) -- only that the write now
+  //   participates in the cap's bookkeeping like session.created's does.
   //   handledIdleSessions: sessionIDs whose session.idle has already been
   //     processed. session.idle was observed firing twice for the same
   //     child session in one spike run; both handoff-stop-gate.py and
@@ -633,6 +668,15 @@ export const HookBridge = async (input) => {
   // sharing one ledger across all three structures (the original S1
   // shape) was the bug.
 
+  // Called from BOTH the session.created handler (original S1 fix) AND
+  // the session.updated handler (CR-OPENCODE-HOOK-BRIDGE-0001 fix, see
+  // the sessionParent/sessionAgent declaration comment above) -- same
+  // idempotent has()-guarded shape either way, so calling it from a
+  // second event type that may fire for an already-tracked sessionID is
+  // a cheap no-op, and calling it for an evicted-and-now-resurrected
+  // sessionID re-enters that sessionID into the ledger at its current
+  // (newest) position, same as if it were being tracked for the first
+  // time.
   function trackSessionAndEvictIfOverCap(sessionID) {
     if (sessionInsertOrder.has(sessionID)) return;
     sessionInsertOrder.add(sessionID);
@@ -912,6 +956,81 @@ export const HookBridge = async (input) => {
         const info = event.properties?.info ?? {};
         const sessionID = event.properties?.sessionID ?? info.id;
         if (!sessionID) return;
+
+        // CR-OPENCODE-HOOK-BRIDGE-0001 fix (code-review finding,
+        // 2026-07-25): ledger accounting + sessionParent repair, BOTH
+        // run unconditionally for every session.updated with a
+        // resolvable sessionID -- independent of whether this
+        // particular update carries info.agent -- before the
+        // agent-follow logic below. Two distinct sub-fixes, kept
+        // together because both close the same finding:
+        //
+        // (1) Ledger accounting. Any write this handler is about to make
+        //     (sessionParent repair just below, or sessionAgent's FOLLOW
+        //     write further down) must re-enter sessionInsertOrder's
+        //     ledger, the SAME ledger session.created uses. Without
+        //     this, a sessionID already evicted by SESSION_STATE_CAP
+        //     (S1) that resumes via session.updated gets its state
+        //     silently resurrected OUTSIDE the ledger's accounting --
+        //     permanently exempt from any future eviction, since a
+        //     resumed session can never re-fire session.created to
+        //     re-register normally. Idempotent (see
+        //     trackSessionAndEvictIfOverCap's own comment): a no-op for
+        //     a sessionID already tracked.
+        //
+        // (2) sessionParent repair. The 2026-07-25 runtime spike
+        //     (/tmp/ocspike2/logs/events.jsonl) confirms session.updated's
+        //     info object DOES carry parentID for a child session --
+        //     present on every observed session.updated for a spawned
+        //     subagent session, matching that session's own
+        //     session.created value; absent, like session.created's, for
+        //     a top-level session. Repair (write) ONLY when this
+        //     sessionID has NO sessionParent entry at all -- an
+        //     S1-evicted session, or one this process never saw
+        //     session.created for. This is what closes the actual
+        //     misrouting half of the finding: without it, an evicted
+        //     session's first-ever session.idle after a legitimate
+        //     resume misroutes to handoff-stop-gate.py instead of
+        //     handoff-subagent-stop-gate.py, even though this very
+        //     session.updated just proved the session alive and handed
+        //     this bridge its parentID again. Retain-and-log (do not
+        //     overwrite) when an entry already exists -- same
+        //     first-write-wins policy as session.created's, since
+        //     parentID has no legitimate reason to change for a live
+        //     session and there is no privilege-escalation reason (unlike
+        //     sessionAgent) to prefer "follow" here.
+        trackSessionAndEvictIfOverCap(sessionID);
+
+        const incomingParentID = info.parentID ?? null;
+        if (!sessionParent.has(sessionID)) {
+          sessionParent.set(sessionID, incomingParentID);
+          console.error(
+            `hook-bridge: session.updated repaired sessionParent for ` +
+              `session '${sessionID}' (parentID='${incomingParentID}') ` +
+              "-- this sessionID had no recorded sessionParent entry, " +
+              "either because SESSION_STATE_CAP evicted it and this " +
+              "session has now resumed, or because this process never " +
+              "observed a session.created for it. Without this repair, " +
+              "this session's next session.idle would misroute to " +
+              "handoff-stop-gate.py instead of handoff-subagent-stop-" +
+              "gate.py (or vice versa), despite this session.updated " +
+              "just proving the session alive. See " +
+              "CR-OPENCODE-HOOK-BRIDGE-0001.",
+          );
+        } else {
+          const retainedParentID = sessionParent.get(sessionID);
+          if (incomingParentID !== retainedParentID) {
+            console.error(
+              `hook-bridge: session.updated observed session ` +
+                `'${sessionID}' with a different parentID ` +
+                `('${incomingParentID}' vs retained '${retainedParentID}'). ` +
+                "Retaining the recorded parent -- parentID should not " +
+                "change for a live session; same first-write-wins " +
+                "reasoning as session.created's identical check above.",
+            );
+          }
+        }
+
         if (!info.agent) return; // No agent carried on this particular
         // update (e.g. an update unrelated to agent identity) -- nothing
         // to follow. Do NOT clear an existing entry on an agent-less

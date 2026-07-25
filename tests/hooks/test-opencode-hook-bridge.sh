@@ -825,6 +825,76 @@ PY
         record_fail "S2 idempotency survives eviction: handoff-stop-gate.py must run at most once across a pre- and post-eviction session.idle pair for the same sessionID" \
             "handoff-stop-gate.py ran ${stop_gate_calls:-0} time(s) for one sessionID (expected at most 1) -- if this fails, handledIdleSessions is once again evicting in lockstep with sessionParent/sessionAgent (the S1 regression this fix, and B16/B17, exist to prevent)"
     fi
+
+    # ---- B18: CR-OPENCODE-HOOK-BRIDGE-0001 -- session.updated
+    # resurrection after S1 eviction stays ledger-accounted, and repairs
+    # sessionParent so the resurrected session's FIRST-EVER session.idle
+    # routes correctly. Code-review finding, this pass fixes it.
+    #
+    # Distinguishing property vs B16/B17: those cover a REPEAT
+    # session.idle after eviction. This covers a session's FIRST-EVER
+    # session.idle, arriving AFTER a legitimate session.updated (an
+    # operator resume, c4bc456's own threat model) resurrects an
+    # already-evicted session's identity. Reproduces the reviewer's exact
+    # repro end to end in one steps run: evict (10,001 distinct sessions,
+    # same technique as B14) -> confirm evicted (agent_type absent) ->
+    # session.updated with a NEW agent + the session's real parentID ->
+    # confirm resurrected on the wire (agent_type present, the NEW agent)
+    # -> first-ever session.idle -> assert correct gate routing.
+    #
+    # Ledger-accounting is asserted, not just assumed, via a SECOND
+    # "session-state cap" eviction: by the time session.updated fires,
+    # sessionInsertOrder already sits exactly at SESSION_STATE_CAP (the
+    # first eviction dropped it back to 10,000). If the resurrection
+    # write does NOT re-enter the ledger (the bug this fix closes), no
+    # second eviction fires and the resurrected entry sits permanently
+    # outside the cap's accounting. If it DOES re-enter the ledger
+    # (this fix), re-adding it immediately pushes the ledger one over
+    # the cap again and evicts the CURRENT oldest entry
+    # (s18-filler-0, the first of the 10,000 survivors) -- observable as
+    # a second "session-state cap" log line naming that exact session,
+    # without needing a second 10,000-session fill.
+    steps=$(python3 - <<'PY'
+import json
+steps = []
+steps.append({"kind":"event","event":{"type":"session.created","properties":{"sessionID":"s18-victim","info":{"id":"s18-victim","parentID":"s18-parent","agent":"software-engineer"}}}})
+for i in range(10000):
+    sid = f"s18-filler-{i}"
+    steps.append({"kind":"event","event":{"type":"session.created","properties":{"sessionID":sid,"info":{"id":sid,"parentID":"s18-filler-parent"}}}})
+steps.append({"kind":"tool-before","tool":"write","sessionID":"s18-victim","args":{"filePath":"scripts/foo.sh","content":"x"}})
+steps.append({"kind":"event","event":{"type":"session.updated","properties":{"info":{"id":"s18-victim","parentID":"s18-parent","agent":"qa-engineer"}}}})
+steps.append({"kind":"tool-before","tool":"write","sessionID":"s18-victim","args":{"filePath":"scripts/foo.sh","content":"x"}})
+steps.append({"kind":"event","event":{"type":"session.idle","properties":{"sessionID":"s18-victim"}}})
+print(json.dumps(steps))
+PY
+)
+    stderr_log=$(mktemp)
+    payload_log=$(mktemp)
+    shim_dir=$(mk_pathshim "$payload_log")
+    result=$(printf '%s' "$steps" | PATH="$shim_dir:$PATH" node "$INVOKER" run "$PLUGIN" 2>"$stderr_log")
+    rm -rf "$shim_dir"
+    pre_verdict=$(printf '%s' "$result" | sed -n '10002p' | python3 -c "import json,sys; print(json.load(sys.stdin)['verdict'])" 2>/dev/null)
+    post_verdict=$(printf '%s' "$result" | sed -n '10004p' | python3 -c "import json,sys; print(json.load(sys.stdin)['verdict'])" 2>/dev/null)
+    agent_pre=$(grep "^tech-lead-authoring-guard.py	" "$payload_log" | sed -n '1p' | cut -f2- \
+        | python3 -c "import json,sys; print(json.load(sys.stdin).get('agent_type', '<ABSENT>'))" 2>/dev/null)
+    agent_post=$(grep "^tech-lead-authoring-guard.py	" "$payload_log" | sed -n '2p' | cut -f2- \
+        | python3 -c "import json,sys; print(json.load(sys.stdin).get('agent_type', '<ABSENT>'))" 2>/dev/null)
+    subagent_gate_calls=$(grep -c "^handoff-subagent-stop-gate.py	" "$payload_log" 2>/dev/null || true)
+    main_gate_calls=$(grep -c "^handoff-stop-gate.py	" "$payload_log" 2>/dev/null || true)
+    total_evictions=$(grep -c "session-state cap" "$stderr_log" 2>/dev/null || true)
+    resurrection_eviction=$(grep -c "evicted oldest-tracked session 's18-filler-0'" "$stderr_log" 2>/dev/null || true)
+    repaired_parent=$(grep -c "repaired sessionParent for session 's18-victim'" "$stderr_log" 2>/dev/null || true)
+    rm -f "$payload_log" "$stderr_log"
+    if [ "$pre_verdict" = "throw" ] && [ "$agent_pre" = "<ABSENT>" ] \
+        && [ "$post_verdict" = "proceed" ] && [ "$agent_post" = "qa-engineer" ] \
+        && [ "${subagent_gate_calls:-0}" = "1" ] && [ "${main_gate_calls:-0}" = "0" ] \
+        && [ "${total_evictions:-0}" = "2" ] && [ "${resurrection_eviction:-0}" = "1" ] \
+        && [ "${repaired_parent:-0}" = "1" ]; then
+        record_pass "CR-OPENCODE-HOOK-BRIDGE-0001: a session evicted by SESSION_STATE_CAP (agent_type absent, write throws) that later receives a legitimate session.updated resume (agent_type=qa-engineer observed on the wire, resurrection confirmed) has its sessionParent repaired (logged) AND its resurrection re-enters the SAME FIFO ledger (a SECOND session-state-cap eviction fires, correctly naming s18-filler-0 as the new oldest -- not a permanent ledger exemption) -- and that session's FIRST-EVER session.idle correctly routes to handoff-subagent-stop-gate.py (1 call) and NOT handoff-stop-gate.py (0 calls)"
+    else
+        record_fail "CR-OPENCODE-HOOK-BRIDGE-0001: session.updated resurrection after S1 eviction is ledger-accounted and repairs sessionParent for correct first-idle routing" \
+            "pre_verdict=$pre_verdict agent_pre=$agent_pre post_verdict=$post_verdict agent_post=$agent_post subagent_gate_calls=${subagent_gate_calls:-0} main_gate_calls=${main_gate_calls:-0} total_evictions=${total_evictions:-0} resurrection_eviction=${resurrection_eviction:-0} repaired_parent=${repaired_parent:-0}"
+    fi
 fi
 
 # ===========================================================================
