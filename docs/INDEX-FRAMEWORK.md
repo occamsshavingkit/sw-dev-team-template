@@ -69,8 +69,11 @@ copy the same way `docs/audits/`, `docs/review/`, `docs/security/`,
 is built the way it is, not project decisions. To read that history,
 consult the template repository's own `docs/adr/` or `CHANGELOG.md`.
 
-`docs/adr/` exists in a freshly scaffolded project only as an empty
-directory the project populates itself. Project ADRs use the bare
+`docs/adr/` does not exist at all in a freshly scaffolded project —
+not even as an empty directory; `scripts/scaffold.sh` never creates
+it. The directory is created on demand, the first time the project
+reserves an ADR number (`scripts/reserve-number.sh adr`) or a
+specialist writes its first ADR by hand. Project ADRs use the bare
 `ADR-NNNN` namespace (per FW-ADR-0007 / issue #67), indexed from
 `INDEX-PROJECT.md`, and follow MADR 3.0 + this template's binding
 Three-Path Rule (Minimalist / Scalable / Creative) per

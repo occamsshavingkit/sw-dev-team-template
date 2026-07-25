@@ -935,11 +935,12 @@ check "INDEX-PROJECT.md present after scaffold (project-fillable stub)" \
   test -f "$target/docs/INDEX-PROJECT.md"
 check "INDEX.md present after scaffold (dispatcher)" \
   test -f "$target/docs/INDEX.md"
-# v0.15.0 / issue #67: framework ADRs use fw-adr-NNNN-* filename prefix.
-check "fw-adr-0001 present in scaffolded project" \
-  test -f "$target/docs/adr/fw-adr-0001-context-memory-strategy.md"
-check "no unprefixed 0001-context-memory-strategy.md (collision-prone old name)" \
-  bash -c "[ ! -f '$target/docs/adr/0001-context-memory-strategy.md' ]"
+# v1.6.1 (5481279): docs/adr/ is template-maintenance history, excluded
+# from scaffold.sh's copy — a fresh project starts with no docs/adr/
+# directory at all (not even empty; it's created on demand by the
+# project's own first `scripts/reserve-number.sh adr` call).
+check "no docs/adr/ after scaffold (template-maintenance history not shipped)" \
+  test ! -e "$target/docs/adr"
 else
   echo "  SKIP: upgrade (local upstream fixture unavailable)"
 fi
