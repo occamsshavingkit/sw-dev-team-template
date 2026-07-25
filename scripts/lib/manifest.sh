@@ -67,7 +67,7 @@ manifest_ship_files() {
     | grep -vE '^(VERSION|CHANGELOG\.md|CONTRIBUTING\.md|LICENSE|ROADMAP\.md|TEMPLATE_VERSION|TEMPLATE_MANIFEST\.lock)$' \
     | grep -vE '^(\.github/|dryrun-project/|examples/|migrations/)' \
     | grep -vE '^\.claude/agents/[^/]+-local\.md$' \
-    | grep -vE '^docs/(audits|v2|proposals)/' \
+    | grep -vE '^docs/(adr|audits|proposals|review|security|v2)/' \
     | grep -vE '^docs/v1\.0-rc3-checklist\.md$|^docs/v1\.0-rc4-stabilization\.md$|^docs/v1\.0\.0-final-checklist\.md$' \
     | grep -vE '^docs/pm/' \
     | grep -vE '^scripts/smoke-test\.sh$' \
