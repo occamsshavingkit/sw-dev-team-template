@@ -12,7 +12,8 @@
 # one -- either mapped to an OpenCode tool id under `tools`, or recorded
 # under `unmapped_claude_tools` as a named, accepted gap (e.g. MultiEdit,
 # which has no OpenCode source tool per the runtime spike recorded in
-# docs/adr/fw-adr-0031-opencode-hook-bridge.md).
+# FW-ADR-0031 (recorded in the meta-project, not shipped with the
+# scaffold).
 #
 # This is drift detection for the mapping TABLE, not for OpenCode's own
 # tool-id vocabulary: it catches "Claude side grew a new guarded tool and

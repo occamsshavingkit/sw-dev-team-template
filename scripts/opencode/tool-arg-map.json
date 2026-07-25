@@ -32,7 +32,8 @@
     "",
     "Runtime grounding: OpenCode 1.18.4, confirmed by a live runtime spike",
     "(session probe under /tmp/ocspike at implementation time; see",
-    "docs/adr/fw-adr-0031-opencode-hook-bridge.md). The spike's callable",
+    "FW-ADR-0031, recorded in the meta-project, not shipped with the",
+    "scaffold). The spike's callable",
     "toolset was: bash, edit, glob, grep, invalid, question, read, skill,",
     "task, todowrite, webfetch, websearch, write. There is NO 'patch' tool",
     "in this version -- write and edit are the only file-mutation tools."

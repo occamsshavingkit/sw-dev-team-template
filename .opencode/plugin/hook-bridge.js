@@ -3,7 +3,8 @@
 //
 // .opencode/plugin/hook-bridge.js — OpenCode enforcement hook bridge.
 //
-// Protocol-translation adapter per docs/adr/fw-adr-0031-opencode-hook-bridge.md.
+// Protocol-translation adapter per FW-ADR-0031 (recorded in the
+// meta-project, not shipped with the scaffold).
 // This file owns ONLY payload construction, subprocess invocation, and
 // verdict translation. It contains NO guard policy logic: every decision
 // is made by the unchanged scripts under scripts/hooks/*.py, which this
