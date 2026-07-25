@@ -5,8 +5,8 @@
 # scripts/lib/gate-hook-bridge-suite.sh — hook-bridge-suite sub-gate.
 #
 # CR-OPENCODE-HOOK-BRIDGE-0006 (fw-adr-0031 review): registers
-# tests/hooks/test-opencode-hook-bridge.sh -- the 40-scenario differential
-# parity suite for the OpenCode enforcement hook bridge -- with the
+# tests/hooks/test-opencode-hook-bridge.sh -- the differential parity
+# suite for the OpenCode enforcement hook bridge -- with the
 # release gate. Before this sub-gate existed, the suite was invoked
 # nowhere automated (not gate-runner.sh, not any `.github/workflows/*`),
 # and a genuine, previously-undisposed regression (the `handledIdleSessions`
@@ -30,10 +30,14 @@
 #
 # Runtime note: the suite includes B14/B18, which each replay ~10,000
 # session.created events against the real SESSION_STATE_CAP=10000 FIFO
-# eviction bound. Measured standalone: ~2s wall-clock for the full 40-case
-# suite on this machine -- well inside the budget of the other sub-gates
+# eviction bound. Measured standalone: ~2s wall-clock for the full suite
+# on this machine -- well inside the budget of the other sub-gates
 # already registered here (hook-negative-corpus alone runs two full
-# 40-entry corpus passes). Not a gate-runtime concern.
+# corpus passes). Not a gate-runtime concern. (Scenario/entry counts are
+# deliberately not restated here -- see the suite's own summary line and
+# `tests/hooks/run-negative-corpus.sh` output for current counts; a count
+# hardcoded next to the thing it counts drifts the moment a case is
+# added, as B20/B21 just demonstrated for this suite.)
 #
 # Sub-gate behaviour:
 #   - Run tests/hooks/test-opencode-hook-bridge.sh against the candidate
@@ -91,5 +95,5 @@ gate_subgate_hook-bridge-suite() {
 
 if command -v gate_register >/dev/null 2>&1; then
     gate_register hook-bridge-suite regression \
-        "OpenCode hook-bridge differential parity suite (40 scenarios, fw-adr-0031); fails on any suite failure OR any open record_finding()."
+        "OpenCode hook-bridge differential parity suite (fw-adr-0031); fails on any suite failure OR any open record_finding()."
 fi
