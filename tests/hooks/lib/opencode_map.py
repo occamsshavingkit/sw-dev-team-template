@@ -163,18 +163,40 @@ def naive_camel_to_snake(key: str) -> str:
 # "Verdict-translation contract" table.
 # ---------------------------------------------------------------------------
 
+def _parse_hook_specific_output(text: str) -> dict | None:
+    """Parse `text` (already known non-empty) as JSON and extract
+    hookSpecificOutput, mirroring the JSON/shape checks the bridge
+    itself performs (see hook-bridge.js's parseGuardVerdictOutput).
+    Returns the hookSpecificOutput dict, or None when there is nothing
+    to classify (invalid JSON, or no hookSpecificOutput dict). Split out
+    of verdict_from_hook_stdout (below) purely to keep that function's
+    cyclomatic complexity down; behaviour is unchanged."""
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        return None
+    hso = payload.get("hookSpecificOutput") if isinstance(payload, dict) else None
+    return hso if isinstance(hso, dict) else None
+
+
+def _classify_allow(hso: dict) -> str:
+    """Sub-classify an "allow" decision as 'allow_warn' (a reason or
+    warning is attached -- Claude's "warn" mode) or plain 'allow'. Split
+    out of verdict_from_hook_stdout (below) purely to keep that
+    function's cyclomatic complexity down; behaviour is unchanged."""
+    if hso.get("permissionDecisionReason") or hso.get("warning"):
+        return "allow_warn"
+    return "allow"
+
+
 def verdict_from_hook_stdout(stdout_text: str) -> str:
     """Classify a scripts/hooks/*.py stdout capture into one of:
     'none' | 'deny' | 'ask' | 'allow_warn' | 'allow' | 'malformed'."""
     text = (stdout_text or "").strip()
     if not text:
         return "none"
-    try:
-        payload = json.loads(text)
-    except json.JSONDecodeError:
-        return "malformed"
-    hso = payload.get("hookSpecificOutput") if isinstance(payload, dict) else None
-    if not isinstance(hso, dict):
+    hso = _parse_hook_specific_output(text)
+    if hso is None:
         return "malformed"
     decision = hso.get("permissionDecision")
     if decision == "deny":
@@ -182,9 +204,7 @@ def verdict_from_hook_stdout(stdout_text: str) -> str:
     if decision == "ask":
         return "ask"
     if decision == "allow":
-        if hso.get("permissionDecisionReason") or hso.get("warning"):
-            return "allow_warn"
-        return "allow"
+        return _classify_allow(hso)
     return "malformed"
 
 
@@ -276,6 +296,15 @@ def _cmd_roundtrip(argv: list[str]) -> int:
         print(f"SKIP: {claude_tool} has no OpenCode counterpart", file=sys.stderr)
         return 3
     opencode_args = to_opencode_args(claude_tool, claude_tool_input)
+    if opencode_args is None:
+        # Unreachable today (claude_tool already passed the opencode_tool
+        # None-check above, and to_opencode_args() only returns None for
+        # the same "no OpenCode counterpart" condition), but the return
+        # type is dict | None, so pyright sees a real hole here. Handle it
+        # explicitly with the same SKIP pattern used above rather than
+        # pass a possibly-None value into to_claude_tool_input(opencode_args: dict).
+        print(f"SKIP: {claude_tool} has no OpenCode counterpart", file=sys.stderr)
+        return 3
     reconstructed = to_claude_tool_input(opencode_tool, opencode_args)
     print(json.dumps(reconstructed))
     return 0

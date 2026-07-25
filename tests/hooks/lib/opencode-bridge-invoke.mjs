@@ -59,6 +59,30 @@ function fail(code, message) {
   process.exit(code);
 }
 
+// Export names this harness will accept, in priority order (see the
+// EXPORT-SHAPE header comment above). Shared between resolvePluginFunction
+// and its own not-found error message so the two cannot drift apart.
+const PLUGIN_EXPORT_CANDIDATES = ["HookBridge", "hookBridge", "default"];
+
+// Find the plugin factory function on the imported module: try the
+// named candidates first, then fall back to the first function-typed
+// export. Split out of loadHooks (below) purely to keep that function's
+// CCN down; behavior (including the "first function-typed export"
+// fallback) is unchanged.
+function resolvePluginFunction(mod) {
+  for (const name of PLUGIN_EXPORT_CANDIDATES) {
+    if (typeof mod[name] === "function") {
+      return mod[name];
+    }
+  }
+  for (const value of Object.values(mod)) {
+    if (typeof value === "function") {
+      return value;
+    }
+  }
+  return null;
+}
+
 async function loadHooks(pluginPath, repoRoot) {
   if (!existsSync(pluginPath)) {
     fail(3, `plugin file not found: ${pluginPath} (SKIP — pre-implementation run)`);
@@ -67,32 +91,17 @@ async function loadHooks(pluginPath, repoRoot) {
   try {
     mod = await import(pathToFileURL(path.resolve(pluginPath)).href);
   } catch (err) {
-    fail(5, `failed to import plugin module: ${err && err.stack ? err.stack : err}`);
+    fail(5, `failed to import plugin module: ${err?.stack ? err.stack : err}`);
   }
 
-  const candidateNames = ["HookBridge", "hookBridge", "default"];
-  let pluginFn = null;
-  for (const name of candidateNames) {
-    if (typeof mod[name] === "function") {
-      pluginFn = mod[name];
-      break;
-    }
-  }
-  if (!pluginFn) {
-    for (const value of Object.values(mod)) {
-      if (typeof value === "function") {
-        pluginFn = value;
-        break;
-      }
-    }
-  }
+  const pluginFn = resolvePluginFunction(mod);
   if (!pluginFn) {
     fail(
       4,
       "plugin module loaded but no function-typed export found " +
-        `(tried ${candidateNames.join(", ")}, then all exports). SHAPE MISMATCH — ` +
-        "update tests/hooks/lib/opencode-bridge-invoke.mjs's candidate list or " +
-        "hook-bridge.js's export name."
+        `(tried ${PLUGIN_EXPORT_CANDIDATES.join(", ")}, then all exports). SHAPE ` +
+        "MISMATCH — update tests/hooks/lib/opencode-bridge-invoke.mjs's candidate " +
+        "list or hook-bridge.js's export name."
     );
   }
 
@@ -110,7 +119,7 @@ async function loadHooks(pluginPath, repoRoot) {
   try {
     hooks = await pluginFn(pluginInput);
   } catch (err) {
-    fail(5, `plugin constructor threw: ${err && err.stack ? err.stack : err}`);
+    fail(5, `plugin constructor threw: ${err?.stack ? err.stack : err}`);
   }
   return hooks;
 }
@@ -121,73 +130,91 @@ function nextCallID() {
   return `test-call-${_callCounter}`;
 }
 
+// One runner per step.kind (see the "Recognised `kind`s" header comment
+// above for each shape's contract). Split out of runStep (below) from a
+// single 32-CCN/64-line branch-per-kind function (Lizard/Codacy
+// complexity finding) into STEP_RUNNERS plus one small function per
+// kind, with NO BEHAVIOR CHANGE: each runner's body is exactly the code
+// that used to live inside its `if (step.kind === ...)` branch.
+
+async function runEventStep(hooks, step) {
+  const hookFn = hooks?.event;
+  if (typeof hookFn !== "function") {
+    return { verdict: "no-event-hook", message: null };
+  }
+  try {
+    await hookFn({ event: step.event });
+    return { verdict: "handled", message: null };
+  } catch (err) {
+    return { verdict: "handled-threw", message: err?.message ? err.message : String(err) };
+  }
+}
+
+async function runToolBeforeStep(hooks, step) {
+  const hookFn = hooks?.["tool.execute.before"];
+  if (typeof hookFn !== "function") {
+    return { verdict: "no-hook", message: null };
+  }
+  const inputMeta = {
+    tool: step.tool,
+    sessionID: step.sessionID || "test-session",
+    callID: step.callID || nextCallID(),
+  };
+  const output = { args: step.args || {} };
+  try {
+    await hookFn(inputMeta, output);
+    return { verdict: "proceed", message: null, args: output.args };
+  } catch (err) {
+    return { verdict: "throw", message: err?.message ? err.message : String(err) };
+  }
+}
+
+async function runToolAfterStep(hooks, step) {
+  const hookFn = hooks?.["tool.execute.after"];
+  if (typeof hookFn !== "function") {
+    return { verdict: "no-hook", message: null };
+  }
+  const inputMeta = {
+    tool: step.tool,
+    sessionID: step.sessionID || "test-session",
+    callID: step.callID || nextCallID(),
+    args: step.args || {},
+  };
+  try {
+    await hookFn(inputMeta);
+    return { verdict: "handled", message: null };
+  } catch (err) {
+    return { verdict: "handled-threw", message: err?.message ? err.message : String(err) };
+  }
+}
+
+async function runCompactingStep(hooks, step) {
+  const hookFn = hooks?.["experimental.session.compacting"];
+  if (typeof hookFn !== "function") {
+    return { verdict: "no-hook", message: null };
+  }
+  const output = { context: [] };
+  try {
+    await hookFn({ sessionID: step.sessionID || "test-session" }, output);
+    return { verdict: "handled", message: null, context: output.context };
+  } catch (err) {
+    return { verdict: "handled-threw", message: err?.message ? err.message : String(err) };
+  }
+}
+
+const STEP_RUNNERS = {
+  event: runEventStep,
+  "tool-before": runToolBeforeStep,
+  "tool-after": runToolAfterStep,
+  compacting: runCompactingStep,
+};
+
 async function runStep(hooks, step) {
-  if (step.kind === "event") {
-    const hookFn = hooks && hooks.event;
-    if (typeof hookFn !== "function") {
-      return { verdict: "no-event-hook", message: null };
-    }
-    try {
-      await hookFn({ event: step.event });
-      return { verdict: "handled", message: null };
-    } catch (err) {
-      return { verdict: "handled-threw", message: err && err.message ? err.message : String(err) };
-    }
+  const runner = STEP_RUNNERS[step.kind];
+  if (!runner) {
+    return { verdict: "unknown-step-kind", message: `unrecognised step.kind: ${step.kind}` };
   }
-
-  if (step.kind === "tool-before") {
-    const hookFn = hooks && hooks["tool.execute.before"];
-    if (typeof hookFn !== "function") {
-      return { verdict: "no-hook", message: null };
-    }
-    const inputMeta = {
-      tool: step.tool,
-      sessionID: step.sessionID || "test-session",
-      callID: step.callID || nextCallID(),
-    };
-    const output = { args: step.args || {} };
-    try {
-      await hookFn(inputMeta, output);
-      return { verdict: "proceed", message: null, args: output.args };
-    } catch (err) {
-      return { verdict: "throw", message: err && err.message ? err.message : String(err) };
-    }
-  }
-
-  if (step.kind === "tool-after") {
-    const hookFn = hooks && hooks["tool.execute.after"];
-    if (typeof hookFn !== "function") {
-      return { verdict: "no-hook", message: null };
-    }
-    const inputMeta = {
-      tool: step.tool,
-      sessionID: step.sessionID || "test-session",
-      callID: step.callID || nextCallID(),
-      args: step.args || {},
-    };
-    try {
-      await hookFn(inputMeta);
-      return { verdict: "handled", message: null };
-    } catch (err) {
-      return { verdict: "handled-threw", message: err && err.message ? err.message : String(err) };
-    }
-  }
-
-  if (step.kind === "compacting") {
-    const hookFn = hooks && hooks["experimental.session.compacting"];
-    if (typeof hookFn !== "function") {
-      return { verdict: "no-hook", message: null };
-    }
-    const output = { context: [] };
-    try {
-      await hookFn({ sessionID: step.sessionID || "test-session" }, output);
-      return { verdict: "handled", message: null, context: output.context };
-    } catch (err) {
-      return { verdict: "handled-threw", message: err && err.message ? err.message : String(err) };
-    }
-  }
-
-  return { verdict: "unknown-step-kind", message: `unrecognised step.kind: ${step.kind}` };
+  return runner(hooks, step);
 }
 
 async function main() {
@@ -225,4 +252,4 @@ async function main() {
   }
 }
 
-main().catch((err) => fail(5, `unhandled error: ${err && err.stack ? err.stack : err}`));
+main().catch((err) => fail(5, `unhandled error: ${err?.stack ? err.stack : err}`));

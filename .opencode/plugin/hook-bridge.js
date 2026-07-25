@@ -122,7 +122,7 @@ const GUARD_CHAIN_BY_TOOL = {
 // -----------------------------------------------------------------------
 const TOOL_ARG_MAP_MISSING_TOOL_IDS = TOOL_ARG_MAP
   ? Object.keys(GUARD_CHAIN_BY_TOOL).filter(
-      (toolId) => !TOOL_ARG_MAP.tools || !TOOL_ARG_MAP.tools[toolId],
+      (toolId) => !TOOL_ARG_MAP.tools?.[toolId],
     )
   : [];
 
@@ -268,16 +268,16 @@ function assertHookReadable(hookName, hookPath) {
 }
 
 /**
- * Parse a guard hook's stdout and apply the binding verdict-translation
- * contract. Throws on deny/ask. Returns (void) on allow / no-opinion /
- * malformed output (inherits the hook's own fail-open posture).
+ * Parse `text` (already known non-empty) as the guard hook's JSON stdout
+ * and extract hookSpecificOutput, per the binding verdict-translation
+ * contract's fail-open-on-malformed posture. Split out of applyVerdict
+ * (below) purely to keep that function's CCN down; behavior -- including
+ * the console.error on malformed JSON (finding M-2) -- is unchanged.
+ * Returns the hookSpecificOutput object, or undefined when there is no
+ * opinion to apply (malformed JSON, non-object payload, or no
+ * hookSpecificOutput field).
  */
-function applyVerdict(hookName, stdout) {
-  const text = stdout.trim();
-  if (!text) {
-    return; // No output -- hook has no opinion. Proceed.
-  }
-
+function parseGuardVerdictOutput(hookName, text) {
   let parsed;
   try {
     parsed = JSON.parse(text);
@@ -297,13 +297,29 @@ function applyVerdict(hookName, stdout) {
         `per fw-adr-0031, but this is a signal the hook itself is broken. ` +
         `stdout (truncated): ${text.slice(0, 500)}`,
     );
-    return;
+    return undefined;
   }
 
   const hso =
     parsed && typeof parsed === "object" ? parsed.hookSpecificOutput : undefined;
-  if (!hso || typeof hso !== "object") {
-    return; // No opinion expressed in the expected shape. Proceed.
+  return hso && typeof hso === "object" ? hso : undefined;
+}
+
+/**
+ * Parse a guard hook's stdout and apply the binding verdict-translation
+ * contract. Throws on deny/ask. Returns (void) on allow / no-opinion /
+ * malformed output (inherits the hook's own fail-open posture).
+ */
+function applyVerdict(hookName, stdout) {
+  const text = stdout.trim();
+  if (!text) {
+    return; // No output -- hook has no opinion. Proceed.
+  }
+
+  const hso = parseGuardVerdictOutput(hookName, text);
+  if (!hso) {
+    return; // No opinion expressed in the expected shape (or malformed
+    // JSON, already logged by parseGuardVerdictOutput). Proceed.
   }
 
   const decision = hso.permissionDecision;
@@ -792,6 +808,354 @@ export const HookBridge = async (input) => {
     );
   }
 
+  // -----------------------------------------------------------------
+  // event sub-handlers -- one per OpenCode event type the `event` hook
+  // below dispatches to (session.created / session.updated /
+  // session.idle). Split out of a single branch-per-`if` function (CCN
+  // 31, 119 NLOC -- a Lizard/Codacy complexity finding) into named
+  // per-event functions with NO BEHAVIOR CHANGE: each function's body is
+  // exactly the code that used to live inside its `if (event.type ===
+  // ...)` branch, including every early return and every console.error,
+  // moved verbatim. They are declared here (inside the HookBridge
+  // factory, same scope as `return {` below) specifically so they keep
+  // closing over the SAME per-process sessionParent / sessionAgent /
+  // handledIdleSessions state and the SAME eviction helpers
+  // (trackSessionAndEvictIfOverCap, trackHandledIdleAndEvictIfOverCap,
+  // resumeHandledIdleSession) declared just above -- splitting them out
+  // to module scope would require threading that state through function
+  // parameters and change nothing about behavior for real complexity.
+  // -----------------------------------------------------------------
+
+  // First-write-wins for sessionParent (finding H-1(b), half 1 of 2).
+  // session.created re-firing for a sessionID already recorded (an
+  // in-session agent switch, a resume, a re-attach -- whether OpenCode
+  // actually does this is being spiked separately, but the fix does not
+  // depend on the answer) must NOT silently change what this bridge
+  // forwards: sessionParent drives Stop-vs-SubagentStop routing at
+  // session.idle, and an overwrite here would silently flip which
+  // lifecycle gate a session's idle event resolves to. Retain-and-log,
+  // do not throw: this is an event handler, not a gate, and an uncaught
+  // throw here has no defined abort semantics (see
+  // runLifecycleGateHook's identical reasoning for session.idle). Split
+  // out of handleSessionCreated (below) to keep that function's CCN
+  // down; behavior is unchanged from the original inline block.
+  function applySessionParentFirstWrite(sessionID, incomingParentID) {
+    if (sessionParent.has(sessionID)) {
+      const retainedParentID = sessionParent.get(sessionID);
+      if (incomingParentID !== retainedParentID) {
+        console.error(
+          `hook-bridge: session.created re-fired for session ` +
+            `'${sessionID}' with a different parentID ('${incomingParentID}' ` +
+            `vs retained '${retainedParentID}'). Retaining the first-` +
+            "recorded parent; a later change would silently flip Stop " +
+            "vs SubagentStop routing at session.idle.",
+        );
+      }
+      return;
+    }
+    sessionParent.set(sessionID, incomingParentID);
+  }
+
+  // First-write-wins for sessionAgent (finding H-1(b), half 2 of 2).
+  // sessionAgent is what reaches guard payloads as `agent_type`, and
+  // tech-lead-authoring-guard.py grants an unconditional write bypass
+  // once any validated non-tech-lead role is present -- an overwrite
+  // here would silently change the guard-visible role mid-conversation
+  // with no re-dispatch through tech-lead. Same retain-and-log posture,
+  // and same CCN-reduction motive, as applySessionParentFirstWrite
+  // above. Only called when `agent` is truthy (see call site).
+  function applySessionAgentFirstWrite(sessionID, agent) {
+    if (sessionAgent.has(sessionID)) {
+      const retainedAgent = sessionAgent.get(sessionID);
+      if (agent !== retainedAgent) {
+        console.error(
+          `hook-bridge: session.created re-fired for session ` +
+            `'${sessionID}' with a different agent ('${agent}' ` +
+            `vs retained '${retainedAgent}'). Retaining the first-` +
+            "recorded role; tech-lead-authoring-guard.py's write " +
+            "bypass must not change mid-session without re-dispatch " +
+            "through tech-lead.",
+        );
+      }
+      return;
+    }
+    sessionAgent.set(sessionID, agent);
+  }
+
+  // Shared `{ info, sessionID }` extraction for session.created and
+  // session.updated (both carry the same event.properties.info /
+  // event.properties.sessionID shape; session.idle does not, and reads
+  // its own sessionID directly). info defaults to {} and sessionID
+  // falls back to info.id -- unchanged from the original inline
+  // extraction in each branch, just deduplicated into one place so the
+  // null-safety operators (`?.`, `??`) are only counted once by Lizard's
+  // CCN instead of once per caller.
+  function extractSessionInfo(event) {
+    const info = event.properties?.info ?? {};
+    const sessionID = event.properties?.sessionID ?? info.id;
+    return { info, sessionID };
+  }
+
+  // session.created: SessionStart-equivalent. First-write-wins for both
+  // sessionParent and sessionAgent (finding H-1(b), implemented by
+  // applySessionParentFirstWrite / applySessionAgentFirstWrite above) --
+  // see the declaration comments above sessionParent/sessionAgent (top
+  // of this factory) for the full "why first-write-wins here but FOLLOW
+  // in session.updated" analysis.
+  async function handleSessionCreated(event) {
+    const { info, sessionID } = extractSessionInfo(event);
+    if (!sessionID) return;
+
+    // S1/S2 bounded eviction: record this sessionID's first-seen
+    // order and evict the oldest tracked sessionParent/sessionAgent
+    // entry if SESSION_STATE_CAP is exceeded (handledIdleSessions is
+    // evicted separately, on its own clock -- see
+    // trackHandledIdleAndEvictIfOverCap). Must run before the
+    // first-write-wins population below so a freshly-evicted-then-
+    // immediately-reused sessionID (implausible, but the cap's
+    // whole premise is "implausible things become possible at
+    // extreme scale") is tracked fresh rather than silently
+    // skipped as "already seen".
+    trackSessionAndEvictIfOverCap(sessionID);
+
+    applySessionParentFirstWrite(sessionID, info.parentID ?? null);
+    if (info.agent) {
+      applySessionAgentFirstWrite(sessionID, info.agent);
+    }
+
+    if (info.parentID) {
+      // Child (subagent-spawned) session: no SessionStart-equivalent
+      // reminders fire for it, mirroring Claude Code (SessionStart
+      // targets the main session; subagent lifecycle is handled by
+      // the TaskCreated/TaskCompleted/SubagentStop hooks instead, out
+      // of this bridge's wired scope). Critically, subcall-limit-
+      // reset.py must NOT run here: it resets the shared, project-
+      // level subcall budget file, and doing that on every subagent
+      // spawn would hand each subagent a fresh full budget.
+      return;
+    }
+
+    await runSessionStartSet(projectDir);
+  }
+
+  // sessionParent repair for session.updated (CR-OPENCODE-HOOK-BRIDGE-0001,
+  // code-review finding, 2026-07-25). The 2026-07-25 runtime spike
+  // (/tmp/ocspike2/logs/events.jsonl) confirms session.updated's info
+  // object DOES carry parentID for a child session -- present on every
+  // observed session.updated for a spawned subagent session, matching
+  // that session's own session.created value; absent, like
+  // session.created's, for a top-level session. Repair (write) ONLY
+  // when this sessionID has NO sessionParent entry at all -- an
+  // S1-evicted session, or one this process never saw session.created
+  // for. This is what closes the actual misrouting half of the finding:
+  // without it, an evicted session's first-ever session.idle after a
+  // legitimate resume misroutes to handoff-stop-gate.py instead of
+  // handoff-subagent-stop-gate.py, even though this very session.updated
+  // just proved the session alive and handed this bridge its parentID
+  // again. Retain-and-log (do not overwrite) when an entry already
+  // exists -- same first-write-wins policy as session.created's, since
+  // parentID has no legitimate reason to change for a live session and
+  // there is no privilege-escalation reason (unlike sessionAgent) to
+  // prefer "follow" here. Split out of handleSessionUpdated (below) to
+  // keep that function's CCN down; behavior is unchanged from the
+  // original inline block.
+  function repairSessionParentIfMissing(sessionID, incomingParentID) {
+    if (!sessionParent.has(sessionID)) {
+      sessionParent.set(sessionID, incomingParentID);
+      console.error(
+        `hook-bridge: session.updated repaired sessionParent for ` +
+          `session '${sessionID}' (parentID='${incomingParentID}') ` +
+          "-- this sessionID had no recorded sessionParent entry, " +
+          "either because SESSION_STATE_CAP evicted it and this " +
+          "session has now resumed, or because this process never " +
+          "observed a session.created for it. Without this repair, " +
+          "this session's next session.idle would misroute to " +
+          "handoff-stop-gate.py instead of handoff-subagent-stop-" +
+          "gate.py (or vice versa), despite this session.updated " +
+          "just proving the session alive. See " +
+          "CR-OPENCODE-HOOK-BRIDGE-0001.",
+      );
+      return;
+    }
+    const retainedParentID = sessionParent.get(sessionID);
+    if (incomingParentID !== retainedParentID) {
+      console.error(
+        `hook-bridge: session.updated observed session ` +
+          `'${sessionID}' with a different parentID ` +
+          `('${incomingParentID}' vs retained '${retainedParentID}'). ` +
+          "Retaining the recorded parent -- parentID should not " +
+          "change for a live session; same first-write-wins " +
+          "reasoning as session.created's identical check above.",
+      );
+    }
+  }
+
+  // session.updated: agent-identity tracking (HIGH-severity
+  // privilege-escalation fix) plus sessionParent/handledIdleSessions
+  // repair (via repairSessionParentIfMissing above) for resumed
+  // sessions. See the sessionAgent declaration comment (top of this
+  // factory, above sessionParent's own declaration) for the full
+  // FOLLOW-vs-RETAIN policy analysis this function implements.
+  async function handleSessionUpdated(event) {
+    // HIGH-severity privilege-escalation fix (runtime spike against
+    // opencode 1.18.5): session.created never re-fires for an
+    // existing sessionID, but `info.agent` for an existing sessionID
+    // DOES change -- via plain session.updated -- when the session
+    // is resumed with a different `--agent`. Without this branch,
+    // sessionAgent kept forwarding the ORIGINAL agent forever, so a
+    // session that once ran as (say) software-engineer kept getting
+    // tech-lead-authoring-guard.py's write bypass on every later
+    // call even after its real running agent -- system prompt, tool
+    // set, permissions -- had been repointed elsewhere. Any
+    // bash-capable session can enumerate sessions and resume one
+    // with a different agent, so the attack cost is trivial.
+    //
+    // FOLLOW, NOT RETAIN here -- deliberately the opposite of
+    // session.created's first-write-wins policy above.
+    // See the sessionAgent declaration comment (top of this
+    // factory) for the full "why the same map has two different
+    // update policies" reasoning and the escalation-vector analysis
+    // for why following the change cannot itself widen access.
+    const { info, sessionID } = extractSessionInfo(event);
+    if (!sessionID) return;
+
+    // CR-OPENCODE-HOOK-BRIDGE-0001 fix (code-review finding,
+    // 2026-07-25) and CR-OPENCODE-HOOK-BRIDGE-0002 fix (code-review
+    // finding, 2026-07-25): ledger accounting, sessionParent repair,
+    // and handledIdleSessions turn-scoping, ALL run unconditionally
+    // for every session.updated with a resolvable sessionID --
+    // independent of whether this particular update carries
+    // info.agent -- before the agent-follow logic below. Three
+    // distinct sub-fixes, kept together because each closes a
+    // finding about the same underlying gap (state that stops being
+    // maintained once a session goes quiet, even though the session
+    // itself is still live):
+    //
+    // (1) Ledger accounting. Any write this handler is about to make
+    //     (sessionParent repair just below, or sessionAgent's FOLLOW
+    //     write further down) must re-enter sessionInsertOrder's
+    //     ledger, the SAME ledger session.created uses. Without
+    //     this, a sessionID already evicted by SESSION_STATE_CAP
+    //     (S1) that resumes via session.updated gets its state
+    //     silently resurrected OUTSIDE the ledger's accounting --
+    //     permanently exempt from any future eviction, since a
+    //     resumed session can never re-fire session.created to
+    //     re-register normally. Idempotent (see
+    //     trackSessionAndEvictIfOverCap's own comment): a no-op for
+    //     a sessionID already tracked.
+    //
+    // (2) sessionParent repair. The 2026-07-25 runtime spike
+    //     (/tmp/ocspike2/logs/events.jsonl) confirms session.updated's
+    //     info object DOES carry parentID for a child session --
+    //     present on every observed session.updated for a spawned
+    //     subagent session, matching that session's own
+    //     session.created value; absent, like session.created's, for
+    //     a top-level session. Repair (write) ONLY when this
+    //     sessionID has NO sessionParent entry at all -- an
+    //     S1-evicted session, or one this process never saw
+    //     session.created for. This is what closes the actual
+    //     misrouting half of the finding: without it, an evicted
+    //     session's first-ever session.idle after a legitimate
+    //     resume misroutes to handoff-stop-gate.py instead of
+    //     handoff-subagent-stop-gate.py, even though this very
+    //     session.updated just proved the session alive and handed
+    //     this bridge its parentID again. Retain-and-log (do not
+    //     overwrite) when an entry already exists -- same
+    //     first-write-wins policy as session.created's, since
+    //     parentID has no legitimate reason to change for a live
+    //     session and there is no privilege-escalation reason (unlike
+    //     sessionAgent) to prefer "follow" here.
+    //
+    // (3) handledIdleSessions turn-scoping (CR-OPENCODE-HOOK-BRIDGE-0002).
+    //     If this sessionID is already marked handled (its session.idle
+    //     already ran the Stop/SubagentStop gate once), this
+    //     session.updated is itself the bridge's only wired evidence
+    //     that OpenCode is touching the session again -- i.e. a new
+    //     turn has begun -- so the stale mark is cleared and the
+    //     session's next session.idle is treated as a new turn-end,
+    //     not a stale duplicate. No-op for the overwhelming common
+    //     case (a session.updated for a session that has not gone
+    //     idle yet this process). See resumeHandledIdleSession's own
+    //     declaration comment and handledIdleSessions' declaration
+    //     comment for the full reasoning and the spike-log evidence
+    //     this scoping choice rests on.
+    trackSessionAndEvictIfOverCap(sessionID);
+    resumeHandledIdleSession(sessionID);
+    repairSessionParentIfMissing(sessionID, info.parentID ?? null);
+
+    if (!info.agent) return; // No agent carried on this particular
+    // update (e.g. an update unrelated to agent identity) -- nothing
+    // to follow. Do NOT clear an existing entry on an agent-less
+    // update; that would turn a routine session.updated into an
+    // accidental privilege change (silently dropping to caller_role
+    // = None is the SAFE direction, but still an unrequested change
+    // with no verified runtime trigger to justify it).
+
+    const previousAgent = sessionAgent.get(sessionID);
+    if (info.agent === previousAgent) return; // No change.
+
+    sessionAgent.set(sessionID, info.agent);
+    // Security-relevant even when handled correctly (this branch IS
+    // the fix, not a bug) -- leave a trace so an operator can spot an
+    // unexpected mid-session agent swap.
+    console.error(
+      `hook-bridge: session '${sessionID}' agent identity changed ` +
+        `via session.updated (was '${previousAgent ?? "<none recorded>"}', ` +
+        `now '${info.agent}'). Forwarding the NEW agent as agent_type ` +
+        "on this session's subsequent guard payloads -- following the " +
+        "session's current real agent, per the HIGH-severity " +
+        "privilege-escalation fix (see the sessionAgent declaration " +
+        "comment for why this differs from session.created's first-" +
+        "write-wins policy).",
+    );
+  }
+
+  // session.idle: Stop / SubagentStop-equivalent, routed by whether
+  // sessionParent recorded a parentID for this sessionID (at
+  // session.created or session.updated-repair time).
+  async function handleSessionIdle(event) {
+    const sessionID = event.properties?.sessionID;
+    if (!sessionID) return;
+    if (handledIdleSessions.has(sessionID)) {
+      // Idempotency: session.idle was observed firing twice in
+      // immediate succession for one child session in the runtime
+      // spike; run the Stop-equivalent gate at most once per turn.
+      // CR-OPENCODE-HOOK-BRIDGE-0002 (code-review finding,
+      // 2026-07-25): this suppression used to be completely silent --
+      // "silence is the failure mode this whole port has repeatedly
+      // been bitten by" -- so it is logged even though it is the
+      // EXPECTED, correct outcome for a genuine duplicate. A
+      // legitimate resumed session's later session.idle does NOT
+      // reach this branch: resumeHandledIdleSession (called from the
+      // session.updated handler) clears handledIdleSessions'
+      // membership as soon as a session.updated is observed for an
+      // already-handled sessionID, so this line firing for a given
+      // sessionID means no session.updated was observed for it
+      // between its two session.idle events -- the near-simultaneous
+      // double-fire case, not a resume.
+      console.error(
+        `hook-bridge: session.idle suppressed as a duplicate for ` +
+          `session '${sessionID}' -- its Stop/SubagentStop gate has ` +
+          "already run and no intervening session.updated was " +
+          "observed to indicate a new turn. Expected for the known " +
+          "near-simultaneous double-fire case; see CR-OPENCODE-HOOK-" +
+          "BRIDGE-0002 if this fires for a case that should have been " +
+          "treated as a new turn.",
+      );
+      return;
+    }
+    handledIdleSessions.add(sessionID);
+    trackHandledIdleAndEvictIfOverCap(sessionID); // S2 fix: bound
+    // handledIdleSessions on its OWN independent, much larger cap --
+    // see HANDLED_IDLE_SESSIONS_CAP's declaration comment.
+
+    const parentID = sessionParent.get(sessionID);
+    const hookName = parentID
+      ? "handoff-subagent-stop-gate.py"
+      : "handoff-stop-gate.py";
+    await runLifecycleGateHook(hookName, projectDir);
+  }
+
   return {
     // -------------------------------------------------------------
     // tool.execute.before: PreToolUse-equivalent guard chain.
@@ -910,279 +1274,24 @@ export const HookBridge = async (input) => {
     // fix, see the sessionAgent declaration comment above for the
     // follow-vs-retain asymmetry with session.created), and session.idle
     // (Stop / SubagentStop-equivalent, distinguished by parentID
-    // recorded at session.created time).
+    // recorded at session.created time). Dispatches to one named helper
+    // per event type -- handleSessionCreated / handleSessionUpdated /
+    // handleSessionIdle, declared above in this same factory scope --
+    // extracted from a single branch-per-`if` function (CCN 31, 119
+    // NLOC, a Lizard/Codacy complexity finding) with NO BEHAVIOR CHANGE:
+    // see each helper's own declaration comment.
     // -------------------------------------------------------------
     event: async ({ event }) => {
       if (event.type === "session.created") {
-        const info = event.properties?.info ?? {};
-        const sessionID = event.properties?.sessionID ?? info.id;
-        if (!sessionID) return;
-
-        // S1/S2 bounded eviction: record this sessionID's first-seen
-        // order and evict the oldest tracked sessionParent/sessionAgent
-        // entry if SESSION_STATE_CAP is exceeded (handledIdleSessions is
-        // evicted separately, on its own clock -- see
-        // trackHandledIdleAndEvictIfOverCap). Must run before the
-        // first-write-wins population below so a freshly-evicted-then-
-        // immediately-reused sessionID (implausible, but the cap's
-        // whole premise is "implausible things become possible at
-        // extreme scale") is tracked fresh rather than silently
-        // skipped as "already seen".
-        trackSessionAndEvictIfOverCap(sessionID);
-
-        // First-write-wins for both maps (finding H-1(b)). session.created
-        // re-firing for a sessionID already recorded (an in-session agent
-        // switch, a resume, a re-attach -- whether OpenCode actually does
-        // this is being spiked separately, but the fix does not depend on
-        // the answer) must NOT silently change what this bridge forwards.
-        //   - sessionAgent is what reaches guard payloads as `agent_type`,
-        //     and tech-lead-authoring-guard.py grants an unconditional
-        //     write bypass once any validated non-tech-lead role is
-        //     present -- an overwrite here would silently change the
-        //     guard-visible role mid-conversation with no re-dispatch
-        //     through tech-lead.
-        //   - sessionParent drives Stop-vs-SubagentStop routing at
-        //     session.idle (below); an overwrite here would silently flip
-        //     which lifecycle gate a session's idle event resolves to.
-        // Retain-and-log, do not throw: this is an event handler, not a
-        // gate, and an uncaught throw here has no defined abort semantics
-        // (see runLifecycleGateHook's identical reasoning for session.idle).
-        const incomingParentID = info.parentID ?? null;
-        if (sessionParent.has(sessionID)) {
-          const retainedParentID = sessionParent.get(sessionID);
-          if (incomingParentID !== retainedParentID) {
-            console.error(
-              `hook-bridge: session.created re-fired for session ` +
-                `'${sessionID}' with a different parentID ('${incomingParentID}' ` +
-                `vs retained '${retainedParentID}'). Retaining the first-` +
-                "recorded parent; a later change would silently flip Stop " +
-                "vs SubagentStop routing at session.idle.",
-            );
-          }
-        } else {
-          sessionParent.set(sessionID, incomingParentID);
-        }
-
-        if (info.agent) {
-          if (sessionAgent.has(sessionID)) {
-            const retainedAgent = sessionAgent.get(sessionID);
-            if (info.agent !== retainedAgent) {
-              console.error(
-                `hook-bridge: session.created re-fired for session ` +
-                  `'${sessionID}' with a different agent ('${info.agent}' ` +
-                  `vs retained '${retainedAgent}'). Retaining the first-` +
-                  "recorded role; tech-lead-authoring-guard.py's write " +
-                  "bypass must not change mid-session without re-dispatch " +
-                  "through tech-lead.",
-              );
-            }
-          } else {
-            sessionAgent.set(sessionID, info.agent);
-          }
-        }
-
-        if (info.parentID) {
-          // Child (subagent-spawned) session: no SessionStart-equivalent
-          // reminders fire for it, mirroring Claude Code (SessionStart
-          // targets the main session; subagent lifecycle is handled by
-          // the TaskCreated/TaskCompleted/SubagentStop hooks instead, out
-          // of this bridge's wired scope). Critically, subcall-limit-
-          // reset.py must NOT run here: it resets the shared, project-
-          // level subcall budget file, and doing that on every subagent
-          // spawn would hand each subagent a fresh full budget.
-          return;
-        }
-
-        await runSessionStartSet(projectDir);
+        await handleSessionCreated(event);
         return;
       }
-
       if (event.type === "session.updated") {
-        // HIGH-severity privilege-escalation fix (runtime spike against
-        // opencode 1.18.5): session.created never re-fires for an
-        // existing sessionID, but `info.agent` for an existing sessionID
-        // DOES change -- via plain session.updated -- when the session
-        // is resumed with a different `--agent`. Without this branch,
-        // sessionAgent kept forwarding the ORIGINAL agent forever, so a
-        // session that once ran as (say) software-engineer kept getting
-        // tech-lead-authoring-guard.py's write bypass on every later
-        // call even after its real running agent -- system prompt, tool
-        // set, permissions -- had been repointed elsewhere. Any
-        // bash-capable session can enumerate sessions and resume one
-        // with a different agent, so the attack cost is trivial.
-        //
-        // FOLLOW, NOT RETAIN here -- deliberately the opposite of
-        // session.created's first-write-wins policy a few lines above.
-        // See the sessionAgent declaration comment (top of this
-        // factory) for the full "why the same map has two different
-        // update policies" reasoning and the escalation-vector analysis
-        // for why following the change cannot itself widen access.
-        const info = event.properties?.info ?? {};
-        const sessionID = event.properties?.sessionID ?? info.id;
-        if (!sessionID) return;
-
-        // CR-OPENCODE-HOOK-BRIDGE-0001 fix (code-review finding,
-        // 2026-07-25) and CR-OPENCODE-HOOK-BRIDGE-0002 fix (code-review
-        // finding, 2026-07-25): ledger accounting, sessionParent repair,
-        // and handledIdleSessions turn-scoping, ALL run unconditionally
-        // for every session.updated with a resolvable sessionID --
-        // independent of whether this particular update carries
-        // info.agent -- before the agent-follow logic below. Three
-        // distinct sub-fixes, kept together because each closes a
-        // finding about the same underlying gap (state that stops being
-        // maintained once a session goes quiet, even though the session
-        // itself is still live):
-        //
-        // (1) Ledger accounting. Any write this handler is about to make
-        //     (sessionParent repair just below, or sessionAgent's FOLLOW
-        //     write further down) must re-enter sessionInsertOrder's
-        //     ledger, the SAME ledger session.created uses. Without
-        //     this, a sessionID already evicted by SESSION_STATE_CAP
-        //     (S1) that resumes via session.updated gets its state
-        //     silently resurrected OUTSIDE the ledger's accounting --
-        //     permanently exempt from any future eviction, since a
-        //     resumed session can never re-fire session.created to
-        //     re-register normally. Idempotent (see
-        //     trackSessionAndEvictIfOverCap's own comment): a no-op for
-        //     a sessionID already tracked.
-        //
-        // (2) sessionParent repair. The 2026-07-25 runtime spike
-        //     (/tmp/ocspike2/logs/events.jsonl) confirms session.updated's
-        //     info object DOES carry parentID for a child session --
-        //     present on every observed session.updated for a spawned
-        //     subagent session, matching that session's own
-        //     session.created value; absent, like session.created's, for
-        //     a top-level session. Repair (write) ONLY when this
-        //     sessionID has NO sessionParent entry at all -- an
-        //     S1-evicted session, or one this process never saw
-        //     session.created for. This is what closes the actual
-        //     misrouting half of the finding: without it, an evicted
-        //     session's first-ever session.idle after a legitimate
-        //     resume misroutes to handoff-stop-gate.py instead of
-        //     handoff-subagent-stop-gate.py, even though this very
-        //     session.updated just proved the session alive and handed
-        //     this bridge its parentID again. Retain-and-log (do not
-        //     overwrite) when an entry already exists -- same
-        //     first-write-wins policy as session.created's, since
-        //     parentID has no legitimate reason to change for a live
-        //     session and there is no privilege-escalation reason (unlike
-        //     sessionAgent) to prefer "follow" here.
-        //
-        // (3) handledIdleSessions turn-scoping (CR-OPENCODE-HOOK-BRIDGE-0002).
-        //     If this sessionID is already marked handled (its session.idle
-        //     already ran the Stop/SubagentStop gate once), this
-        //     session.updated is itself the bridge's only wired evidence
-        //     that OpenCode is touching the session again -- i.e. a new
-        //     turn has begun -- so the stale mark is cleared and the
-        //     session's next session.idle is treated as a new turn-end,
-        //     not a stale duplicate. No-op for the overwhelming common
-        //     case (a session.updated for a session that has not gone
-        //     idle yet this process). See resumeHandledIdleSession's own
-        //     declaration comment and handledIdleSessions' declaration
-        //     comment for the full reasoning and the spike-log evidence
-        //     this scoping choice rests on.
-        trackSessionAndEvictIfOverCap(sessionID);
-        resumeHandledIdleSession(sessionID);
-
-        const incomingParentID = info.parentID ?? null;
-        if (!sessionParent.has(sessionID)) {
-          sessionParent.set(sessionID, incomingParentID);
-          console.error(
-            `hook-bridge: session.updated repaired sessionParent for ` +
-              `session '${sessionID}' (parentID='${incomingParentID}') ` +
-              "-- this sessionID had no recorded sessionParent entry, " +
-              "either because SESSION_STATE_CAP evicted it and this " +
-              "session has now resumed, or because this process never " +
-              "observed a session.created for it. Without this repair, " +
-              "this session's next session.idle would misroute to " +
-              "handoff-stop-gate.py instead of handoff-subagent-stop-" +
-              "gate.py (or vice versa), despite this session.updated " +
-              "just proving the session alive. See " +
-              "CR-OPENCODE-HOOK-BRIDGE-0001.",
-          );
-        } else {
-          const retainedParentID = sessionParent.get(sessionID);
-          if (incomingParentID !== retainedParentID) {
-            console.error(
-              `hook-bridge: session.updated observed session ` +
-                `'${sessionID}' with a different parentID ` +
-                `('${incomingParentID}' vs retained '${retainedParentID}'). ` +
-                "Retaining the recorded parent -- parentID should not " +
-                "change for a live session; same first-write-wins " +
-                "reasoning as session.created's identical check above.",
-            );
-          }
-        }
-
-        if (!info.agent) return; // No agent carried on this particular
-        // update (e.g. an update unrelated to agent identity) -- nothing
-        // to follow. Do NOT clear an existing entry on an agent-less
-        // update; that would turn a routine session.updated into an
-        // accidental privilege change (silently dropping to caller_role
-        // = None is the SAFE direction, but still an unrequested change
-        // with no verified runtime trigger to justify it).
-
-        const previousAgent = sessionAgent.get(sessionID);
-        if (info.agent === previousAgent) return; // No change.
-
-        sessionAgent.set(sessionID, info.agent);
-        // Security-relevant even when handled correctly (this branch IS
-        // the fix, not a bug) -- leave a trace so an operator can spot an
-        // unexpected mid-session agent swap.
-        console.error(
-          `hook-bridge: session '${sessionID}' agent identity changed ` +
-            `via session.updated (was '${previousAgent ?? "<none recorded>"}', ` +
-            `now '${info.agent}'). Forwarding the NEW agent as agent_type ` +
-            "on this session's subsequent guard payloads -- following the " +
-            "session's current real agent, per the HIGH-severity " +
-            "privilege-escalation fix (see the sessionAgent declaration " +
-            "comment for why this differs from session.created's first-" +
-            "write-wins policy).",
-        );
+        await handleSessionUpdated(event);
         return;
       }
-
       if (event.type === "session.idle") {
-        const sessionID = event.properties?.sessionID;
-        if (!sessionID) return;
-        if (handledIdleSessions.has(sessionID)) {
-          // Idempotency: session.idle was observed firing twice in
-          // immediate succession for one child session in the runtime
-          // spike; run the Stop-equivalent gate at most once per turn.
-          // CR-OPENCODE-HOOK-BRIDGE-0002 (code-review finding,
-          // 2026-07-25): this suppression used to be completely silent --
-          // "silence is the failure mode this whole port has repeatedly
-          // been bitten by" -- so it is logged even though it is the
-          // EXPECTED, correct outcome for a genuine duplicate. A
-          // legitimate resumed session's later session.idle does NOT
-          // reach this branch: resumeHandledIdleSession (called from the
-          // session.updated handler) clears handledIdleSessions'
-          // membership as soon as a session.updated is observed for an
-          // already-handled sessionID, so this line firing for a given
-          // sessionID means no session.updated was observed for it
-          // between its two session.idle events -- the near-simultaneous
-          // double-fire case, not a resume.
-          console.error(
-            `hook-bridge: session.idle suppressed as a duplicate for ` +
-              `session '${sessionID}' -- its Stop/SubagentStop gate has ` +
-              "already run and no intervening session.updated was " +
-              "observed to indicate a new turn. Expected for the known " +
-              "near-simultaneous double-fire case; see CR-OPENCODE-HOOK-" +
-              "BRIDGE-0002 if this fires for a case that should have been " +
-              "treated as a new turn.",
-          );
-          return;
-        }
-        handledIdleSessions.add(sessionID);
-        trackHandledIdleAndEvictIfOverCap(sessionID); // S2 fix: bound
-        // handledIdleSessions on its OWN independent, much larger cap --
-        // see HANDLED_IDLE_SESSIONS_CAP's declaration comment.
-
-        const parentID = sessionParent.get(sessionID);
-        const hookName = parentID
-          ? "handoff-subagent-stop-gate.py"
-          : "handoff-stop-gate.py";
-        await runLifecycleGateHook(hookName, projectDir);
+        await handleSessionIdle(event);
       }
     },
 
@@ -1193,7 +1302,7 @@ export const HookBridge = async (input) => {
     // output.context so the directive reaches the session the same way
     // Claude Code's SessionStart(compact) stdout does.
     // -------------------------------------------------------------
-    "experimental.session.compacting": async (compactInput, output) => {
+    "experimental.session.compacting": async (_compactInput, output) => {
       const hookName = "post-compact-refresh.sh";
       const hookPath = path.join(projectDir, "scripts", "hooks", hookName);
       try {
@@ -1243,6 +1352,76 @@ export const HookBridge = async (input) => {
 // per-project subcall-budget state file scripts/hooks/subcall-limit-
 // guard.py reads on every `task` tool call. It runs for real, unlike the
 // three banner scripts, which run for their stderr side-effect only.
+// Run one entry of runSessionStartSet's script list (below) and log its
+// outcome. Split out of runSessionStartSet's loop body so the four
+// scripts can run CONCURRENTLY via Promise.all instead of one `await`
+// per loop iteration (Biome noAwaitInLoops finding) -- unlike the
+// PreToolUse guard chain (tool.execute.before, above), which MUST stay
+// sequential for first-deny-wins ordering, these four session-start
+// scripts have no such invariant: three are independent informational
+// banners and the fourth (subcall-limit-reset.py) writes only its own
+// dedicated budget file, which none of the other three touch. No test
+// in this suite asserts on their relative ordering (child sessions
+// never reach this function at all -- see the `if (info.parentID)
+// return;` early-out in handleSessionCreated above -- and every
+// top-level-session scenario here only asserts session-start's total
+// EFFECT, never inter-script order). Behavior per script (missing-file
+// skip, stdout/stderr logging, spawn-failure logging) is otherwise
+// unchanged from the original sequential loop body.
+// version-check.sh lives at scripts/version-check.sh, not scripts/hooks/
+// -- special-case its path to match .claude/settings.json's wiring.
+// Split out of runOneSessionStartScript purely to keep that function's
+// CCN down; same resolution, unchanged.
+function resolveSessionStartScriptPath(name, projectDir) {
+  if (name === "version-check.sh") {
+    return path.join(projectDir, "scripts", name);
+  }
+  return path.join(projectDir, "scripts", "hooks", name);
+}
+
+// Spawn one session-start script per its `kind` (shell script executed
+// directly, or a Python script run via `python3`). Split out of
+// runOneSessionStartScript purely to keep that function's CCN down;
+// same two spawn shapes, unchanged.
+function spawnSessionStartScript(kind, resolvedPath, timeoutMs, projectDir) {
+  const env = { ...process.env, CLAUDE_PROJECT_DIR: projectDir };
+  if (kind === "sh") {
+    return runSubprocess(resolvedPath, [], { cwd: projectDir, env, timeoutMs });
+  }
+  return runSubprocess("python3", [resolvedPath], { cwd: projectDir, env, timeoutMs });
+}
+
+async function runOneSessionStartScript({ name, kind, timeoutMs }, projectDir) {
+  const resolvedPath = resolveSessionStartScriptPath(name, projectDir);
+
+  try {
+    accessSync(resolvedPath, kind === "sh" ? fsConstants.X_OK : fsConstants.R_OK);
+  } catch {
+    // SessionStart set is informational/best-effort (matches
+    // .claude/settings.json's own `[ -x ... ] && ... || true` guards
+    // for the three shell reminders). A missing script is silently
+    // skipped, not fail-closed -- these are reminders, not guards.
+    return;
+  }
+
+  try {
+    const result = await spawnSessionStartScript(kind, resolvedPath, timeoutMs, projectDir);
+    if (result.stdout) {
+      console.error(`hook-bridge: [session-start] ${name}:\n${result.stdout}`);
+    }
+    if (result.code !== 0) {
+      console.error(
+        `hook-bridge: [session-start] ${name} exited ${result.code}: ` +
+          (result.stderr || "").slice(-2000),
+      );
+    }
+  } catch (err) {
+    // Same posture as the missing-script case: informational-only, so
+    // a spawn failure here is logged, not fatal.
+    console.error(`hook-bridge: [session-start] could not run ${name}: ${err.message}`);
+  }
+}
+
 async function runSessionStartSet(projectDir) {
   // timeoutMs mirrors .claude/settings.json's per-hook SessionStart
   // timeout exactly (version-check.sh alone is given the longer budget
@@ -1254,54 +1433,7 @@ async function runSessionStartSet(projectDir) {
     { name: "subcall-limit-reset.py", kind: "py", timeoutMs: GUARD_HOOK_TIMEOUT_MS },
   ];
 
-  for (const { name, kind, timeoutMs } of scripts) {
-    const scriptPath = path.join(projectDir, "scripts", "hooks", name);
-    // version-check.sh lives at scripts/version-check.sh, not
-    // scripts/hooks/ -- special-case its path to match
-    // .claude/settings.json's wiring.
-    const resolvedPath =
-      name === "version-check.sh"
-        ? path.join(projectDir, "scripts", name)
-        : scriptPath;
-
-    try {
-      accessSync(resolvedPath, kind === "sh" ? fsConstants.X_OK : fsConstants.R_OK);
-    } catch {
-      // SessionStart set is informational/best-effort (matches
-      // .claude/settings.json's own `[ -x ... ] && ... || true` guards
-      // for the three shell reminders). A missing script is silently
-      // skipped, not fail-closed -- these are reminders, not guards.
-      continue;
-    }
-
-    try {
-      const result =
-        kind === "sh"
-          ? await runSubprocess(resolvedPath, [], {
-              cwd: projectDir,
-              env: { ...process.env, CLAUDE_PROJECT_DIR: projectDir },
-              timeoutMs,
-            })
-          : await runSubprocess("python3", [resolvedPath], {
-              cwd: projectDir,
-              env: { ...process.env, CLAUDE_PROJECT_DIR: projectDir },
-              timeoutMs,
-            });
-      if (result.stdout) {
-        console.error(`hook-bridge: [session-start] ${name}:\n${result.stdout}`);
-      }
-      if (result.code !== 0) {
-        console.error(
-          `hook-bridge: [session-start] ${name} exited ${result.code}: ` +
-            (result.stderr || "").slice(-2000),
-        );
-      }
-    } catch (err) {
-      // Same posture as the missing-script case: informational-only, so
-      // a spawn failure here is logged, not fatal.
-      console.error(`hook-bridge: [session-start] could not run ${name}: ${err.message}`);
-    }
-  }
+  await Promise.all(scripts.map((script) => runOneSessionStartScript(script, projectDir)));
 }
 
 // -----------------------------------------------------------------------
