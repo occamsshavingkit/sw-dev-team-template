@@ -25,6 +25,14 @@
 # in this file — Part B invokes the plugin module directly with a
 # PluginInput stub (see opencode-bridge-invoke.mjs's header comment).
 #
+# B14-B17 (added by the S1 test-gap closure, 2026-07-25) exercise
+# hook-bridge.js's SESSION_STATE_CAP=10000 FIFO bounded-eviction fix
+# (finding S1, commit 1368fab) against the REAL cap — see the block
+# comment immediately above B14 in Part B for why that is fast enough
+# to run on every invocation of this suite, and why B17 is recorded via
+# `record_finding` (printed loudly, does not affect this script's exit
+# code) rather than `record_pass`/`record_fail`.
+#
 # Usage:
 #   tests/hooks/test-opencode-hook-bridge.sh
 
@@ -40,7 +48,9 @@ export CLAUDE_PROJECT_DIR="$REPO_ROOT"
 pass=0
 fail=0
 skip=0
+findings=0
 failures=()
+finding_notes=()
 
 record_pass() {
     pass=$((pass + 1))
@@ -62,6 +72,24 @@ record_skip() {
     if [ -n "${2:-}" ]; then
         printf '      %s\n' "$2"
     fi
+}
+
+# record_finding — for a behavior that is executable-verified but is a
+# DISPOSITION QUESTION for tech-lead / security-engineer, not a simple
+# pass/fail regression: the code under test already documents the
+# behavior in-line as an accepted-but-unverified residual risk (see
+# hook-bridge.js's trackSessionAndEvictIfOverCap comment), and this
+# check turns that from "the implementer's inline reasoning" into "an
+# executable, reproduced fact" (the exact gap the S1 security
+# re-assessment flagged). Deliberately NOT `record_fail`: folding an
+# open disposition question into the hard-fail/exit-1 count would make
+# this suite block on a decision this file cannot make. Deliberately
+# NOT `record_skip` either: the behavior WAS exercised, not bypassed.
+# Printed loudly in its own summary block below so it cannot be missed.
+record_finding() {
+    findings=$((findings + 1))
+    finding_notes+=("$1")
+    printf 'FINDING  %s\n' "$1"
 }
 
 # run_node_steps <steps-json> — invokes the real bridge with a fresh Hooks
@@ -585,6 +613,212 @@ EOF
     else
         record_fail "top-level-session safety: session.updated must not grant a top-level session a specialist bypass" "step3_verdict=$step3_verdict sent_agent_type=$sent_agent_type"
     fi
+
+    # ---- B14-B17: S1 bounded eviction (finding S1, fixed in 1368fab) --
+    #
+    # hook-bridge.js's SESSION_STATE_CAP=10000 FIFO cap on sessionParent /
+    # sessionAgent / handledIdleSessions had ZERO executable coverage
+    # before this task: the "verified fail-safe" claim in 1368fab's
+    # commit message rested on the implementing engineer's one-off manual
+    # run (cap forced to 3 in a scratch copy) and the code's own inline
+    # reasoning, not on anything in this suite that would catch a
+    # regression. B14-B17 close that gap.
+    #
+    # SESSION_STATE_CAP is NOT overridable for testing (no env var / CLI
+    # flag / constructor option) and hook-bridge.js is out of scope to
+    # edit here (qa-engineer flagged the option; see this task's return
+    # for the routed recommendation). That turned out not to matter:
+    # empirically measured (2026-07-25), replaying 10,001 session.created
+    # events for CHILD sessions (info.parentID set) against the REAL cap
+    # takes well under a second. session.created's early
+    # `if (info.parentID) return;` (see the event handler below
+    # trackSessionAndEvictIfOverCap) means a child session's
+    # session.created does NOT reach runSessionStartSet's four
+    # subprocess spawns -- only a PARENT-less/top-level session.created
+    # does. So B14-B17 fill the ledger with cheap child-session
+    # session.created events and reserve real subprocess-backed
+    # tool-before / session.idle calls for the handful of sessions each
+    # scenario actually needs to observe. No source change was needed to
+    # exercise the real 10,000 cap at test-suite speed.
+
+    # ---- B14: eviction is FIFO, oldest-first (property: "eviction
+    # happens at the cap"), and the evicted session degrades fail-safe
+    # (property: "eviction degrades fail-safe") -- same wire-payload-not-
+    # just-verdict pattern as B11. 10,001 distinct sessions is exactly
+    # ONE over SESSION_STATE_CAP: the FIRST session ever tracked
+    # ("s14-oldest") must be the one evicted, while the SECOND
+    # ("s14-second") must survive -- proving oldest-first order, not
+    # "some session", not newest, not random.
+    steps=$(python3 - <<'PY'
+import json
+steps = []
+steps.append({"kind":"event","event":{"type":"session.created","properties":{"sessionID":"s14-oldest","info":{"id":"s14-oldest","parentID":"s14-parent","agent":"software-engineer"}}}})
+steps.append({"kind":"event","event":{"type":"session.created","properties":{"sessionID":"s14-second","info":{"id":"s14-second","parentID":"s14-parent","agent":"software-engineer"}}}})
+for i in range(9998):
+    sid = f"s14-filler-{i}"
+    steps.append({"kind":"event","event":{"type":"session.created","properties":{"sessionID":sid,"info":{"id":sid,"parentID":"s14-parent"}}}})
+steps.append({"kind":"event","event":{"type":"session.created","properties":{"sessionID":"s14-trigger","info":{"id":"s14-trigger","parentID":"s14-parent"}}}})
+steps.append({"kind":"tool-before","tool":"write","sessionID":"s14-oldest","args":{"filePath":"scripts/foo.sh","content":"x"}})
+steps.append({"kind":"tool-before","tool":"write","sessionID":"s14-second","args":{"filePath":"scripts/foo.sh","content":"x"}})
+print(json.dumps(steps))
+PY
+)
+    payload_log=$(mktemp)
+    shim_dir=$(mk_pathshim "$payload_log")
+    result=$(printf '%s' "$steps" | PATH="$shim_dir:$PATH" node "$INVOKER" run "$PLUGIN" 2>/dev/null)
+    rm -rf "$shim_dir"
+    verdict_oldest=$(printf '%s' "$result" | tail -n 2 | head -n1 | python3 -c "import json,sys; print(json.load(sys.stdin)['verdict'])" 2>/dev/null)
+    verdict_second=$(printf '%s' "$result" | tail -n 1 | python3 -c "import json,sys; print(json.load(sys.stdin)['verdict'])" 2>/dev/null)
+    agent_oldest=$(grep "^tech-lead-authoring-guard.py	" "$payload_log" | sed -n '1p' | cut -f2- \
+        | python3 -c "import json,sys; print(json.load(sys.stdin).get('agent_type', '<ABSENT>'))" 2>/dev/null)
+    agent_second=$(grep "^tech-lead-authoring-guard.py	" "$payload_log" | sed -n '2p' | cut -f2- \
+        | python3 -c "import json,sys; print(json.load(sys.stdin).get('agent_type', '<ABSENT>'))" 2>/dev/null)
+    rm -f "$payload_log"
+    if [ "$verdict_oldest" = "throw" ] && [ "$agent_oldest" = "<ABSENT>" ] \
+        && [ "$verdict_second" = "proceed" ] && [ "$agent_second" = "software-engineer" ]; then
+        record_pass "S1 bounded eviction: the 10,001st distinct session pushes the ledger one over SESSION_STATE_CAP -- the FIRST-tracked session (s14-oldest) is evicted and its later guarded write throws with agent_type genuinely ABSENT from the wire payload (fail-safe degrade), while the SECOND-tracked session (s14-second) survives with agent_type=software-engineer intact on the wire -- confirms FIFO oldest-first eviction against the real SESSION_STATE_CAP=10000, not a stand-in"
+    else
+        record_fail "S1 bounded eviction: FIFO oldest-first + fail-safe degrade" \
+            "verdict_oldest=$verdict_oldest agent_oldest=$agent_oldest verdict_second=$verdict_second agent_second=$agent_second"
+    fi
+
+    # ---- B15: the cap boundary is exact (property: "live and recent
+    # sessions are untouched"), off-by-one check. Exactly
+    # SESSION_STATE_CAP (10000) distinct sessions tracked -- NOT one
+    # over -- must evict NOTHING. The very first session tracked
+    # ("s15-oldest") is the one most exposed by a `<` vs `<=` off-by-one
+    # bug; it must still forward its agent_type and proceed, and no
+    # eviction log line may appear at all.
+    steps=$(python3 - <<'PY'
+import json
+steps = []
+steps.append({"kind":"event","event":{"type":"session.created","properties":{"sessionID":"s15-oldest","info":{"id":"s15-oldest","parentID":"s15-parent","agent":"software-engineer"}}}})
+for i in range(9999):
+    sid = f"s15-filler-{i}"
+    steps.append({"kind":"event","event":{"type":"session.created","properties":{"sessionID":sid,"info":{"id":sid,"parentID":"s15-parent"}}}})
+steps.append({"kind":"tool-before","tool":"write","sessionID":"s15-oldest","args":{"filePath":"scripts/foo.sh","content":"x"}})
+print(json.dumps(steps))
+PY
+)
+    stderr_log=$(mktemp)
+    payload_log=$(mktemp)
+    shim_dir=$(mk_pathshim "$payload_log")
+    result=$(printf '%s' "$steps" | PATH="$shim_dir:$PATH" node "$INVOKER" run "$PLUGIN" 2>"$stderr_log")
+    rm -rf "$shim_dir"
+    verdict=$(printf '%s' "$result" | tail -n 1 | python3 -c "import json,sys; print(json.load(sys.stdin)['verdict'])" 2>/dev/null)
+    sent_agent_type=$(grep "^tech-lead-authoring-guard.py	" "$payload_log" | head -1 | cut -f2- \
+        | python3 -c "import json,sys; print(json.load(sys.stdin).get('agent_type', '<ABSENT>'))" 2>/dev/null)
+    evictions=$(grep -c "session-state cap" "$stderr_log" 2>/dev/null || true)
+    rm -f "$payload_log" "$stderr_log"
+    if [ "$verdict" = "proceed" ] && [ "$sent_agent_type" = "software-engineer" ] && [ "${evictions:-0}" = "0" ]; then
+        record_pass "S1 bounded eviction: exactly SESSION_STATE_CAP (10000) distinct sessions tracked -> NO eviction logged (boundary is <= cap, not < cap), and the earliest-tracked session's agent_type is still forwarded on the wire and its write still proceeds -- a live/recent session is never punished just for being oldest while still within the cap"
+    else
+        record_fail "S1 bounded eviction: exact-cap boundary (no eviction at size == cap)" \
+            "verdict=$verdict sent_agent_type=$sent_agent_type evictions_logged=${evictions:-0}"
+    fi
+
+    # ---- B16: eviction is ATOMIC across all three ledgers (property:
+    # "all three structures evict together" -- this task's brief calls
+    # this "the property that actually matters"). For ONE evicted CHILD
+    # session, in ONE steps run, observe evidence of all three
+    # structures losing that sessionID TOGETHER: sessionAgent gone
+    # (agent_type absent on a later guarded write), sessionParent gone
+    # (its session.idle, correctly routed to
+    # handoff-subagent-stop-gate.py BEFORE eviction, mis-routes to
+    # handoff-stop-gate.py AFTER eviction -- the parentID lookup now
+    # returns undefined), and handledIdleSessions gone (that second
+    # session.idle triggers a gate call AT ALL instead of being
+    # suppressed as an already-handled duplicate). hook-bridge.js's
+    # trackSessionAndEvictIfOverCap deletes from all three Maps/Sets in
+    # the same synchronous call, so all three signals must appear
+    # together for the SAME session -- if a future change evicted only
+    # one or two of the three (drift), this test's before/after signals
+    # would stop lining up (e.g. the post-eviction idle would still
+    # route correctly, or would still be suppressed).
+    steps=$(python3 - <<'PY'
+import json
+steps = []
+steps.append({"kind":"event","event":{"type":"session.created","properties":{"sessionID":"s16-victim","info":{"id":"s16-victim","parentID":"s16-parent","agent":"software-engineer"}}}})
+steps.append({"kind":"event","event":{"type":"session.idle","properties":{"sessionID":"s16-victim"}}})
+for i in range(9999):
+    sid = f"s16-filler-{i}"
+    steps.append({"kind":"event","event":{"type":"session.created","properties":{"sessionID":sid,"info":{"id":sid,"parentID":"s16-parent2"}}}})
+steps.append({"kind":"event","event":{"type":"session.created","properties":{"sessionID":"s16-trigger","info":{"id":"s16-trigger","parentID":"s16-parent2"}}}})
+steps.append({"kind":"event","event":{"type":"session.idle","properties":{"sessionID":"s16-victim"}}})
+steps.append({"kind":"tool-before","tool":"write","sessionID":"s16-victim","args":{"filePath":"scripts/foo.sh","content":"x"}})
+print(json.dumps(steps))
+PY
+)
+    payload_log=$(mktemp)
+    shim_dir=$(mk_pathshim "$payload_log")
+    result=$(printf '%s' "$steps" | PATH="$shim_dir:$PATH" node "$INVOKER" run "$PLUGIN" 2>/dev/null)
+    rm -rf "$shim_dir"
+    verdict=$(printf '%s' "$result" | tail -n 1 | python3 -c "import json,sys; print(json.load(sys.stdin)['verdict'])" 2>/dev/null)
+    sent_agent_type=$(grep "^tech-lead-authoring-guard.py	" "$payload_log" | head -1 | cut -f2- \
+        | python3 -c "import json,sys; print(json.load(sys.stdin).get('agent_type', '<ABSENT>'))" 2>/dev/null)
+    subagent_gate_calls=$(grep -c "^handoff-subagent-stop-gate.py	" "$payload_log" 2>/dev/null || true)
+    main_gate_calls=$(grep -c "^handoff-stop-gate.py	" "$payload_log" 2>/dev/null || true)
+    rm -f "$payload_log"
+    if [ "$verdict" = "throw" ] && [ "$sent_agent_type" = "<ABSENT>" ] \
+        && [ "${subagent_gate_calls:-0}" = "1" ] && [ "${main_gate_calls:-0}" = "1" ]; then
+        record_pass "S1 bounded eviction is ATOMIC across sessionParent/sessionAgent/handledIdleSessions: for the same evicted child session, the pre-eviction session.idle correctly ran handoff-subagent-stop-gate.py once (sessionParent intact then); AFTER eviction, a guarded write loses agent_type (sessionAgent gone) and a repeat session.idle re-fires at all (handledIdleSessions gone) but is mis-routed to handoff-stop-gate.py because sessionParent is ALSO gone -- all three ledgers lost this sessionID together, none survived alone (no drift)"
+    else
+        record_fail "S1 bounded eviction: all three ledgers evict together (no drift)" \
+            "verdict=$verdict sent_agent_type=$sent_agent_type subagent_gate_calls=${subagent_gate_calls:-0} main_gate_calls=${main_gate_calls:-0}"
+    fi
+
+    # ---- B17: FINDING, not a plain pass/fail -- "does idempotency
+    # survive eviction?" hook-bridge.js's trackSessionAndEvictIfOverCap
+    # comment already NAMES this exact risk as an accepted-but-unverified
+    # trade-off ("a subsequent session.idle for it could re-run its
+    # Stop/SubagentStop gate"). This check makes it EXECUTABLE rather
+    # than leaving it as inline reasoning: a top-level (parentless)
+    # session's session.idle is correctly deduped the FIRST time it
+    # repeats (handledIdleSessions suppresses a genuine re-fire, per the
+    # ADR's documented double-fire spike finding) -- but once that
+    # sessionID ages out of the FIFO cap, handledIdleSessions forgets it
+    # too, and a LATER session.idle for the SAME sessionID re-runs
+    # handoff-stop-gate.py a SECOND time.
+    #
+    # Confirmed (2026-07-25, this task) this is a REGRESSION introduced
+    # BY the S1 fix, not pre-existing: replaying the identical steps
+    # against the pre-S1 hook-bridge.js (commit 1368fab~1, restored only
+    # for this one-off differential check, not committed) calls
+    # handoff-stop-gate.py exactly once for the same session -- there is
+    # nothing to evict pre-S1, so there is nothing to forget.
+    #
+    # Recorded via record_finding, NOT record_fail: the assertion below
+    # checks the SAFE property (at-most-once) and is expected to FAIL
+    # against the current implementation, but folding an open residual-
+    # risk disposition into this suite's hard-fail/exit-1 count would
+    # make the suite block on a decision this file cannot make (accept
+    # the documented residual risk vs. fix the eviction policy) -- that
+    # decision belongs to tech-lead / security-engineer. See this task's
+    # qa-engineer return (2026-07-25) for the full write-up.
+    steps=$(python3 - <<'PY'
+import json
+steps = []
+steps.append({"kind":"event","event":{"type":"session.created","properties":{"sessionID":"s17-main","info":{"id":"s17-main"}}}})
+steps.append({"kind":"event","event":{"type":"session.idle","properties":{"sessionID":"s17-main"}}})
+for i in range(9999):
+    sid = f"s17-filler-{i}"
+    steps.append({"kind":"event","event":{"type":"session.created","properties":{"sessionID":sid,"info":{"id":sid,"parentID":"s17-parent"}}}})
+steps.append({"kind":"event","event":{"type":"session.created","properties":{"sessionID":"s17-trigger","info":{"id":"s17-trigger","parentID":"s17-parent"}}}})
+steps.append({"kind":"event","event":{"type":"session.idle","properties":{"sessionID":"s17-main"}}})
+print(json.dumps(steps))
+PY
+)
+    payload_log=$(mktemp)
+    shim_dir=$(mk_pathshim "$payload_log")
+    printf '%s' "$steps" | PATH="$shim_dir:$PATH" node "$INVOKER" run "$PLUGIN" >/dev/null 2>/dev/null
+    rm -rf "$shim_dir"
+    stop_gate_calls=$(grep -c "^handoff-stop-gate.py	" "$payload_log" 2>/dev/null || true)
+    rm -f "$payload_log"
+    if [ "${stop_gate_calls:-0}" = "1" ]; then
+        record_pass "S1 idempotency survives eviction: handoff-stop-gate.py still ran at most once across a pre- and post-eviction session.idle pair for the same sessionID"
+    else
+        record_finding "S1 residual risk (named in hook-bridge.js's trackSessionAndEvictIfOverCap comment as accepted-but-unverified; now CONFIRMED reproducible by this test): handledIdleSessions is evicted on the same FIFO clock as sessionParent/sessionAgent, so once a sessionID ages out of SESSION_STATE_CAP=10000, a LATER session.idle for that SAME sessionID is no longer deduped -- handoff-stop-gate.py ran ${stop_gate_calls:-0} time(s) for one sessionID (expected at most 1 -- idempotency violated). Verified this is a REGRESSION introduced BY the S1 fix itself: replaying identical steps against the pre-S1 hook-bridge.js (1368fab~1) calls the gate exactly once, since nothing is ever evicted there. B16 above additionally shows this compounds with mis-routing (child sessions re-fire the WRONG gate, not just twice). Needs tech-lead / security-engineer disposition: formally accept as documented residual risk (promote from code comment to the security assessment's residual-risk register), or fix (e.g. do not evict handledIdleSessions on the same clock as sessionParent/sessionAgent, or accept unbounded growth for that one Set alone since session IDs, not full objects, are cheap to retain)."
+    fi
 fi
 
 # ===========================================================================
@@ -592,7 +826,14 @@ fi
 # ===========================================================================
 
 echo
-echo "test-opencode-hook-bridge: $pass passed, $fail failed, $skip skipped."
+echo "test-opencode-hook-bridge: $pass passed, $fail failed, $skip skipped, $findings finding(s) open."
+if [ "$findings" -gt 0 ]; then
+    echo
+    echo "OPEN FINDINGS (executable-verified, not pass/fail -- needs tech-lead / security-engineer disposition):"
+    for f in "${finding_notes[@]}"; do
+        echo "  - $f"
+    done
+fi
 if [ "$fail" -gt 0 ]; then
     echo
     echo "Failures:"
