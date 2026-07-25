@@ -4,22 +4,31 @@
 
 - [1. Identification](#1-identification)
 - [2. Scope and method](#2-scope-and-method)
-- [3. Original review record — commit 6244214](#3-original-review-record--commit-6244214)
+- [3. Original review record — commit 6244214](#3-original-review-record-commit-6244214)
   - [3.1 Items verified correct](#31-items-verified-correct)
   - [3.2 Findings raised](#32-findings-raised)
   - [3.3 Original ship recommendation](#33-original-ship-recommendation)
-- [4. This pass — review of the five commits since](#4-this-pass--review-of-the-five-commits-since)
-  - [4.1 ac5d005 — close W1/W2](#41-ac5d005--close-w1w2)
-  - [4.2 65349ea — close H-1(b)/M-2](#42-65349ea--close-h-1bm-2)
-  - [4.3 c4bc456 — close the session.updated privilege escalation](#43-c4bc456--close-the-sessionupdated-privilege-escalation)
-  - [4.4 1368fab — S1 bounded eviction](#44-1368fab--s1-bounded-eviction)
-  - [4.5 ab1d952 — S2, decouple handledIdleSessions eviction](#45-ab1d952--s2-decouple-handledidlesessions-eviction)
+- [4. This pass — review of the five commits since](#4-this-pass-review-of-the-five-commits-since)
+  - [4.1 ac5d005 — close W1/W2](#41-ac5d005-close-w1w2)
+  - [4.2 65349ea — close H-1(b)/M-2](#42-65349ea-close-h-1bm-2)
+  - [4.3 c4bc456 — close the session.updated privilege escalation](#43-c4bc456-close-the-sessionupdated-privilege-escalation)
+  - [4.4 1368fab — S1 bounded eviction](#44-1368fab-s1-bounded-eviction)
+  - [4.5 ab1d952 — S2, decouple handledIdleSessions eviction](#45-ab1d952-s2-decouple-handledidlesessions-eviction)
 - [5. Findings register (this pass)](#5-findings-register-this-pass)
 - [6. Independent verification performed](#6-independent-verification-performed)
 - [7. Out-of-scope commits still lacking a durable review record](#7-out-of-scope-commits-still-lacking-a-durable-review-record)
 - [8. Disposition](#8-disposition)
 - [9. Record of review](#9-record-of-review)
-- [10. References](#10-references)
+- [10. This pass — review of four commits since `ab1d952`](#10-this-pass-review-of-four-commits-since-ab1d952)
+  - [10.1 `4dcb41a` — negative-corpus sub-gate now runs both harness modes](#101-4dcb41a-negative-corpus-sub-gate-now-runs-both-harness-modes)
+  - [10.2 `edfb485` — new `hook-exec-bits` sub-gate](#102-edfb485-new-hook-exec-bits-sub-gate)
+  - [10.3 `62f59f6` — B14-B17 and the `record_finding()` bucket](#103-62f59f6-b14-b17-and-the-record_finding-bucket)
+  - [10.4 `f054c90` — route `session.updated` through the ledger, repair `sessionParent`](#104-f054c90-route-sessionupdated-through-the-ledger-repair-sessionparent)
+- [11. Findings register (this pass)](#11-findings-register-this-pass)
+- [12. Independent verification performed (this pass)](#12-independent-verification-performed-this-pass)
+- [13. Addendum (dated 2026-07-25, this pass) — correction to § 9](#13-addendum-dated-2026-07-25-this-pass-correction-to-9)
+- [14. Disposition (this pass)](#14-disposition-this-pass)
+- [15. References](#15-references)
 
 <!-- /TOC -->
 
@@ -566,6 +575,8 @@ independent-verification step, § 6). Not a blocking condition for
 this filing's own disposition (§ 8), which is scoped to the five
 commits this task named.
 
+**Update (this pass, § 10).** `4dcb41a`, `edfb485`, and `62f59f6` are now reviewed in § 10.1-§ 10.3, along with `f054c90` (landed after this document's first filing). `725b5a6`, `a7420dd`, and `62ac407` remain intentionally out of scope as prose/ADR artefacts, not code — see § 14 for the updated disposition.
+
 ---
 
 ## 8. Disposition
@@ -630,7 +641,502 @@ Hard Rule #7 dependency chain this filing is meant to unblock.
 
 ---
 
-## 10. References
+## 10. This pass — review of four commits since `ab1d952`
+
+Trigger: same as § 1 — Hard Rule #3, extended to the four commits in
+`6244214..HEAD` that were named-but-not-reviewed in § 7 of the prior
+filing (`4dcb41a`, `edfb485`, `62f59f6`) plus `f054c90`, which landed
+after this document's own first filing (`16f1475`) and fixes this
+document's own § 5 finding CR-OPENCODE-HOOK-BRIDGE-0001. `725b5a6`
+(ADR narrative), `a7420dd` (security-template rebuild), and `62ac407`
+(the security assessment itself) remain out of this reviewer's scope —
+prose/ADR artefacts, not code.
+
+**Method.** Same as § 2: full read of each diff against its own commit
+message, independent execution (not trust) of every claim that could be
+checked, and mutation testing (introduce the regression the fix targets,
+confirm the *specific* tests named as load-bearing fail and only those,
+restore, confirm `md5sum` byte-identical) on every commit whose message
+asserted a test was load-bearing. Working tree at review time: `f054c90`
+(clean, unpushed, `feat/opencode-hook-bridge`).
+
+### 10.1 `4dcb41a` — negative-corpus sub-gate now runs both harness modes
+
+**Claim.** `scripts/lib/gate-hook-negative-corpus.sh` previously invoked
+the driver as `--all` only; the OpenCode round-trip mode (`--all
+--harness opencode`) was untested by the release gate. The fix runs
+both modes unconditionally, accumulates a failure counter, and names
+which mode failed.
+
+**Verified.** Read `scripts/lib/gate-hook-negative-corpus.sh` in full at
+HEAD (74 lines) — matches the commit message exactly: `failures=0`,
+two `if ! "$driver" ...; then failures=$((failures+1)); fi` blocks with
+no short-circuit between them, `[ "$failures" -gt 0 ]` at the end.
+Traced the masking question against `gate_run_one` in
+`scripts/lib/gate-runner.sh:65-91`: each sub-gate runs inside `(
+"gate_subgate_${name}" )`, a fresh subshell per invocation, so the
+unqualified (non-`local`) `failures`/`driver` globals inside
+`gate_subgate_hook-negative-corpus` cannot leak into or collide with
+any other sub-gate's own globals across the sequential dispatch loop —
+not a defect.
+
+Independently reproduced, not just read: sourced the function in
+isolation against two stub drivers (one failing only in
+`--harness opencode` mode, one failing only in plain `--all` mode).
+Both orders confirmed: neither invocation's result masks the other's,
+both failure labels are attributed to the mode that actually failed
+(not a static/decorative string — verified by making each mode fail
+independently and checking the label printed matches), and the
+sub-gate's own exit code is `1` in both cases, `0` only when both stub
+invocations pass. Re-ran the real driver at HEAD in both modes
+directly (not through the gate): `run-negative-corpus.sh --all` → 40
+pass/0 fail; `run-negative-corpus.sh --all --harness opencode` → 40
+pass/0 fail; `pre-release-gate.sh --only hook-negative-corpus` → PASS.
+
+**Gap found (not a defect in the logic itself).** Neither
+`tests/release-gate/test-gate-fail-each.sh` (the project's own
+per-sub-gate "deliberately break it, assert it surfaces in the failing
+list" regression harness) nor any other persisted test exercises this
+sub-gate's dual-mode/attribution behaviour. The only verification on
+record is the commit message's own manual stub run, which this review
+independently reproduced (above) but which is not wired to run again
+automatically. See CR-OPENCODE-HOOK-BRIDGE-0005, § 11 — this gap is
+shared with `edfb485` and is part of a wider, pre-existing pattern
+(`mirror-current`, `version-stamp`, and `opencode-hook-parity` are
+likewise absent from that harness), not a regression newly introduced
+by this commit specifically.
+
+**Assessment: no findings against the logic itself.** The
+masking/attribution behaviour is correct and independently confirmed,
+not merely asserted. **One shared coverage-gap finding raised, § 11.**
+
+### 10.2 `edfb485` — new `hook-exec-bits` sub-gate
+
+**Claim.** New `scripts/verify-hook-executable-bits.sh` (registered via
+`scripts/lib/gate-hook-exec-bits.sh`) parses `.claude/settings.json` for
+every `[ -x "${CLAUDE_PROJECT_DIR:-.}/<path>" ]`-guarded hook reference
+and asserts each named script is present and executable — closing the
+class of bug the `role-routing-reminder.sh` incident (`725b5a6`)
+exposed: a hook committed non-executable under that guard idiom fails
+the `-x` test, short-circuits, and `|| true` returns 0, indistinguishable
+from "ran and had nothing to say."
+
+**Verified as documented.** `git show HEAD:.claude/settings.json` — all
+four `[ -x ... ]`-guarded hooks
+(`version-check.sh`, `atomic-question-reminder.sh`,
+`role-routing-reminder.sh`, `post-compact-refresh.sh`) use the exact
+literal idiom the driver's `GUARD_RE`
+(`scripts/verify-hook-executable-bits.sh:106-108`) matches. Re-ran the
+driver standalone and via the gate: both PASS, `4` guarded scripts
+found. The "refuse to pass trivially on zero guarded refs found" guard
+(`:129-138`) is present and sound as a defense against the parser
+itself silently breaking. The stated scope decision — excluding the
+unconditional `python3 "<path>"` hooks, since those fail loudly on
+their own — is documented both in the commit message and inline
+(`scripts/verify-hook-executable-bits.sh:14-19`); **that decision is
+correctly reasoned and adequately documented.**
+
+**Finding — the parser's own blind spot reproduces the exact incident
+class it exists to prevent (per this task's explicit ask: "can a
+differently-formatted-but-equivalent wiring slip past it?").**
+`GUARD_RE` is a literal-string match on one specific spelling of the
+guard idiom. Independently reproduced: constructed a settings file with
+one hook wired via the shipped `[ -x ... ]` form (present, executable)
+and a second, deliberately non-existent/non-executable hook wired via
+the POSIX-equivalent `test -x "<path>" && "<path>" ... || true` idiom —
+semantically identical, a completely ordinary sh alternative to `[
+-x ]`. The driver reported **PASS**, naming only the one hook it
+matched, with no error, warning, or count mismatch flagging that a
+second guarded reference existed and was skipped. This is not a
+contrived edge case: `test -x` and `[ -x` are interchangeable POSIX
+idioms and a future hook author copying an existing OpenCode-adjacent
+script, a different internal convention, or even reflowed
+whitespace/quoting could reintroduce the silent-no-op class this gate
+was built specifically to catch, and the gate would say PASS. See
+CR-OPENCODE-HOOK-BRIDGE-0003, § 11.
+
+**Secondary, lower-severity finding.** Malformed `.claude/settings.json`
+(reproduced: a syntactically broken JSON file) produces an uncaught
+Python `JSONDecodeError` traceback on stderr and exit code `1` —
+colliding with the script's own documented exit code `1` ("violations
+found") rather than the documented exit code `2` ("usage / environment
+error", `scripts/verify-hook-executable-bits.sh:28-31`). Fails closed
+(the safe direction — the gate still FAILs), so not release-blocking,
+but the diagnostic is not the operator-facing message the rest of the
+script is careful to provide, and it violates the script's own
+documented exit-code contract. See CR-OPENCODE-HOOK-BRIDGE-0004, § 11.
+
+**Assessment: APPROVED WITH FINDINGS.** The sub-gate does what it
+claims for the wiring that exists today, and the scope decision is
+sound and documented. The parser's fragility to differently-phrased
+guard idioms is a real, reproduced gap in a piece of meta-tooling whose
+entire purpose is catching exactly this failure shape.
+
+### 10.3 `62f59f6` — B14-B17 and the `record_finding()` bucket
+
+**Claim.** Adds four scenarios (B14-B17) exercising `1368fab`'s
+`SESSION_STATE_CAP` FIFO eviction against the real cap (10,000), which
+had zero executable coverage before this commit. B17 is filed via a new
+`record_finding()` bucket — printed loudly, kept separate from
+pass/fail, does not flip the suite's exit code — because it reproduces
+a genuine, then-undisposed regression (`handledIdleSessions` evicting
+on the same clock as the identity maps) rather than asserting a
+property. B15 is explicitly self-labelled as "not load-bearing for S1's
+existence."
+
+**Independently verified, not trusted.** Ran the full suite at HEAD:
+40 passed, 0 failed, 0 findings (B17 has since flipped to a plain pass —
+`ab1d952` fixed the regression it reported, consistent with the prior
+filing's § 4.5). Mutation-tested this task's two explicit questions
+directly, rather than accepting the commit message's self-report:
+
+- **Neutralised `trackSessionAndEvictIfOverCap` entirely** (eviction
+  disabled process-wide, emulating pre-`1368fab` behaviour) and re-ran
+  the suite. Result: B14 (`S1 bounded eviction: FIFO oldest-first +
+  fail-safe degrade`) **fails**, the S2/B16 atomicity test **fails**,
+  B18 (`f054c90`'s own test, § 10.4) **fails** — all three require an
+  eviction to actually occur. B15 (`S1 bounded eviction: exactly
+  SESSION_STATE_CAP ... no eviction logged`) **still passes** — trivially
+  true whether or not eviction exists at all, since "no eviction at
+  exactly the cap boundary" holds vacuously when nothing ever evicts.
+  **The author's self-assessment is accurate**: B15 is an off-by-one
+  guard that only earns its keep once the cap exists, not proof the cap
+  exists. File restored via `git show HEAD:... >
+  .opencode/plugin/hook-bridge.js` immediately after; `md5sum`
+  confirmed byte-identical before/after both this and every other
+  mutation in this pass.
+- **B14 and B16 are genuinely load-bearing**, not passing by
+  coincidence — confirmed by the same mutation: both fail specifically
+  and only when the mechanism they claim to cover (FIFO eviction
+  existing at all; the two identity maps evicting together) is removed.
+
+**Finding — `record_finding()`'s design is defensible in isolation, but
+its safety net does not currently exist.** The bucket's own reasoning
+("disposition belongs to tech-lead / security-engineer, not to a test
+file") is sound, and folding an open policy question into a hard `exit
+1` would be the wrong call. But `tests/hooks/test-opencode-hook-bridge.sh`
+is not registered in `scripts/lib/gate-runner.sh` and is not invoked by
+any workflow under `.github/workflows/` (independently confirmed —
+`grep -rl test-opencode-hook-bridge .github/workflows/` returns nothing).
+`edfb485`'s own commit message discloses this as an open question
+("Worth deciding explicitly") rather than an oversight, which is to its
+credit, but the risk is not hypothetical: B17's finding was a *real*,
+same-branch regression that was caught only because a human happened to
+run this exact suite by hand and read the output; nothing would have
+surfaced it otherwise. "Prints loudly" currently means "prints loudly
+to whoever happens to invoke this one file directly." See
+CR-OPENCODE-HOOK-BRIDGE-0006, § 11.
+
+**Assessment: APPROVED WITH FINDINGS.** B14-B17 close a real,
+previously-unverified coverage gap, the load-bearing and
+not-load-bearing self-assessments are both independently confirmed
+accurate, and `record_finding()`'s separation-of-concerns design is
+sound. The gap is that nothing currently makes a finding visible
+outside a manual run of this one file.
+
+### 10.4 `f054c90` — route `session.updated` through the ledger, repair `sessionParent`
+
+The fix for this document's own CR-OPENCODE-HOOK-BRIDGE-0001, and the
+newest code in the branch. Reviewed hardest, per this task's brief.
+
+**The fix, read against the finding it closes.** Two sub-fixes in the
+`session.updated` handler
+(`.opencode/plugin/hook-bridge.js:1002-1032`), both run unconditionally
+before the pre-existing `if (!info.agent) return;` early-out:
+
+1. `trackSessionAndEvictIfOverCap(sessionID)` (line 1002) — the SAME
+   function `session.created` calls (line 867), not a parallel
+   reimplementation. Re-entry into `sessionInsertOrder` for an
+   evicted-then-resumed sessionID is exactly what CR-0001 asked for:
+   no permanent carve-out from the cap's accounting.
+2. `sessionParent` repair, write-only-when-absent
+   (`:1005-1019`) with retain-and-log on a later mismatch
+   (`:1020-1032`) — the same first-write-wins shape `session.created`
+   uses (`:886-900`), sourced from a second event type.
+
+**Interaction check 1 — does the ledger call interact correctly with
+the `has()`-guard and with `HANDLED_IDLE_SESSIONS_CAP`'s separate
+ledger?** Read `trackSessionAndEvictIfOverCap`
+(`.opencode/plugin/hook-bridge.js:680-701`): it touches only
+`sessionInsertOrder`/`sessionParent`/`sessionAgent`; it never reads or
+writes `handledIdleSessions`/`handledIdleInsertOrder`
+(`HANDLED_IDLE_SESSIONS_CAP`'s own ledger, `:664-669`), which is
+touched exclusively by `trackHandledIdleAndEvictIfOverCap` from the
+`session.idle` handler. Calling `trackSessionAndEvictIfOverCap` a
+second time (from `session.updated`, in addition to `session.created`)
+does not reach into the other cap's bookkeeping in any way — the two
+caps stay structurally independent, exactly as `ab1d952`'s S2 fix
+intended. The `has()`-guard (`sessionInsertOrder.has(sessionID)
+return;`, line 681) makes the call a true no-op for the overwhelming
+common case (an already-tracked, non-evicted session receiving a
+routine `session.updated`) — confirmed by reading, not just asserted:
+for such a session, `sessionInsertOrder.has(sessionID)` is `true`, so
+the function returns on its first line with zero further work, exactly
+as the commit's own inline reasoning claims (`:671-679`).
+
+**Interaction check 2 — does repairing `sessionParent` from a second
+event source create an ordering hazard with `session.created`'s
+first-write-wins path?** Both writers gate on the same predicate shape
+(`if (!sessionParent.has(sessionID))`), and `HookBridge`'s event
+handler is a single synchronous callback per event (`await`s inside it
+are for subprocess I/O, not concurrent event dispatch) — there is no
+interleaving within one event's handling, and OpenCode is not shown
+anywhere in this bridge's design to dispatch two events for the same
+plugin instance concurrently. Whichever of `session.created` /
+`session.updated` fires first for a given sessionID wins the write; the
+second one to arrive finds `sessionParent.has(sessionID)` already
+`true` and takes the retain-and-log branch. No race, no double-write,
+no ordering-dependent divergent outcome — confirmed by reading both
+write sites (`:886-900`, `:1004-1032`), which are structurally
+identical modulo which map (`sessionParent` only, vs. `sessionParent`
++ `sessionAgent`) each event type writes.
+
+**`c4bc456`'s privilege-escalation guarantee, re-checked, not assumed
+intact.** The `sessionAgent` FOLLOW write itself
+(`:1042-1058`) is unchanged by this diff — confirmed by diff read, not
+inference: `git show f054c90 -- .opencode/plugin/hook-bridge.js` shows
+only additions before and around it, no modified lines inside the
+FOLLOW block. `sessionParent` affects only Stop-vs-SubagentStop
+routing, never `agent_type`/the guard's write-bypass decision — verified
+by reading every read site of `sessionParent` in the file (one: the
+`session.idle` handler's `parentID = sessionParent.get(sessionID)` at
+`:1073`, feeding only the gate-name choice, never a guard payload).
+B12/B13 (the tests that specifically pin the FOLLOW fix) re-ran green.
+
+**Mutation-tested both sub-fixes independently, not trusted from the
+commit message.** Two separate mutations, each restored and confirmed
+`md5sum`-identical before continuing:
+1. Disabled the `trackSessionAndEvictIfOverCap(sessionID)` call alone.
+   Result: **exactly one test fails** — B18 — with
+   `total_evictions=1, resurrection_eviction=0` (the resurrection never
+   re-enters the ledger). Matches the commit message's claim exactly.
+2. Disabled the `sessionParent` repair write alone (left ledger
+   accounting intact). Result: **exactly one test fails** — B18 — with
+   `main_gate_calls=1, subagent_gate_calls=0, repaired_parent=0` (the
+   reviewer's exact original misroute, reproduced on demand). Matches
+   the commit message's claim exactly.
+
+Both confirm B18 is load-bearing for BOTH halves of the fix
+independently, not merely present.
+
+**Does B18's ~10,005-step scenario actually assert what it claims?**
+Traced its own internal accounting claim (`total_evictions=2`,
+`resurrection_eviction=1` naming `s18-filler-0` specifically) against
+`trackSessionAndEvictIfOverCap`'s eviction arithmetic by hand: 1
+victim + 10,000 fillers = 10,001 distinct sessionIDs tracked by the end
+of the fill loop, one over `SESSION_STATE_CAP` (10,000) — the FIRST
+eviction (of `s18-victim`, the oldest) fires exactly once, during the
+last filler's `session.created`. The subsequent `session.updated`
+resurrection re-adds `s18-victim`, pushing the ledger to 10,001 again,
+triggering a SECOND eviction of whatever is now oldest —
+`s18-filler-0`, the first filler, since `s18-victim` is no longer in
+the set to be re-evicted. This is not inferred from the test's own
+assertions; it was independently re-derived from the eviction
+function's own FIFO logic and matches what the test checks for. This
+is a materially stronger proof of ledger re-entry than checking
+"agent_type resurrected" alone would be (a resurrection could
+conceivably happen through some path that never touches the ledger at
+all, and a naive test would not catch that) — **the test earns the
+"not merely inferred" claim its own comment makes.** No coincidental-pass
+mechanism found: both mutation tests above independently confirm each
+half of the assertion block is necessary, and the hand-derived eviction
+arithmetic confirms the expected counts are not a copy-paste
+placeholder.
+
+**New finding, this pass — an adjacent gap B18 does not cover and is
+not claimed to cover.** Constructing a related-but-distinct scenario
+per this task's instruction to weight interactions: a session that
+already had **one** `session.idle` processed (so
+`handledIdleSessions` already contains its sessionID), which is later
+legitimately resumed via `session.updated` (exactly the threat model
+`c4bc456`, and this commit, both target), and then goes idle a
+**second** time — a genuinely new turn ending, not a spurious
+near-simultaneous double-fire, per the ADR's own framing that
+`session.idle` is a per-turn "Stop-equivalent," not a
+once-per-session-lifetime event (the bridge's own comment says so
+verbatim: `.opencode/plugin/hook-bridge.js:541-544`, "not 'this session
+will never be touched again'"). Independently reproduced (steps:
+`session.created` → `session.idle` → `session.updated` with a new
+agent → `session.idle` again, all for the same sessionID, no eviction
+needed): the SECOND `session.idle` is silently swallowed —
+`handoff-subagent-stop-gate.py` is called exactly once total, not
+twice, and neither gate fires for the second idle event. No log line
+distinguishes this from a correctly-deduped spurious double-fire; it is
+indistinguishable from success from the outside. Re-ran the identical
+steps against `ab1d952` (pre-`f054c90`) in a separate worktree: **same
+result** — this is confirmed pre-existing, not introduced by `f054c90`,
+and is a property of `handledIdleSessions`'s permanent (until the
+100,000-entry `HANDLED_IDLE_SESSIONS_CAP` evicts it) membership rather
+than anything this commit changes. It is flagged here rather than
+silently omitted because it sits directly adjacent to, and is not
+covered by, either B18 or the resumption-support design intent this
+whole commit cluster (`c4bc456`, `1368fab`, `ab1d952`, `f054c90`)
+exists to enable — a resumed session's *first* post-resume idle is now
+provably correctly routed (B18); its *second* is silently dropped, and
+nothing in the suite says so. See CR-OPENCODE-HOOK-BRIDGE-0002, § 11.
+
+**Assessment: the fix is correct, closes CR-0001 completely (both
+sub-halves independently confirmed load-bearing, no coincidental
+pass), and does not reopen or weaken `c4bc456`'s privilege-escalation
+guarantee.** **One new finding raised against the cumulative state at
+HEAD** — an adjacent, pre-existing, previously-undocumented gap
+surfaced by scrutinizing the same interaction space this fix lives in,
+not a defect in the fix itself.
+
+---
+
+## 11. Findings register (this pass)
+
+| ID | Severity | Description | Location | Status | Owner | Recommended follow-up |
+|---|---|---|---|---|---|---|
+| CR-OPENCODE-HOOK-BRIDGE-0002 | Medium | `handledIdleSessions` marks a sessionID as permanently handled the first time its `session.idle` fires (barring 100,000-entry-scale eviction). `session.idle` is documented in this bridge's own comments as a per-turn "Stop-equivalent," not a once-per-session-lifetime signal — so a session that goes idle once, is later legitimately resumed via `session.updated` (the exact scenario `c4bc456`/`1368fab`/`ab1d952`/`f054c90` collectively exist to support), and then goes idle again for a genuinely new turn has that second, legitimate lifecycle event silently dropped: neither `handoff-stop-gate.py` nor `handoff-subagent-stop-gate.py` runs, and no log line distinguishes this from a correctly-deduped spurious double-fire. Independently reproduced (§ 10.4) and confirmed pre-existing at `ab1d952` (not introduced by `f054c90`), but directly adjacent to, and uncovered by, `f054c90`'s own B18 test and this fix cluster's stated design intent to support session resumption. | `.opencode/plugin/hook-bridge.js:1062-1078` (session.idle handler, `handledIdleSessions.has()` dedup at `:1065`); interacts with `:515-527` (declaration), `:634-669` (S2's independent, larger cap) | **Open — new, this pass** | `software-engineer` (fix or explicit accept), `qa-engineer` (regression test if fixed), `security-engineer` (register in the assessment's residual-risk framing if disposition is accept) | Either (a) scope `handledIdleSessions`'s dedup to a single turn rather than a session's whole lifetime — e.g. clear (not just evict) a sessionID's entry when a `session.updated` resume is observed for it, so a legitimately new turn is not silently treated as a duplicate of an old one, or (b) explicitly extend the residual-risk framing to name this composite path (not just the base double-fire case the dedup was built for). Not release-blocking at Medium/session-count-and-resume-gated severity, but should be disposed rather than left implicit a second time. |
+| CR-OPENCODE-HOOK-BRIDGE-0003 | Medium | `scripts/verify-hook-executable-bits.sh`'s `GUARD_RE` matches only the literal `[ -x "${CLAUDE_PROJECT_DIR:-.}/<path>" ]` spelling of the exec-bit guard idiom. A semantically-identical, equally-idiomatic POSIX alternative (`test -x "<path>" && "<path>" ... \|\| true`) is invisible to it: independently reproduced with a settings file mixing one correctly-matched hook and one `test -x`-guarded, deliberately-missing/non-executable hook — the driver reported PASS, naming only the matched entry, with no warning that a second guarded reference existed and was skipped. This reproduces, inside the gate built specifically to prevent it, the same "non-executable/missing hook is indistinguishable from a hook that ran and had nothing to say" failure class the `role-routing-reminder.sh` incident this gate exists to catch. | `scripts/verify-hook-executable-bits.sh:106-108` (`GUARD_RE`) | **Open — new, this pass** | `software-engineer` (broaden detection or add a self-check) | Either broaden the regex to cover common equivalent forms (`test -x`, `[[ -x ]]`), or invert the approach: enumerate every script path referenced anywhere under `scripts/hooks/`-adjacent command strings in `hooks{}` and cross-check which the strict regex did *not* capture, failing loudly on any command string containing a `-x`-shaped test the regex didn't match (a canary against the parser itself silently falling out of sync with the idiom in use), rather than silently omitting anything it doesn't recognize. |
+| CR-OPENCODE-HOOK-BRIDGE-0004 | Low | `scripts/verify-hook-executable-bits.sh` has no `try`/`except` around `json.load()` (`:101`). A malformed `.claude/settings.json` produces an uncaught Python traceback on stderr and exit code `1` — colliding with the script's own documented meaning of exit `1` ("violations found") rather than the documented exit `2` ("usage / environment error", per the script's own header comment `:28-31`). Fails closed (safe direction; the gate still FAILs), so not release-blocking, but the diagnostic is not the operator-facing message the rest of the script is careful to provide, and it violates its own documented exit-code contract. | `scripts/verify-hook-executable-bits.sh:96-101` | **Open — new, this pass** | `software-engineer` | Wrap the `json.load()` call in a `try`/`except json.JSONDecodeError`, print an operator-facing message naming the settings path and the parse error, and exit `2` per the script's own documented contract. |
+| CR-OPENCODE-HOOK-BRIDGE-0005 | Low | Neither `4dcb41a`'s dual-mode negative-corpus attribution logic nor `edfb485`'s `hook-exec-bits` sub-gate has a persisted regression test in `tests/release-gate/test-gate-fail-each.sh` (the project's own "deliberately break one sub-gate, assert it surfaces in the failing list" harness, which already covers `worktree-clean`, `check-spdx`, `lint-contracts`, `advisory-pointers`, `upgrade-paths`, `readme-current`, `migrations-standalone`). Verification for both currently rests solely on the manual stub/mutation runs recorded in each commit's own message — independently reproduced accurate by this review (§ 10.1, § 10.2) — not on anything that re-runs automatically. Consistent with a pre-existing gap shared by `mirror-current`, `version-stamp`, and `opencode-hook-parity` (also absent from that harness), so not a novel regression uniquely introduced by these two commits, but a real, unaddressed gap on process-conformance-relevant logic (IEEE 1028 § 8: process/tooling conformance is itself an auditable surface). | `scripts/lib/gate-hook-negative-corpus.sh`, `scripts/lib/gate-hook-exec-bits.sh`, `scripts/verify-hook-executable-bits.sh`; absent from `tests/release-gate/test-gate-fail-each.sh` | **Open — new, this pass (shared, pre-existing pattern)** | `qa-engineer` | Add one fixture row per sub-gate to `test-gate-fail-each.sh` (or an equivalent dedicated harness for the `tests/hooks/*` family) — a low-cost, mechanical addition given the manual mutation procedure already exists in each commit message as a ready-made template. |
+| CR-OPENCODE-HOOK-BRIDGE-0006 | Medium | `record_finding()` (`62f59f6`)'s separation from pass/fail is a sound design in isolation (a test file should not unilaterally decide a disposition question), but its "prints loudly" safety net is currently backed by zero automated invocation: `tests/hooks/test-opencode-hook-bridge.sh` is registered in neither `scripts/lib/gate-runner.sh` nor any `.github/workflows/*.yml` (independently confirmed by search). `edfb485`'s own commit message discloses this as an open, undecided policy question rather than an oversight — but the risk already materialized once on this same branch: B17's finding (the S1/S2 `handledIdleSessions` regression) was a genuine, undisposed defect that was caught only because a human happened to run this one file by hand and read its output; nothing in CI or the release gate would have surfaced it. | `tests/hooks/test-opencode-hook-bridge.sh:74-92` (`record_finding`); cross-ref `scripts/lib/gate-runner.sh` (no registration), `.github/workflows/*.yml` (no invocation) | **Open — escalating an already-disclosed open question, this pass** | `tech-lead` (disposition owner per `edfb485`'s own framing), `release-engineer` (gate registration if the disposition is "wire it in") | Resolve the open question `edfb485` raised, rather than deferring it further. A registration that preserves `record_finding()`'s own principle (a test file should not decide disposition) while still preventing an un-triaged finding from shipping silently: gate on `findings == 0` (or `fail == 0`) without folding the *substance* of an open finding into a hard pass/fail assertion. |
+
+No Critical or High findings against the four reviewed commits. Every
+prior contract this document's earlier passes verified (verdict
+translation, fail-open/fail-closed split, first-deny-wins ordering,
+the `session.created`/`session.updated` RETAIN/FOLLOW asymmetry,
+`scripts/hooks/` untouched) remains intact — independently re-confirmed
+in § 12, not merely carried forward by assumption.
+
+---
+
+## 12. Independent verification performed (this pass)
+
+| Check | Result |
+|---|---|
+| `node --check .opencode/plugin/hook-bridge.js` | OK |
+| `tests/hooks/test-opencode-hook-bridge.sh` | 40 passed, 0 failed, 0 skipped, 0 findings |
+| `tests/hooks/run-negative-corpus.sh --all` | 40 pass, 0 fail |
+| `tests/hooks/run-negative-corpus.sh --all --harness opencode` | 40 pass, 0 fail |
+| `scripts/pre-release-gate.sh --only hook-negative-corpus` | PASS |
+| `scripts/pre-release-gate.sh --only hook-exec-bits` | PASS |
+| `scripts/verify-hook-executable-bits.sh` (standalone) | PASS — 4 guarded scripts found |
+| Stub test: `gate-hook-negative-corpus.sh` dual-mode masking, opencode-only failure | Correctly attributed, exit 1, claude-mode label absent |
+| Stub test: `gate-hook-negative-corpus.sh` dual-mode masking, claude-only failure | Correctly attributed, exit 1, opencode-mode label absent |
+| Repro: `test -x`-guarded, nonexistent/non-executable hook vs. shipped `[ -x ]` regex | Driver reports PASS, second hook silently uncounted (CR-0003) |
+| Repro: malformed `.claude/settings.json` | Uncaught `JSONDecodeError` traceback, exit 1 (CR-0004) |
+| Mutation: disable `trackSessionAndEvictIfOverCap()` entirely (pre-1368fab emulation) | B14 fails, S2/B16 fails, B18 fails, B15 still passes (author's "not load-bearing" self-assessment confirmed); `md5sum` byte-identical after restore |
+| Mutation: disable `f054c90`'s ledger-accounting call in `session.updated` only | Exactly B18 fails, `total_evictions=1 resurrection_eviction=0`; `md5sum` byte-identical after restore |
+| Mutation: disable `f054c90`'s `sessionParent` repair write only | Exactly B18 fails, `main_gate_calls=1 subagent_gate_calls=0 repaired_parent=0` (reviewer's original misroute reproduced); `md5sum` byte-identical after restore |
+| Repro: second `session.idle` after a `session.updated` resume, no eviction involved | Second idle silently swallowed (CR-0002); identical result reproduced against `ab1d952` in a separate worktree — confirmed pre-existing, not introduced by `f054c90` |
+| `git diff --name-only 16f1475..HEAD -- scripts/hooks/` | Empty — `scripts/hooks/` untouched since the prior filing |
+
+Every mutation was restored via `git show HEAD:<path> > <path>`
+(never `git checkout --`/`git restore --`, both blocked by
+`.claude/settings.json`'s deny list for this session) and confirmed
+`md5sum`-identical to the pre-mutation file before proceeding to the
+next check.
+
+---
+
+## 13. Addendum (dated 2026-07-25, this pass) — correction to § 9
+
+Filed against a finding from the concurrent docs-focused `code-reviewer`
+pass on this same branch: **CR-OPENCODE-HOOK-BRIDGE-0100 (Minor)**,
+"stale claim in § 9 'Record of review'."
+
+**What § 9 said, as filed in `16f1475`.** § 9 asserted that, at filing
+time, the meta-project's `CUSTOMER_NOTES.md` carried the turn-5
+boundary-ceiling transcription but "does not yet carry a turn-6 entry
+(M-3)," and that the anchor
+`CUSTOMER_NOTES.md#2026-07-25-m-3-residual-risk-accepted` "does not yet
+resolve."
+
+**What was actually true at that moment.** It did not. The meta-project's
+`CUSTOMER_NOTES.md` already carried the filled turn-6 M-3 acceptance
+entry ("## 2026-07-25 — M-3 residual risk accepted (turn: 6)") — added
+by meta-project commit `26b15b2` ("docs(records): customer accepts the
+M-3 residual risk"), committed 2026-07-25 12:26:07+02:00 — **seven
+minutes before** `16f1475` was committed at 12:33:27+02:00. Both
+anchors (`#2026-07-25-boundary-ceiling-residual-risk-accepted` and
+`#2026-07-25-m-3-residual-risk-accepted`) resolve to populated entries;
+neither is missing.
+
+**Why this addendum, not a silent edit.** Per this task's own
+instruction and the general principle this document exists to
+demonstrate (a durable review record's value is partly in showing what
+was believed and verified at the time it was filed): the original § 9
+text above is left as written, not rewritten, so the record continues
+to show the state the reviewing session actually observed.
+
+**Cause, recorded because it is a process observation, not a typo.**
+The `16f1475` reviewing session ran inside the scaffold repository
+(`sw-dev-team-template`) and read `CUSTOMER_NOTES.md` from its working
+context at whatever point in that session it happened to check —
+before the meta-project's `26b15b2` commit reached whatever copy of
+`CUSTOMER_NOTES.md` that session could see, even though `26b15b2`
+predates `16f1475` by wall-clock time. Concretely: a review that cites
+state living in a *different* repository than the one under review is
+citing a moving target — the citation is a snapshot of a read that
+happened at some point during the review, not of the commit's own
+timestamp, and the two repositories' commit clocks are not
+synchronized by anything this reviewer's tooling enforces. **Any future
+review that cites cross-repo state (meta-project artefacts cited from
+inside the scaffold, or vice versa) should re-verify that citation at
+filing time — immediately before the commit that files the review —
+rather than trusting an earlier read from mid-session,** since the
+cited repository can change under the reviewing session without any
+signal reaching it.
+
+**Scope of this correction.** This addendum corrects only § 9's
+cross-repo status claim. It does not reopen, soften, or restate
+`CR-OPENCODE-HOOK-BRIDGE-0001` — that finding stands exactly as filed
+in § 5 and was independently re-confirmed accurate by the concurrent
+docs-focused review, including its test-count claims. It also does not
+change this document's Hard Rule #7 posture: § 9's own final sentence
+already correctly named the durable-code-review-record condition
+(satisfied by `16f1475`'s own filing) as the one still-outstanding
+condition at that time, independent of the M-3 transcription question.
+
+---
+
+## 14. Disposition (this pass)
+
+**APPROVED WITH FINDINGS.**
+
+All four commits (`4dcb41a`, `edfb485`, `62f59f6`, `f054c90`) do what
+their commit messages claim. Every claim checkable by independent
+execution or mutation was independently executed or mutation-tested in
+this pass, not accepted on the commit message's word — including two
+explicit self-assessments this task asked to be scrutinised (B15 "not
+load-bearing," `edfb485`'s exec-bits scoping decision), both confirmed
+accurate, and `f054c90`'s two-sub-fix repair, both halves independently
+confirmed load-bearing with no coincidental-pass mechanism found. No
+prior contract this document has verified across either pass (verdict
+translation, fail-open/fail-closed, first-deny-wins ordering, the
+RETAIN/FOLLOW asymmetry, `scripts/hooks/` untouched) is weakened or
+reopened by any of the four.
+
+This is not a rubber stamp: five new findings are filed (§ 11). None
+are Critical or High. Two (CR-0002, CR-0003) are Medium and worth
+timely disposition rather than indefinite deferral — CR-0003 in
+particular because it reproduces, inside meta-tooling built specifically
+to prevent it, the exact silent-no-op failure class that tooling exists
+to catch. CR-0006 escalates a risk `edfb485` already disclosed as an
+open question, backed by a concrete same-branch example (B17) of that
+risk having already occurred. None are release-blocking at their
+current severity and none touch the bridge's core enforcement
+guarantees (verdict correctness, privilege-forwarding correctness,
+fail-closed posture) — all five sit in the gate/test-coverage and
+lifecycle-dedup periphery this whole document's pattern (§ "Standing
+context," and every prior finding in this file) has consistently
+flagged as the higher-risk shape: defects that look like success until
+someone goes looking for the specific interaction.
+
+This disposition covers Hard Rule #3 for these four commits, closing
+the last of the six commits named-but-unreviewed in the prior filing's
+§ 7 (`725b5a6`, `a7420dd`, `62ac407` remain intentionally out of scope
+as prose/ADR artefacts, not code). Combined with the prior filing's § 8,
+every code commit in `6244214..HEAD` now has a durable `code-reviewer`
+record.
+
+---
+
+## 15. References
 
 - `docs/adr/fw-adr-0031-opencode-hook-bridge.md` — governing ADR.
 - `docs/security/fw-adr-0031-opencode-hook-bridge-assessment.md` —
