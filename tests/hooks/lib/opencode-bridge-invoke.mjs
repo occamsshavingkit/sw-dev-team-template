@@ -202,15 +202,21 @@ async function runCompactingStep(hooks, step) {
   }
 }
 
-const STEP_RUNNERS = {
-  event: runEventStep,
-  "tool-before": runToolBeforeStep,
-  "tool-after": runToolAfterStep,
-  compacting: runCompactingStep,
-};
+// Map, not a plain object: step.kind is data read straight off the
+// steps-script JSON, and Map#get has no prototype-chain semantics --
+// a step.kind of "constructor" or "__proto__" simply misses, the same
+// as any other unrecognised kind, rather than resolving to something
+// off Object.prototype (Opengrep
+// javascript.lang.security.audit.unsafe-dynamic-method).
+const STEP_RUNNERS = new Map([
+  ["event", runEventStep],
+  ["tool-before", runToolBeforeStep],
+  ["tool-after", runToolAfterStep],
+  ["compacting", runCompactingStep],
+]);
 
 async function runStep(hooks, step) {
-  const runner = STEP_RUNNERS[step.kind];
+  const runner = STEP_RUNNERS.get(step.kind);
   if (!runner) {
     return { verdict: "unknown-step-kind", message: `unrecognised step.kind: ${step.kind}` };
   }
