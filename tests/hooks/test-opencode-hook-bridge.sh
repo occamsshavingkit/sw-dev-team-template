@@ -38,6 +38,15 @@
 # B16, whose atomicity property changed as a direct result) are now
 # ordinary `record_pass`/`record_fail` assertions.
 #
+# B19 (added by the CR-OPENCODE-HOOK-BRIDGE-0002 fix, 2026-07-25) exercises
+# handledIdleSessions' TURN-scoped (not process-lifetime-scoped) dedup: a
+# session that goes idle, is legitimately resumed via session.updated, and
+# goes idle a second time must have its Stop/SubagentStop gate run for BOTH
+# turns, not just the first. Distinct from B16/B17 (the immediate, same-turn
+# double-fire, which must remain suppressed with no session.updated between
+# the two session.idle events) and from B18 (a session's FIRST-EVER
+# session.idle after an S1-eviction-then-resume, no dedup involved).
+#
 # Usage:
 #   tests/hooks/test-opencode-hook-bridge.sh
 
@@ -894,6 +903,56 @@ PY
     else
         record_fail "CR-OPENCODE-HOOK-BRIDGE-0001: session.updated resurrection after S1 eviction is ledger-accounted and repairs sessionParent for correct first-idle routing" \
             "pre_verdict=$pre_verdict agent_pre=$agent_pre post_verdict=$post_verdict agent_post=$agent_post subagent_gate_calls=${subagent_gate_calls:-0} main_gate_calls=${main_gate_calls:-0} total_evictions=${total_evictions:-0} resurrection_eviction=${resurrection_eviction:-0} repaired_parent=${repaired_parent:-0}"
+    fi
+
+    # ---- B19: CR-OPENCODE-HOOK-BRIDGE-0002 -- handledIdleSessions dedup
+    # is scoped to a TURN, not to a sessionID's whole process lifetime:
+    # idle -> resume via session.updated -> idle again must run the
+    # Stop/SubagentStop gate for BOTH turns, not just the first. Code-
+    # review finding, this pass fixes it.
+    #
+    # Distinguishing property vs B16/B17 (the immediate, same-turn
+    # double-fire -- no session.updated between the two session.idle
+    # events -- which must remain suppressed) and B18 (a session's
+    # FIRST-EVER session.idle after an S1-eviction-then-resume). This
+    # covers a session's SECOND, genuinely-new-turn session.idle after a
+    # legitimate session.updated resume, with NO eviction involved at
+    # all -- the reviewer's exact reproduction (§ 10.4 of the review
+    # record) end to end in one steps run: session.created (child,
+    # parentID set) -> session.idle (first turn ends) -> session.updated
+    # with a new agent (resume) -> session.idle again (second turn ends).
+    # Both idle events must reach handoff-subagent-stop-gate.py (2 calls
+    # total, 0 to handoff-stop-gate.py -- this is a child session
+    # throughout), and the resume-driven clear must be observable on
+    # stderr (CR-0002 also requires the previously-silent suppression
+    # path to become observable -- see this session's own B16/B17
+    # suppression-log assertion below for that half).
+    steps=$(python3 - <<'PY'
+import json
+steps = []
+steps.append({"kind":"event","event":{"type":"session.created","properties":{"sessionID":"s19-child","info":{"id":"s19-child","parentID":"s19-parent","agent":"software-engineer"}}}})
+steps.append({"kind":"event","event":{"type":"session.idle","properties":{"sessionID":"s19-child"}}})
+steps.append({"kind":"event","event":{"type":"session.updated","properties":{"info":{"id":"s19-child","parentID":"s19-parent","agent":"qa-engineer"}}}})
+steps.append({"kind":"event","event":{"type":"session.idle","properties":{"sessionID":"s19-child"}}})
+print(json.dumps(steps))
+PY
+)
+    stderr_log=$(mktemp)
+    payload_log=$(mktemp)
+    shim_dir=$(mk_pathshim "$payload_log")
+    printf '%s' "$steps" | PATH="$shim_dir:$PATH" node "$INVOKER" run "$PLUGIN" >/dev/null 2>"$stderr_log"
+    rm -rf "$shim_dir"
+    subagent_gate_calls=$(grep -c "^handoff-subagent-stop-gate.py	" "$payload_log" 2>/dev/null || true)
+    main_gate_calls=$(grep -c "^handoff-stop-gate.py	" "$payload_log" 2>/dev/null || true)
+    resume_clear_logged=$(grep -c "received session.updated after its session.idle had already been handled" "$stderr_log" 2>/dev/null || true)
+    spurious_suppress_logged=$(grep -c "session.idle suppressed as a duplicate for session 's19-child'" "$stderr_log" 2>/dev/null || true)
+    rm -f "$payload_log" "$stderr_log"
+    if [ "${subagent_gate_calls:-0}" = "2" ] && [ "${main_gate_calls:-0}" = "0" ] \
+        && [ "${resume_clear_logged:-0}" = "1" ] && [ "${spurious_suppress_logged:-0}" = "0" ]; then
+        record_pass "CR-OPENCODE-HOOK-BRIDGE-0002: idle -> resume (session.updated, new agent) -> idle again for the SAME child sessionID runs handoff-subagent-stop-gate.py for BOTH turns (2 calls, 0 to handoff-stop-gate.py) -- the second, genuinely-new-turn session.idle is NOT silently deduped as a stale repeat -- and the resume-driven handledIdleSessions clear is observable on stderr exactly once, with no spurious duplicate-suppression log for this sessionID"
+    else
+        record_fail "CR-OPENCODE-HOOK-BRIDGE-0002: handledIdleSessions dedup must be scoped to a turn -- a legitimately resumed session's second session.idle must still run its gate" \
+            "subagent_gate_calls=${subagent_gate_calls:-0} (want 2) main_gate_calls=${main_gate_calls:-0} (want 0) resume_clear_logged=${resume_clear_logged:-0} (want 1) spurious_suppress_logged=${spurious_suppress_logged:-0} (want 0) -- if subagent_gate_calls=1, the second idle was silently swallowed (the finding this test reproduces)"
     fi
 fi
 

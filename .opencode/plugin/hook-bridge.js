@@ -513,15 +513,48 @@ export const HookBridge = async (input) => {
   //   analysis above are unchanged) -- only that the write now
   //   participates in the cap's bookkeeping like session.created's does.
   //   handledIdleSessions: sessionIDs whose session.idle has already been
-  //     processed. session.idle was observed firing twice for the same
-  //     child session in one spike run; both handoff-stop-gate.py and
-  //     handoff-subagent-stop-gate.py must run at most once per session.
-  //     Evicted on its OWN independent, much-larger FIFO cap
-  //     (HANDLED_IDLE_SESSIONS_CAP below) rather than sharing
-  //     sessionInsertOrder's clock with sessionParent/sessionAgent -- S2
-  //     fix, 2026-07-25, a confirmed regression introduced by the
+  //     processed FOR THE CURRENT TURN. session.idle was observed firing
+  //     twice in immediate succession for the same child session in one
+  //     spike run; both handoff-stop-gate.py and handoff-subagent-stop-gate.py
+  //     must run at most once per turn-end. Evicted on its OWN independent,
+  //     much-larger FIFO cap (HANDLED_IDLE_SESSIONS_CAP below) rather than
+  //     sharing sessionInsertOrder's clock with sessionParent/sessionAgent --
+  //     S2 fix, 2026-07-25, a confirmed regression introduced by the
   //     original S1 fix (commit 1368fab). See HANDLED_IDLE_SESSIONS_CAP's
   //     declaration for why.
+  //
+  //     CR-OPENCODE-HOOK-BRIDGE-0002 fix (code-review finding, 2026-07-25):
+  //     "already processed" above is scoped to a TURN, not to the
+  //     sessionID's whole process lifetime -- session.idle is this
+  //     bridge's own documented Stop-equivalent, i.e. "end of THIS turn,"
+  //     not "this session will never be touched again" (see the S1/S2
+  //     comment block below sessionAgent's declaration). Before this fix,
+  //     a sessionID's FIRST session.idle marked it handled forever (barring
+  //     HANDLED_IDLE_SESSIONS_CAP-scale eviction), so a session that
+  //     legitimately resumed via session.updated (the exact threat model
+  //     c4bc456/1368fab/ab1d952/f054c90 collectively exist to support) and
+  //     then went idle a SECOND time for a genuinely new turn had that
+  //     second, legitimate lifecycle event silently dropped -- neither gate
+  //     ran, and nothing distinguished it from a correctly-deduped spurious
+  //     double-fire. Fix: the session.updated handler clears a sessionID's
+  //     handledIdleSessions membership (see resumeHandledIdleSession below)
+  //     whenever it observes an update for a sessionID ALREADY marked
+  //     handled -- i.e. only when the bridge has independent, wired
+  //     evidence (a live session.updated) that OpenCode is touching this
+  //     session again after it was believed done. This is deliberately NOT
+  //     "clear on every session.updated": the 2026-07-24 spike log
+  //     (/tmp/ocspike2/logs/events.jsonl) shows session.updated firing
+  //     repeatedly (4 times in ~2.5s for one session, same unchanged agent
+  //     each time) DURING an active, not-yet-idle turn -- routine chatter,
+  //     not resume evidence. Gating the clear on "already in
+  //     handledIdleSessions" means this new code path is a no-op for every
+  //     one of those routine mid-turn updates (the overwhelming common
+  //     case) and only fires for the narrow, security-relevant case this
+  //     finding is about. It also does not touch the immediate,
+  //     within-one-turn double-fire B16/B17 guard against: that double-fire
+  //     is two session.idle events back-to-back with NO session.updated
+  //     between them (confirmed against the fixture corpus and the spike
+  //     log), so this scoping never runs during that sequence.
   const sessionParent = new Map();
   const sessionAgent = new Map();
   const handledIdleSessions = new Set();
@@ -725,6 +758,36 @@ export const HookBridge = async (input) => {
         "session.idle -- ten times the already-implausible bar " +
         "SESSION_STATE_CAP sets -- see this function's declaration " +
         "comment.",
+    );
+  }
+
+  // CR-OPENCODE-HOOK-BRIDGE-0002 fix (code-review finding, 2026-07-25):
+  // called from the session.updated handler, unconditionally, for every
+  // session.updated with a resolvable sessionID -- same "always run,
+  // cheap no-op in the common case" shape as trackSessionAndEvictIfOverCap
+  // and the sessionParent repair it sits alongside. Scopes
+  // handledIdleSessions' dedup to a TURN rather than to the sessionID's
+  // whole process lifetime: see handledIdleSessions' own declaration
+  // comment (top of this factory) for the full reasoning on why this is
+  // gated on "already marked handled" rather than firing on every
+  // session.updated.
+  function resumeHandledIdleSession(sessionID) {
+    if (!handledIdleSessions.has(sessionID)) return; // The common case --
+    // this sessionID has not gone idle yet this process, or has already
+    // been resumed once (see below); nothing to clear. Deliberately not
+    // logged: logging every no-op call here would fire on the routine,
+    // frequent session.updated traffic the 2026-07-24 spike log shows
+    // arriving many times per turn, drowning the signal this function
+    // exists to surface.
+    handledIdleSessions.delete(sessionID);
+    handledIdleInsertOrder.delete(sessionID);
+    console.error(
+      `hook-bridge: session '${sessionID}' received session.updated after ` +
+        "its session.idle had already been handled -- treating this as a " +
+        "legitimate resume (a genuinely new turn beginning) and clearing " +
+        "its handledIdleSessions entry, so this session's NEXT session.idle " +
+        "runs its Stop/SubagentStop gate again instead of being silently " +
+        "deduped as a stale repeat. See CR-OPENCODE-HOOK-BRIDGE-0002.",
     );
   }
 
@@ -958,12 +1021,16 @@ export const HookBridge = async (input) => {
         if (!sessionID) return;
 
         // CR-OPENCODE-HOOK-BRIDGE-0001 fix (code-review finding,
-        // 2026-07-25): ledger accounting + sessionParent repair, BOTH
-        // run unconditionally for every session.updated with a
-        // resolvable sessionID -- independent of whether this
-        // particular update carries info.agent -- before the
-        // agent-follow logic below. Two distinct sub-fixes, kept
-        // together because both close the same finding:
+        // 2026-07-25) and CR-OPENCODE-HOOK-BRIDGE-0002 fix (code-review
+        // finding, 2026-07-25): ledger accounting, sessionParent repair,
+        // and handledIdleSessions turn-scoping, ALL run unconditionally
+        // for every session.updated with a resolvable sessionID --
+        // independent of whether this particular update carries
+        // info.agent -- before the agent-follow logic below. Three
+        // distinct sub-fixes, kept together because each closes a
+        // finding about the same underlying gap (state that stops being
+        // maintained once a session goes quiet, even though the session
+        // itself is still live):
         //
         // (1) Ledger accounting. Any write this handler is about to make
         //     (sessionParent repair just below, or sessionAgent's FOLLOW
@@ -999,7 +1066,22 @@ export const HookBridge = async (input) => {
         //     parentID has no legitimate reason to change for a live
         //     session and there is no privilege-escalation reason (unlike
         //     sessionAgent) to prefer "follow" here.
+        //
+        // (3) handledIdleSessions turn-scoping (CR-OPENCODE-HOOK-BRIDGE-0002).
+        //     If this sessionID is already marked handled (its session.idle
+        //     already ran the Stop/SubagentStop gate once), this
+        //     session.updated is itself the bridge's only wired evidence
+        //     that OpenCode is touching the session again -- i.e. a new
+        //     turn has begun -- so the stale mark is cleared and the
+        //     session's next session.idle is treated as a new turn-end,
+        //     not a stale duplicate. No-op for the overwhelming common
+        //     case (a session.updated for a session that has not gone
+        //     idle yet this process). See resumeHandledIdleSession's own
+        //     declaration comment and handledIdleSessions' declaration
+        //     comment for the full reasoning and the spike-log evidence
+        //     this scoping choice rests on.
         trackSessionAndEvictIfOverCap(sessionID);
+        resumeHandledIdleSession(sessionID);
 
         const incomingParentID = info.parentID ?? null;
         if (!sessionParent.has(sessionID)) {
@@ -1062,9 +1144,34 @@ export const HookBridge = async (input) => {
       if (event.type === "session.idle") {
         const sessionID = event.properties?.sessionID;
         if (!sessionID) return;
-        if (handledIdleSessions.has(sessionID)) return; // Idempotency:
-        // session.idle was observed firing twice for one child session
-        // in the runtime spike; run the Stop-equivalent gate at most once.
+        if (handledIdleSessions.has(sessionID)) {
+          // Idempotency: session.idle was observed firing twice in
+          // immediate succession for one child session in the runtime
+          // spike; run the Stop-equivalent gate at most once per turn.
+          // CR-OPENCODE-HOOK-BRIDGE-0002 (code-review finding,
+          // 2026-07-25): this suppression used to be completely silent --
+          // "silence is the failure mode this whole port has repeatedly
+          // been bitten by" -- so it is logged even though it is the
+          // EXPECTED, correct outcome for a genuine duplicate. A
+          // legitimate resumed session's later session.idle does NOT
+          // reach this branch: resumeHandledIdleSession (called from the
+          // session.updated handler) clears handledIdleSessions'
+          // membership as soon as a session.updated is observed for an
+          // already-handled sessionID, so this line firing for a given
+          // sessionID means no session.updated was observed for it
+          // between its two session.idle events -- the near-simultaneous
+          // double-fire case, not a resume.
+          console.error(
+            `hook-bridge: session.idle suppressed as a duplicate for ` +
+              `session '${sessionID}' -- its Stop/SubagentStop gate has ` +
+              "already run and no intervening session.updated was " +
+              "observed to indicate a new turn. Expected for the known " +
+              "near-simultaneous double-fire case; see CR-OPENCODE-HOOK-" +
+              "BRIDGE-0002 if this fires for a case that should have been " +
+              "treated as a new turn.",
+          );
+          return;
+        }
         handledIdleSessions.add(sessionID);
         trackHandledIdleAndEvictIfOverCap(sessionID); // S2 fix: bound
         // handledIdleSessions on its OWN independent, much larger cap --
