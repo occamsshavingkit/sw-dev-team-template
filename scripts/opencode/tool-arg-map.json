@@ -1,0 +1,83 @@
+{
+  "$comment_schema": [
+    "scripts/opencode/tool-arg-map.json — checked-in derived artifact.",
+    "fw-adr-0031 'Tool-name / arg-key mapping ownership' (binding): the",
+    "Claude tool <-> OpenCode tool correspondence and per-key arg renames",
+    "are an EXPLICIT table, not an inferred camelCase<->snake_case",
+    "transform. OpenCode's own arg-key casing is not internally consistent",
+    "(filePath/oldString/newString/content/command are camelCase, but",
+    "task's subagent_type is already snake_case) so a blanket regex would",
+    "either mis-handle subagent_type or need its own exception list -- an",
+    "explicit table is the correct shape, not an accident of convenience.",
+    "",
+    "Read by BOTH .opencode/plugin/hook-bridge.js (payload construction)",
+    "and scripts/verify-opencode-hook-parity.sh (release-gate parity",
+    "check) -- the two must never see a different mapping.",
+    "",
+    "Shape:",
+    "  tools.<opencode_tool_id>.claude_tool_name  -- the Claude tool name",
+    "      scripts/hooks/*.py expect in the 'tool_name' field of the",
+    "      {tool_name, tool_input} payload (matches .claude/settings.json",
+    "      PreToolUse matchers).",
+    "  tools.<opencode_tool_id>.arg_map           -- { <opencode arg key>:",
+    "      <claude tool_input key> }. The bridge copies",
+    "      args[opencode_key] -> tool_input[claude_key] for every entry",
+    "      present on the call; keys absent from the OpenCode call are",
+    "      simply omitted (matches how a Claude tool_input can be sparse).",
+    "  unmapped_claude_tools.<ClaudeToolName>     -- Claude tools guarded",
+    "      by .claude/settings.json that have NO OpenCode source tool to",
+    "      wire. Recorded explicitly (not silently absent) so",
+    "      verify-opencode-hook-parity.sh can tell 'known gap, already",
+    "      accounted for' apart from 'nobody updated the table'.",
+    "",
+    "Runtime grounding: OpenCode 1.18.4, confirmed by a live runtime spike",
+    "(session probe under /tmp/ocspike at implementation time; see",
+    "FW-ADR-0031, recorded in the meta-project, not shipped with the",
+    "scaffold). The spike's callable",
+    "toolset was: bash, edit, glob, grep, invalid, question, read, skill,",
+    "task, todowrite, webfetch, websearch, write. There is NO 'patch' tool",
+    "in this version -- write and edit are the only file-mutation tools."
+  ],
+
+  "opencode_version_verified": "1.18.4",
+
+  "tools": {
+    "write": {
+      "claude_tool_name": "Write",
+      "arg_map": {
+        "filePath": "file_path",
+        "content": "content"
+      }
+    },
+    "edit": {
+      "claude_tool_name": "Edit",
+      "arg_map": {
+        "filePath": "file_path",
+        "oldString": "old_string",
+        "newString": "new_string"
+      }
+    },
+    "bash": {
+      "claude_tool_name": "Bash",
+      "arg_map": {
+        "command": "command",
+        "workdir": "cwd"
+      }
+    },
+    "task": {
+      "claude_tool_name": "Agent",
+      "arg_map": {
+        "description": "description",
+        "prompt": "prompt",
+        "subagent_type": "subagent_type"
+      }
+    }
+  },
+
+  "unmapped_claude_tools": {
+    "MultiEdit": {
+      "reason": "No OpenCode source tool. fw-adr-0031's Decision text anticipated an edit+patch split (OpenCode splits multi-hunk changes across edit and a unified-diff 'patch' tool) and required MultiEdit-matched hooks to be wired to both OpenCode tool ids. A runtime spike against the actually-installed OpenCode 1.18.4 (see opencode_version_verified above) found NO 'patch' tool in the callable toolset -- write and edit are the only file-mutation tools. MultiEdit-matched hooks (customer-notes-guard.py, tech-lead-authoring-guard.py, handoff-pre-tool-gate.py) are therefore covered for OpenCode purely via their write/edit wiring; there is no separate OpenCode tool call standing in for a Claude MultiEdit today. This entry exists so verify-opencode-hook-parity.sh can tell 'named, accepted gap' apart from 'someone forgot to map it'.",
+      "verified_by": "runtime spike, /tmp/ocspike/proj/.opencode/plugin/probe-full.js, OpenCode 1.18.4 (implementation-time; scratch spike output not part of this repo)"
+    }
+  }
+}

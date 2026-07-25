@@ -125,8 +125,7 @@ else
         docs/templates/intake-log-template.md \
         .claude/agents/tech-lead.md \
         docs/agents/manual/tech-lead-manual.md \
-        docs/runtime/agents/tech-lead.md \
-        docs/adr/fw-adr-0008-tech-lead-orchestration-boundary.md
+        docs/runtime/agents/tech-lead.md
     do
         full="$REPO_ROOT/$rel"
         [ -f "$full" ] && printf '%s\n' "$full" >> "$TMPFILES"

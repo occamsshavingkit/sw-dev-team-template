@@ -98,7 +98,9 @@ small. Read these when the situation matches:
 - **Template scaffold + upgrade + per-version migrations**:
   `docs/TEMPLATE_UPGRADE.md`
 - **Memory layer + orchestration-framework stance**:
-  `docs/MEMORY_POLICY.md` (cross-refs `docs/adr/fw-adr-0001-context-memory-strategy.md`)
+  `docs/MEMORY_POLICY.md` (FW-ADR-0001 is the upstream design
+  rationale; that ADR is template-maintenance history and is not
+  shipped to downstream projects)
 - **IP policy** (copyright, restricted-source clauses, AI-training
   scope): `docs/IP_POLICY.md`
 - **Framework / project boundary** (downstream path ownership):

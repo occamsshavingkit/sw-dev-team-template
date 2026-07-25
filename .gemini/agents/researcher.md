@@ -4,7 +4,7 @@ description: |
   Investigation specialist. Use when the task requires authoritative information from standards (SWEBOK, ISO, IEEE, ISTQB, SFIA, PMBOK), official vendor/framework documentation, prior-art scans, or teammate-name pronoun verification. Does not contact the customer directly. Does not maintain CUSTOMER_NOTES.md, glossaries, SME inventories, or archival — those belong to librarian.
 model: gemini-pro
 canonical_source: .claude/agents/researcher.md
-canonical_sha: 482b8b91505cd8a4f59d28d01503270ef5ddb3fc
+canonical_sha: 9a3ea337f2ef7f031304a27c71dab4a44e000cbb
 generator: scripts/compile-runtime-agents.sh
 generator_version: 0.3.0
 classification: generated
@@ -55,8 +55,9 @@ Rules, stop and escalate to `tech-lead`; do not silently choose.
    Report findings; do not design.
 
    **Always check `claude-mem` first** for in-project prior art
-   (default per `docs/adr/fw-adr-0001-context-memory-strategy.md`;
-   full stance in `docs/MEMORY_POLICY.md`).
+   (default policy: `docs/MEMORY_POLICY.md`, FW-ADR-0001's shipped
+   successor — the ADR itself is upstream template-maintenance
+   history and is not shipped to downstream projects).
    Use `claude-mem:mem-search`, `smart_search`, or
    `get_observations([IDs])` before running external Tier-1
    searches. Memory hits are pointers to verify, not citations —

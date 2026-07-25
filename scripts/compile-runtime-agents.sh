@@ -882,6 +882,25 @@ resolve_codex_model_id() {
 #   WebFetch  → webfetch
 # All subagents get task:deny and question:deny (only tech-lead spawns/asks).
 #
+# tech-lead special case (OpenCode main-session-persona fix): every
+# other role is emitted with `mode: subagent`; tech-lead is emitted
+# with `mode: primary` (schema-confirmed valid enum value on OpenCode
+# 1.18.4 — `mode: all` was rejected because it would keep tech-lead
+# spawnable as a subagent alongside being primary, which is exactly the
+# leak this fix closes). tech-lead's canonical `tools:` line includes
+# `Agent` (its spawn capability), which has no 1:1 match in the
+# read/write/grep/glob/bash/websearch/webfetch loop below, so `task`
+# and `question` are force-allowed for tech-lead only — it is the one
+# role permitted to spawn specialists and address the customer. The
+# canonical body embedded below already carries tech-lead's own
+# "Runtime self-guard" clause (binding on all harnesses), which is the
+# defence against a third-party plugin surfacing this file in a
+# subagent slot despite `mode: primary`; no separate compiler-generated
+# guard string is needed here (contrast the Antigravity adapter, which
+# emits a thin pointer stub for every other role and therefore DOES
+# need a hardcoded guard string for tech-lead — see
+# write_antigravity_adapters).
+#
 # canonical_sha is the same 40-hex value already resolved for the
 # compact-runtime contract. fm_desc and fm_tools come from the parse
 # pass in the main compile loop.
@@ -931,6 +950,19 @@ write_opencode_adapter() {
     esac
   fi
 
+  # tech-lead is the main-session persona: primary mode, and the only
+  # role allowed to spawn specialists (task) or address the customer
+  # (question). Every other role keeps subagent mode with task/question
+  # denied (only tech-lead spawns/asks).
+  agent_mode="subagent"
+  perm_task="deny"
+  perm_question="deny"
+  if [ "${role}" = "tech-lead" ]; then
+    agent_mode="primary"
+    perm_task="allow"
+    perm_question="allow"
+  fi
+
   # Write frontmatter with description, mode, permissions.
   {
     printf -- '---\n'
@@ -941,7 +973,7 @@ write_opencode_adapter() {
       printf 'description: |\n'
       printf '  %s\n' "${fm_desc}"
     fi
-    printf 'mode: subagent\n'
+    printf 'mode: %s\n' "${agent_mode}"
     printf 'permission:\n'
     printf '  read: %s\n' "${perm_read}"
     printf '  edit: %s\n' "${perm_edit}"
@@ -950,8 +982,8 @@ write_opencode_adapter() {
     printf '  bash: %s\n' "${perm_bash}"
     printf '  websearch: %s\n' "${perm_websearch}"
     printf '  webfetch: %s\n' "${perm_webfetch}"
-    printf '  task: deny\n'
-    printf '  question: deny\n'
+    printf '  task: %s\n' "${perm_task}"
+    printf '  question: %s\n' "${perm_question}"
     printf '  todowrite: deny\n'
     printf '  skill: deny\n'
     printf 'canonical_source: %s\n' "${canonical_src}"
@@ -1389,13 +1421,20 @@ compile_role() {
     canonical_sha="0000000000000000000000000000000000000000"
   fi
 
-  # OpenCode adapter — always written when adapters are enabled.
-  # Embeds full role instructions from the canonical file so
-  # OpenCode subagents receive their role contract as a system prompt.
+  # OpenCode adapter — always written when adapters are enabled,
+  # including tech-lead. Unlike the other harness targets below,
+  # OpenCode's `default_agent` config key can only select a role that
+  # is itself defined with `mode: primary` in a discovered agent file
+  # (schema-confirmed on OpenCode 1.18.4: "Must be a primary agent");
+  # there is no other way to make the main OpenCode session BE
+  # tech-lead. Skipping tech-lead here would leave `default_agent`
+  # unsatisfiable and the binding main-session-persona rule unenforced
+  # under this harness. write_opencode_adapter emits `mode: primary`
+  # and allows task/question only for tech-lead; see that function for
+  # the full rationale.
   # fm_desc is load-bearing for OpenCode autonomous selection;
   # fm_tools determines the agent's permission surface.
-  # Skip tech-lead: the main session persona, never a subagent.
-  if [ "${NO_OPENCODE_ADAPTERS}" -eq 0 ] && [ "${role}" != "tech-lead" ]; then
+  if [ "${NO_OPENCODE_ADAPTERS}" -eq 0 ]; then
     write_opencode_adapter "${role}" "${src}" "${canonical_sha}" "${fm_desc}" "${fm_tools}"
   fi
 
