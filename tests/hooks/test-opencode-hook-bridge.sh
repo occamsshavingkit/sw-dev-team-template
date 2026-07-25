@@ -29,9 +29,14 @@
 # hook-bridge.js's SESSION_STATE_CAP=10000 FIFO bounded-eviction fix
 # (finding S1, commit 1368fab) against the REAL cap — see the block
 # comment immediately above B14 in Part B for why that is fast enough
-# to run on every invocation of this suite, and why B17 is recorded via
-# `record_finding` (printed loudly, does not affect this script's exit
-# code) rather than `record_pass`/`record_fail`.
+# to run on every invocation of this suite. B17 originally shipped as a
+# `record_finding` (confirmed-but-undisposed regression: handledIdleSessions
+# evicting on the same clock as sessionParent/sessionAgent broke
+# session.idle dedup once a sessionID aged off the cap). tech-lead's
+# disposition was FIX, not accept; the S2 fix (same day) gives
+# handledIdleSessions its own independent, much larger cap, and B17 (and
+# B16, whose atomicity property changed as a direct result) are now
+# ordinary `record_pass`/`record_fail` assertions.
 #
 # Usage:
 #   tests/hooks/test-opencode-hook-bridge.sh
@@ -717,24 +722,28 @@ PY
             "verdict=$verdict sent_agent_type=$sent_agent_type evictions_logged=${evictions:-0}"
     fi
 
-    # ---- B16: eviction is ATOMIC across all three ledgers (property:
-    # "all three structures evict together" -- this task's brief calls
-    # this "the property that actually matters"). For ONE evicted CHILD
-    # session, in ONE steps run, observe evidence of all three
-    # structures losing that sessionID TOGETHER: sessionAgent gone
-    # (agent_type absent on a later guarded write), sessionParent gone
-    # (its session.idle, correctly routed to
-    # handoff-subagent-stop-gate.py BEFORE eviction, mis-routes to
-    # handoff-stop-gate.py AFTER eviction -- the parentID lookup now
-    # returns undefined), and handledIdleSessions gone (that second
-    # session.idle triggers a gate call AT ALL instead of being
-    # suppressed as an already-handled duplicate). hook-bridge.js's
-    # trackSessionAndEvictIfOverCap deletes from all three Maps/Sets in
-    # the same synchronous call, so all three signals must appear
-    # together for the SAME session -- if a future change evicted only
-    # one or two of the three (drift), this test's before/after signals
-    # would stop lining up (e.g. the post-eviction idle would still
-    # route correctly, or would still be suppressed).
+    # ---- B16: eviction is ATOMIC across the two IDENTITY ledgers, and
+    # handledIdleSessions is DELIBERATELY DECOUPLED from them (property
+    # updated by the S2 fix, 2026-07-25 -- see hook-bridge.js's "Fallback"
+    # comment above sessionInsertOrder's declaration for the full
+    # reasoning; this test's ORIGINAL property, "all three structures
+    # evict together", was the S1 shape that caused the B17 regression
+    # and no longer holds by design). For ONE evicted CHILD session, in
+    # ONE steps run, observe: sessionAgent gone (agent_type absent on a
+    # later guarded write) and sessionParent gone (would mis-route a
+    # later session.idle if one reached the routing check) TOGETHER --
+    # still atomic, both driven by trackSessionAndEvictIfOverCap in the
+    # same synchronous call, same as before this fix. But
+    # handledIdleSessions is NOT evicted at this same 10,000-session
+    # mark (its own cap, HANDLED_IDLE_SESSIONS_CAP, is 100,000) -- so the
+    # repeat session.idle for the SAME sessionID is correctly SUPPRESSED
+    # as an already-handled duplicate, never reaching the (now
+    # sessionParent-less) routing check at all: zero misroute, zero
+    # re-fire. If a future change put handledIdleSessions back on
+    # sessionInsertOrder's shared clock (re-introducing the S1 bug this
+    # fix removes), this test's post-eviction session.idle would start
+    # producing a handoff-stop-gate.py call again and main_gate_calls
+    # would flip from 0 to 1.
     steps=$(python3 - <<'PY'
 import json
 steps = []
@@ -760,41 +769,37 @@ PY
     main_gate_calls=$(grep -c "^handoff-stop-gate.py	" "$payload_log" 2>/dev/null || true)
     rm -f "$payload_log"
     if [ "$verdict" = "throw" ] && [ "$sent_agent_type" = "<ABSENT>" ] \
-        && [ "${subagent_gate_calls:-0}" = "1" ] && [ "${main_gate_calls:-0}" = "1" ]; then
-        record_pass "S1 bounded eviction is ATOMIC across sessionParent/sessionAgent/handledIdleSessions: for the same evicted child session, the pre-eviction session.idle correctly ran handoff-subagent-stop-gate.py once (sessionParent intact then); AFTER eviction, a guarded write loses agent_type (sessionAgent gone) and a repeat session.idle re-fires at all (handledIdleSessions gone) but is mis-routed to handoff-stop-gate.py because sessionParent is ALSO gone -- all three ledgers lost this sessionID together, none survived alone (no drift)"
+        && [ "${subagent_gate_calls:-0}" = "1" ] && [ "${main_gate_calls:-0}" = "0" ]; then
+        record_pass "S2 bounded eviction: sessionParent/sessionAgent evict ATOMICALLY together (agent_type absent on the post-eviction write; a routing lookup would find no parentID) while handledIdleSessions is on its OWN independent, much larger cap and survives -- for the same evicted child session, the pre-eviction session.idle correctly ran handoff-subagent-stop-gate.py once (sessionParent intact then), and the post-eviction session.idle is correctly SUPPRESSED as an already-handled duplicate (handledIdleSessions still has it) instead of re-firing OR mis-routing to handoff-stop-gate.py -- confirms the S1-regression's specific compounding failure (B16's original finding) is closed by the decoupled caps, not just relocated"
     else
-        record_fail "S1 bounded eviction: all three ledgers evict together (no drift)" \
+        record_fail "S2 bounded eviction: identity maps evict together, handledIdleSessions decoupled and survives" \
             "verdict=$verdict sent_agent_type=$sent_agent_type subagent_gate_calls=${subagent_gate_calls:-0} main_gate_calls=${main_gate_calls:-0}"
     fi
 
-    # ---- B17: FINDING, not a plain pass/fail -- "does idempotency
-    # survive eviction?" hook-bridge.js's trackSessionAndEvictIfOverCap
-    # comment already NAMES this exact risk as an accepted-but-unverified
-    # trade-off ("a subsequent session.idle for it could re-run its
-    # Stop/SubagentStop gate"). This check makes it EXECUTABLE rather
-    # than leaving it as inline reasoning: a top-level (parentless)
-    # session's session.idle is correctly deduped the FIRST time it
-    # repeats (handledIdleSessions suppresses a genuine re-fire, per the
-    # ADR's documented double-fire spike finding) -- but once that
-    # sessionID ages out of the FIFO cap, handledIdleSessions forgets it
-    # too, and a LATER session.idle for the SAME sessionID re-runs
-    # handoff-stop-gate.py a SECOND time.
+    # ---- B17: idempotency survives eviction (property: "a sessionID
+    # that has aged off SESSION_STATE_CAP still dedupes its own
+    # session.idle"). Originally recorded as a `record_finding` (open
+    # disposition question) because hook-bridge.js's
+    # trackSessionAndEvictIfOverCap comment named this exact risk as
+    # accepted-but-unverified and this test then CONFIRMED it
+    # reproducible: handledIdleSessions was evicted on the SAME FIFO
+    # clock as sessionParent/sessionAgent, so once a sessionID aged out
+    # of SESSION_STATE_CAP=10000, a LATER session.idle for that SAME
+    # sessionID was no longer deduped and handoff-stop-gate.py re-ran.
+    # Confirmed (2026-07-25) a REGRESSION introduced BY the S1 fix, not
+    # pre-existing: replaying the identical steps against the pre-S1
+    # hook-bridge.js (commit 1368fab~1) called the gate exactly once,
+    # since nothing was ever evicted there.
     #
-    # Confirmed (2026-07-25, this task) this is a REGRESSION introduced
-    # BY the S1 fix, not pre-existing: replaying the identical steps
-    # against the pre-S1 hook-bridge.js (commit 1368fab~1, restored only
-    # for this one-off differential check, not committed) calls
-    # handoff-stop-gate.py exactly once for the same session -- there is
-    # nothing to evict pre-S1, so there is nothing to forget.
-    #
-    # Recorded via record_finding, NOT record_fail: the assertion below
-    # checks the SAFE property (at-most-once) and is expected to FAIL
-    # against the current implementation, but folding an open residual-
-    # risk disposition into this suite's hard-fail/exit-1 count would
-    # make the suite block on a decision this file cannot make (accept
-    # the documented residual risk vs. fix the eviction policy) -- that
-    # decision belongs to tech-lead / security-engineer. See this task's
-    # qa-engineer return (2026-07-25) for the full write-up.
+    # tech-lead disposition: FIX, not accept as residual risk (trading
+    # lifecycle-gate correctness for a session-count-bounded memory
+    # concern is the wrong trade). S2 fix (this commit) gives
+    # handledIdleSessions its own independent, much larger cap
+    # (HANDLED_IDLE_SESSIONS_CAP=100,000) instead of sharing
+    # SESSION_STATE_CAP's clock -- see hook-bridge.js's "Fallback"
+    # comment above sessionInsertOrder's declaration for the full
+    # reasoning and the memory arithmetic. Converted to a normal
+    # record_pass/record_fail assertion now that the property holds.
     steps=$(python3 - <<'PY'
 import json
 steps = []
@@ -815,9 +820,10 @@ PY
     stop_gate_calls=$(grep -c "^handoff-stop-gate.py	" "$payload_log" 2>/dev/null || true)
     rm -f "$payload_log"
     if [ "${stop_gate_calls:-0}" = "1" ]; then
-        record_pass "S1 idempotency survives eviction: handoff-stop-gate.py still ran at most once across a pre- and post-eviction session.idle pair for the same sessionID"
+        record_pass "S2 idempotency survives eviction: handoff-stop-gate.py still ran at most once across a pre- and post-eviction session.idle pair for the same sessionID -- handledIdleSessions' own independent, larger cap (HANDLED_IDLE_SESSIONS_CAP) means it does NOT forget this sessionID at the same 10,000-session mark sessionParent/sessionAgent evict at"
     else
-        record_finding "S1 residual risk (named in hook-bridge.js's trackSessionAndEvictIfOverCap comment as accepted-but-unverified; now CONFIRMED reproducible by this test): handledIdleSessions is evicted on the same FIFO clock as sessionParent/sessionAgent, so once a sessionID ages out of SESSION_STATE_CAP=10000, a LATER session.idle for that SAME sessionID is no longer deduped -- handoff-stop-gate.py ran ${stop_gate_calls:-0} time(s) for one sessionID (expected at most 1 -- idempotency violated). Verified this is a REGRESSION introduced BY the S1 fix itself: replaying identical steps against the pre-S1 hook-bridge.js (1368fab~1) calls the gate exactly once, since nothing is ever evicted there. B16 above additionally shows this compounds with mis-routing (child sessions re-fire the WRONG gate, not just twice). Needs tech-lead / security-engineer disposition: formally accept as documented residual risk (promote from code comment to the security assessment's residual-risk register), or fix (e.g. do not evict handledIdleSessions on the same clock as sessionParent/sessionAgent, or accept unbounded growth for that one Set alone since session IDs, not full objects, are cheap to retain)."
+        record_fail "S2 idempotency survives eviction: handoff-stop-gate.py must run at most once across a pre- and post-eviction session.idle pair for the same sessionID" \
+            "handoff-stop-gate.py ran ${stop_gate_calls:-0} time(s) for one sessionID (expected at most 1) -- if this fails, handledIdleSessions is once again evicting in lockstep with sessionParent/sessionAgent (the S1 regression this fix, and B16/B17, exist to prevent)"
     fi
 fi
 

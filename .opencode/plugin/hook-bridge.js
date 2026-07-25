@@ -481,6 +481,12 @@ export const HookBridge = async (input) => {
   //     processed. session.idle was observed firing twice for the same
   //     child session in one spike run; both handoff-stop-gate.py and
   //     handoff-subagent-stop-gate.py must run at most once per session.
+  //     Evicted on its OWN independent, much-larger FIFO cap
+  //     (HANDLED_IDLE_SESSIONS_CAP below) rather than sharing
+  //     sessionInsertOrder's clock with sessionParent/sessionAgent -- S2
+  //     fix, 2026-07-25, a confirmed regression introduced by the
+  //     original S1 fix (commit 1368fab). See HANDLED_IDLE_SESSIONS_CAP's
+  //     declaration for why.
   const sessionParent = new Map();
   const sessionAgent = new Map();
   const handledIdleSessions = new Set();
@@ -516,28 +522,116 @@ export const HookBridge = async (input) => {
   // point exists with the event surface OpenCode currently exposes to
   // this bridge.
   //
-  // Fallback: a single shared FIFO cap, keyed on first-seen order
-  // across all three structures together (one ledger, so they can never
-  // drift out of sync with each other -- an entry is evicted from all
-  // three at once or none). subcall-limit-guard.py's
-  // DEFAULT_SUBCALL_BUDGET (100 subagent spawns per top-level session,
-  // operator-raisable via SWDT_SUBCALL_BUDGET) is the closest existing
-  // bound on how many sessions one real top-level session's lifetime
-  // can plausibly produce; SESSION_STATE_CAP below is two orders of
-  // magnitude above that default specifically so this only fires for a
-  // process that has served an implausible number of distinct sessions
-  // -- at which point evicting the single oldest-first-seen entry (by
-  // far the most likely to be long finished) and logging it is the
-  // reasonable trade the fix's task brief authorizes for this
-  // low-severity issue. This does NOT eliminate the theoretical risk of
-  // evicting a still-live session's state on a sufficiently
+  // Fallback: bounded FIFO eviction, on TWO SEPARATE clocks, not one --
+  // this is the S2 fix (2026-07-25, a confirmed regression introduced BY
+  // the original S1 fix, commit 1368fab; reproduced by
+  // tests/hooks/test-opencode-hook-bridge.sh's B16/B17). S1 originally
+  // put all three structures on ONE shared ledger (sessionInsertOrder,
+  // keyed on session.created order) reasoning that a single ledger keeps
+  // them "from drifting out of sync with each other." That reasoning is
+  // still correct FOR sessionParent and sessionAgent -- they answer the
+  // same question (this session's recorded identity) and must expire
+  // together, so they keep sharing sessionInsertOrder below, unchanged
+  // from S1.
+  //
+  // It was WRONG to also put handledIdleSessions on that same clock.
+  // handledIdleSessions answers a different question ("has this
+  // session's Stop/SubagentStop gate already run"), and evicting it in
+  // lockstep with the two identity maps reintroduces the exact
+  // idempotency violation session.idle dedup exists to prevent: once a
+  // sessionID ages off the shared clock, a LATER session.idle for that
+  // SAME sessionID is no longer deduped, so handoff-stop-gate.py /
+  // handoff-subagent-stop-gate.py can re-fire (confirmed reproducible,
+  // B17); and because sessionParent evicts on the identical clock, a
+  // re-fired CHILD session's idle additionally MISROUTES to
+  // handoff-stop-gate.py instead of handoff-subagent-stop-gate.py (B16).
+  // Both gates emit FALSELY_COMPLETED / INCOMPLETE verdicts a re-fire or
+  // misroute corrupts -- trading lifecycle-gate correctness for a
+  // memory bound is the wrong way round for a LOW-severity, session-
+  // count-bounded concern (tech-lead's disposition on this fix).
+  //
+  // Fix: give handledIdleSessions its OWN independent ledger
+  // (handledIdleInsertOrder, declared below) and its own, much larger
+  // cap (HANDLED_IDLE_SESSIONS_CAP) instead of sharing
+  // sessionInsertOrder/SESSION_STATE_CAP. This is sound BECAUSE the two
+  // clocks retain fundamentally different-sized payloads per entry:
+  // sessionParent/sessionAgent are Maps holding a parentID string and an
+  // agent-name string per session (real per-session content this bridge
+  // forwards on the wire); handledIdleSessions is a Set holding only the
+  // bare sessionID string that was already the Map key -- no additional
+  // payload at all. Retaining a bare ID for far longer than the identity
+  // maps retain their content is cheap specifically because it is
+  // marginal cost on top of a string OpenCode already handed this
+  // process -- see HANDLED_IDLE_SESSIONS_CAP's declaration for the
+  // memory-arithmetic bound this claim rests on.
+  //
+  // A genuinely UNBOUNDED handledIdleSessions was considered and
+  // rejected, not reflexively -- it is still a Set that would grow
+  // monotonically for the life of a long-lived server process with zero
+  // eviction, which is exactly the growth shape S1 was raised against,
+  // and bounding it costs nothing beyond the FIFO bookkeeping this file
+  // already has a working pattern for. A bound deliberately set far
+  // above SESSION_STATE_CAP gets the same "practically never fires"
+  // property an unbounded structure would have, without actually being
+  // unbounded. See HANDLED_IDLE_SESSIONS_CAP below for the arithmetic.
+  //
+  // subcall-limit-guard.py's DEFAULT_SUBCALL_BUDGET (100 subagent spawns
+  // per top-level session, operator-raisable via SWDT_SUBCALL_BUDGET) is
+  // still the closest existing bound on how many sessions one real
+  // top-level session's lifetime can plausibly produce; SESSION_STATE_CAP
+  // below is two orders of magnitude above that default, unchanged from
+  // the original S1 fix -- at that point evicting the single
+  // oldest-first-seen sessionParent/sessionAgent entry (by far the most
+  // likely to be long finished) and logging it is the reasonable trade
+  // for this low-severity issue. This does NOT eliminate the theoretical
+  // risk of evicting a still-live session's identity on a sufficiently
   // long-lived/high-volume process; it bounds how implausible that has
   // to be before it can happen, and logs loudly if it ever does.
   const SESSION_STATE_CAP = 10000;
   const sessionInsertOrder = new Set(); // Insertion-ordered ledger of
   // every sessionID seen via session.created in this process; used only
-  // to pick FIFO eviction order below. A JS Set iterates in insertion
-  // order, so `.values().next().value` is always the oldest entry.
+  // to pick FIFO eviction order for sessionParent/sessionAgent below --
+  // NOT handledIdleSessions, which has its own separate ledger (see
+  // HANDLED_IDLE_SESSIONS_CAP just below). A JS Set iterates in
+  // insertion order, so `.values().next().value` is always the oldest
+  // entry.
+
+  // handledIdleSessions' OWN cap, deliberately decoupled from
+  // SESSION_STATE_CAP above -- S2 fix, see the "Fallback" discussion in
+  // the S1/S2 comment block above sessionInsertOrder's declaration for
+  // the full reasoning. Set to 100,000: one order of magnitude above
+  // SESSION_STATE_CAP (10,000), itself two orders of magnitude above
+  // subcall-limit-guard.py's DEFAULT_SUBCALL_BUDGET (100) -- three
+  // orders of magnitude above the closest existing per-top-level-session
+  // bound in this codebase. Chosen so that in any realistic-but-extreme
+  // run, sessionParent/sessionAgent will always have already evicted
+  // (and safely degraded to caller_role = None) a given old sessionID
+  // LONG before handledIdleSessions would forget it -- which is exactly
+  // what closes the B16/B17 regression: a genuine near-term duplicate
+  // session.idle (the ADR's documented double-fire spike finding,
+  // observed seconds apart in one spike run, not tens of thousands of
+  // sessions apart) always finds its sessionID still present here.
+  //
+  // Memory arithmetic (worst case, cap fully populated): OpenCode
+  // session IDs are short ASCII tokens (observed shape: `ses_<xid>`,
+  // well under 40 characters); V8 stores an ASCII JS string as a
+  // one-byte SeqOneByteString, roughly 16 bytes of object header plus 1
+  // byte/char, so ~56 bytes for a 40-char ID. A JS Set's backing
+  // OrderedHashSet adds roughly one more hash-bucket/iteration-order
+  // slot per entry -- a commonly used working estimate for Set<primitive>
+  // overhead is ~48-56 bytes/entry beyond the value itself. Rounding
+  // both up generously: ~150 bytes/entry all-in. At the 100,000 cap:
+  // 100,000 x 150 bytes = 15,000,000 bytes ~= 14.3 MiB worst case -- and
+  // that ceiling is only reached after the process has taken 100,000
+  // distinct sessions through session.idle, ten times the
+  // already-implausible bar SESSION_STATE_CAP sets. Trivial and bounded;
+  // not "unbounded, just with extra steps."
+  const HANDLED_IDLE_SESSIONS_CAP = 100_000;
+  const handledIdleInsertOrder = new Set(); // Insertion-ordered ledger
+  // scoped ONLY to handledIdleSessions -- intentionally separate from
+  // sessionInsertOrder above; see this constant's comment for why
+  // sharing one ledger across all three structures (the original S1
+  // shape) was the bug.
 
   function trackSessionAndEvictIfOverCap(sessionID) {
     if (sessionInsertOrder.has(sessionID)) return;
@@ -548,17 +642,45 @@ export const HookBridge = async (input) => {
     sessionInsertOrder.delete(oldest);
     sessionParent.delete(oldest);
     sessionAgent.delete(oldest);
-    handledIdleSessions.delete(oldest);
     console.error(
       `hook-bridge: session-state cap (${SESSION_STATE_CAP} distinct ` +
-        `sessions) exceeded; evicted oldest-tracked session '${oldest}'. ` +
-        "If that session is somehow still live, its next guarded tool " +
-        "call will resolve caller_role = None (fail-safe, but a " +
-        "functional regression) and a subsequent session.idle for it " +
-        "could re-run its Stop/SubagentStop gate. This should only occur " +
-        "for a process that has served an implausible number of distinct " +
-        "sessions -- see the S1 bounded-eviction comment above " +
-        "sessionInsertOrder's declaration.",
+        `sessions) exceeded; evicted oldest-tracked session '${oldest}' ` +
+        "from sessionParent/sessionAgent (handledIdleSessions is on its " +
+        "own separate, larger cap -- see HANDLED_IDLE_SESSIONS_CAP above " +
+        "-- and is NOT evicted here). If that session is somehow still " +
+        "live, its next guarded tool call will resolve caller_role = " +
+        "None (fail-safe, but a functional regression). This should " +
+        "only occur for a process that has served an implausible number " +
+        "of distinct sessions -- see the S1/S2 bounded-eviction comment " +
+        "above sessionInsertOrder's declaration.",
+    );
+  }
+
+  // handledIdleSessions' own eviction, on handledIdleInsertOrder's
+  // independent clock -- S2 fix. Called from the session.idle handler
+  // right after a sessionID is newly added to handledIdleSessions;
+  // mirrors trackSessionAndEvictIfOverCap's shape exactly, just scoped
+  // to one Set instead of two Maps, and to HANDLED_IDLE_SESSIONS_CAP
+  // instead of SESSION_STATE_CAP.
+  function trackHandledIdleAndEvictIfOverCap(sessionID) {
+    if (handledIdleInsertOrder.has(sessionID)) return;
+    handledIdleInsertOrder.add(sessionID);
+    if (handledIdleInsertOrder.size <= HANDLED_IDLE_SESSIONS_CAP) return;
+
+    const oldest = handledIdleInsertOrder.values().next().value;
+    handledIdleInsertOrder.delete(oldest);
+    handledIdleSessions.delete(oldest);
+    console.error(
+      `hook-bridge: handled-idle-session cap (${HANDLED_IDLE_SESSIONS_CAP} ` +
+        "distinct sessions) exceeded; evicted oldest-tracked session " +
+        `'${oldest}' from handledIdleSessions. A LATER session.idle for ` +
+        "that sessionID, if one somehow still arrives, would no longer " +
+        "be deduped and could re-run its Stop/SubagentStop gate. This " +
+        `should only occur for a process that has taken ` +
+        `${HANDLED_IDLE_SESSIONS_CAP} distinct sessions through ` +
+        "session.idle -- ten times the already-implausible bar " +
+        "SESSION_STATE_CAP sets -- see this function's declaration " +
+        "comment.",
     );
   }
 
@@ -688,13 +810,16 @@ export const HookBridge = async (input) => {
         const sessionID = event.properties?.sessionID ?? info.id;
         if (!sessionID) return;
 
-        // S1 bounded eviction: record this sessionID's first-seen order
-        // and evict the oldest tracked session's state if the shared cap
-        // is exceeded. Must run before the first-write-wins population
-        // below so a freshly-evicted-then-immediately-reused sessionID
-        // (implausible, but the cap's whole premise is "implausible
-        // things become possible at extreme scale") is tracked fresh
-        // rather than silently skipped as "already seen".
+        // S1/S2 bounded eviction: record this sessionID's first-seen
+        // order and evict the oldest tracked sessionParent/sessionAgent
+        // entry if SESSION_STATE_CAP is exceeded (handledIdleSessions is
+        // evicted separately, on its own clock -- see
+        // trackHandledIdleAndEvictIfOverCap). Must run before the
+        // first-write-wins population below so a freshly-evicted-then-
+        // immediately-reused sessionID (implausible, but the cap's
+        // whole premise is "implausible things become possible at
+        // extreme scale") is tracked fresh rather than silently
+        // skipped as "already seen".
         trackSessionAndEvictIfOverCap(sessionID);
 
         // First-write-wins for both maps (finding H-1(b)). session.created
@@ -822,6 +947,9 @@ export const HookBridge = async (input) => {
         // session.idle was observed firing twice for one child session
         // in the runtime spike; run the Stop-equivalent gate at most once.
         handledIdleSessions.add(sessionID);
+        trackHandledIdleAndEvictIfOverCap(sessionID); // S2 fix: bound
+        // handledIdleSessions on its OWN independent, much larger cap --
+        // see HANDLED_IDLE_SESSIONS_CAP's declaration comment.
 
         const parentID = sessionParent.get(sessionID);
         const hookName = parentID
